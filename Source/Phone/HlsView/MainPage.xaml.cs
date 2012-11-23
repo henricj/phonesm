@@ -56,6 +56,8 @@ namespace HlsView
                 {
                     var state = mediaElement1.CurrentState;
 
+                    Debug.WriteLine("Media Element State: " + state);
+
                     MediaStateBox.Text = state.ToString();
 
                     if (MediaElementState.Closed == state)
@@ -95,8 +97,6 @@ namespace HlsView
 
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
-
-            CleanupMedia();
 
             var simpleSegmentManager = new PlaylistSegmentManager(new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"));
 

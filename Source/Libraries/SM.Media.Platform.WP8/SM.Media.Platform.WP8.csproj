@@ -88,55 +88,55 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\AsyncManualResetEvent.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\AsyncManualResetEvent.cs">
       <Link>AsyncManualResetEvent.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\BlockingPool.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\BlockingPool.cs">
       <Link>BlockingPool.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\CachedWebRequest.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\CachedWebRequest.cs">
       <Link>CachedWebRequest.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\CallbackReader.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\CallbackReader.cs">
       <Link>CallbackReader.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\CommandWorker.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\CommandWorker.cs">
       <Link>CommandWorker.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\IAsyncLoadTask.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\IAsyncLoadTask.cs">
       <Link>IAsyncLoadTask.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\M3U8\M3U8ParserAsyncExtensions.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\M3U8\M3U8ParserAsyncExtensions.cs">
       <Link>M3U8\M3U8ParserAsyncExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\PlatformServices.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\Playlists\PlaylistSegmentManager.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\Playlists\PlaylistSegmentManager.cs">
       <Link>Playlists\PlaylistSegmentManager.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\Playlists\PlaylistSubProgram.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\Playlists\PlaylistSubProgram.cs">
       <Link>Playlists\PlaylistSubProgram.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\Playlists\ProgramManager.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\Playlists\ProgramManager.cs">
       <Link>Playlists\ProgramManager.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\QueueWorker.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\QueueWorker.cs">
       <Link>QueueWorker.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\Retry.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\Retry.cs">
       <Link>Retry.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\SegmentReader.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\SegmentReader.cs">
       <Link>SegmentReader.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\TplTaskExtensions.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\TplTaskExtensions.cs">
       <Link>TplTaskExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\TsMediaManager.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\TsMediaManager.cs">
       <Link>TsMediaManager.cs</Link>
     </Compile>
-    <Compile Include="..\TsMediaStreamSource\TsMediaStreamSource.cs">
+    <Compile Include="..\SM.Media.Platform.WP7\TsMediaStreamSource.cs">
       <Link>TsMediaStreamSource.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />

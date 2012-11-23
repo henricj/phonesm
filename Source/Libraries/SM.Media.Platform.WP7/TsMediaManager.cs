@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="TsMediaManager.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="TsMediaManager.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -27,7 +27,6 @@
 using System;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using SM.Media;
 using SM.Media.Segments;
 
 namespace SM.Media
@@ -41,9 +40,11 @@ namespace SM.Media
 
     public class TsMediaManager : ITsMediaManager, IMediaManager
     {
+        static readonly TimeSpan SeekEndTolerance = TimeSpan.FromSeconds(8);
+        static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromMilliseconds(250);
         readonly CommandWorker _commandWorker = new CommandWorker();
         readonly MediaElement _mediaElement;
-        Media.MediaParser _mediaParser;
+        MediaParser _mediaParser;
         TsMediaStreamSource _mediaStreamSource;
         QueueWorker<CallbackReader.WorkBuffer> _queueWorker;
         CallbackReader _reader;
@@ -99,18 +100,23 @@ namespace SM.Media
             //_commandWorker.SendCommand(new CommandWorker.Command(StopAsync));
         }
 
-        public void Seek(TimeSpan timestamp)
-        {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(timestamp)));
-        }
-
         public void Pause()
         { }
 
         public void Resume()
         { }
 
+        public void ReportPosition(TimeSpan position)
+        {
+            _mediaParser.ReportPosition(position);
+        }
+
         #endregion
+
+        public void Seek(TimeSpan timestamp)
+        {
+            _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(timestamp)));
+        }
 
         async Task PlayAsync(ISegmentManager segmentManager)
         {
@@ -120,15 +126,16 @@ namespace SM.Media
 
             _mediaStreamSource = new TsMediaStreamSource(this);
 
-            _queueWorker = new QueueWorker<CallbackReader.WorkBuffer>(wi =>
-            {
-                if (null == wi)
-                    _mediaParser.ProcessData(null, 0);
-                else
-                    _mediaParser.ProcessData(wi.Buffer, wi.Length);
-            }, _reader.FreeBuffer);
+            _queueWorker = new QueueWorker<CallbackReader.WorkBuffer>(
+                wi =>
+                {
+                    if (null == wi)
+                        _mediaParser.ProcessData(null, 0);
+                    else
+                        _mediaParser.ProcessData(wi.Buffer, wi.Length);
+                }, _reader.FreeBuffer);
 
-            _mediaParser = new Media.MediaParser(_queueWorker, _mediaStreamSource.ReportProgress, mediaStream => { mediaStream.ConfigurationComplete += _mediaStreamSource.MediaStreamOnConfigurationComplete; });
+            _mediaParser = new MediaParser(_queueWorker, _mediaStreamSource.ReportProgress, mediaStream => { mediaStream.ConfigurationComplete += _mediaStreamSource.MediaStreamOnConfigurationComplete; });
 
             _mediaParser.Initialize();
 
@@ -175,9 +182,6 @@ namespace SM.Media
             { }
         }
 
-        static readonly TimeSpan SeekEndTolerance = TimeSpan.FromSeconds(8);
-        static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromMilliseconds(250);
-
         async Task SeekAsync(TimeSpan position)
         {
             var bufferPosition = _mediaParser.BufferPosition;
@@ -192,11 +196,6 @@ namespace SM.Media
             _queueWorker.IsEnabled = true;
 
             await _reader.StartAsync(position);
-        }
-
-        public void ReportPosition(TimeSpan position)
-        {
-            _mediaParser.ReportPosition(position);
         }
     }
 }

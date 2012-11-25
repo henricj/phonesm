@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
@@ -50,24 +51,24 @@ namespace HlsView
 
             _positionSampler = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(75) };
             _positionSampler.Tick += OnPositionSamplerOnTick;
+        }
 
-            mediaElement1.CurrentStateChanged +=
-                (sender, args) =>
-                {
-                    var state = mediaElement1.CurrentState;
 
-                    Debug.WriteLine("Media Element State: " + state);
+        void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
+        {
+            var state = mediaElement1.CurrentState;
 
-                    MediaStateBox.Text = state.ToString();
+            Debug.WriteLine("MediaElement State: " + state);
 
-                    if (MediaElementState.Closed == state)
-                    {
-                        playButton.IsEnabled = true;
-                        stopButton.IsEnabled = false;
-                    }
-                    else
-                        stopButton.IsEnabled = true;
-                };
+            MediaStateBox.Text = state.ToString();
+
+            if (MediaElementState.Closed == state)
+            {
+                playButton.IsEnabled = true;
+                stopButton.IsEnabled = false;
+            }
+            else
+                stopButton.IsEnabled = true;
         }
 
         void OnPositionSamplerOnTick(object o, EventArgs ea)
@@ -149,6 +150,33 @@ namespace HlsView
             base.OnNavigatedFrom(e);
 
             CleanupMedia();
+
+            ContentPanel.Children.Remove(mediaElement1);
+
+            mediaElement1.MediaFailed -= mediaElement1_MediaFailed;
+            mediaElement1.MediaEnded -= mediaElement1_MediaEnded;
+            mediaElement1.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+
+            mediaElement1 = null;
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            if (null == mediaElement1)
+            {
+                // <MediaElement Name="mediaElement1" AutoPlay="True" MediaFailed="mediaElement1_MediaFailed" MediaEnded="mediaElement1_MediaEnded" />
+                mediaElement1 = new MediaElement { Margin = new Thickness(0) };
+
+                mediaElement1.MediaFailed += mediaElement1_MediaFailed;
+                mediaElement1.MediaEnded += mediaElement1_MediaEnded;
+                mediaElement1.CurrentStateChanged += mediaElement1_CurrentStateChanged;
+
+                ContentPanel.Children.Add(mediaElement1);
+            }
+
+            mediaElement1_CurrentStateChanged(null, null);
         }
     }
 }

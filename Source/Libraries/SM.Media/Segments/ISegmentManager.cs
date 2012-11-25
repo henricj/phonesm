@@ -31,14 +31,15 @@ namespace SM.Media.Segments
     public interface ISegmentManager
     {
         Segment Next();
-        Segment Seek(TimeSpan timestamp);
+        Segment Seek(TimeSpan timestamp, out TimeSpan actualPosition);
     }
 
     public static class SegmentManagerExtensions
     {
         public static Segment Start(this ISegmentManager segmentManager)
         {
-            return segmentManager.Seek(TimeSpan.Zero);
+            TimeSpan actualPosition;
+            return segmentManager.Seek(TimeSpan.Zero, out actualPosition);
             //return segmentManager.Seek(TimeSpan.Zero);
         }
     }

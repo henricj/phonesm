@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="QueueWorker.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="QueueWorker.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -29,7 +29,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media;
 
 namespace SM.Media
 {
@@ -39,8 +38,10 @@ namespace SM.Media
         readonly CancellationTokenSource _abortTokenSource = new CancellationTokenSource();
         readonly Action<TWorkItem> _callback;
         readonly Action<TWorkItem> _cleanup;
+        readonly TaskCompletionSource<bool> _closeTaskCompletionSource = new TaskCompletionSource<bool>();
         readonly LinkedList<TWorkItem> _processBuffers = new LinkedList<TWorkItem>();
         readonly object _processLock = new object();
+        bool _isClosed;
         int _isDisposed;
         bool _isEnabled;
         bool _isPaused;
@@ -60,6 +61,9 @@ namespace SM.Media
             {
                 lock (_processLock)
                 {
+                    if (_isClosed)
+                        return;
+
                     if (_isEnabled == value)
                         return;
 
@@ -80,6 +84,9 @@ namespace SM.Media
             set
             {
                 ThrowIfDisposed();
+
+                if (_isClosed)
+                    return;
 
                 if (_isPaused == value)
                     return;
@@ -117,10 +124,27 @@ namespace SM.Media
 
         #endregion
 
+        #region IQueueThrottling Members
+
+        public void Pause()
+        {
+            IsPaused = true;
+        }
+
+        public void Resume()
+        {
+            IsPaused = false;
+        }
+
+        #endregion
+
         public void Enqueue(TWorkItem value)
         {
             lock (_processLock)
             {
+                if (_isClosed)
+                    return;
+
                 ThrowIfDisposed();
 
                 _processBuffers.AddLast(value);
@@ -149,6 +173,11 @@ namespace SM.Media
 
         public void Clear()
         {
+            ClearImpl(false);
+        }
+
+        void ClearImpl(bool closeQueue)
+        {
             TWorkItem[] workItems = null;
 
             lock (_processLock)
@@ -160,6 +189,21 @@ namespace SM.Media
                     _processBuffers.CopyTo(workItems, 0);
 
                     _processBuffers.Clear();
+                }
+
+                if (closeQueue)
+                {
+                    if (!_isClosed)
+                    {
+                        _isClosed = true;
+
+                        UnlockedWakeWorker();
+                    }
+                }
+                else
+                {
+                    if (!_isPaused)
+                        UnlockedWakeWorker();
                 }
             }
 
@@ -198,6 +242,13 @@ namespace SM.Media
             return queueWorker ?? TplTaskExtensions.CompletedTask;
         }
 
+        public Task CloseAsync()
+        {
+            ClearImpl(true);
+
+            return _closeTaskCompletionSource.Task;
+        }
+
         async Task WorkerAsync()
         {
             try
@@ -208,47 +259,40 @@ namespace SM.Media
 
                     try
                     {
-                        bool isEnabled;
-
                         lock (_processLock)
                         {
-                            if (0 != _isDisposed)
-                                return;
+                            var isDisposed = 0 != _isDisposed;
+                            var isEnabled = _isEnabled;
+                            var isClosed = _isClosed;
+                            var isPaused = _isPaused;
 
-                            isEnabled = _isEnabled;
-
-                            if (isEnabled)
+                            if (isDisposed || !isEnabled || isClosed || isPaused)
                             {
-                                if (_isPaused)
-                                    return;
-                                else
-                                {
-                                    if (0 == _processBuffers.Count)
-                                        return;
+                                if (isClosed && !_closeTaskCompletionSource.Task.IsCompleted)
+                                    _closeTaskCompletionSource.SetResult(true);
 
-                                    var item = _processBuffers.First;
+                                _workerRunning = false;
 
-                                    _processBuffers.RemoveFirst();
-
-                                    workItem = item.Value;
-                                }
+                                return;
                             }
-                        }
 
-                        if (!isEnabled)
-                        {
-                            Clear();
-                            return;
+                            if (0 == _processBuffers.Count)
+                            {
+                                _workerRunning = false;
+                                return;
+                            }
+
+                            var item = _processBuffers.First;
+
+                            _processBuffers.RemoveFirst();
+
+                            workItem = item.Value;
                         }
 
                         _callback(workItem);
 
                         if (null == workItem)
-                        {
                             Clear();
-
-                            return;
-                        }
 
                         continue;
                     }
@@ -282,19 +326,10 @@ namespace SM.Media
             {
                 lock (_processLock)
                 {
+                    Debug.Assert(!_workerRunning);
                     _workerRunning = false;
                 }
             }
-        }
-
-        public void Pause()
-        {
-            IsPaused = true;
-        }
-
-        public void Resume()
-        {
-            IsPaused = false;
         }
     }
 }

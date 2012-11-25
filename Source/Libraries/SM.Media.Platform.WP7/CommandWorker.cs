@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="CommandWorker.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="CommandWorker.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -34,22 +34,32 @@ namespace SM.Media
     sealed class CommandWorker : IDisposable
     {
         readonly Queue<Command> _commandQueue = new Queue<Command>();
+        readonly TaskCompletionSource<bool> _workerClosedTaskCompletionSource = new TaskCompletionSource<bool>();
         bool _isClosed;
         bool _managerRunning;
         Task _managerTask;
 
+        #region IDisposable Members
+
         public void Dispose()
         {
+            Task waitTask = null;
+
             lock (_commandQueue)
             {
                 _isClosed = true;
 
                 if (null != _managerTask && !_managerTask.IsCompleted && _managerRunning)
                 {
-                    _managerTask.Wait();
+                    waitTask = _managerTask;
                 }
             }
+
+            if (null != waitTask)
+                waitTask.Wait();
         }
+
+        #endregion
 
         public void SendCommand(Command command)
         {
@@ -60,11 +70,16 @@ namespace SM.Media
 
                 _commandQueue.Enqueue(command);
 
-                if (null == _managerTask || _managerTask.IsCompleted || !_managerRunning)
-                {
-                    _managerRunning = true;
-                    _managerTask = Task.Factory.StartNew((Func<Task>)ManageAsync).Unwrap();
-                }
+                UnlockedPokeWorker();
+            }
+        }
+
+        void UnlockedPokeWorker()
+        {
+            if (null == _managerTask || _managerTask.IsCompleted || !_managerRunning)
+            {
+                _managerRunning = true;
+                _managerTask = Task.Factory.StartNew((Func<Task>)ManageAsync).Unwrap();
             }
         }
 
@@ -72,12 +87,14 @@ namespace SM.Media
         {
             lock (_commandQueue)
             {
+                var wasClosed = _isClosed;
+
                 _isClosed = true;
 
-                if (null == _managerTask)
-                    return TplTaskExtensions.CompletedTask;
+                if (!wasClosed)
+                    UnlockedPokeWorker();
 
-                return _managerTask;
+                return _workerClosedTaskCompletionSource.Task;
             }
         }
 
@@ -98,6 +115,9 @@ namespace SM.Media
 
                     if (commands.Count < 1)
                     {
+                        if (_isClosed && !_workerClosedTaskCompletionSource.Task.IsCompleted)
+                            _workerClosedTaskCompletionSource.SetResult(true);
+
                         _managerRunning = false;
                         return;
                     }
@@ -137,6 +157,8 @@ namespace SM.Media
             }
         }
 
+        #region Nested type: Command
+
         public class Command
         {
             public readonly Action<bool> Complete;
@@ -148,5 +170,7 @@ namespace SM.Media
                 Complete = complete;
             }
         }
+
+        #endregion
     }
 }

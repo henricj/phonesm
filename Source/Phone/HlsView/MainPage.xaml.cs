@@ -122,7 +122,7 @@ namespace HlsView
             _positionSampler.Stop();
 
             if (null != _tsMediaManager)
-                _tsMediaManager.Stop();
+                _tsMediaManager.Close();
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)

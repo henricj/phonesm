@@ -118,6 +118,7 @@
     <Compile Include="Utility\BufferPool.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
+    <Compile Include="Utility\MediaStreamFsm.cs" />
     <Compile Include="Utility\PoolBufferInstance.cs" />
   </ItemGroup>
   <ItemGroup>

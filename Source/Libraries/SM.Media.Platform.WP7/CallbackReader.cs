@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="CallbackReader.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="CallbackReader.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -34,7 +34,6 @@ namespace SM.Media
 {
     class CallbackReader : IDisposable
     {
-        //const int BufferSize = 87 * 188; // Almost 16384 and saves some cycles having to rebuffer partial packets
         const int BufferSize = 174 * 188; // Almost 32768 and saves some cycles having to rebuffer partial packets
         const int MaxBuffers = 8;
         readonly BlockingPool<WorkBuffer> _bufferPool = new BlockingPool<WorkBuffer>(MaxBuffers);
@@ -88,7 +87,7 @@ namespace SM.Media
             { }
         }
 
-        protected async Task ReadAsync(ISegmentManager segmentManager, TimeSpan startTime, CancellationToken cancellationToken)
+        protected async Task ReadAsync(ISegmentManager segmentManager, TimeSpan startTime, TaskCompletionSource<TimeSpan> seekDone, CancellationToken cancellationToken)
         {
             var sw = new Stopwatch();
 
@@ -100,12 +99,18 @@ namespace SM.Media
 
                 using (var segmentReader = new SegmentReader(_segmentManager))
                 {
-                    var open = segmentReader.Seek(startTime);
+                    TimeSpan actualPosition;
+                    var open = segmentReader.Seek(startTime, out actualPosition);
 
                     if (!open)
+                    {
+                        seekDone.SetCanceled();
                         return;
+                    }
 
-                    for (;;)
+                    seekDone.SetResult(actualPosition);
+
+                    for (; ; )
                     {
                         var url = segmentReader.Url;
 
@@ -199,7 +204,8 @@ namespace SM.Media
 
         public virtual void Seek(TimeSpan position, Action<TimeSpan> seekCompleted)
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(position), b => seekCompleted(position)));
+            _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(position)
+                                                                           .ContinueWith(t => seekCompleted(t.Result))));
         }
 
         public void Stop(Action stopCallback)
@@ -222,17 +228,17 @@ namespace SM.Media
             //_commandWorker.CloseAsync();
         }
 
-        public async Task StartAsync(TimeSpan startPosition)
+        public async Task<TimeSpan> StartAsync(TimeSpan startPosition)
         {
             lock (_readerLock)
             {
                 Debug.Assert(null == _readerTask || _readerTask.IsCompleted);
 
                 if (_isClosed)
-                    return;
+                    return TimeSpan.Zero;
             }
 
-            await SeekAsync(startPosition);
+            return await SeekAsync(startPosition);
         }
 
         public async Task StopAsync()
@@ -266,21 +272,25 @@ namespace SM.Media
             await StopAsync();
         }
 
-        async Task SeekAsync(TimeSpan position)
+        async Task<TimeSpan> SeekAsync(TimeSpan position)
         {
             await StopAsync();
+
+            var seekDone = new TaskCompletionSource<TimeSpan>();
 
             lock (_readerLock)
             {
                 if (_isClosed)
-                    return;
+                    return TimeSpan.Zero;
 
                 if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
                     _readCancellationSource = new CancellationTokenSource();
 
                 _readerRunning = true;
-                _readerTask = Task.Factory.StartNew(() => ReadAsync(SegmentManager, position, _readCancellationSource.Token)).Unwrap();
+                _readerTask = Task.Factory.StartNew(() => ReadAsync(SegmentManager, position, seekDone, _readCancellationSource.Token)).Unwrap();
             }
+
+            return await seekDone.Task;
         }
 
         #endregion

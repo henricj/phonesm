@@ -32,7 +32,7 @@ namespace SM.Media
     public interface ITsMediaManager
     {
         void Play(ISegmentManager segmentManager);
-        void Stop();
+        void Close();
         void Pause();
         void Resume();
         void ReportPosition(TimeSpan position);

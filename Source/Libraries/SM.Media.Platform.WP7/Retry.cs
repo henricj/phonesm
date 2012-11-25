@@ -36,18 +36,22 @@ namespace SM.Media
         readonly int _delayMilliseconds;
         readonly int _maxRetries;
         readonly Func<Exception, bool> _retryableException;
+        int _retry;
+        int _delay;
 
         public Retry(int maxRetries, int delayMilliseconds, Func<Exception, bool> retryableException)
         {
             _maxRetries = maxRetries;
             _delayMilliseconds = delayMilliseconds;
             _retryableException = retryableException;
+            _retry = 0;
+            _delay = 0;
         }
 
         public async Task<TResult> CallAsync<TResult>(Func<Task<TResult>> operation)
         {
-            var retry = 0;
-            var delay = _delayMilliseconds;
+            _retry = 0;
+            _delay = _delayMilliseconds;
 
             for (; ; )
             {
@@ -57,15 +61,15 @@ namespace SM.Media
                 }
                 catch (Exception ex)
                 {
-                    if (++retry > _maxRetries || !_retryableException(ex))
+                    if (++_retry > _maxRetries || !_retryableException(ex))
                         throw;
 
-                    Debug.WriteLine("Retry {0} after: {1}", retry, ex.Message);
+                    Debug.WriteLine("Retry {0} after: {1}", _retry, ex.Message);
                 }
 
-                var actualDelay = (int)(delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
+                var actualDelay = (int)(_delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
 
-                delay += delay;
+                _delay += _delay;
 
 #if WINDOWS_PHONE8
                 await Task.Delay(actualDelay);
@@ -77,8 +81,8 @@ namespace SM.Media
 
         public async Task<TResult> Call<TResult>(Func<TResult> operation)
         {
-            var retry = 0;
-            var delay = _delayMilliseconds;
+            _retry = 0;
+            _delay = _delayMilliseconds;
 
             for (; ; )
             {
@@ -88,15 +92,15 @@ namespace SM.Media
                 }
                 catch (Exception ex)
                 {
-                    if (++retry > _maxRetries || !_retryableException(ex))
+                    if (++_retry > _maxRetries || !_retryableException(ex))
                         throw;
 
-                    Debug.WriteLine("Retry {0} after: {1}", retry, ex.Message);
+                    Debug.WriteLine("Retry {0} after: {1}", _retry, ex.Message);
                 }
 
-                var actualDelay = (int)(delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
+                var actualDelay = (int)(_delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
 
-                delay += delay;
+                _delay += _delay;
 
 #if WINDOWS_PHONE8
                 await Task.Delay(actualDelay);

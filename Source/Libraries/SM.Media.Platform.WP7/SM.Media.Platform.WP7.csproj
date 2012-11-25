@@ -70,6 +70,7 @@
     <Compile Include="BlockingPool.cs" />
     <Compile Include="CachedWebRequest.cs" />
     <Compile Include="CallbackReader.cs" />
+    <Compile Include="CallerInfo.cs" />
     <Compile Include="CommandWorker.cs" />
     <Compile Include="IAsyncLoadTask.cs" />
     <Compile Include="M3U8\M3U8ParserAsyncExtensions.cs" />

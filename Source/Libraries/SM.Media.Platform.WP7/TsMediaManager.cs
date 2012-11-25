@@ -25,9 +25,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Media;
 using SM.Media.Segments;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
@@ -35,7 +40,8 @@ namespace SM.Media
     {
         void OpenMedia();
         void CloseMedia();
-        Task SeekMediaAsync(TimeSpan timestamp);
+        Task<TimeSpan> SeekMediaAsync(TimeSpan position);
+        void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
     }
 
     public class TsMediaManager : ITsMediaManager, IMediaManager
@@ -45,9 +51,13 @@ namespace SM.Media
         readonly CommandWorker _commandWorker = new CommandWorker();
         readonly MediaElement _mediaElement;
         MediaParser _mediaParser;
+        //#if MEDIA_STREAM_STATE_VALIDATION
+        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
+        //#endif
         TsMediaStreamSource _mediaStreamSource;
         QueueWorker<CallbackReader.WorkBuffer> _queueWorker;
         CallbackReader _reader;
+        int _sourceIsSet;
 
         public TsMediaManager(MediaElement mediaElement)
         {
@@ -55,6 +65,8 @@ namespace SM.Media
                 throw new ArgumentNullException("mediaElement");
 
             _mediaElement = mediaElement;
+
+            _mediaStreamFsm.Reset();
         }
 
         #region IMediaManager Members
@@ -66,23 +78,24 @@ namespace SM.Media
 
         public void CloseMedia()
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(StopAsync));
+            _commandWorker.SendCommand(new CommandWorker.Command(CloseAsync));
         }
 
-        public Task SeekMediaAsync(TimeSpan timestamp)
+        public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
         {
             var seekCompletion = new TaskCompletionSource<TimeSpan>();
 
-            _commandWorker.SendCommand(new CommandWorker.Command(() =>
-                                                                 {
-                                                                     var seekTask = SeekAsync(timestamp);
-
-                                                                     seekTask.ContinueWith(t => seekCompletion.TrySetResult(timestamp));
-
-                                                                     return seekTask;
-                                                                 }, b => seekCompletion.TrySetCanceled()));
+            _commandWorker.SendCommand(new CommandWorker.Command(
+                                           () => SeekAsync(position)
+                                                     .ContinueWith(t => seekCompletion.SetResult(position)),
+                                           b => { if (!b) seekCompletion.SetCanceled(); }));
 
             return seekCompletion.Task;
+        }
+
+        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
+        {
+            _mediaStreamFsm.ValidateEvent(mediaEvent);
         }
 
         #endregion
@@ -94,10 +107,9 @@ namespace SM.Media
             _commandWorker.SendCommand(new CommandWorker.Command(() => PlayAsync(segmentManager)));
         }
 
-        public void Stop()
+        public void Close()
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => _mediaElement.Dispatcher.InvokeAsync(() => _mediaElement.Source = null)));
-            //_commandWorker.SendCommand(new CommandWorker.Command(StopAsync));
+            _commandWorker.SendCommand(new CommandWorker.Command(CloseAsync));
         }
 
         public void Pause()
@@ -141,7 +153,17 @@ namespace SM.Media
 
             _queueWorker.IsEnabled = true;
 
-            await Dispatch(() => _mediaElement.SetSource(_mediaStreamSource));
+            await Dispatch(() =>
+                           {
+                               ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
+                               var wasSet = Interlocked.Exchange(ref _sourceIsSet, 1);
+
+                               Debug.Assert(0 == wasSet);
+
+                               _mediaElement.Source = null;
+
+                               _mediaElement.SetSource(_mediaStreamSource);
+                           });
         }
 
         Task Dispatch(Action action)
@@ -157,20 +179,60 @@ namespace SM.Media
 
         async Task StopAsync()
         {
+            var reader = _reader;
+
+            if (null != reader)
+                await reader.StopAsync();
+
+            var queue = _queueWorker;
+
+            if (null != queue)
+                await queue.FlushAsync();
+        }
+
+        async Task CloseAsync()
+        {
+            var tasks = new List<Task>();
+
+            var mss = _mediaStreamSource;
+            Task drainTask = null;
+            if (null != mss)
+                drainTask = mss.CloseAsync();
+
             var queueWorker = _queueWorker;
 
             if (null != queueWorker)
-                queueWorker.IsEnabled = false;
+                tasks.Add(queueWorker.CloseAsync());
 
             // Setting the MediaElement's source to null will cause MediaElement to call TsMediaStreamSource.Dispose().
             // Make sure we are done pushing packet before we start disposing things.
 
             var reader = _reader;
             if (null != reader)
-                await reader.StopAsync();
+                tasks.Add(reader.StopAsync());
 
-            if (null != queueWorker)
-                await queueWorker.ClearAsync();
+            if (tasks.Count > 0)
+            {
+#if WINDOWS_PHONE8
+                await Task.WhenAll(tasks);
+#else
+                await TaskEx.WhenAll(tasks);
+#endif
+            }
+
+            if (null != drainTask)
+            {
+#if WINDOWS_PHONE8
+                await Task.WhenAny(drainTask, Task.Delay(1500));
+#else
+                await TaskEx.WhenAny(drainTask, TaskEx.Delay(1500));
+#endif
+            }
+
+            var wasSet = Interlocked.CompareExchange(ref _sourceIsSet, 2, 1);
+
+            if (0 != wasSet)
+                await _mediaElement.Dispatcher.InvokeAsync(UiThreadCleanup);
 
             _queueWorker = null;
             _reader = null;
@@ -182,20 +244,54 @@ namespace SM.Media
             { }
         }
 
-        async Task SeekAsync(TimeSpan position)
+        void UiThreadCleanup()
+        {
+            var was2 = Interlocked.CompareExchange(ref _sourceIsSet, 3, 2);
+
+            if (2 != was2 && 3 != was2)
+                return;
+
+            var state = _mediaElement.CurrentState;
+
+            if (MediaElementState.Closed != state && MediaElementState.Stopped != state)
+                _mediaElement.Stop();
+
+            state = _mediaElement.CurrentState;
+
+            //if (MediaElementState.Closed == state || MediaElementState.Stopped == state)
+            _mediaElement.Source = null;
+
+            state = _mediaElement.CurrentState;
+
+            if (MediaElementState.Closed == state || MediaElementState.Stopped == state)
+            {
+                var was3 = Interlocked.Exchange(ref _sourceIsSet, 0);
+
+                Debug.Assert(3 == was3);
+            }
+        }
+
+        async Task<TimeSpan> SeekAsync(TimeSpan position)
         {
             var bufferPosition = _mediaParser.BufferPosition;
 
             if (position >= bufferPosition - SeekBeginTolerance && position < bufferPosition + SeekEndTolerance)
-                return;
+                return TimeSpan.Zero;
 
             _queueWorker.IsEnabled = false;
 
-            await _reader.StopAsync();
+            try
+            {
+                await _reader.StopAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                // This is normal...
+            }
 
             _queueWorker.IsEnabled = true;
 
-            await _reader.StartAsync(position);
+            return await _reader.StartAsync(position);
         }
     }
 }

@@ -50,8 +50,10 @@ namespace SM.Media.Segments
 
         #region ISegmentManager Members
 
-        public Segment Seek(TimeSpan timestamp)
+        public Segment Seek(TimeSpan timestamp, out TimeSpan actualPosition)
         {
+            actualPosition = TimeSpan.Zero;
+
             CleanupEnumerator();
 
             _urlEnumerator = _urls.GetEnumerator();

@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="PlaylistSegmentManager.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="PlaylistSegmentManager.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -31,23 +31,22 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
-using SM.Media.Playlists;
 using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
     public class PlaylistSegmentManager : ISegmentManager, IAsyncLoadTask, IDisposable
     {
-        readonly Uri _playlist;
         readonly CancellationToken _cancellationToken;
-        Task _reader;
-        Task _reReader;
-        SubStreamSegment[] _segments;
-        int _segmentIndex;
+        readonly Uri _playlist;
         readonly object _segmentLock = new object();
         bool _dynamicPlayist;
-        PlaylistSubProgramBase _subProgram;
+        Task _reReader;
+        Task _reader;
+        int _segmentIndex;
+        SubStreamSegment[] _segments;
         CachedWebRequest _subPlaylistRequest;
+        PlaylistSubProgramBase _subProgram;
 
         public PlaylistSegmentManager(Uri playlist)
             : this(playlist, CancellationToken.None)
@@ -59,8 +58,31 @@ namespace SM.Media.Playlists
             _cancellationToken = cancellationToken;
         }
 
+        #region IAsyncLoadTask Members
+
+        public Task WaitLoad()
+        {
+            lock (_segmentLock)
+            {
+                if (null == _reader)
+                    _reader = Task.Factory
+                                  .StartNew((Func<Task>)Reader)
+                                  .Unwrap();
+
+                return _reader;
+            }
+        }
+
+        #endregion
+
+        #region IDisposable Members
+
         public void Dispose()
         { }
+
+        #endregion
+
+        #region ISegmentManager Members
 
         public Segment Next()
         {
@@ -76,8 +98,10 @@ namespace SM.Media.Playlists
             return _segments[++_segmentIndex];
         }
 
-        public Segment Seek(TimeSpan timestamp)
+        public Segment Seek(TimeSpan timestamp, out TimeSpan actualPosition)
         {
+            actualPosition = TimeSpan.Zero;
+            
             if (null == _segments || _segments.Length < 1)
                 return null;
 
@@ -96,6 +120,7 @@ namespace SM.Media.Playlists
 
                     if (seekTime + segment.Duration > timestamp)
                     {
+                        actualPosition = seekTime;
                         _segmentIndex = i;
                         break;
                     }
@@ -104,6 +129,8 @@ namespace SM.Media.Playlists
 
             return _segments[_segmentIndex];
         }
+
+        #endregion
 
         void CheckReload()
         {
@@ -135,7 +162,7 @@ namespace SM.Media.Playlists
             if (null == program)
                 return;
 
-            _subProgram = program.SubPrograms.OfType<PlaylistSubProgramBase>().FirstOrDefault();
+            _subProgram = program.SubPrograms.OfType<PlaylistSubProgramBase>().OrderByDescending(p => p.Bandwidth).FirstOrDefault();
 
             if (null == _subProgram)
                 return;
@@ -186,19 +213,6 @@ namespace SM.Media.Playlists
                 _dynamicPlayist = dynamicPlayist;
 
                 _reReader = null;
-            }
-        }
-
-        public Task WaitLoad()
-        {
-            lock (_segmentLock)
-            {
-                if (null == _reader)
-                    _reader = Task.Factory
-                        .StartNew((Func<Task>)Reader)
-                        .Unwrap();
-
-                return _reader;
             }
         }
     }

@@ -40,22 +40,17 @@ namespace SM.Media
         readonly CommandWorker _commandWorker = new CommandWorker();
         readonly Action<WorkBuffer> _enqueue;
         readonly object _readerLock = new object();
-        readonly ISegmentManager _segmentManager;
+        readonly ISegmentReaderManager _segmentReaderManager;
         bool _isClosed;
         CancellationTokenSource _readCancellationSource;
         int _readCount;
         bool _readerRunning;
         Task _readerTask;
 
-        public CallbackReader(ISegmentManager segmentManager, Action<WorkBuffer> enqueue)
+        public CallbackReader(ISegmentReaderManager segmentReaderManager, Action<WorkBuffer> enqueue)
         {
-            _segmentManager = segmentManager;
+            _segmentReaderManager = segmentReaderManager;
             _enqueue = enqueue;
-        }
-
-        public ISegmentManager SegmentManager
-        {
-            get { return _segmentManager; }
         }
 
         #region IDisposable Members
@@ -87,51 +82,32 @@ namespace SM.Media
             { }
         }
 
-        protected async Task ReadAsync(ISegmentManager segmentManager, TimeSpan startTime, TaskCompletionSource<TimeSpan> seekDone, CancellationToken cancellationToken)
+        protected async Task ReadAsync(TimeSpan startTime, TaskCompletionSource<TimeSpan> seekDone, CancellationToken cancellationToken)
         {
             var sw = new Stopwatch();
 
             try
             {
-                var atl = _segmentManager as IAsyncLoadTask;
-                if (null != atl)
-                    await atl.WaitLoad();
+                var actualPosition = await _segmentReaderManager.Seek(startTime, cancellationToken);
 
-                using (var segmentReader = new SegmentReader(_segmentManager))
+                seekDone.SetResult(actualPosition);
+
+                while (await _segmentReaderManager.MoveNextAsync())
                 {
-                    TimeSpan actualPosition;
-                    var open = segmentReader.Seek(startTime, out actualPosition);
+                    var segmentReader = _segmentReaderManager.Current;
 
-                    if (!open)
-                    {
-                        seekDone.SetCanceled();
-                        return;
-                    }
+                    var url = segmentReader.Url;
 
-                    seekDone.SetResult(actualPosition);
+                    Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
 
-                    for (; ; )
-                    {
-                        var url = segmentReader.Url;
+                    sw.Reset();
+                    sw.Start();
 
-                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                    await ReadSegment(segmentReader, cancellationToken);
 
-                        sw.Reset();
-                        sw.Start();
+                    sw.Stop();
 
-                        await ReadSegment(segmentReader, cancellationToken);
-
-                        sw.Stop();
-
-                        Debug.WriteLine("---- Completed {0} at {1} ({2} elapsed).  Total memory: {3}", url, DateTimeOffset.Now, sw.Elapsed, GC.GetTotalMemory(false));
-
-                        var next = segmentReader.Next(cancellationToken);
-
-                        if (null == next)
-                            break;
-
-                        await next;
-                    }
+                    Debug.WriteLine("---- Completed {0} at {1} ({2} elapsed).  Total memory: {3}", url, DateTimeOffset.Now, sw.Elapsed, GC.GetTotalMemory(false));
                 }
 
                 _enqueue(null);
@@ -145,7 +121,7 @@ namespace SM.Media
             }
         }
 
-        async Task ReadSegment(SegmentReader segmentReader, CancellationToken cancellationToken)
+        async Task ReadSegment(ISegmentReader segmentReader, CancellationToken cancellationToken)
         {
             WorkBuffer buffer = null;
 
@@ -287,7 +263,7 @@ namespace SM.Media
                     _readCancellationSource = new CancellationTokenSource();
 
                 _readerRunning = true;
-                _readerTask = Task.Factory.StartNew(() => ReadAsync(SegmentManager, position, seekDone, _readCancellationSource.Token)).Unwrap();
+                _readerTask = Task.Factory.StartNew(() => ReadAsync(position, seekDone, _readCancellationSource.Token)).Unwrap();
             }
 
             return await seekDone.Task;

@@ -98,14 +98,12 @@ namespace SM.Media.Playlists
             return _segments[++_segmentIndex];
         }
 
-        public Segment Seek(TimeSpan timestamp, out TimeSpan actualPosition)
+        public TimeSpan Seek(TimeSpan timestamp)
         {
-            actualPosition = TimeSpan.Zero;
-            
             if (null == _segments || _segments.Length < 1)
-                return null;
+                return TimeSpan.Zero;
 
-            _segmentIndex = 0;
+            _segmentIndex = -1;
 
             if (TimeSpan.Zero < timestamp)
             {
@@ -120,14 +118,15 @@ namespace SM.Media.Playlists
 
                     if (seekTime + segment.Duration > timestamp)
                     {
-                        actualPosition = seekTime;
-                        _segmentIndex = i;
-                        break;
+                        _segmentIndex = i - 1;
+                        return seekTime;
                     }
+
+                    seekTime += segment.Duration.Value;
                 }
             }
 
-            return _segments[_segmentIndex];
+            return TimeSpan.Zero;
         }
 
         #endregion

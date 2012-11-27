@@ -31,22 +31,22 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.Segments;
 using SM.Media.Utility;
 
-namespace SM.Media
+namespace SM.Media.Segments
 {
-    sealed class SegmentReader : IDisposable
+    sealed class SegmentReader : ISegmentReader
     {
-        readonly ISegmentManager _segmentManager;
         WebResponse _response;
         Stream _responseStream;
-        Segment _segment;
+        readonly Segment _segment;
 
-        public SegmentReader(ISegmentManager segmentManager)
+        public SegmentReader(Segment segment)
         {
-            _segmentManager = segmentManager;
+            _segment = segment;
         }
+
+        #region ISegmentReader Members
 
         public Uri Url
         {
@@ -70,63 +70,9 @@ namespace SM.Media
             }
         }
 
-        #region IDisposable Members
-
         public void Dispose()
         {
             Close();
-        }
-
-        #endregion
-
-        WebRequest CreateWebRequest(Segment segment)
-        {
-            var webRequest = WebRequest.Create(segment.Url);
-
-            var httpWebRequest = webRequest as HttpWebRequest;
-
-            if (null != httpWebRequest)
-            {
-                httpWebRequest.AllowReadStreamBuffering = false;
-
-                if (segment.Offset > 0)
-                    httpWebRequest.Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-";
-            }
-
-            return webRequest;
-        }
-
-        public bool Seek(TimeSpan position, out TimeSpan actualPosition)
-        {
-            _segment = _segmentManager.Seek(position, out actualPosition);
-
-            return null != _segment;
-        }
-
-        public Task Next(CancellationToken cancellationToken)
-        {
-            Close();
-
-            _segment = _segmentManager.Next();
-
-            if (null == _segment)
-                return null;
-
-            return OpenStream(cancellationToken);
-        }
-
-        async Task OpenStream(CancellationToken cancellationToken)
-        {
-            _response = await new Retry(3, 150, e => !(e is OperationCanceledException))
-                                  .CallAsync(async () =>
-                                                   {
-                                                       var webRequest = CreateWebRequest(_segment);
-
-                                                       return await Task<WebResponse>.Factory.FromAsync(webRequest.BeginGetResponse, webRequest.EndGetResponse, null);
-                                                   })
-                                  .WithCancellation(cancellationToken);
-
-            _responseStream = _response.GetResponseStream();
         }
 
         public async Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken)
@@ -137,7 +83,7 @@ namespace SM.Media
             do
             {
                 if (null == _responseStream)
-                    await OpenStream(cancellationToken);
+                    _responseStream = await OpenStream(cancellationToken);
 
                 Debug.Assert(null != _responseStream);
 
@@ -205,6 +151,39 @@ namespace SM.Media
             using (_response)
             { }
             _response = null;
+        }
+
+        #endregion
+
+        static WebRequest CreateWebRequest(Segment segment)
+        {
+            var webRequest = WebRequest.Create(segment.Url);
+
+            var httpWebRequest = webRequest as HttpWebRequest;
+
+            if (null != httpWebRequest)
+            {
+                httpWebRequest.AllowReadStreamBuffering = false;
+
+                if (segment.Offset > 0)
+                    httpWebRequest.Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-";
+            }
+
+            return webRequest;
+        }
+
+        async Task<Stream> OpenStream(CancellationToken cancellationToken)
+        {
+            _response = await new Retry(3, 150, e => !(e is OperationCanceledException))
+                                  .CallAsync(async () =>
+                                                   {
+                                                       var webRequest = CreateWebRequest(_segment);
+
+                                                       return await Task<WebResponse>.Factory.FromAsync(webRequest.BeginGetResponse, webRequest.EndGetResponse, null);
+                                                   })
+                                  .WithCancellation(cancellationToken);
+
+            return _response.GetResponseStream();
         }
     }
 }

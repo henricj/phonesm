@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSubProgram.cs" company="Henric Jungheim">
+//  <copyright file="ISegmentReader.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,28 +25,16 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
-using System.Net;
-using System.Text;
-using SM.Media.M3U8;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Segments
 {
-    class PlaylistSubProgram : PlaylistSubProgramBase
+    interface ISegmentReader : IDisposable
     {
-        protected M3U8Parser Parse(Uri playlist)
-        {
-            var parser = new M3U8Parser();
-
-            using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
-            {
-                // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? ProgramManager.M3uEncoding : Encoding.UTF8;
-
-                parser.Parse(f);
-            }
-
-            return parser;
-        }
+        Uri Url { get; }
+        bool IsEof { get; }
+        Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
+        void Close();
     }
 }

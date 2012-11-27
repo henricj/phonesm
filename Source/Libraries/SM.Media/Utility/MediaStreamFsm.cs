@@ -155,7 +155,6 @@ namespace SM.Media.Utility
 
         public void ValidateEvent(MediaEvent mediaEvent)
         {
-            KeyValuePair<MediaState, MediaState>? ret;
             var expectedState = (MediaState)_mediaState;
 
             for (; ; )

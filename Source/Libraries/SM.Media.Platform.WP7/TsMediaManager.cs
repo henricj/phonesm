@@ -44,7 +44,7 @@ namespace SM.Media
         void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
     }
 
-    public class TsMediaManager : ITsMediaManager, IMediaManager
+    sealed public class TsMediaManager : ITsMediaManager, IMediaManager, IDisposable
     {
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromSeconds(8);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromMilliseconds(250);
@@ -55,6 +55,7 @@ namespace SM.Media
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         //#endif
         TsMediaStreamSource _mediaStreamSource;
+        ISegmentReaderManager _readerManager;
         QueueWorker<CallbackReader.WorkBuffer> _queueWorker;
         CallbackReader _reader;
         int _sourceIsSet;
@@ -134,7 +135,9 @@ namespace SM.Media
         {
             await StopAsync();
 
-            _reader = new CallbackReader(segmentManager, buffer => _queueWorker.Enqueue(buffer));
+            _readerManager = new SegmentReaderManager(segmentManager);
+
+            _reader = new CallbackReader(_readerManager, buffer => _queueWorker.Enqueue(buffer));
 
             _mediaStreamSource = new TsMediaStreamSource(this);
 
@@ -292,6 +295,16 @@ namespace SM.Media
             _queueWorker.IsEnabled = true;
 
             return await _reader.StartAsync(position);
+        }
+
+        public void Dispose()
+        {
+            CloseAsync().Wait();
+
+            using (_readerManager)
+            { }
+
+            _readerManager = null;
         }
     }
 }

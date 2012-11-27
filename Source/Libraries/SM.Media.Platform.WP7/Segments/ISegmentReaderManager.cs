@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSubProgram.cs" company="Henric Jungheim">
+//  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,28 +25,26 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
-using System.Net;
-using System.Text;
-using SM.Media.M3U8;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Segments
 {
-    class PlaylistSubProgram : PlaylistSubProgramBase
+    interface ISegmentReaderManager : IDisposable
     {
-        protected M3U8Parser Parse(Uri playlist)
+        // I suppose we could roll our own IAsyncEnumerable<T>...?  Without "foreach" and 
+        // similar changes in ISegmentManager, this is probably not worth the effort.
+        // For now, let's ape what one might expect IAsyncEnumerator<T> to look like.
+        ISegmentReader Current { get; }
+        Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken);
+        Task<bool> MoveNextAsync();
+    }
+
+    static class SegmentReaderManagerExtensions
+    {
+        public static Task<TimeSpan> Start(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
         {
-            var parser = new M3U8Parser();
-
-            using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
-            {
-                // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? ProgramManager.M3uEncoding : Encoding.UTF8;
-
-                parser.Parse(f);
-            }
-
-            return parser;
+            return segmentManager.Seek(TimeSpan.Zero, cancellationToken);
         }
     }
 }

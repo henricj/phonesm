@@ -1,0 +1,103 @@
+// -----------------------------------------------------------------------
+//  <copyright file="SegmentReaderManager.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace SM.Media.Segments
+{
+    sealed class SegmentReaderManager : ISegmentReaderManager
+    {
+        readonly ISegmentManager _segmentManager;
+        ISegmentReader _segmentReader;
+
+        public SegmentReaderManager(ISegmentManager segmentManager)
+        {
+            _segmentManager = segmentManager;
+        }
+
+        #region ISegmentReaderManager Members
+
+        public void Dispose()
+        {
+            CloseReader();
+        }
+
+        public ISegmentReader Current
+        {
+            get { return _segmentReader; }
+        }
+
+        public async Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken)
+        {
+            await LoadAsync();
+
+            var position = _segmentManager.Seek(timestamp);
+
+            return position;
+        }
+
+        public async Task<bool> MoveNextAsync()
+        {
+            await LoadAsync();
+
+            var segment = _segmentManager.Next();
+
+            if (null == segment)
+                return false;
+
+            CloseReader();
+
+            _segmentReader = new SegmentReader(segment);
+
+            return true;
+        }
+
+        #endregion
+
+        Task LoadAsync()
+        {
+            // TODO: This whole IAsyncLoadTask thing is evil.
+            var a = _segmentManager as IAsyncLoadTask;
+
+            if (null == a)
+                return TplTaskExtensions.TrueTask;
+
+            return a.WaitLoad();
+        }
+
+        void CloseReader()
+        {
+            var segmentReader = _segmentReader;
+
+            _segmentReader = null;
+
+            using (segmentReader)
+            { }
+        }
+    }
+}

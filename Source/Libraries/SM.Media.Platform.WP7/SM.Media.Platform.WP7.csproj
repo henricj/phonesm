@@ -73,6 +73,8 @@
     <Compile Include="CallerInfo.cs" />
     <Compile Include="CommandWorker.cs" />
     <Compile Include="IAsyncLoadTask.cs" />
+    <Compile Include="Segments\ISegmentReaderManager.cs" />
+    <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="M3U8\M3U8ParserAsyncExtensions.cs" />
     <Compile Include="PlatformServices.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />
@@ -81,7 +83,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueueWorker.cs" />
     <Compile Include="Retry.cs" />
-    <Compile Include="SegmentReader.cs" />
+    <Compile Include="Segments\SegmentReader.cs" />
+    <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="TplTaskExtensions.cs" />
     <Compile Include="TsMediaManager.cs" />
     <Compile Include="TsMediaStreamSource.cs" />

@@ -127,8 +127,17 @@
     <Compile Include="..\SM.Media.Platform.WP7\Retry.cs">
       <Link>Retry.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\SegmentReader.cs">
-      <Link>SegmentReader.cs</Link>
+    <Compile Include="..\SM.Media.Platform.WP7\Segments\ISegmentReader.cs">
+      <Link>Segments\ISegmentReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Segments\ISegmentReaderManager.cs">
+      <Link>Segments\ISegmentReaderManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Segments\SegmentReader.cs">
+      <Link>Segments\SegmentReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Segments\SegmentReaderManager.cs">
+      <Link>Segments\SegmentReaderManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\TplTaskExtensions.cs">
       <Link>TplTaskExtensions.cs</Link>

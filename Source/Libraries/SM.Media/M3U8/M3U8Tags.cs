@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="M3U8Tags.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="M3U8Tags.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -27,8 +27,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using SM.Media.M3U8.M38UAttributes;
-using SM.Media.M3U8.M38UTags;
+using SM.Media.M3U8.AttributeSupport;
+using SM.Media.M3U8.TagSupport;
 
 namespace SM.Media.M3U8
 {
@@ -36,17 +36,17 @@ namespace SM.Media.M3U8
     {
         #region Tags
 
-        public static readonly M3U8ExtInfTag ExtXInf = new M3U8ExtInfTag("#EXTINF", M3U8TagScope.Segment, ExtinfTagInstance.Create);
+        public static readonly M3U8ExtInfTag ExtXInf = new M3U8ExtInfTag("#EXTINF", M3U8TagScope.Segment);
         public static readonly M3U8Tag ExtXByteRange = new M3U8Tag("#EXT-X-BYTERANGE", M3U8TagScope.Segment, ByterangeTagInstance.Create);
         public static readonly M3U8Tag ExtXTargetDuration = new M3U8Tag("#EXT-X-TARGETDURATION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
         public static readonly M3U8Tag ExtXMediaSequence = new M3U8Tag("#EXT-X-MEDIA-SEQUENCE", M3U8TagScope.Global, ValueTagInstance.CreateLong);
-        public static readonly M3U8Tag ExtXKey = new M3U8Tag("#EXT-X-KEY", M3U8TagScope.Shared, M3U8AttributeSupport.CreateInstance);
+        public static readonly M3U8ExtKeyTag ExtXKey = new M3U8ExtKeyTag("#EXT-X-KEY", M3U8TagScope.Shared);
         public static readonly M3U8Tag ExtXProgramDateTime = new M3U8Tag("#EXT-X-PROGRAM-DATE-TIME", M3U8TagScope.Segment, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXAllowCache = new M3U8Tag("#EXT-X-ALLOW-CACHE", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXPlaylistType = new M3U8Tag("#EXT-X-PLAYLIST-TYPE", M3U8TagScope.Global, (tag, value) => ValueTagInstance.Create(tag, value, v => v));
         public static readonly M3U8Tag ExtXEndList = new M3U8Tag("#EXT-X-ENDLIST", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXMedia = new M3U8AttributeTag("#EXT-X-MEDIA", M3U8TagScope.Global, ExtMediaSupport.Attributes, (tag, value) => AttributesTagInstance.Create(tag, value, ExtMediaSupport.Attributes));
-        public static readonly M3U8Tag ExtXStreamInf = new M3U8AttributeTag("#EXT-X-STREAM-INF", M3U8TagScope.Segment, ExtStreamInfSupport.Attributes, (tag, value) => AttributesTagInstance.Create(tag, value, ExtStreamInfSupport.Attributes));
+        public static readonly M3U8ExtStreamInfTag ExtXStreamInf = new M3U8ExtStreamInfTag("#EXT-X-STREAM-INF", M3U8TagScope.Segment);
         public static readonly M3U8Tag ExtXDiscontinuity = new M3U8Tag("#EXT-X-DISCONTINUITY", M3U8TagScope.Segment, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXIFramesOnly = new M3U8Tag("#EXT-X-I-FRAMES-ONLY", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXMap = new M3U8Tag("#EXT-X-MAP", M3U8TagScope.Shared, MapTagInstance.Create);
@@ -78,21 +78,22 @@ namespace SM.Media.M3U8
                    ExtXVersion
                }).ToDictionary(t => t.Name);
 
-        public void RegisterTag(M3U8Tag tag)
+        public void RegisterTag(IEnumerable<M3U8Tag> tags)
         {
             // "Register" calls are rare and will likely only happen during startup.
             // If we never modify an externally visible dictionary, then we do
             // not need to worry about locking during "Create()".
-            for (; ; )
+            for (;;)
             {
                 var currentTags = _tags;
 
-                var tags = new Dictionary<string, M3U8Tag>(currentTags);
+                var combinedTags = new Dictionary<string, M3U8Tag>(currentTags);
 
-                tags[tag.Name] = tag;
+                foreach (var tag in tags)
+                    combinedTags[tag.Name] = tag;
 
 #pragma warning disable 0420
-                var previousTags = Interlocked.CompareExchange(ref _tags, tags, currentTags);
+                var previousTags = Interlocked.CompareExchange(ref _tags, combinedTags, currentTags);
 #pragma warning restore 0420
 
                 if (ReferenceEquals(previousTags, currentTags))

@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="AttributesTagInstance.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="AttributesTagInstance.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -28,13 +28,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using SM.Media.M3U8.M38UAttributes;
+using SM.Media.M3U8.AttributeSupport;
 
-namespace SM.Media.M3U8.M38UTags
+namespace SM.Media.M3U8.TagSupport
 {
-    public sealed class AttributesTagInstance : M3U8TagInstance
+    public class AttributesTagInstance : M3U8TagInstance
     {
-        AttributesTagInstance(M3U8Tag tag, IEnumerable<M3U8AttributeInstance> attributes)
+        internal AttributesTagInstance(M3U8Tag tag, IEnumerable<M3U8AttributeInstance> attributes)
             : base(tag)
         {
             Attributes = attributes;
@@ -47,7 +47,12 @@ namespace SM.Media.M3U8.M38UTags
             return Create(tag, value, v => M3U8AttributeParserSupport.ParseAttributes(v, attributes));
         }
 
-        public static M3U8TagInstance Create(M3U8Tag tag, string value, Func<string, IEnumerable<M3U8AttributeInstance>> attributeParser)
+        static M3U8TagInstance Create(M3U8Tag tag, string value, Func<string, IEnumerable<M3U8AttributeInstance>> attributeParser)
+        {
+            return new AttributesTagInstance(tag, ParseAttributes(value, attributeParser));
+        }
+
+        protected static IEnumerable<M3U8AttributeInstance> ParseAttributes(string value, Func<string, IEnumerable<M3U8AttributeInstance>> attributeParser)
         {
             IEnumerable<M3U8AttributeInstance> attributes = null;
 
@@ -56,8 +61,12 @@ namespace SM.Media.M3U8.M38UTags
                 if (null != attributeParser)
                     attributes = attributeParser(value);
             }
+            return attributes;
+        }
 
-            return new AttributesTagInstance(tag, attributes);
+        protected static IEnumerable<M3U8AttributeInstance> ParseAttributes(string value, IDictionary<string, M3U8Attribute> attributes)
+        {
+            return ParseAttributes(value, v => M3U8AttributeParserSupport.ParseAttributes(v, attributes));
         }
 
         public override string ToString()

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="M3U8AttributeTag.cs" company="Henric Jungheim">
+//  <copyright file="ExtKeyTagInstance.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,46 +24,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
-using System.Threading;
+using SM.Media.M3U8.AttributeSupport;
 
-namespace SM.Media.M3U8
+namespace SM.Media.M3U8.TagSupport
 {
-    public class M3U8AttributeTag : M3U8Tag
+    public sealed class ExtKeyTagInstance : AttributesTagInstance
     {
-        volatile IDictionary<string, M3U8Attribute> _attributes;
+        internal ExtKeyTagInstance(M3U8Tag tag, IEnumerable<M3U8AttributeInstance> attributes)
+            : base(tag, attributes)
+        { }
 
-        public M3U8AttributeTag(string name, M3U8TagScope scope, IDictionary<string, M3U8Attribute> attributes, Func<M3U8Tag, string, M3U8TagInstance> createInstance)
-            : base(name, scope, createInstance)
+        public static ExtKeyTagInstance Create(M3U8Tag tag, string value)
         {
-            _attributes = attributes;
-        }
-
-        public virtual IDictionary<string, M3U8Attribute> Attributes
-        {
-            get { return _attributes; }
-        }
-
-        public void Register(M3U8Attribute attribute)
-        {
-            var oldAttributes = _attributes;
-
-            for (;;)
-            {
-                var attributes = new Dictionary<string, M3U8Attribute>(oldAttributes);
-
-                attributes[attribute.Name] = attribute;
-
-#pragma warning disable 0420
-                var currentAttributes = Interlocked.CompareExchange(ref _attributes, attributes, oldAttributes);
-#pragma warning restore 0420
-
-                if (currentAttributes == oldAttributes)
-                    return;
-
-                oldAttributes = currentAttributes;
-            }
+            return new ExtKeyTagInstance(tag, ParseAttributes(value, ExtKeySupport.Attributes));
         }
     }
 }

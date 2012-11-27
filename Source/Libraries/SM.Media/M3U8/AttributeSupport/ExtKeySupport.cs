@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="M3U8AttributeTag.cs" company="Henric Jungheim">
+//  <copyright file="ExtKeySupport.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,46 +24,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 
-namespace SM.Media.M3U8
+namespace SM.Media.M3U8.AttributeSupport
 {
-    public class M3U8AttributeTag : M3U8Tag
+    public static class ExtKeySupport
     {
-        volatile IDictionary<string, M3U8Attribute> _attributes;
+        public static readonly M3U8ValueAttribute<string> AttrMethod = new M3U8ValueAttribute<string>("METHOD", true, (tag, value) => new M3U8AttributeValueInstance<string>(tag, value));
+        public static readonly M3U8ValueAttribute<string> AttrUri = new M3U8ValueAttribute<string>("URI", false, M3U8AttributeSupport.QuotedStringParser);
+        public static readonly M3U8ValueAttribute<byte[]> AttrIv = new M3U8ValueAttribute<byte[]>("IV", false, M3U8AttributeSupport.HexadecialIntegerParser);
+        public static readonly M3U8ValueAttribute<string> AttrKeyFormat = new M3U8ValueAttribute<string>("KEYFORMAT", false, M3U8AttributeSupport.QuotedStringParser);
+        public static readonly M3U8ValueAttribute<string> AttrKeyFormatVersions = new M3U8ValueAttribute<string>("KEYFORMATVERSIONS", false, M3U8AttributeSupport.QuotedStringParser);
 
-        public M3U8AttributeTag(string name, M3U8TagScope scope, IDictionary<string, M3U8Attribute> attributes, Func<M3U8Tag, string, M3U8TagInstance> createInstance)
-            : base(name, scope, createInstance)
-        {
-            _attributes = attributes;
-        }
-
-        public virtual IDictionary<string, M3U8Attribute> Attributes
-        {
-            get { return _attributes; }
-        }
-
-        public void Register(M3U8Attribute attribute)
-        {
-            var oldAttributes = _attributes;
-
-            for (;;)
-            {
-                var attributes = new Dictionary<string, M3U8Attribute>(oldAttributes);
-
-                attributes[attribute.Name] = attribute;
-
-#pragma warning disable 0420
-                var currentAttributes = Interlocked.CompareExchange(ref _attributes, attributes, oldAttributes);
-#pragma warning restore 0420
-
-                if (currentAttributes == oldAttributes)
-                    return;
-
-                oldAttributes = currentAttributes;
-            }
-        }
+        internal static readonly IDictionary<string, M3U8Attribute> Attributes =
+            (new M3U8Attribute[]
+             {
+                 AttrMethod,
+                 AttrUri,
+                 AttrIv,
+                 AttrKeyFormat,
+                 AttrKeyFormatVersions
+             }
+            ).ToDictionary(a => a.Name);
     }
 }

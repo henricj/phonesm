@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="M3U8AttributeSupport.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="M3U8AttributeSupport.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -24,10 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SM.Media.M3U8.M38UAttributes
+namespace SM.Media.M3U8.AttributeSupport
 {
     public static class M3U8AttributeSupport
     {
@@ -77,6 +78,84 @@ namespace SM.Media.M3U8.M38UAttributes
             var values = value.Split(',').Select(s => s.Trim()).ToArray();
 
             return new CsvStringsAttributeInstance(attribute, values);
+        }
+
+        /// <summary>
+        ///     Parse "hexadecimal-integer" consisting of 0x or 0X followed by 1..n
+        /// </summary>
+        /// <param name="attribute"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static M3U8AttributeValueInstance<byte[]> HexadecialIntegerParser(M3U8Attribute attribute, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var start = value.IndexOf("0x", StringComparison.OrdinalIgnoreCase);
+
+            if (start < 0 || start + 1 == value.Length)
+                return null;
+
+            var bytes = new List<byte>();
+
+            var currentNibble = 0;
+            var haveNibble = false;
+
+            for (var i = start + 1; i < value.Length; ++i)
+            {
+                var c = value[i];
+                byte v;
+
+                if (c >= '0' && c <= '9')
+                {
+                    v = (byte)(c - '0');
+                }
+                else if (c >= 'a' && c <= 'f')
+                {
+                    v = (byte)(c - 'a');
+                }
+                else if (c >= 'A' && c <= 'F')
+                {
+                    v = (byte)(c - 'A');
+                }
+                else
+                {
+                    // Skip everything else or fail?
+                    // Are spaces okay?
+
+                    continue;
+                }
+
+                if (haveNibble)
+                {
+                    bytes.Add((byte)((currentNibble << 4) | v));
+                    haveNibble = false;
+                }
+                else
+                {
+                    currentNibble = v;
+                    haveNibble = true;
+                }
+            }
+
+            if (haveNibble)
+            {
+                // We now discover that we actually needed a leading zero when we first started...
+                bytes.Add((byte)(currentNibble << 4));
+
+                currentNibble = 0;
+
+                for (var i = 0; i < bytes.Count; ++i)
+                {
+                    var b = bytes[i];
+
+                    bytes[i] = (byte)((currentNibble << 4) | (b >> 4));
+
+                    currentNibble = (byte)(b & 0x0f);
+                }
+            }
+
+            return new HexadecimalIntegerAttributeInstance(attribute, bytes.ToArray());
         }
     }
 }

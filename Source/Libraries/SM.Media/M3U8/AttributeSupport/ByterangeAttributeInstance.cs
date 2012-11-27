@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="ByterangeTagInstance.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="ByterangeAttributeInstance.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,33 +26,33 @@
 
 using System.Globalization;
 
-namespace SM.Media.M3U8.M38UTags
+namespace SM.Media.M3U8.AttributeSupport
 {
-    sealed class ByterangeTagInstance : M3U8TagInstance
+    sealed class ByterangeAttributeInstance : M3U8AttributeInstance
     {
-        public ByterangeTagInstance(M3U8Tag tag, long length, long? offset)
-            : base(tag)
+        public readonly long Length;
+        public readonly long? Offset;
+
+        public ByterangeAttributeInstance(M3U8Attribute attribute, long length, long? offset)
+            : base(attribute)
         {
             Length = length;
             Offset = offset;
         }
 
-        public long Length { get; private set; }
-        public long? Offset { get; private set; }
-
-        internal static M3U8TagInstance Create(M3U8Tag tag, string value)
+        public static M3U8AttributeInstance Create(M3U8Attribute attribute, string value)
         {
             // TODO: Consolidate code between ByterangeAttributeInstance and ByterangeTagInstance
 
             var index = value.IndexOf('@');
 
             if (index < 0 || index + 1 >= value.Length)
-                return new ByterangeTagInstance(tag, long.Parse(value), null);
+                return new ByterangeAttributeInstance(attribute, long.Parse(value), null);
 
             var length = long.Parse(value.Substring(0, index));
             var offset = long.Parse(value.Substring(index + 1));
 
-            return new ByterangeTagInstance(tag, length, offset);
+            return new ByterangeAttributeInstance(attribute, length, offset);
         }
 
         public override string ToString()
@@ -60,9 +60,9 @@ namespace SM.Media.M3U8.M38UTags
             // TODO: Consolidate code between ByterangeAttributeInstance and ByterangeTagInstance
 
             if (Offset.HasValue)
-                return string.Format(CultureInfo.InvariantCulture, "{0}:{1}@{2}", Tag, Length, Offset.Value);
+                return string.Format(CultureInfo.InvariantCulture, "{0}={1}@{2}", Attribute, Length, Offset.Value);
 
-            return string.Format(CultureInfo.InvariantCulture, "{0}:{1}", Tag, Length);
+            return string.Format(CultureInfo.InvariantCulture, "{0}={1}", Attribute, Length);
         }
     }
 }

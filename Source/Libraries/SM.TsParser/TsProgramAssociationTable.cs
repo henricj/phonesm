@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="TsProgramAssociationTable.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="TsProgramAssociationTable.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -38,7 +38,9 @@ namespace SM.TsParser
         readonly TsDecoder _decoder;
         readonly List<ProgramAssociation> _newPrograms = new List<ProgramAssociation>();
         readonly List<ProgramAssociation> _oldPrograms = new List<ProgramAssociation>();
+        readonly Func<int, bool> _programFilter;
         readonly List<ProgramAssociation> _programs = new List<ProgramAssociation>();
+        readonly Func<int, TsStreamType, bool> _streamFilter;
         bool _currentNextIndicator;
         bool _hasData;
         byte _lastSectionNumber;
@@ -46,9 +48,11 @@ namespace SM.TsParser
         int _transportStreamId;
         uint _versionNumber;
 
-        public TsProgramAssociationTable(TsDecoder decoder)
+        public TsProgramAssociationTable(TsDecoder decoder, Func<int, bool> programFilter, Func<int, TsStreamType, bool> streamFilter)
         {
             _decoder = decoder;
+            _programFilter = programFilter;
+            _streamFilter = streamFilter;
         }
 
         internal void Add(TsPacket packet)
@@ -163,7 +167,10 @@ namespace SM.TsParser
                 i += 2;
 
                 if (!_newPrograms.Any(p => p.Pid == pid && p.ProgramNumber == program_number))
-                    _newPrograms.Add(new ProgramAssociation { ProgramNumber = program_number, Pid = pid });
+                {
+                    if (_programFilter(program_number))
+                        _newPrograms.Add(new ProgramAssociation { ProgramNumber = program_number, Pid = pid });
+                }
             }
 
             //var crc32 = (buffer[i] << 24) | (buffer[i + 1] << 16) | (buffer[i + 2] << 8) | buffer[i + 3];
@@ -200,8 +207,8 @@ namespace SM.TsParser
 
                 if (!_programs.Contains(program))
                 {
-                    var tsProgramMapTable = new TsProgramMapTable(_decoder, program.ProgramNumber, program.Pid);
-                    
+                    var tsProgramMapTable = new TsProgramMapTable(_decoder, program.ProgramNumber, program.Pid, _streamFilter);
+
                     program.MapTable = tsProgramMapTable;
 
                     _decoder.RegisterHandler(program.Pid, tsProgramMapTable.Add);
@@ -242,9 +249,9 @@ namespace SM.TsParser
 
         class ProgramAssociation : IEquatable<ProgramAssociation>
         {
+            public TsProgramMapTable MapTable;
             public uint Pid;
             public int ProgramNumber;
-            public TsProgramMapTable MapTable;
 
             #region IEquatable<ProgramAssociation> Members
 

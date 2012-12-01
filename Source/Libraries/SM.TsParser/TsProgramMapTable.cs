@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="TsProgramMapTable.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="TsProgramMapTable.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -38,17 +39,19 @@ namespace SM.TsParser
         readonly uint _pid;
         readonly List<ProgramMap> _programList = new List<ProgramMap>();
         readonly Dictionary<uint, ProgramMap> _programMap = new Dictionary<uint, ProgramMap>();
+        readonly int _programNumber;
+        readonly Func<int, TsStreamType, bool> _streamFilter;
         bool _foundPcrPid;
         ulong? _pcr;
         int? _pcrIndex;
         uint _pcrPid;
-        int _programNumber;
 
-        public TsProgramMapTable(TsDecoder decoder, int programNumber, uint pid)
+        public TsProgramMapTable(TsDecoder decoder, int programNumber, uint pid, Func<int, TsStreamType, bool> streamFilter)
         {
             _decoder = decoder;
             _programNumber = programNumber;
             _pid = pid;
+            _streamFilter = streamFilter;
         }
 
         public void Add(TsPacket packet)
@@ -153,26 +156,11 @@ namespace SM.TsParser
 
                 i += ES_info_length;
 
-                ProgramMap existingMap;
+                var streamType = TsStreamType.FindStreamType(stream_type);
 
-                //if (_programMap.TryGetValue(elementary_PID, out existingMap))
-                //{
-                //    Debug.Assert(null != existingMap);
-                //    Debug.Assert(elementary_PID == existingMap.Pid);
+                var programMap = new ProgramMap { Pid = elementary_PID, StreamType = streamType };
 
-                //    if (existingMap.StreamType != stream_type)
-                //    {
-                //        existingMap.StreamType = stream_type;
-                //        _newPrograms[elementary_PID] = existingMap;
-                //    }
-                //}
-                //else
-                //{
-                var programMap = new ProgramMap { Pid = elementary_PID, StreamType = stream_type };
-
-                //_programMap[elementary_PID] = programMap;
                 _newPrograms[elementary_PID] = programMap;
-                //}
             }
 
             if (section_number == last_section_number)
@@ -242,10 +230,12 @@ namespace SM.TsParser
 
             foreach (var program in _newPrograms.Values)
             {
+                var streamRequested = _streamFilter(_programNumber, program.StreamType);
+
                 ProgramMap mappedProgram;
                 if (_programMap.TryGetValue(program.Pid, out mappedProgram))
                 {
-                    if (mappedProgram.StreamType == program.StreamType)
+                    if (mappedProgram.StreamType == program.StreamType && streamRequested)
                         continue;
 
                     ClearProgram(mappedProgram);
@@ -253,26 +243,38 @@ namespace SM.TsParser
 
                 var pid = program.Pid;
 
-                var pes = new TsPacketizedElementaryStream(_decoder, program.StreamType, pid);
-
-                program.Stream = pes;
-
-                _programMap[pid] = program;
-
-                if (pid == _pcrPid)
+                if (streamRequested)
                 {
-                    _foundPcrPid = true;
+                    var pes = new TsPacketizedElementaryStream(_decoder, program.StreamType, pid);
 
-                    _decoder.RegisterHandler(pid,
-                                             p =>
-                                             {
-                                                 AddPcr(p);
-                                                 pes.Add(p);
-                                             }
-                        );
+                    program.Stream = pes;
+
+                    _programMap[pid] = program;
+
+                    if (pid == _pcrPid)
+                    {
+                        _foundPcrPid = true;
+
+                        _decoder.RegisterHandler(pid,
+                                                 p =>
+                                                 {
+                                                     AddPcr(p);
+                                                     pes.Add(p);
+                                                 }
+                            );
+                    }
+                    else
+                        _decoder.RegisterHandler(pid, pes.Add);
                 }
                 else
-                    _decoder.RegisterHandler(pid, pes.Add);
+                {
+                    if (pid == _pcrPid)
+                    {
+                        _foundPcrPid = true;
+
+                        _decoder.RegisterHandler(pid, AddPcr);
+                    }
+                }
             }
 
             _newPrograms.Clear();
@@ -290,7 +292,7 @@ namespace SM.TsParser
         {
             public uint Pid;
             public TsPacketizedElementaryStream Stream;
-            public byte StreamType;
+            public TsStreamType StreamType;
         }
 
         #endregion

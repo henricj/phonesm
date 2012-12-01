@@ -131,7 +131,8 @@ namespace SM.TsParser
             Clear();
 
             // Bootstrap with the program association handler
-            _programAssociationTable = new TsProgramAssociationTable(this);
+            //_programAssociationTable = new TsProgramAssociationTable(this, program => true, (program, stream) => stream.Contents == TsStreamType.StreamContents.Audio);
+            _programAssociationTable = new TsProgramAssociationTable(this, program => true, (program, stream) => true);
 
             _packetHandlers[0x0000] = _programAssociationTable.Add;
 

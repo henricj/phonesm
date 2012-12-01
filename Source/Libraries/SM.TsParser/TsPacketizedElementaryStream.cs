@@ -46,11 +46,11 @@ namespace SM.TsParser
         int _startIndex;
         byte _streamId;
 
-        public TsPacketizedElementaryStream(TsDecoder decoder, byte streamType, uint pid)
+        public TsPacketizedElementaryStream(TsDecoder decoder, TsStreamType streamType, uint pid)
         {
             _decoder = decoder;
 
-            _streamType = TsStreamType.FindStreamType(streamType);
+            _streamType = streamType;
             _pid = pid;
 
             _handler = _decoder.CreatePesHandler(pid, _streamType);

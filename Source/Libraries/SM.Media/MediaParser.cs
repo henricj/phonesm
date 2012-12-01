@@ -199,11 +199,11 @@ namespace SM.Media
                 var id = handlerFactory.Key;
                 var factory = handlerFactory.Value;
 
-                pesHandlerFactory.RegisterHandlerFactory(id, (pid, streamType) => PacketHandler(factory, pid, streamType));
+                pesHandlerFactory.RegisterHandlerFactory(id, (pid, streamType) => CreatePacketHandler(factory, pid, streamType));
             }
         }
 
-        Action<TsPesPacket> PacketHandler(PacketHandlerFactory streamHandlerFactory, uint pid, TsStreamType streamType)
+        Action<TsPesPacket> CreatePacketHandler(PacketHandlerFactory streamHandlerFactory, uint pid, TsStreamType streamType)
         {
             var streamBuffer = new StreamBuffer(_tsDecoder.FreePesPacket, _bufferingManager);
 

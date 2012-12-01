@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Program.cs" company="Henric Jungheim">
+//  <copyright file="IProgramManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,51 +26,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using SM.Media.M3U8;
 
 namespace SM.Media.Playlists
 {
-    public interface IProgramStream
+    public interface IProgramManager : IDisposable
     {
-        string StreamType { get; }
-        string Language { get; }
-    }
-
-    public interface ISubProgram
-    {
-        int? Height { get; }
-        int? Width { get; }
-
-        TimeSpan? Duration { get; }
-
-        long Bandwidth { get; }
-
-        IProgramStream Audio { get; }
-        IProgramStream Video { get; }
-
-        ICollection<IProgramStream> AlternateAudio { get; }
-        ICollection<IProgramStream> AlternateVideo { get; }
-    }
-
-    public interface IProgram
-    {
-        ICollection<ISubProgram> SubPrograms { get; }
-    }
-
-
-    public class Program : IProgram
-    {
-        readonly ICollection<ISubProgram> _subPrograms = new List<ISubProgram>();
-
-        public long ProgramId { get; set; }
-
-        #region IProgram Members
-
-        public ICollection<ISubProgram> SubPrograms
-        {
-            get { return _subPrograms; }
-        }
-
-        #endregion
+        IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser);
+        Task<IDictionary<long, Program>> LoadAsync(IEnumerable<Uri> playlistUrls, CancellationToken cancellationToken);
     }
 }

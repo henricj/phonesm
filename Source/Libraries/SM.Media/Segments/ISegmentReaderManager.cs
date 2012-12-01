@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentReader.cs" company="Henric Jungheim">
+//  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -30,11 +30,21 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Segments
 {
-    interface ISegmentReader : IDisposable
+    public interface ISegmentReaderManager : IDisposable
     {
-        Uri Url { get; }
-        bool IsEof { get; }
-        Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
-        void Close();
+        // I suppose we could roll our own IAsyncEnumerable<T>...?  Without "foreach" and 
+        // similar changes in ISegmentManager, this is probably not worth the effort.
+        // For now, let's ape what one might expect IAsyncEnumerator<T> to look like.
+        ISegmentReader Current { get; }
+        Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken);
+        Task<bool> MoveNextAsync();
+    }
+
+    static class SegmentReaderManagerExtensions
+    {
+        public static Task<TimeSpan> Start(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
+        {
+            return segmentManager.Seek(TimeSpan.Zero, cancellationToken);
+        }
     }
 }

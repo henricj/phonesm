@@ -29,9 +29,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace SM.Media
+namespace SM.Media.Utility
 {
-    sealed class CommandWorker : IDisposable
+    public sealed class CommandWorker : IDisposable
     {
         readonly Queue<Command> _commandQueue = new Queue<Command>();
         readonly TaskCompletionSource<bool> _workerClosedTaskCompletionSource = new TaskCompletionSource<bool>();

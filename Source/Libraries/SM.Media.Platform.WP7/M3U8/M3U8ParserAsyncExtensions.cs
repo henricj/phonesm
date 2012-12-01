@@ -29,6 +29,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Utility;
 
 namespace SM.Media.M3U8
 {

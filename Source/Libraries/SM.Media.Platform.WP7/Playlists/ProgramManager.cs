@@ -35,25 +35,10 @@ using SM.Media.M3U8;
 
 namespace SM.Media.Playlists
 {
-    public class ProgramManager : ProgramManagerBase, IDisposable
+    public class ProgramManager : ProgramManagerBase, IProgramManager
     {
-        internal static readonly Encoding M3uEncoding = Encoding.GetEncoding("iso-8859-1");
-        int _isDisposed;
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
-                return;
-
-            Dispose(false);
-        }
-
-        #endregion
-
-        protected virtual void Dispose(bool disposing)
-        { }
+        internal static readonly Encoding M3UEncoding = Encoding.GetEncoding("iso-8859-1");
+        static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
 
         public IDictionary<long, Program> Load(Uri playlist)
         {
@@ -62,7 +47,7 @@ namespace SM.Media.Playlists
             using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
             {
                 // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? M3uEncoding : Encoding.UTF8;
+                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? M3UEncoding : Encoding.UTF8;
 
                 parser.Parse(f, encoding);
             }
@@ -70,13 +55,22 @@ namespace SM.Media.Playlists
             return Load(playlist, parser);
         }
 
-        public async Task<IDictionary<long, Program>> LoadAsync(Uri playlist, CancellationToken cancellationToken)
+        public async Task<IDictionary<long, Program>> LoadAsync(IEnumerable<Uri> playlistUrls, CancellationToken cancellationToken)
         {
             var parser = new M3U8Parser();
+            Uri actualPlaylist = null;
 
-            await parser.ParseAsync(playlist, cancellationToken);
+            foreach (var playlist in playlistUrls)
+            {
+                actualPlaylist = playlist;
 
-            return Load(playlist, parser);
+                await parser.ParseAsync(actualPlaylist, cancellationToken);
+            }
+
+            if (null == actualPlaylist)
+                return NoPrograms;
+
+            return Load(actualPlaylist, parser);
         }
     }
 }

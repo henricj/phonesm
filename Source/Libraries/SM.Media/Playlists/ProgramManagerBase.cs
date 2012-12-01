@@ -40,6 +40,8 @@ namespace SM.Media.Playlists
             get { return null; }
         }
 
+        #region IProgramManager Members
+
         public IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
         {
             var audioStreams = new Dictionary<string, MediaGroup>();
@@ -54,37 +56,7 @@ namespace SM.Media.Playlists
 
                         if (null != audioAttribute)
                         {
-                            var group = gt.Attribute(ExtMediaSupport.AttrGroupId).Value;
-
-                            var urlAttribute = gt.AttributeObject(ExtMediaSupport.AttrUri);
-
-                            Uri playlistUrl = null;
-
-                            if (null != urlAttribute)
-                                playlistUrl = new Uri(playlist, new Uri(urlAttribute, UriKind.RelativeOrAbsolute));
-
-                            var audioStream = new PlaylistSubStream
-                                              {
-                                                  Name = @group,
-                                                  Playlist = playlistUrl
-                                              };
-
-                            MediaGroup mediaGroup;
-                            if (!audioStreams.TryGetValue(@group, out mediaGroup))
-                            {
-                                mediaGroup = new MediaGroup { Default = audioStream };
-
-                                audioStreams[@group] = mediaGroup;
-                            }
-
-                            var isDefault = 0 == string.CompareOrdinal("YES", gt.Attribute(ExtMediaSupport.AttrDefault).Value);
-
-                            if (isDefault)
-                                mediaGroup.Default = audioStream;
-
-                            var name = gt.Attribute(ExtMediaSupport.AttrName).Value;
-
-                            mediaGroup.Streams[name] = audioStream;
+                            AddMedia(playlist, gt, audioStreams);
                         }
                     }
                     catch (NullReferenceException)
@@ -120,7 +92,7 @@ namespace SM.Media.Playlists
                                      {
                                          Bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth).Value,
                                          Playlist = new Uri(playlist, new Uri(p.Uri, UriKind.RelativeOrAbsolute)),
-                                         Audio = audioGroup
+                                         AudioGroup = audioGroup
                                      };
 
                     Program program;
@@ -160,6 +132,68 @@ namespace SM.Media.Playlists
             }
 
             return programs;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+
+            GC.KeepAlive(this);
+        }
+
+        #endregion
+
+        protected virtual void Dispose(bool disposing)
+        { }
+
+        static void AddMedia(Uri playlist, M3U8TagInstance gt, Dictionary<string, MediaGroup> audioStreams)
+        {
+            var groupId = gt.Attribute(ExtMediaSupport.AttrGroupId).Value;
+
+            var urlAttribute = gt.AttributeObject(ExtMediaSupport.AttrUri);
+
+            Uri playlistUrl = null;
+
+            if (null != urlAttribute)
+                playlistUrl = new Uri(playlist, new Uri(urlAttribute, UriKind.RelativeOrAbsolute));
+
+            var language = gt.AttributeObject(ExtMediaSupport.AttrLanguage);
+
+            var audioStream = new PlaylistSubStream
+                              {
+                                  Type = gt.AttributeObject(ExtMediaSupport.AttrType),
+                                  Name = groupId,
+                                  Playlist = playlistUrl,
+                                  IsAutoselect = IsYesNo(gt, ExtMediaSupport.AttrAutoselect),
+                                  Language = null == language ? null : language.Trim().ToLower()
+                              };
+
+            MediaGroup mediaGroup;
+            if (!audioStreams.TryGetValue(groupId, out mediaGroup))
+            {
+                mediaGroup = new MediaGroup { Default = audioStream };
+
+                audioStreams[groupId] = mediaGroup;
+            }
+
+            var isDefault = IsYesNo(gt, ExtMediaSupport.AttrDefault);
+
+            if (isDefault)
+                mediaGroup.Default = audioStream;
+
+            var name = gt.Attribute(ExtMediaSupport.AttrName).Value;
+
+            mediaGroup.Streams[name] = audioStream;
+        }
+
+        static bool IsYesNo(M3U8TagInstance tag, M3U8ValueAttribute<string> attribute, bool defaultValue = false)
+        {
+            var attr = tag.Attribute(attribute);
+
+            if (null == attr || string.IsNullOrWhiteSpace(attr.Value))
+                return defaultValue;
+
+            return 0 == string.CompareOrdinal("YES", attr.Value.ToUpperInvariant());
         }
 
         #region Nested type: MediaGroup

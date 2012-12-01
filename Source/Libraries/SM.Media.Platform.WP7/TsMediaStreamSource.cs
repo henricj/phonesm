@@ -157,6 +157,7 @@ namespace SM.Media
             if (null != audioStream)
             {
                 ConfigureAudioStream(audioStream, configurationEventArgs.StreamSource);
+
                 return;
             }
         }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Program.cs" company="Henric Jungheim">
+//  <copyright file="ISegmentReader.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,52 +25,16 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Segments
 {
-    public interface IProgramStream
+    public interface ISegmentReader : IDisposable
     {
-        string StreamType { get; }
-        string Language { get; }
-    }
-
-    public interface ISubProgram
-    {
-        int? Height { get; }
-        int? Width { get; }
-
-        TimeSpan? Duration { get; }
-
-        long Bandwidth { get; }
-
-        IProgramStream Audio { get; }
-        IProgramStream Video { get; }
-
-        ICollection<IProgramStream> AlternateAudio { get; }
-        ICollection<IProgramStream> AlternateVideo { get; }
-    }
-
-    public interface IProgram
-    {
-        ICollection<ISubProgram> SubPrograms { get; }
-    }
-
-
-    public class Program : IProgram
-    {
-        readonly ICollection<ISubProgram> _subPrograms = new List<ISubProgram>();
-
-        public long ProgramId { get; set; }
-
-        #region IProgram Members
-
-        public ICollection<ISubProgram> SubPrograms
-        {
-            get { return _subPrograms; }
-        }
-
-        #endregion
+        Uri Url { get; }
+        bool IsEof { get; }
+        Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
+        void Close();
     }
 }

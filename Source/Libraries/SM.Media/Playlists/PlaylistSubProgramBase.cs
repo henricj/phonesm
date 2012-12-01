@@ -37,7 +37,27 @@ namespace SM.Media.Playlists
 
         //protected abstract M3U8Parser Parse(Uri playlist);
 
-        public override IEnumerable<SubStreamSegment> GetPlaylist(SubStream audio = null)
+        public override IProgramStream Audio
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public override IProgramStream Video
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public override ICollection<IProgramStream> AlternateAudio
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public override ICollection<IProgramStream> AlternateVideo
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public override IEnumerable<SubStreamSegment> GetPlaylist(SubStream video = null, SubStream audio = null)
         {
             var playlist = Playlist;
 

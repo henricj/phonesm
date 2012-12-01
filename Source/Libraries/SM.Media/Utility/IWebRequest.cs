@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
+//  <copyright file="IWebRequest.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,26 +25,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading;
+using System.IO;
 using System.Threading.Tasks;
 
-namespace SM.Media.Segments
+namespace SM.Media.Utility
 {
-    interface ISegmentReaderManager : IDisposable
+    public interface IWebRequest
     {
-        // I suppose we could roll our own IAsyncEnumerable<T>...?  Without "foreach" and 
-        // similar changes in ISegmentManager, this is probably not worth the effort.
-        // For now, let's ape what one might expect IAsyncEnumerator<T> to look like.
-        ISegmentReader Current { get; }
-        Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken);
-        Task<bool> MoveNextAsync();
-    }
-
-    static class SegmentReaderManagerExtensions
-    {
-        public static Task<TimeSpan> Start(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
-        {
-            return segmentManager.Seek(TimeSpan.Zero, cancellationToken);
-        }
+        Task<bool> Read(Action<Stream> handler);
     }
 }

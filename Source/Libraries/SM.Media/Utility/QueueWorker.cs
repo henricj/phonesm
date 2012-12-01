@@ -30,9 +30,9 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SM.Media
+namespace SM.Media.Utility
 {
-    sealed class QueueWorker<TWorkItem> : IQueueThrottling, IDisposable
+    public sealed class QueueWorker<TWorkItem> : IQueueThrottling, IDisposable
         where TWorkItem : class
     {
         readonly CancellationTokenSource _abortTokenSource = new CancellationTokenSource();

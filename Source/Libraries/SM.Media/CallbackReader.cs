@@ -29,10 +29,11 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Segments;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
-    class CallbackReader : IDisposable
+    public class CallbackReader : IDisposable
     {
         const int BufferSize = 174 * 188; // Almost 32768 and saves some cycles having to rebuffer partial packets
         const int MaxBuffers = 8;
@@ -84,7 +85,7 @@ namespace SM.Media
 
         protected async Task ReadAsync(TimeSpan startTime, TaskCompletionSource<TimeSpan> seekDone, CancellationToken cancellationToken)
         {
-            var sw = new Stopwatch();
+            //var sw = new Stopwatch();
 
             try
             {
@@ -100,14 +101,14 @@ namespace SM.Media
 
                     Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
 
-                    sw.Reset();
-                    sw.Start();
+                    //sw.Reset();
+                    //sw.Start();
 
                     await ReadSegment(segmentReader, cancellationToken);
 
-                    sw.Stop();
+                    //sw.Stop();
 
-                    Debug.WriteLine("---- Completed {0} at {1} ({2} elapsed).  Total memory: {3}", url, DateTimeOffset.Now, sw.Elapsed, GC.GetTotalMemory(false));
+                    Debug.WriteLine("---- Completed {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
                 }
 
                 _enqueue(null);

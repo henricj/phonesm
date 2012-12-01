@@ -28,10 +28,11 @@ using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class CachedWebRequest
+    public class CachedWebRequest : IWebRequest
     {
         readonly Uri _url;
 

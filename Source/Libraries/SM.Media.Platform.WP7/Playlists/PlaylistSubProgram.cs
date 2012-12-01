@@ -41,7 +41,7 @@ namespace SM.Media.Playlists
             using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
             {
                 // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? ProgramManager.M3uEncoding : Encoding.UTF8;
+                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? ProgramManager.M3UEncoding : Encoding.UTF8;
 
                 parser.Parse(f);
             }

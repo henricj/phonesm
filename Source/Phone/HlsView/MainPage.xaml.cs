@@ -99,11 +99,11 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            var simpleSegmentManager = new PlaylistSegmentManager(new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"));
+            var playlist = new PlaylistSegmentManager(new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"), uri => new CachedWebRequest(uri), () => new ProgramManager());
 
             _tsMediaManager = new TsMediaManager(mediaElement1);
 
-            _tsMediaManager.Play(simpleSegmentManager);
+            _tsMediaManager.Play(playlist);
 
             _positionSampler.Start();
         }
@@ -166,7 +166,6 @@ namespace HlsView
 
             if (null == mediaElement1)
             {
-                // <MediaElement Name="mediaElement1" AutoPlay="True" MediaFailed="mediaElement1_MediaFailed" MediaEnded="mediaElement1_MediaEnded" />
                 mediaElement1 = new MediaElement { Margin = new Thickness(0) };
 
                 mediaElement1.MediaFailed += mediaElement1_MediaFailed;

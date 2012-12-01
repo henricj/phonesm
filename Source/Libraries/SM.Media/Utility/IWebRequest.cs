@@ -32,6 +32,6 @@ namespace SM.Media.Utility
 {
     public interface IWebRequest
     {
-        Task<bool> Read(Action<Stream> handler);
+        Task<bool> ReadAsync(Func<Stream, Task> handler);
     }
 }

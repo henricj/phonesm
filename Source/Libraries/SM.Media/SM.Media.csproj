@@ -121,7 +121,6 @@
     <Compile Include="Playlists\SubStreamSegment.cs" />
     <Compile Include="H264\RbspDecoder.cs" />
     <Compile Include="Segments\ISegmentManager.cs" />
-    <Compile Include="Segments\ISegmentManagerAsync.cs" />
     <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="Segments\ISegmentReaderManager.cs" />
     <Compile Include="Segments\Segment.cs" />
@@ -134,7 +133,6 @@
     <Compile Include="Utility\BufferPool.cs" />
     <Compile Include="Utility\CommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
-    <Compile Include="Utility\IAsyncLoadTask.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
     <Compile Include="Utility\IWebRequest.cs" />
     <Compile Include="Utility\MediaStreamFsm.cs" />

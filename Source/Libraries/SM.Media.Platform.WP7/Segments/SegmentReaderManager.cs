@@ -27,7 +27,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
@@ -53,20 +52,14 @@ namespace SM.Media.Segments
             get { return _segmentReader; }
         }
 
-        public async Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken)
+        public Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken)
         {
-            await LoadAsync();
-
-            var position = _segmentManager.Seek(timestamp);
-
-            return position;
+            return _segmentManager.SeekAsync(timestamp);
         }
 
         public async Task<bool> MoveNextAsync()
         {
-            await LoadAsync();
-
-            var segment = _segmentManager.Next();
+            var segment = await _segmentManager.NextAsync();
 
             if (null == segment)
                 return false;
@@ -79,17 +72,6 @@ namespace SM.Media.Segments
         }
 
         #endregion
-
-        Task LoadAsync()
-        {
-            // TODO: This whole IAsyncLoadTask thing is evil.
-            var a = _segmentManager as IAsyncLoadTask;
-
-            if (null == a)
-                return TplTaskExtensions.TrueTask;
-
-            return a.WaitLoad();
-        }
 
         void CloseReader()
         {

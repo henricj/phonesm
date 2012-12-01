@@ -37,11 +37,13 @@ using SM.Media.Utility;
 
 namespace SM.Media.Playlists
 {
-    public class PlaylistSegmentManager : ISegmentManager, IAsyncLoadTask, ISegmentManagerAsync, IDisposable
+    public class PlaylistSegmentManager : ISegmentManager, IDisposable
     {
         readonly CancellationTokenSource _abortTokenSource;
         readonly Uri[] _playlistUrls;
+        readonly Func<IProgramManager> _programManagerFactory;
         readonly object _segmentLock = new object();
+        readonly Func<Uri, IWebRequest> _webRequestFactory;
         bool _isDynamicPlayist;
         Task _reReader;
         Task _reader;
@@ -49,15 +51,13 @@ namespace SM.Media.Playlists
         SubStreamSegment[] _segments;
         IWebRequest _subPlaylistRequest;
         PlaylistSubProgramBase _subProgram;
-        readonly Func<Uri, IWebRequest> _webRequestFactory;
-        readonly Func<IProgramManager> _programManagerFactory;
 
         public PlaylistSegmentManager(Uri playlist, Func<Uri, IWebRequest> webRequestFactory, Func<IProgramManager> programManagerFactory)
-            : this(playlist, webRequestFactory, programManagerFactory ,CancellationToken.None)
+            : this(playlist, webRequestFactory, programManagerFactory, CancellationToken.None)
         { }
 
         public PlaylistSegmentManager(Uri playlist, Func<Uri, IWebRequest> webRequestFactory, Func<IProgramManager> programManagerFactory, CancellationToken cancellationToken)
-            : this(new[] { playlist }, webRequestFactory, programManagerFactory , cancellationToken)
+            : this(new[] { playlist }, webRequestFactory, programManagerFactory, cancellationToken)
         { }
 
         public PlaylistSegmentManager(IEnumerable<Uri> playlistUrls, Func<Uri, IWebRequest> webRequestFactory, Func<IProgramManager> programManagerFactory, CancellationToken cancellationToken)
@@ -73,23 +73,6 @@ namespace SM.Media.Playlists
         {
             get { return _abortTokenSource.Token; }
         }
-
-        #region IAsyncLoadTask Members
-
-        public Task WaitLoad()
-        {
-            lock (_segmentLock)
-            {
-                if (null == _reader)
-                    _reader = Task.Factory
-                                  .StartNew((Func<Task>)Reader)
-                                  .Unwrap();
-
-                return _reader;
-            }
-        }
-
-        #endregion
 
         #region IDisposable Members
 
@@ -111,18 +94,40 @@ namespace SM.Media.Playlists
 
         #region ISegmentManager Members
 
-        public Segment Next()
+        public async Task<Segment> NextAsync()
         {
+            if (_isDynamicPlayist)
+                await CheckReload().ConfigureAwait(false);
+
             if (_segmentIndex + 1 >= _segments.Length)
             {
                 _segmentIndex = _segments.Length;
                 return null;
             }
 
-            if (_isDynamicPlayist)
-                CheckReload();
-
             return _segments[++_segmentIndex];
+        }
+
+        public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
+        {
+            await WaitLoad();
+
+            return Seek(timestamp);
+        }
+
+        #endregion
+
+        Task WaitLoad()
+        {
+            lock (_segmentLock)
+            {
+                if (null == _reader)
+                    _reader = Task.Factory
+                                  .StartNew((Func<Task>)Reader)
+                                  .Unwrap();
+
+                return _reader;
+            }
         }
 
         public TimeSpan Seek(TimeSpan timestamp)
@@ -156,22 +161,9 @@ namespace SM.Media.Playlists
             return TimeSpan.Zero;
         }
 
-        #endregion
-
-        #region ISegmentManagerAsync Members
-
-        public async Task<Segment> NextAsync()
+        public Segment Next()
         {
-            await WaitLoad();
-
-            return Next();
-        }
-
-        public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
-        {
-            await WaitLoad();
-
-            return Seek(timestamp);
+            return NextAsync().Result;
         }
 
         public async Task<IEnumerable<IProgram>> LoadProgramsAsync()
@@ -181,19 +173,17 @@ namespace SM.Media.Playlists
             return null;
         }
 
-        #endregion
-
-        void CheckReload()
+        Task CheckReload()
         {
             if (_segmentIndex + 3 < _segments.Length)
-                return;
+                return TplTaskExtensions.CompletedTask;
 
             lock (_segmentLock)
             {
                 if (null != _reReader)
-                    return;
+                    return _reReader;
 
-                _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList).Unwrap();
+                return _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList).Unwrap();
             }
         }
 
@@ -232,13 +222,21 @@ namespace SM.Media.Playlists
             if (null == _subPlaylistRequest)
                 _subPlaylistRequest = _webRequestFactory(_subProgram.Playlist);
 
-            await _subPlaylistRequest.Read(s =>
-                                           {
-                                               using (var sr = new StreamReader(s))
-                                               {
-                                                   parser.Parse(sr);
-                                               }
-                                           });
+            var playlistString = default(string);
+
+            await _subPlaylistRequest.ReadAsync(
+                async s =>
+                {
+                    using (var sr = new StreamReader(s))
+                    {
+                        playlistString = await sr.ReadToEndAsync();
+                    }
+                });
+
+            using (var tr = new StringReader(playlistString))
+            {
+                parser.Parse(tr);
+            }
 
             var segments = _subProgram.GetPlaylist(parser).ToArray();
 

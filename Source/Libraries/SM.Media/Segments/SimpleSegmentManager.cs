@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="SimpleSegmentManager.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="SimpleSegmentManager.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,13 +26,23 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SM.Media.Segments
 {
     public sealed class SimpleSegmentManager : ISegmentManager, IDisposable
     {
+        static readonly Task<TimeSpan> TimeSpanZeroTask;
         readonly IEnumerable<Uri> _urls;
         IEnumerator<Uri> _urlEnumerator;
+
+        static SimpleSegmentManager()
+        {
+            var tcs = new TaskCompletionSource<TimeSpan>();
+            tcs.SetResult(TimeSpan.Zero);
+
+            TimeSpanZeroTask = tcs.Task;
+        }
 
         public SimpleSegmentManager(IEnumerable<Uri> urls)
         {
@@ -50,16 +60,16 @@ namespace SM.Media.Segments
 
         #region ISegmentManager Members
 
-        public TimeSpan Seek(TimeSpan timestamp)
+        public Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
             CleanupEnumerator();
 
             _urlEnumerator = _urls.GetEnumerator();
 
-            return TimeSpan.Zero;
+            return TimeSpanZeroTask;
         }
 
-        public Segment Next()
+        public Task<Segment> NextAsync()
         {
             if (null == _urlEnumerator)
                 return null;
@@ -70,7 +80,10 @@ namespace SM.Media.Segments
                 return null;
             }
 
-            return new SimpleSegment(_urlEnumerator.Current);
+            var tcs = new TaskCompletionSource<Segment>();
+            tcs.SetResult(new SimpleSegment(_urlEnumerator.Current));
+
+            return tcs.Task;
         }
 
         #endregion

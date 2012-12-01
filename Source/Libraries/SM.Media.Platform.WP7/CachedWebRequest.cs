@@ -43,7 +43,7 @@ namespace SM.Media
             _url = url;
         }
 
-        public async Task<bool> Read(Action<Stream> handler)
+        public async Task<bool> ReadAsync(Func<Stream, Task> handler)
         {
             using (var response = await new Retry(4, 100, ex => !(ex is OperationCanceledException))
                                             .CallAsync(OpenRequest))
@@ -55,7 +55,7 @@ namespace SM.Media
 
                 using (var stream = response.GetResponseStream())
                 {
-                    handler(stream);
+                    await handler(stream);
                 }
             }
 

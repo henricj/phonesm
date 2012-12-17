@@ -43,6 +43,9 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="..\..\Global\SM.MediaVersion.cs">
+      <Link>Properties\SM.MediaVersion.cs</Link>
+    </Compile>
     <Compile Include="BufferInstance.cs" />
     <Compile Include="IBufferPool.cs" />
     <Compile Include="ObjectPool.cs" />

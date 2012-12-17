@@ -25,28 +25,23 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
 using System.Net;
-using System.Text;
 using SM.Media.M3U8;
 
 namespace SM.Media.Playlists
 {
-    class PlaylistSubProgram : PlaylistSubProgramBase
-    {
-        protected M3U8Parser Parse(Uri playlist)
-        {
-            var parser = new M3U8Parser();
+    //class PlaylistSubProgram : PlaylistSubProgramBase
+    //{
+    //    protected M3U8Parser Parse(Uri playlist)
+    //    {
+    //        var parser = new M3U8Parser();
 
-            using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
-            {
-                // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? ProgramManager.M3UEncoding : Encoding.UTF8;
+    //        using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
+    //        {
+    //            parser.Parse(playlist, f);
+    //        }
 
-                parser.Parse(f);
-            }
-
-            return parser;
-        }
-    }
+    //        return parser;
+    //    }
+    //}
 }

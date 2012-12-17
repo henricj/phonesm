@@ -37,10 +37,8 @@ namespace SM.Media.Utility
 #endif
         int _allocationCount;
 
-        public PoolBufferInstance(int size)
-        {
-            Buffer = new byte[size];
-        }
+        public PoolBufferInstance(int size) : base(new byte[size])
+        { }
 
         public override void Reference()
         {

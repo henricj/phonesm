@@ -30,9 +30,27 @@ using SM.Media.M3U8;
 
 namespace SM.Media.Playlists
 {
+    public class ProgramStream : IProgramStream
+    {
+        #region IProgramStream Members
+
+        public string StreamType { get; internal set; }
+        public string Language { get; internal set; }
+        public IEnumerable<Uri> Urls { get; internal set; }
+
+        #endregion
+    }
+
     public class PlaylistSubProgramBase : SubProgram
     {
         static readonly IEnumerable<SubStreamSegment> NoEntries = new SubStreamSegment[0];
+        readonly IProgramStream _video;
+
+        public PlaylistSubProgramBase(IProgramStream video)
+        {
+            _video = video;
+        }
+
         public Uri Playlist { get; set; }
 
         //protected abstract M3U8Parser Parse(Uri playlist);
@@ -44,7 +62,7 @@ namespace SM.Media.Playlists
 
         public override IProgramStream Video
         {
-            get { throw new NotImplementedException(); }
+            get { return _video; }
         }
 
         public override ICollection<IProgramStream> AlternateAudio
@@ -69,13 +87,13 @@ namespace SM.Media.Playlists
             return GetPlaylist(parser);
         }
 
-        public IEnumerable<SubStreamSegment> GetPlaylist(M3U8Parser parser)
+        public static IEnumerable<SubStreamSegment> GetPlaylist(M3U8Parser parser)
         {
             Uri previous = null;
 
             foreach (var p in parser.Playlist)
             {
-                var url = new Uri(Playlist, new Uri(p.Uri, UriKind.RelativeOrAbsolute));
+                var url = parser.ResolveUrl(p.Uri);
 
                 if (null != previous && url == previous)
                     continue;

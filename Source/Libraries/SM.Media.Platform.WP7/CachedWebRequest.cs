@@ -32,56 +32,126 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class CachedWebRequest : IWebRequest
+    public class CachedWebRequest : ICachedWebRequest
     {
+        static readonly DateTimeOffset VeryOldDate = new DateTime(1970, 4, 1, 0, 0, 0, DateTimeKind.Utc);
         readonly Uri _url;
+        readonly Func<Uri, HttpWebRequest> _webRequestFactory;
+        object _cachedObject;
+        string _etag;
+        string _lastModified;
 
-        string _date;
-
-        public CachedWebRequest(Uri url)
+        public CachedWebRequest(Uri url, Func<Uri, HttpWebRequest> webRequestFactory)
         {
             _url = url;
+            _webRequestFactory = webRequestFactory;
         }
 
-        public async Task<bool> ReadAsync(Func<Stream, Task> handler)
+        #region ICachedWebRequest Members
+
+        public Uri Url
         {
-            using (var response = await new Retry(4, 100, ex => !(ex is OperationCanceledException))
-                                            .CallAsync(OpenRequest))
+            get { return _url; }
+        }
+
+        public async Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory)
+            where TCached : class
+        {
+            if (null == _cachedObject as TCached)
+                _cachedObject = null;
+
+            await new Retry(4, 250, RetryPolicy.IsWebExceptionRetryable )
+                .CallAsync(() => Fetch(factory));
+
+            return _cachedObject as TCached;
+        }
+
+        #endregion
+
+        async Task Fetch<TCached>(Func<byte[], TCached> factory)
+            where TCached : class
+        {
+            var request = CreateRequest();
+
+            using (var response = await request.GetResponseAsync())
             {
-                var date = response.Headers["Date"];
+                var webResponse = (HttpWebResponse)response;
 
-                if (!string.IsNullOrWhiteSpace(date))
-                    _date = date;
-
-                using (var stream = response.GetResponseStream())
+                if (HttpStatusCode.OK == webResponse.StatusCode)
                 {
-                    await handler(stream);
-                }
-            }
+                    var date = response.Headers["Last-Modified"];
 
-            return true;
+                    _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
+
+                    var etag = response.Headers["ETag"];
+
+                    _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
+
+                    byte[] body;
+
+                    using (var stream = response.GetResponseStream())
+                    {
+                        using (var ms = new MemoryStream((int)response.ContentLength))
+                        {
+                            await stream.CopyToAsync(ms);
+
+                            body = ms.ToArray();
+                        }
+                    }
+
+                    _cachedObject = factory(body);
+                }
+                else if (HttpStatusCode.NotModified != webResponse.StatusCode)
+                    _cachedObject = null;
+            }
         }
 
         HttpWebRequest CreateRequest()
         {
-            var wr = WebRequest.Create(_url);
+            var hr = _webRequestFactory(_url);
 
-            var hr = wr as HttpWebRequest;
+            var haveConditional = false;
 
-            if (null != hr)
+            if (null != _cachedObject)
             {
-                if (null == _date)
-                    _date = DateTimeOffset.UtcNow.ToString();
+                if (null != _lastModified)
+                {
+#if WINDOWS_PHONE
+                    hr.Headers[HttpRequestHeader.IfModifiedSince] = _lastModified;
+#else
+                    hr.IfModifiedSince = DateTime.Parse(_lastModified);
+#endif
+                    haveConditional = true;
+                }
 
-                hr.Headers[HttpRequestHeader.IfModifiedSince] = _date;
+                if (null != _etag)
+                {
+                    hr.Headers[HttpRequestHeader.IfNoneMatch] = _etag;
+                    haveConditional = true;
+                }
+            }
+
+            if (!haveConditional)
+            {
+                hr.Headers[HttpRequestHeader.CacheControl] = "no-cache";
+
+                // The If-Modified-Since seems to defeat the phone's local cache.  Unfortunately,
+                // some sites seem to always return "Not Modified" if they see an
+                // If-Modified-since.  Make sure we get at least one 200 response code before
+                // we try slay the WP cache.
+                if (null != _cachedObject)
+                {
+                    var date = DateTimeOffset.UtcNow;
+                    //var date = VeryOldDate;
+#if WINDOWS_PHONE
+                    hr.Headers[HttpRequestHeader.IfModifiedSince] = date.ToString("r");
+#else
+                    hr.IfModifiedSince = date.UtcDateTime;
+#endif
+                }
             }
 
             return hr;
-        }
-
-        Task<WebResponse> OpenRequest()
-        {
-            return CreateRequest().GetResponseAsync();
         }
     }
 }

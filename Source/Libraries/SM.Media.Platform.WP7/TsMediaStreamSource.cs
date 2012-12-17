@@ -35,7 +35,7 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public sealed class TsMediaStreamSource : MediaStreamSource, IDisposable
+    public sealed class TsMediaStreamSource : MediaStreamSource, IMediaStreamSource
     {
         const int AudioStreamFlag = 1 << 0;
         const int VideoStreamFlag = 1 << 1;
@@ -76,7 +76,7 @@ namespace SM.Media
             get { return 0 != _isDisposed; }
         }
 
-        #region IDisposable Members
+        #region IMediaStreamSource Members
 
         /// <summary>
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
@@ -93,6 +93,76 @@ namespace SM.Media
             _isClosed = true;
 
             _commandWorker.CloseAsync().Wait();
+        }
+
+        public void MediaStreamOnConfigurationComplete(object sender, ConfigurationEventArgs configurationEventArgs)
+        {
+            var mediaStream = sender as IMediaParserMediaStream;
+
+            if (null != mediaStream)
+                mediaStream.ConfigurationComplete -= MediaStreamOnConfigurationComplete;
+
+            var videoStream = configurationEventArgs.ConfigurationSource as IVideoConfigurationSource;
+
+            if (null != videoStream)
+            {
+                ConfigureVideoStream(videoStream, configurationEventArgs.StreamSource);
+
+                return;
+            }
+
+            var audioStream = configurationEventArgs.ConfigurationSource as IAudioConfigurationSource;
+
+            if (null != audioStream)
+            {
+                ConfigureAudioStream(audioStream, configurationEventArgs.StreamSource);
+
+                return;
+            }
+        }
+
+        public void ReportProgress(double bufferingProgress)
+        {
+            lock (_bufferingLock)
+            {
+                _bufferingProgress = bufferingProgress;
+
+                if (_bufferingReportPending)
+                    return;
+
+                _bufferingReportPending = true;
+
+                _commandWorker.SendCommand(new CommandWorker.Command(
+                                               () =>
+                                               {
+                                                   double value;
+
+                                                   lock (_bufferingLock)
+                                                   {
+                                                       _bufferingReportPending = false;
+                                                       value = _bufferingProgress;
+                                                   }
+
+                                                   ReportGetSampleProgress(value);
+
+                                                   return null;
+                                               }));
+            }
+        }
+
+        public Task CloseAsync()
+        {
+            if (0 == _streamOpenFlags)
+                return TplTaskExtensions.CompletedTask;
+
+            lock (_stateLock)
+            {
+                _isClosed = true;
+
+                _state = State.WaitForClose;
+            }
+
+            return _drainCompleted.WaitAsync();
         }
 
         #endregion
@@ -133,32 +203,6 @@ namespace SM.Media
             {
                 _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
                 _drainCompleted.Set();
-            }
-        }
-
-        internal void MediaStreamOnConfigurationComplete(object sender, ConfigurationEventArgs configurationEventArgs)
-        {
-            var mediaStream = sender as IMediaParserMediaStream;
-
-            if (null != mediaStream)
-                mediaStream.ConfigurationComplete -= MediaStreamOnConfigurationComplete;
-
-            var videoStream = configurationEventArgs.ConfigurationSource as IVideoConfigurationSource;
-
-            if (null != videoStream)
-            {
-                ConfigureVideoStream(videoStream, configurationEventArgs.StreamSource);
-
-                return;
-            }
-
-            var audioStream = configurationEventArgs.ConfigurationSource as IAudioConfigurationSource;
-
-            if (null != audioStream)
-            {
-                ConfigureAudioStream(audioStream, configurationEventArgs.StreamSource);
-
-                return;
             }
         }
 
@@ -305,35 +349,6 @@ namespace SM.Media
             _mediaManager.OpenMedia();
         }
 
-        internal void ReportProgress(double bufferingProgress)
-        {
-            lock (_bufferingLock)
-            {
-                _bufferingProgress = bufferingProgress;
-
-                if (_bufferingReportPending)
-                    return;
-
-                _bufferingReportPending = true;
-
-                _commandWorker.SendCommand(new CommandWorker.Command(
-                                               () =>
-                                               {
-                                                   double value;
-
-                                                   lock (_bufferingLock)
-                                                   {
-                                                       _bufferingReportPending = false;
-                                                       value = _bufferingProgress;
-                                                   }
-
-                                                   ReportGetSampleProgress(value);
-
-                                                   return null;
-                                               }));
-            }
-        }
-
         /// <summary>
         ///     The <see cref="T:System.Windows.Controls.MediaElement" /> calls this method to ask the
         ///     <see
@@ -373,15 +388,19 @@ namespace SM.Media
                                                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                                                ReportSeekCompleted(position.Ticks);
 
+                                               CommandWorker.Command[] pendingGets;
+
                                                lock (_stateLock)
                                                {
-                                                   foreach (var getCmd in _pendingGets)
-                                                       _commandWorker.SendCommand(getCmd);
+                                                   pendingGets = _pendingGets.ToArray();
 
                                                    _pendingGets.Clear();
 
                                                    _state = State.Play;
                                                }
+
+                                               foreach (var getCmd in pendingGets)
+                                                   _commandWorker.SendCommand(getCmd);
                                            }));
         }
 
@@ -408,44 +427,46 @@ namespace SM.Media
         /// </param>
         protected override void GetSampleAsync(MediaStreamType mediaStreamType)
         {
-            var command = new CommandWorker.Command(() =>
-                                                    {
-                                                        IStreamSource streamSource = null;
-                                                        MediaStreamDescription streamDescription = null;
-                                                        var streamFlag = 0;
+            var command = new CommandWorker.Command(
+                () =>
+                {
+                    IStreamSource streamSource = null;
+                    MediaStreamDescription streamDescription = null;
+                    var streamFlag = 0;
 
-                                                        switch (mediaStreamType)
-                                                        {
-                                                            case MediaStreamType.Video:
-                                                                streamSource = _videoStreamSource;
-                                                                streamDescription = _videoStreamDescription;
-                                                                streamFlag = VideoStreamFlag;
-                                                                break;
-                                                            case MediaStreamType.Audio:
-                                                                streamSource = _audioStreamSource;
-                                                                streamDescription = _audioStreamDescription;
-                                                                streamFlag = AudioStreamFlag;
-                                                                break;
-                                                        }
+                    switch (mediaStreamType)
+                    {
+                        case MediaStreamType.Video:
+                            streamSource = _videoStreamSource;
+                            streamDescription = _videoStreamDescription;
+                            streamFlag = VideoStreamFlag;
+                            break;
+                        case MediaStreamType.Audio:
+                            streamSource = _audioStreamSource;
+                            streamDescription = _audioStreamDescription;
+                            streamFlag = AudioStreamFlag;
+                            break;
+                    }
 
-                                                        if (null == streamSource)
-                                                        {
-                                                            ReportGetSampleProgress(0);
-                                                            return null;
-                                                        }
+                    if (null == streamSource)
+                    {
+                        ReportGetSampleProgress(0);
+                        return null;
+                    }
 
-                                                        lock (_stateLock)
-                                                        { }
-                                                        if (_isClosed)
-                                                        {
-                                                            SendLastStreamSample(streamDescription, streamFlag);
-                                                            return null;
-                                                        }
+                    lock (_stateLock)
+                    { }
 
-                                                        streamSource.GetNextSample();
+                    if (_isClosed)
+                    {
+                        SendLastStreamSample(streamDescription, streamFlag);
+                        return null;
+                    }
 
-                                                        return null;
-                                                    });
+                    streamSource.GetNextSample();
+
+                    return null;
+                });
 
             lock (_stateLock)
             {
@@ -514,21 +535,6 @@ namespace SM.Media
             }
 
             _mediaManager.CloseMedia();
-        }
-
-        public Task CloseAsync()
-        {
-            if (0 == _streamOpenFlags)
-                return TplTaskExtensions.CompletedTask;
-
-            lock (_stateLock)
-            {
-                _isClosed = true;
-
-                _state = State.WaitForClose;
-            }
-
-            return _drainCompleted.WaitAsync();
         }
 
         public Task WaitDrain()

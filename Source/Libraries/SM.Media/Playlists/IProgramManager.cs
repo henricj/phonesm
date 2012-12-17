@@ -28,13 +28,21 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.M3U8;
 
 namespace SM.Media.Playlists
 {
     public interface IProgramManager : IDisposable
     {
-        IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser);
-        Task<IDictionary<long, Program>> LoadAsync(IEnumerable<Uri> playlistUrls, CancellationToken cancellationToken);
+        IEnumerable<Uri> Playlists { get; set; }
+
+        Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken);
+    }
+
+    public static class ProgramManagerExtensions
+    {
+        public static Task<IDictionary<long, Program>> LoadAsync(this IProgramManager programManager)
+        {
+            return programManager.LoadAsync(CancellationToken.None);
+        }
     }
 }

@@ -40,8 +40,6 @@ namespace SM.Media.Playlists
             get { return null; }
         }
 
-        #region IProgramManager Members
-
         public IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
         {
             var audioStreams = new Dictionary<string, MediaGroup>();
@@ -88,10 +86,12 @@ namespace SM.Media.Playlists
                     if (null != audioAttribute)
                         audioStreams.TryGetValue(audioAttribute, out audioGroup);
 
-                    var subProgram = new PlaylistSubProgramBase
+                    var playlistUrl = parser.ResolveUrl(p.Uri);
+
+                    var subProgram = new PlaylistSubProgramBase(new ProgramStream { Urls = new[] { playlistUrl } })
                                      {
                                          Bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth).Value,
-                                         Playlist = new Uri(playlist, new Uri(p.Uri, UriKind.RelativeOrAbsolute)),
+                                         Playlist = playlistUrl,
                                          AudioGroup = audioGroup
                                      };
 
@@ -99,7 +99,11 @@ namespace SM.Media.Playlists
 
                     if (!programs.TryGetValue(programId, out program))
                     {
-                        program = new Program { ProgramId = programId };
+                        program = new Program
+                                  {
+                                      Url = parser.BaseUrl,
+                                      ProgramId = programId
+                                  };
 
                         programs[programId] = program;
                     }
@@ -116,14 +120,18 @@ namespace SM.Media.Playlists
                         {
                             simpleSubProgram = new SimpleSubProgram();
 
-                            var program = new Program { ProgramId = long.MinValue };
+                            var program = new Program
+                            {
+                                Url = parser.BaseUrl,
+                                ProgramId = long.MinValue
+                            };
 
                             program.SubPrograms.Add(simpleSubProgram);
 
                             programs[program.ProgramId] = program;
                         }
 
-                        simpleSubProgram.Segments.Add(new SubStreamSegment(new Uri(playlist, new Uri(p.Uri, UriKind.RelativeOrAbsolute)))
+                        simpleSubProgram.Segments.Add(new SubStreamSegment(parser.ResolveUrl(p.Uri))
                                                       {
                                                           Duration = TimeSpan.FromSeconds((double)extInf.Duration)
                                                       });
@@ -140,8 +148,6 @@ namespace SM.Media.Playlists
 
             GC.KeepAlive(this);
         }
-
-        #endregion
 
         protected virtual void Dispose(bool disposing)
         { }

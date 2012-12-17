@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -40,33 +39,29 @@ namespace SM.Media.Playlists
     public class PlaylistSegmentManager : ISegmentManager, IDisposable
     {
         readonly CancellationTokenSource _abortTokenSource;
-        readonly Uri[] _playlistUrls;
-        readonly Func<IProgramManager> _programManagerFactory;
+        readonly Uri _referrer;
         readonly object _segmentLock = new object();
-        readonly Func<Uri, IWebRequest> _webRequestFactory;
+        readonly ISubProgram _subProgram;
+        readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         bool _isDynamicPlayist;
         Task _reReader;
         Task _reader;
         int _segmentIndex;
         SubStreamSegment[] _segments;
-        IWebRequest _subPlaylistRequest;
-        PlaylistSubProgramBase _subProgram;
+        ICachedWebRequest _subPlaylistRequest;
 
-        public PlaylistSegmentManager(Uri playlist, Func<Uri, IWebRequest> webRequestFactory, Func<IProgramManager> programManagerFactory)
-            : this(playlist, webRequestFactory, programManagerFactory, CancellationToken.None)
+        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program)
+            : this(webRequestFactory, program, CancellationToken.None)
         { }
 
-        public PlaylistSegmentManager(Uri playlist, Func<Uri, IWebRequest> webRequestFactory, Func<IProgramManager> programManagerFactory, CancellationToken cancellationToken)
-            : this(new[] { playlist }, webRequestFactory, programManagerFactory, cancellationToken)
-        { }
-
-        public PlaylistSegmentManager(IEnumerable<Uri> playlistUrls, Func<Uri, IWebRequest> webRequestFactory, Func<IProgramManager> programManagerFactory, CancellationToken cancellationToken)
+        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, CancellationToken cancellationToken)
         {
-            _playlistUrls = playlistUrls.ToArray();
             _webRequestFactory = webRequestFactory;
-            _programManagerFactory = programManagerFactory;
+            _subProgram = program;
 
             _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            _isDynamicPlayist = true;
         }
 
         CancellationToken CancellationToken
@@ -79,15 +74,6 @@ namespace SM.Media.Playlists
         public void Dispose()
         {
             _abortTokenSource.Cancel();
-
-            try
-            {
-                WaitLoad().Wait();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("PlaylistSegmentManager: {0}", ex.Message);
-            }
         }
 
         #endregion
@@ -98,6 +84,9 @@ namespace SM.Media.Playlists
         {
             if (_isDynamicPlayist)
                 await CheckReload().ConfigureAwait(false);
+
+            if (null == _segments)
+                return null;
 
             if (_segmentIndex + 1 >= _segments.Length)
             {
@@ -110,32 +99,20 @@ namespace SM.Media.Playlists
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
-            await WaitLoad();
+            if (_isDynamicPlayist)
+                await CheckReload().ConfigureAwait(false);
 
             return Seek(timestamp);
         }
 
         #endregion
 
-        Task WaitLoad()
-        {
-            lock (_segmentLock)
-            {
-                if (null == _reader)
-                    _reader = Task.Factory
-                                  .StartNew((Func<Task>)Reader)
-                                  .Unwrap();
-
-                return _reader;
-            }
-        }
-
         public TimeSpan Seek(TimeSpan timestamp)
         {
             if (null == _segments || _segments.Length < 1)
                 return TimeSpan.Zero;
 
-            _segmentIndex = -1;
+            InitializeSegmentIndex();
 
             if (TimeSpan.Zero < timestamp)
             {
@@ -161,21 +138,32 @@ namespace SM.Media.Playlists
             return TimeSpan.Zero;
         }
 
+        void InitializeSegmentIndex()
+        {
+            var segmentIndex = -1;
+
+            if (_isDynamicPlayist)
+            {
+                segmentIndex = _segments.Length / 2 - 1;
+
+                if (segmentIndex + 4 >= _segments.Length)
+                    segmentIndex = _segments.Length - 5;
+
+                if (segmentIndex < -1)
+                    segmentIndex = -1;
+            }
+
+            _segmentIndex = segmentIndex;
+        }
+
         public Segment Next()
         {
             return NextAsync().Result;
         }
 
-        public async Task<IEnumerable<IProgram>> LoadProgramsAsync()
-        {
-            await WaitLoad().ConfigureAwait(false);
-
-            return null;
-        }
-
         Task CheckReload()
         {
-            if (_segmentIndex + 3 < _segments.Length)
+            if (null != _segments && _segmentIndex + 3 < _segments.Length)
                 return TplTaskExtensions.CompletedTask;
 
             lock (_segmentLock)
@@ -187,81 +175,84 @@ namespace SM.Media.Playlists
             }
         }
 
-        async Task Reader()
+        async Task<M3U8Parser> FetchPlaylist(IEnumerable<Uri> urls)
         {
-            var playlists = _playlistUrls;
-
-            IDictionary<long, Program> programs;
-
-            using (var pmb = _programManagerFactory())
+            foreach (var playlist in urls)
             {
-                programs = await pmb.LoadAsync(playlists, CancellationToken);
+                if (null == _subPlaylistRequest || _subPlaylistRequest.Url != playlist)
+                    _subPlaylistRequest = _webRequestFactory(playlist);
+
+                var localPlaylist = playlist;
+
+                var parsedPlaylist = await _subPlaylistRequest.ReadAsync(
+                    bytes =>
+                    {
+                        if (bytes.Length < 1)
+                            return null;
+
+                        var parser = new M3U8Parser();
+
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            parser.Parse(localPlaylist, ms);
+                        }
+
+                        return parser;
+                    });
+
+                if (null != parsedPlaylist)
+                    return parsedPlaylist;
             }
 
-            var program = programs.Values.FirstOrDefault();
-
-            if (null == program)
-                return;
-
-            _subProgram = program.SubPrograms.OfType<PlaylistSubProgramBase>()
-                                 .OrderByDescending(p => p.Bandwidth)
-                                 .FirstOrDefault();
-
-            if (null == _subProgram)
-                return;
-
-            await ReadSubList();
+            return null;
         }
 
         async Task ReadSubList()
         {
-            var parser = new M3U8Parser();
+            var programStream = _subProgram.Video;
 
-            //await parser.ParseAsync(_subProgram.Playlist, _cancellationToken);
+            var parser = await FetchPlaylist(programStream.Urls);
 
-            if (null == _subPlaylistRequest)
-                _subPlaylistRequest = _webRequestFactory(_subProgram.Playlist);
-
-            var playlistString = default(string);
-
-            await _subPlaylistRequest.ReadAsync(
-                async s =>
-                {
-                    using (var sr = new StreamReader(s))
-                    {
-                        playlistString = await sr.ReadToEndAsync();
-                    }
-                });
-
-            using (var tr = new StringReader(playlistString))
+            if (null == parser)
             {
-                parser.Parse(tr);
+                lock (_segmentLock)
+                {
+                    _segments = null;
+                    _isDynamicPlayist = false;
+
+                    _reReader = null;
+                }
+
+                return;
             }
 
-            var segments = _subProgram.GetPlaylist(parser).ToArray();
+            var segments = PlaylistSubProgramBase.GetPlaylist(parser).ToArray();
 
             var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);
 
             lock (_segmentLock)
             {
-                if (null != _segments && _segmentIndex >= 0 && _segmentIndex < _segments.Length)
+                var oldSegments = _segments;
+                var oldSegmentIndex = _segmentIndex;
+
+                _segments = segments;
+                _isDynamicPlayist = isDynamicPlayist;
+
+                InitializeSegmentIndex();
+
+                if (null != oldSegments && oldSegmentIndex >= 0 && oldSegmentIndex < oldSegments.Length)
                 {
-                    var url = _segments[_segmentIndex].Url;
+                    var url = oldSegments[oldSegmentIndex].Url;
 
-                    _segmentIndex = 0;
-
-                    for (var i = 0; i < segments.Length; ++i)
+                    for (var i = 0; i < _segments.Length; ++i)
                     {
-                        if (url == segments[i].Url)
+                        if (url == _segments[i].Url)
                         {
                             _segmentIndex = i;
                             break;
                         }
                     }
                 }
-
-                _segments = segments;
-                _isDynamicPlayist = isDynamicPlayist;
 
                 _reReader = null;
             }

@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D8D466D7-46E7-4B4A-8A5E-EE2ECF4411D2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SM.Media.Platform.Desktop</RootNamespace>
+    <AssemblyName>SM.Media.Platform.Desktop</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- A reference to the entire .NET Framework is automatically included -->
+    <ProjectReference Include="..\SM.Media\SM.Media.csproj">
+      <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
+      <Name>SM.Media</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
+      <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+      <Name>SM.TsParser</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
+      <Link>Properties\GlobalAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Global\SM.MediaVersion.cs">
+      <Link>Properties\SM.MediaVersion.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\CachedWebRequest.cs">
+      <Link>CachedWebRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\HttpWebRequestFactory.cs">
+      <Link>HttpWebRequestFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\M3U8\M3U8ParserPlatformExtensions.cs">
+      <Link>M3U8\M3U8ParserPlatformExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
+      <Link>PlatformServices.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Playlists\PlaylistSubProgram.cs">
+      <Link>Playlists\PlaylistSubProgram.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Playlists\ProgramManager.cs">
+      <Link>Playlists\ProgramManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Segments\SegmentReader.cs">
+      <Link>Segments\SegmentReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Segments\SegmentReaderManager.cs">
+      <Link>Segments\SegmentReaderManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Utility\RetryPolicy.cs">
+      <Link>Utility\RetryPolicy.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Web" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SimpleSubProgram.cs" company="Henric Jungheim">
+//  <copyright file="HttpWebRequestFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,63 +25,57 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Globalization;
+using System.Net;
 
-namespace SM.Media.Playlists
+namespace SM.Media
 {
-    class SimpleSubProgram : SubProgram, IProgramStream
+    public interface IHttpWebRequestFactory
     {
-        static readonly IProgramStream[] NoStreams = new IProgramStream[0];
-        readonly ICollection<SubStreamSegment> _segments = new List<SubStreamSegment>();
+        HttpWebRequest Create(Uri url);
+    }
 
-        public ICollection<SubStreamSegment> Segments
+    public class HttpWebRequestFactory : IHttpWebRequestFactory
+    {
+        readonly CookieContainer _cookieContainer;
+        readonly ICredentials _credentials;
+        readonly Uri _referrer;
+        readonly string _userAgent;
+
+        public HttpWebRequestFactory(Uri referrer = null, string userAgent = null, ICredentials credentials = null, CookieContainer cookieContainer = null)
         {
-            get { return _segments; }
+            _cookieContainer = cookieContainer;
+            _userAgent = userAgent;
+            _credentials = credentials;
+            _referrer = referrer;
         }
 
-        public override IProgramStream Audio
-        {
-            get { return this; }
-        }
+        #region IHttpWebRequestFactory Members
 
-        public override IProgramStream Video
+        public HttpWebRequest Create(Uri url)
         {
-            get { return this; }
-        }
+            var request = WebRequest.CreateHttp(url);
 
-        public override ICollection<IProgramStream> AlternateAudio
-        {
-            get { return NoStreams; }
-        }
+            if (null != _userAgent)
+                request.UserAgent = _userAgent;
 
-        public override ICollection<IProgramStream> AlternateVideo
-        {
-            get { return NoStreams; }
-        }
+            if (null != _credentials)
+                request.Credentials = _credentials;
 
-        #region IProgramStream Members
+            if (null != _cookieContainer)
+                request.CookieContainer = _cookieContainer;
 
-        public string StreamType
-        {
-            get { return "unknown"; }
-        }
+            if (null != _referrer)
+            {
+#if WINDOWS_PHONE
+                request.Headers[HttpRequestHeader.Referer] = _referrer.ToString();
+#else
+                request.Referer  = _referrer.ToString();
+#endif
+            }
 
-        public string Language
-        {
-            get { return CultureInfo.InvariantCulture.TwoLetterISOLanguageName; }
-        }
-
-        public IEnumerable<Uri> Urls
-        {
-            get { return null; }
+            return request;
         }
 
         #endregion
-
-        public override IEnumerable<SubStreamSegment> GetPlaylist(SubStream video = null, SubStream audio = null)
-        {
-            return _segments;
-        }
     }
 }

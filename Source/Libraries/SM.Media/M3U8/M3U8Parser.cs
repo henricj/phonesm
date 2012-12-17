@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -35,6 +36,7 @@ namespace SM.Media.M3U8
         readonly List<M3U8Uri> _playlist = new List<M3U8Uri>();
         readonly List<M3U8TagInstance> _sharedTags = new List<M3U8TagInstance>();
         readonly List<M3U8TagInstance> _tags = new List<M3U8TagInstance>();
+        Uri _baseUrl;
 
         public IEnumerable<M3U8TagInstance> GlobalTags
         {
@@ -46,12 +48,33 @@ namespace SM.Media.M3U8
             get { return _playlist; }
         }
 
+        public Uri BaseUrl 
+        {
+            get { return _baseUrl; }
+        }
+
+        /// <summary>
+        /// Resolve a possibly relative Url.
+        /// </summary>
+        /// <param name="url">Absolute Uri or Url relative to this playlist.</param>
+        /// <returns>An absolute Uri</returns>
+        public Uri ResolveUrl(Uri url)
+        {
+            if (url.IsAbsoluteUri)
+                return url;
+
+            return new Uri(_baseUrl, url);
+        }
+
         /// <summary>
         ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-10
         /// </summary>
+        /// <param name="baseUri"></param>
         /// <param name="lines"> </param>
-        public void Parse(IEnumerable<string> lines)
+        public void Parse(Uri baseUri, IEnumerable<string> lines)
         {
+            _baseUrl = baseUri;
+
             _playlist.Clear();
 
             var first = true;

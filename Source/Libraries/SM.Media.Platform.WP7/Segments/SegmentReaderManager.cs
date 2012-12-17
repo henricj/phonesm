@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Segments
 {
-    sealed class SegmentReaderManager : ISegmentReaderManager
+    public sealed class SegmentReaderManager : ISegmentReaderManager
     {
         readonly ISegmentManager _segmentManager;
         ISegmentReader _segmentReader;

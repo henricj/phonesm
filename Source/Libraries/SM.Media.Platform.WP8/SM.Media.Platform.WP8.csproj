@@ -91,8 +91,14 @@
     <Compile Include="..\SM.Media.Platform.WP7\CachedWebRequest.cs">
       <Link>CachedWebRequest.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\M3U8\M3U8ParserAsyncExtensions.cs">
-      <Link>M3U8\M3U8ParserAsyncExtensions.cs</Link>
+    <Compile Include="..\SM.Media.Platform.WP7\HttpWebRequestFactory.cs">
+      <Link>HttpWebRequestFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\M3U8\M3U8ParserPlatformExtensions.cs">
+      <Link>M3U8\M3U8ParserPlatformExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\MediaElementManager.cs">
+      <Link>MediaElementManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>
@@ -109,13 +115,14 @@
     <Compile Include="..\SM.Media.Platform.WP7\Segments\SegmentReaderManager.cs">
       <Link>Segments\SegmentReaderManager.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\TsMediaManager.cs">
-      <Link>TsMediaManager.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\TsMediaStreamSource.cs">
       <Link>TsMediaStreamSource.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Utility\RetryPolicy.cs">
+      <Link>Utility\RetryPolicy.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\SM.MediaVersion.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SM.Media\SM.Media.csproj">

@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SM.Media.Playlists
 {
@@ -34,6 +33,11 @@ namespace SM.Media.Playlists
     {
         string StreamType { get; }
         string Language { get; }
+
+        /// <summary>
+        /// A list of URLs representing the same data.  They are provided in order of preference. 
+        /// </summary>
+        IEnumerable<Uri> Urls { get; }
     }
 
     public interface ISubProgram
@@ -54,6 +58,7 @@ namespace SM.Media.Playlists
 
     public interface IProgram
     {
+        Uri Url { get; }
         ICollection<ISubProgram> SubPrograms { get; }
     }
 
@@ -65,6 +70,8 @@ namespace SM.Media.Playlists
         public long ProgramId { get; set; }
 
         #region IProgram Members
+
+        public Uri Url { get; set; }
 
         public ICollection<ISubProgram> SubPrograms
         {

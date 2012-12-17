@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="M3U8ParserAsyncExtensions.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="RetryPolicy.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,50 +25,36 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
+using System.Linq;
 using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-using SM.Media.Utility;
 
-namespace SM.Media.M3U8
+namespace SM.Media.Utility
 {
-    public static class M3U8ParserAsyncExtensions
+    public static class RetryPolicy
     {
-        static bool IsRetryableException(Exception ex)
+        static readonly HttpStatusCode[] RetryCodes = new[]
+                                                      {
+                                                          HttpStatusCode.GatewayTimeout,
+                                                          HttpStatusCode.RequestTimeout,
+                                                          HttpStatusCode.InternalServerError
+                                                      }.OrderBy(v => v).ToArray();
+
+        static bool IsRetryable(HttpStatusCode code)
         {
-            // TODO: We should probably turn this around to only retry known exceptions (like timeouts, name lookup failures, etc).
-            // TODO: There should be a policy object somewhere that implements this filter.  What is appropriate for streaming from one
-            // website might not be appropriate for another.
+            return Array.BinarySearch(RetryCodes, code) >= 0;
+        }
 
-
-            if (ex is OperationCanceledException)
-                return false;
-
+        public static bool IsWebExceptionRetryable(Exception ex)
+        {
             var webException = ex as WebException;
             if (null == webException)
-                return true;
+                return false;
 
             var httpResponse = webException.Response as HttpWebResponse;
             if (null == httpResponse)
-                return true;
-
-            if (httpResponse.StatusCode == HttpStatusCode.NotFound)
                 return false;
 
-            return true;
-        }
-
-        public static async Task ParseAsync(this M3U8Parser parser, Uri playlist, CancellationToken cancellationToken)
-        {
-            var playlistString = await new Retry(4, 100, IsRetryableException)
-                                           .CallAsync(async () => await new WebClient().DownloadStringTaskAsync(playlist))
-                                           .WithCancellation(cancellationToken);
-
-            using (var sr = new StringReader(playlistString))
-            {
-                parser.Parse(sr);
-            }
+            return IsRetryable(httpResponse.StatusCode);
         }
     }
 }

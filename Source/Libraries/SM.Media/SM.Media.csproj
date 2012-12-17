@@ -41,6 +41,9 @@
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
     <Compile Include="CallbackReader.cs" />
+    <Compile Include="IMediaElementManager.cs" />
+    <Compile Include="IMediaManager.cs" />
+    <Compile Include="IMediaStreamSource.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
     <Compile Include="M3U8\TagSupport\ExtKeyTagInstance.cs" />
@@ -120,6 +123,7 @@
     <Compile Include="Playlists\SubStream.cs" />
     <Compile Include="Playlists\SubStreamSegment.cs" />
     <Compile Include="H264\RbspDecoder.cs" />
+    <Compile Include="Properties\SM.MediaVersion.cs" />
     <Compile Include="Segments\ISegmentManager.cs" />
     <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="Segments\ISegmentReaderManager.cs" />
@@ -128,6 +132,7 @@
     <Compile Include="Segments\SimpleSegmentManager.cs" />
     <Compile Include="StreamBuffer.cs" />
     <Compile Include="TsMediaHandlerFactories.cs" />
+    <Compile Include="TsMediaManager.cs" />
     <Compile Include="Utility\AsyncManualResetEvent.cs" />
     <Compile Include="Utility\BlockingPool.cs" />
     <Compile Include="Utility\BufferPool.cs" />

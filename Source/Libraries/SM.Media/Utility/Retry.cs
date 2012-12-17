@@ -114,7 +114,7 @@ namespace SM.Media.Utility
     {
         public static Task CallAsync(this Retry retry, Func<Task> operation)
         {
-            return retry.Call(async () =>
+            return retry.CallAsync(async () =>
                                     {
                                         await operation();
                                         return 0;

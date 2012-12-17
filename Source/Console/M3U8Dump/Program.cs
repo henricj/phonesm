@@ -109,10 +109,7 @@ namespace TestDoNotUse
 
             using (var f = new WebClient().OpenRead(playlist))
             {
-                // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? Encoding.ASCII : Encoding.UTF8;
-
-                parser.Parse(f);
+                parser.Parse(playlist, f);
 
                 Uri previous = null;
 
@@ -162,10 +159,7 @@ namespace TestDoNotUse
             {
                 var parser = new M3U8Parser();
 
-                // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? Encoding.ASCII : Encoding.UTF8;
-
-                parser.Parse(f, encoding);
+                parser.Parse(playlist, f);
 
                 var audioStreams = new Dictionary<string, MediaGroup>();
 
@@ -339,14 +333,13 @@ namespace M3U8Dump
 
                         Console.WriteLine("Reading {0}", arg);
 
-                        using (var f = new WebClient().OpenRead(arg))
+                        var url = new Uri(arg);
+
+                        using (var f = new WebClient().OpenRead(url))
                         {
                             var parser = new M3U8Parser();
 
-                            // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                            var encoding = ".m3u" == Path.GetExtension(arg) ? Encoding.ASCII : Encoding.UTF8;
-
-                            parser.Parse(f, encoding);
+                            parser.Parse(url, f);
                         }
                     }
                 }

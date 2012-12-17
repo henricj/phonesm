@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -33,28 +34,46 @@ namespace SM.Media.M3U8
     public static class M3U8ParserExtensions
     {
         /// <summary>
+        ///     The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
+        /// </summary>
+        static readonly Encoding M3UEncoding = Encoding.GetEncoding("iso-8859-1");
+
+        /// <summary>
+        ///     Resolve a possibly relative url.
+        /// </summary>
+        /// <param name="parser"></param>
+        /// <param name="url">Absolute Uri or Uri relative to this playlist.</param>
+        /// <returns>An absolute Uri</returns>
+        public static Uri ResolveUrl(this M3U8Parser parser, string url)
+        {
+            return parser.ResolveUrl(new Uri(url, UriKind.RelativeOrAbsolute));
+        }
+
+        /// <summary>
         /// </summary>
         /// <param name="parser"> </param>
+        /// <param name="baseUrl"></param>
         /// <param name="stream"> </param>
         /// <param name="encoding"> </param>
-        public static void Parse(this M3U8Parser parser, Stream stream, Encoding encoding = null)
+        public static void Parse(this M3U8Parser parser, Uri baseUrl, Stream stream, Encoding encoding = null)
         {
             if (null == encoding)
-                encoding = Encoding.UTF8;
+                encoding = baseUrl.LocalPath.EndsWith(".m3u") ? M3UEncoding : Encoding.UTF8;
 
             using (var sr = new StreamReader(stream, encoding))
             {
-                Parse(parser, sr);
+                parser.Parse(baseUrl, sr);
             }
         }
 
         /// <summary>
         /// </summary>
         /// <param name="parser"> </param>
+        /// <param name="baseUrl"></param>
         /// <param name="textReader"> </param>
-        public static void Parse(this M3U8Parser parser, TextReader textReader)
+        public static void Parse(this M3U8Parser parser, Uri baseUrl, TextReader textReader)
         {
-            parser.Parse(GetExtendedLines(textReader));
+            parser.Parse(baseUrl, GetExtendedLines(textReader));
         }
 
         /// <summary>
@@ -74,7 +93,7 @@ namespace SM.Media.M3U8
 
                 string line = null;
 
-                for (;;)
+                for (; ; )
                 {
                     line = textReader.ReadLine();
 

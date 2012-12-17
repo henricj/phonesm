@@ -31,7 +31,7 @@ namespace SM.Media
 {
     public interface ITsMediaManager
     {
-        void Play(ISegmentManager segmentManager);
+        void Play(ISegmentReaderManager segmentManager);
         void Close();
         void Pause();
         void Resume();

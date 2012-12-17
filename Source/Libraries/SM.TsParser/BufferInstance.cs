@@ -28,7 +28,13 @@ namespace SM.TsParser
 {
     public abstract class BufferInstance
     {
-        public byte[] Buffer;
+        readonly public byte[] Buffer;
+
+        protected BufferInstance(byte[] buffer)
+        {
+            Buffer = buffer;
+        }
+
         public abstract void Reference();
         public abstract bool Dereference();
     }

@@ -1,4 +1,4 @@
-// -----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
 //  <copyright file="AssemblyInfo.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
@@ -31,7 +31,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("ComputeCrcTable")]
+[assembly: AssemblyTitle("SimulatedPlayer")]
 [assembly: AssemblyDescription("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -42,7 +42,7 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 
-[assembly: Guid("97658682-cf40-48a0-be12-08f44a7852d7")]
+[assembly: Guid("0f4d7bdd-c384-4e21-b0d5-fc9f6e9535f8")]
 
 // Version information for an assembly consists of the following four values:
 //

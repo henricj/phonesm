@@ -26,8 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,30 +35,18 @@ namespace SM.Media.Playlists
 {
     public class ProgramManager : ProgramManagerBase, IProgramManager
     {
-        internal static readonly Encoding M3UEncoding = Encoding.GetEncoding("iso-8859-1");
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
 
-        public IDictionary<long, Program> Load(Uri playlist)
-        {
-            var parser = new M3U8Parser();
+        public IEnumerable<Uri> Playlists { get; set; }
 
-            using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
-            {
-                // The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-                var encoding = ".m3u" == Path.GetExtension(playlist.LocalPath) ? M3UEncoding : Encoding.UTF8;
-
-                parser.Parse(f, encoding);
-            }
-
-            return Load(playlist, parser);
-        }
-
-        public async Task<IDictionary<long, Program>> LoadAsync(IEnumerable<Uri> playlistUrls, CancellationToken cancellationToken)
+        public async Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken)
         {
             var parser = new M3U8Parser();
             Uri actualPlaylist = null;
 
-            foreach (var playlist in playlistUrls)
+            var playlists = Playlists;
+
+            foreach (var playlist in playlists)
             {
                 actualPlaylist = playlist;
 

@@ -131,10 +131,10 @@ namespace SM.Media.Segments
 
                     delay += delay;
 
-#if WINDOWS_PHONE8
-                    await Task.Delay(actualDelay, cancellationToken);
-#else
+#if WINDOWS_PHONE7
                     await TaskEx.Delay(actualDelay, cancellationToken);
+#else
+                    await Task.Delay(actualDelay, cancellationToken);
 #endif
                 }
             } while (index < thresholdSize);
@@ -155,7 +155,7 @@ namespace SM.Media.Segments
 
         #endregion
 
-        static WebRequest CreateWebRequest(Segment segment)
+        WebRequest CreateWebRequest(Segment segment)
         {
             var webRequest = WebRequest.Create(segment.Url);
 

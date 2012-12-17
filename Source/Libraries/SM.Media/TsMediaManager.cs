@@ -26,48 +26,35 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Windows.Media;
 using SM.Media.Segments;
 using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public interface IMediaManager
-    {
-        void OpenMedia();
-        void CloseMedia();
-        Task<TimeSpan> SeekMediaAsync(TimeSpan position);
-        void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
-    }
-
     sealed public class TsMediaManager : ITsMediaManager, IMediaManager, IDisposable
     {
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromSeconds(8);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromMilliseconds(250);
         readonly CommandWorker _commandWorker = new CommandWorker();
-        readonly MediaElement _mediaElement;
+        readonly IMediaElementManager _mediaElementManager;
         MediaParser _mediaParser;
-        //#if MEDIA_STREAM_STATE_VALIDATION
-        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
-        //#endif
-        TsMediaStreamSource _mediaStreamSource;
+        IMediaStreamSource _mediaStreamSource;
         ISegmentReaderManager _readerManager;
         QueueWorker<CallbackReader.WorkBuffer> _queueWorker;
         CallbackReader _reader;
-        int _sourceIsSet;
+        readonly Func<IMediaManager, IMediaStreamSource> _mediaStreamSourceFactory;
 
-        public TsMediaManager(MediaElement mediaElement)
+        public TsMediaManager(IMediaElementManager mediaElementManager, Func<IMediaManager, IMediaStreamSource> mediaStreamSourceFactory)
         {
-            if (null == mediaElement)
-                throw new ArgumentNullException("mediaElement");
+            if (null == mediaElementManager)
+                throw new ArgumentNullException("mediaElementManager");
 
-            _mediaElement = mediaElement;
+            if (null == mediaStreamSourceFactory)
+                throw new ArgumentNullException("mediaStreamSourceFactory");
 
-            _mediaStreamFsm.Reset();
+            _mediaElementManager = mediaElementManager;
+            _mediaStreamSourceFactory = mediaStreamSourceFactory;
         }
 
         #region IMediaManager Members
@@ -96,14 +83,14 @@ namespace SM.Media
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
         {
-            _mediaStreamFsm.ValidateEvent(mediaEvent);
+            _mediaElementManager.ValidateEvent(mediaEvent);
         }
 
         #endregion
 
         #region ITsMediaManager Members
 
-        public void Play(ISegmentManager segmentManager)
+        public void Play(ISegmentReaderManager segmentManager)
         {
             _commandWorker.SendCommand(new CommandWorker.Command(() => PlayAsync(segmentManager)));
         }
@@ -131,15 +118,15 @@ namespace SM.Media
             _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(timestamp)));
         }
 
-        async Task PlayAsync(ISegmentManager segmentManager)
+        async Task PlayAsync(ISegmentReaderManager segmentManager)
         {
             await StopAsync();
 
-            _readerManager = new SegmentReaderManager(segmentManager);
+            _readerManager = segmentManager;
 
             _reader = new CallbackReader(_readerManager, buffer => _queueWorker.Enqueue(buffer));
 
-            _mediaStreamSource = new TsMediaStreamSource(this);
+            _mediaStreamSource = _mediaStreamSourceFactory(this);
 
             _queueWorker = new QueueWorker<CallbackReader.WorkBuffer>(
                 wi =>
@@ -156,28 +143,7 @@ namespace SM.Media
 
             _queueWorker.IsEnabled = true;
 
-            await Dispatch(() =>
-                           {
-                               ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
-                               var wasSet = Interlocked.Exchange(ref _sourceIsSet, 1);
-
-                               Debug.Assert(0 == wasSet);
-
-                               _mediaElement.Source = null;
-
-                               _mediaElement.SetSource(_mediaStreamSource);
-                           });
-        }
-
-        Task Dispatch(Action action)
-        {
-            if (_mediaElement.Dispatcher.CheckAccess())
-            {
-                action();
-                return TplTaskExtensions.CompletedTask;
-            }
-
-            return _mediaElement.Dispatcher.InvokeAsync(action);
+            await _mediaElementManager.SetSource(_mediaStreamSource);
         }
 
         async Task StopAsync()
@@ -216,26 +182,15 @@ namespace SM.Media
 
             if (tasks.Count > 0)
             {
-#if WINDOWS_PHONE8
-                await Task.WhenAll(tasks);
-#else
                 await TaskEx.WhenAll(tasks);
-#endif
             }
 
             if (null != drainTask)
             {
-#if WINDOWS_PHONE8
-                await Task.WhenAny(drainTask, Task.Delay(1500));
-#else
                 await TaskEx.WhenAny(drainTask, TaskEx.Delay(1500));
-#endif
             }
 
-            var wasSet = Interlocked.CompareExchange(ref _sourceIsSet, 2, 1);
-
-            if (0 != wasSet)
-                await _mediaElement.Dispatcher.InvokeAsync(UiThreadCleanup);
+            await _mediaElementManager.Close();
 
             _queueWorker = null;
             _reader = null;
@@ -245,33 +200,6 @@ namespace SM.Media
 
             using (reader)
             { }
-        }
-
-        void UiThreadCleanup()
-        {
-            var was2 = Interlocked.CompareExchange(ref _sourceIsSet, 3, 2);
-
-            if (2 != was2 && 3 != was2)
-                return;
-
-            var state = _mediaElement.CurrentState;
-
-            if (MediaElementState.Closed != state && MediaElementState.Stopped != state)
-                _mediaElement.Stop();
-
-            state = _mediaElement.CurrentState;
-
-            //if (MediaElementState.Closed == state || MediaElementState.Stopped == state)
-            _mediaElement.Source = null;
-
-            state = _mediaElement.CurrentState;
-
-            if (MediaElementState.Closed == state || MediaElementState.Stopped == state)
-            {
-                var was3 = Interlocked.Exchange(ref _sourceIsSet, 0);
-
-                Debug.Assert(3 == was3);
-            }
         }
 
         async Task<TimeSpan> SeekAsync(TimeSpan position)

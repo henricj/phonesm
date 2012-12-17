@@ -25,13 +25,22 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
     public interface IWebRequest
     {
-        Task<bool> ReadAsync(Func<Stream, Task> handler);
+        Uri Url { get; }
+
+        Task<int> ReadAsync(byte[] buffer, int offset, int length);
+    }
+
+    public interface ICachedWebRequest
+    {
+        Uri Url { get; }
+
+        Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory)
+            where TCached : class;
     }
 }

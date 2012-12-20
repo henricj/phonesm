@@ -82,19 +82,27 @@ namespace SM.Media.Playlists
 
         public async Task<Segment> NextAsync()
         {
-            if (_isDynamicPlayist)
-                await CheckReload().ConfigureAwait(false);
-
-            if (null == _segments)
-                return null;
-
-            if (_segmentIndex + 1 >= _segments.Length)
+            for (; ; )
             {
-                _segmentIndex = _segments.Length;
-                return null;
-            }
+                if (_isDynamicPlayist)
+                {
+                    await CheckReload().ConfigureAwait(false);
+                }
 
-            return _segments[++_segmentIndex];
+                lock (_segmentLock)
+                {
+                    if (null != _segments && _segmentIndex + 1 < _segments.Length)
+                        return _segments[++_segmentIndex];
+                }
+
+                // We seem to have run out of playlist.  If this is not
+                // a dynamic playlist, then we are done.
+
+                if (!_isDynamicPlayist)
+                    return null;
+
+                await TaskEx.Delay(5000);
+            }
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
@@ -144,13 +152,20 @@ namespace SM.Media.Playlists
 
             if (_isDynamicPlayist)
             {
-                segmentIndex = _segments.Length / 2 - 1;
+                // We don't want to start with the first segment in case
+                // we need to buffer.  We don't want to start too far into
+                // the playlist since this would mean reloading the thing
+                // too often.  With enough buffering, we will eventually 
+                // miss segments.  To get that working properly, we must
+                // adjust the sample timestamps since otherwise there will
+                // be a discontinuity for MediaElement to choke on.
+                segmentIndex = 0; // _segments.Length / 4 - 1;
 
-                if (segmentIndex + 4 >= _segments.Length)
-                    segmentIndex = _segments.Length - 5;
+                //if (segmentIndex + 4 >= _segments.Length)
+                //    segmentIndex = _segments.Length - 5;
 
-                if (segmentIndex < -1)
-                    segmentIndex = -1;
+                //if (segmentIndex < -1)
+                //    segmentIndex = -1;
             }
 
             _segmentIndex = segmentIndex;
@@ -163,16 +178,21 @@ namespace SM.Media.Playlists
 
         Task CheckReload()
         {
-            if (null != _segments && _segmentIndex + 3 < _segments.Length)
-                return TplTaskExtensions.CompletedTask;
-
             lock (_segmentLock)
             {
+                if (null != _segments && _segmentIndex + 2 < _segments.Length)
+                    return TplTaskExtensions.CompletedTask;
+
                 if (null != _reReader)
                     return _reReader;
 
-                return _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList).Unwrap();
+                _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList).Unwrap();
+
+                if (null == _segments || _segmentIndex + 1 >= _segments.Length)
+                    return _reReader;
             }
+
+            return TplTaskExtensions.CompletedTask;
         }
 
         async Task<M3U8Parser> FetchPlaylist(IEnumerable<Uri> urls)

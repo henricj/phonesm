@@ -179,7 +179,7 @@ namespace SM.Media.Segments
                                                    {
                                                        var webRequest = CreateWebRequest(_segment);
 
-                                                       return await Task<WebResponse>.Factory.FromAsync(webRequest.BeginGetResponse, webRequest.EndGetResponse, null);
+                                                       return await webRequest.GetResponseAsync();
                                                    })
                                   .WithCancellation(cancellationToken);
 

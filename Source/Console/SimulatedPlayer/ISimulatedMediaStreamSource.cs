@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="Program.cs" company="Henric Jungheim">
+//  <copyright file="ISimulatedMediaStreamSource.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,22 +24,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
+using SM.Media;
 
 namespace SimulatedPlayer
 {
-    class Program
+    interface ISimulatedMediaStreamSource : IMediaStreamSource
     {
-        static void Main(string[] args)
-        {
-            using (var simulator = new Simulator())
-            {
-                simulator.Run().Wait();
-
-                Console.WriteLine("Press any key to exit");
-
-                Console.ReadLine();
-            }
-        }
+        void OpenMediaAsync();
+        void SeekAsync(long seekToTime);
+        void GetSampleAsync(int streamType);
+        void CloseMedia();
     }
 }

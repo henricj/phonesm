@@ -60,7 +60,7 @@ namespace SM.Media
             if (null == _cachedObject as TCached)
                 _cachedObject = null;
 
-            await new Retry(4, 250, RetryPolicy.IsWebExceptionRetryable )
+            await new Retry(4, 250, RetryPolicy.IsWebExceptionRetryable)
                 .CallAsync(() => Fetch(factory));
 
             return _cachedObject as TCached;
@@ -73,36 +73,60 @@ namespace SM.Media
         {
             var request = CreateRequest();
 
-            using (var response = await request.GetResponseAsync())
+            using (var response = await GetHttpWebResponseAsync(request))
             {
-                var webResponse = (HttpWebResponse)response;
-
-                if (HttpStatusCode.OK == webResponse.StatusCode)
+                switch (response.StatusCode)
                 {
-                    var date = response.Headers["Last-Modified"];
-
-                    _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
-
-                    var etag = response.Headers["ETag"];
-
-                    _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
-
-                    byte[] body;
-
-                    using (var stream = response.GetResponseStream())
-                    {
-                        using (var ms = new MemoryStream((int)response.ContentLength))
+                    case HttpStatusCode.OK:
                         {
-                            await stream.CopyToAsync(ms);
+                            var date = response.Headers["Last-Modified"];
 
-                            body = ms.ToArray();
+                            _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
+
+                            var etag = response.Headers["ETag"];
+
+                            _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
+
+                            byte[] body;
+
+                            using (var stream = response.GetResponseStream())
+                            {
+                                var ms = response.ContentLength > 0 ? new MemoryStream((int)response.ContentLength) : new MemoryStream();
+
+                                using (ms)
+                                {
+                                    await stream.CopyToAsync(ms);
+
+                                    body = ms.ToArray();
+                                }
+                            }
+
+                            _cachedObject = factory(body);
                         }
-                    }
-
-                    _cachedObject = factory(body);
+                        break;
+                    case HttpStatusCode.NotModified:
+                        break;
+                    default:
+                        _cachedObject = null;
+                        break;
                 }
-                else if (HttpStatusCode.NotModified != webResponse.StatusCode)
-                    _cachedObject = null;
+            }
+        }
+
+        async Task<HttpWebResponse> GetHttpWebResponseAsync(HttpWebRequest request)
+        {
+            try
+            {
+                return (HttpWebResponse)await request.GetResponseAsync();
+            }
+            catch (WebException ex)
+            {
+                var response = ex.Response as HttpWebResponse;
+
+                if (null != response && HttpStatusCode.NotModified == response.StatusCode)
+                    return response;
+
+                throw;
             }
         }
 
@@ -141,8 +165,8 @@ namespace SM.Media
                 // we try slay the WP cache.
                 if (null != _cachedObject)
                 {
-                    var date = DateTimeOffset.UtcNow;
-                    //var date = VeryOldDate;
+                    //var date = DateTimeOffset.UtcNow;
+                    var date = VeryOldDate;
 #if WINDOWS_PHONE
                     hr.Headers[HttpRequestHeader.IfModifiedSince] = date.ToString("r");
 #else

@@ -61,6 +61,11 @@ namespace HlsView
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
+            UpdateState(state);
+        }
+
+        void UpdateState(MediaElementState state)
+        {
             Debug.WriteLine("MediaElement State: " + state);
 
             MediaStateBox.Text = state.ToString();
@@ -163,7 +168,7 @@ namespace HlsView
 
                                                                mediaElement1 = me;
 
-                                                               mediaElement1_CurrentStateChanged(null, null);
+                                                               UpdateState(MediaElementState.Opening);
 
                                                                return me;
                                                            },
@@ -179,7 +184,7 @@ namespace HlsView
 
                                                                mediaElement1 = null;
 
-                                                               mediaElement1_CurrentStateChanged(null, null);
+                                                               UpdateState(MediaElementState.Closed);
                                                            });
 
             _tsMediaManager = new TsMediaManager(_mediaElementManager, mm => new TsMediaStreamSource(mm));

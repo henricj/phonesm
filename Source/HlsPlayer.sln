@@ -25,13 +25,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Phone", "Phone", "{2331EB7D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{0D6454AD-8755-4AA4-82CD-391508D91DDB}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{2B401FDF-20A3-45B4-9094-546410632C67}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Global", "Global", "{A73C5F86-FFD5-4034-9443-E3C5F642ADAA}"
 	ProjectSection(SolutionItems) = preProject
 		Global\GlobalAssemblyInfo.cs = Global\GlobalAssemblyInfo.cs
@@ -41,6 +34,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimulatedPlayer", "Console\SimulatedPlayer\SimulatedPlayer.csproj", "{1C1F4541-C71E-4637-82CB-95C4697ACE25}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.Platform.Desktop", "Libraries\SM.Media.Platform.Desktop\SM.Media.Platform.Desktop.csproj", "{D8D466D7-46E7-4B4A-8A5E-EE2ECF4411D2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{2C8133FC-99E4-49B1-BCE8-3817B37068F2}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution

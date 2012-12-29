@@ -251,6 +251,8 @@ namespace SM.Media.Utility
 
         async Task WorkerAsync()
         {
+            var closeTask = false;
+
             try
             {
                 for (; ; )
@@ -268,10 +270,10 @@ namespace SM.Media.Utility
 
                             if (isDisposed || !isEnabled || isClosed || isPaused)
                             {
-                                if (isClosed && !_closeTaskCompletionSource.Task.IsCompleted)
-                                    _closeTaskCompletionSource.SetResult(true);
-
                                 _workerRunning = false;
+
+                                if (isClosed && !_closeTaskCompletionSource.Task.IsCompleted)
+                                    closeTask = true;
 
                                 return;
                             }
@@ -329,6 +331,9 @@ namespace SM.Media.Utility
                     Debug.Assert(!_workerRunning);
                     _workerRunning = false;
                 }
+
+                if (closeTask)
+                    _closeTaskCompletionSource.TrySetResult(true);
             }
         }
     }

@@ -33,24 +33,12 @@ namespace SM.Media.Utility
     public static class TplTaskExtensions
     {
         public static readonly Task CompletedTask;
-        public static readonly Task<bool> TrueTask;
-        public static readonly Task<bool> FalseTask;
+        public static readonly Task<bool> TrueTask = TaskEx.FromResult(true);
+        public static readonly Task<bool> FalseTask = TaskEx.FromResult(false);
 
         static TplTaskExtensions()
         {
-            var tcs = new TaskCompletionSource<bool>();
-
-            tcs.SetResult(true);
-
-            CompletedTask = tcs.Task;
-            TrueTask = tcs.Task;
-
-
-            tcs = new TaskCompletionSource<bool>();
-
-            tcs.SetResult(false);
-
-            FalseTask = tcs.Task;
+            CompletedTask = TrueTask;
         }
 
 #if WINDOWS_PHONE8

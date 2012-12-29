@@ -39,7 +39,6 @@ namespace SM.Media.Playlists
     public class PlaylistSegmentManager : ISegmentManager, IDisposable
     {
         readonly CancellationTokenSource _abortTokenSource;
-        readonly Uri _referrer;
         readonly object _segmentLock = new object();
         readonly ISubProgram _subProgram;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
@@ -56,6 +55,12 @@ namespace SM.Media.Playlists
 
         public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, CancellationToken cancellationToken)
         {
+            if (null == webRequestFactory)
+                throw new ArgumentNullException("webRequestFactory");
+
+            if (null == program)
+                throw new ArgumentNullException("program");
+
             _webRequestFactory = webRequestFactory;
             _subProgram = program;
 
@@ -79,6 +84,8 @@ namespace SM.Media.Playlists
         #endregion
 
         #region ISegmentManager Members
+
+        public Uri Url { get; private set; }
 
         public async Task<Segment> NextAsync()
         {
@@ -245,6 +252,8 @@ namespace SM.Media.Playlists
 
                 return;
             }
+
+            Url = parser.BaseUrl;
 
             var segments = PlaylistSubProgramBase.GetPlaylist(parser).ToArray();
 

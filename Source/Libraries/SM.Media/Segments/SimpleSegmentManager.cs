@@ -69,6 +69,11 @@ namespace SM.Media.Segments
             return TimeSpanZeroTask;
         }
 
+        public Uri Url
+        {
+            get { return null; }
+        }
+
         public Task<Segment> NextAsync()
         {
             if (null == _urlEnumerator)
@@ -80,10 +85,7 @@ namespace SM.Media.Segments
                 return null;
             }
 
-            var tcs = new TaskCompletionSource<Segment>();
-            tcs.SetResult(new SimpleSegment(_urlEnumerator.Current));
-
-            return tcs.Task;
+            return TaskEx.FromResult<Segment>(new SimpleSegment(_urlEnumerator.Current));
         }
 
         #endregion

@@ -91,9 +91,6 @@
     <Compile Include="..\SM.Media.Platform.WP7\CachedWebRequest.cs">
       <Link>CachedWebRequest.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\HttpWebRequestFactory.cs">
-      <Link>HttpWebRequestFactory.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\M3U8\M3U8ParserPlatformExtensions.cs">
       <Link>M3U8\M3U8ParserPlatformExtensions.cs</Link>
     </Compile>
@@ -117,6 +114,12 @@
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\TsMediaStreamSource.cs">
       <Link>TsMediaStreamSource.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Utility\HttpWebRequestFactory.cs">
+      <Link>Utility\HttpWebRequestFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\Utility\IHttpWebRequestFactory.cs">
+      <Link>Utility\IHttpWebRequestFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\Utility\RetryPolicy.cs">
       <Link>Utility\RetryPolicy.cs</Link>

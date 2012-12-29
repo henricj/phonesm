@@ -70,7 +70,6 @@
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="CachedWebRequest.cs" />
-    <Compile Include="HttpWebRequestFactory.cs" />
     <Compile Include="M3U8\M3U8ParserPlatformExtensions.cs" />
     <Compile Include="MediaElementManager.cs" />
     <Compile Include="PlatformServices.cs" />
@@ -81,6 +80,8 @@
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="TsMediaStreamSource.cs" />
+    <Compile Include="Utility\HttpWebRequestFactory.cs" />
+    <Compile Include="Utility\IHttpWebRequestFactory.cs" />
     <Compile Include="Utility\RetryPolicy.cs" />
   </ItemGroup>
   <ItemGroup>

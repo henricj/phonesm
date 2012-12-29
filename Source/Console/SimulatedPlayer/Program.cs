@@ -25,6 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media;
+using SM.Media.Utility;
 
 namespace SimulatedPlayer
 {
@@ -32,6 +34,8 @@ namespace SimulatedPlayer
     {
         static void Main(string[] args)
         {
+            GlobalPlatformServices.Default = new PlatformServices();
+
             using (var simulator = new Simulator())
             {
                 simulator.Run().Wait();

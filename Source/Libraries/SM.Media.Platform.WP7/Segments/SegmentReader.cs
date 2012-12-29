@@ -37,13 +37,21 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
+        readonly Segment _segment;
+        readonly Func<Uri, HttpWebRequest> _webRequestFactory;
         WebResponse _response;
         Stream _responseStream;
-        readonly Segment _segment;
 
-        public SegmentReader(Segment segment)
+        public SegmentReader(Segment segment, Func<Uri, HttpWebRequest> webRequestFactory)
         {
+            if (null == segment)
+                throw new ArgumentNullException("segment");
+
+            if (null == webRequestFactory)
+                throw new ArgumentNullException("webRequestFactory");
+
             _segment = segment;
+            _webRequestFactory = webRequestFactory;
         }
 
         #region ISegmentReader Members
@@ -157,16 +165,14 @@ namespace SM.Media.Segments
 
         WebRequest CreateWebRequest(Segment segment)
         {
-            var webRequest = WebRequest.Create(segment.Url);
+            var webRequest = _webRequestFactory(segment.Url);
 
-            var httpWebRequest = webRequest as HttpWebRequest;
-
-            if (null != httpWebRequest)
+            if (null != webRequest)
             {
-                httpWebRequest.AllowReadStreamBuffering = false;
+                (webRequest).AllowReadStreamBuffering = false;
 
                 if (segment.Offset > 0)
-                    httpWebRequest.Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-";
+                    (webRequest).Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-";
             }
 
             return webRequest;
@@ -174,7 +180,7 @@ namespace SM.Media.Segments
 
         async Task<Stream> OpenStream(CancellationToken cancellationToken)
         {
-            _response = await new Retry(3, 150, e => !(e is OperationCanceledException))
+            _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
                                   .CallAsync(async () =>
                                                    {
                                                        var webRequest = CreateWebRequest(_segment);

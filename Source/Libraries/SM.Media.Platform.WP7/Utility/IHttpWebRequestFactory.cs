@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentManager.cs" company="Henric Jungheim">
+//  <copyright file="IHttpWebRequestFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,23 +25,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading.Tasks;
+using System.Net;
 
-namespace SM.Media.Segments
+namespace SM.Media.Utility
 {
-    public interface ISegmentManager
+    public interface IHttpWebRequestFactory
     {
-        Uri Url { get; }
-
-        Task<Segment> NextAsync();
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp);
-    }
-
-    public static class SegmentManagerAsyncExtensions
-    {
-        public static Task<TimeSpan> Start(this ISegmentManager segmentManager)
-        {
-            return segmentManager.SeekAsync(TimeSpan.Zero);
-        }
+        HttpWebRequest Create(Uri url);
+        IHttpWebRequestFactory CreateChildFactory(Uri url);
     }
 }

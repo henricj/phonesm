@@ -26,11 +26,11 @@
 
 using System;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Playlists;
 using SM.Media.Segments;
+using SM.Media.Utility;
 
 namespace SimulatedPlayer
 {
@@ -53,7 +53,7 @@ namespace SimulatedPlayer
         public async Task Run()
         {
             _programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
-            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
+            //_programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
 
             SM.Media.Playlists.Program program;
             ISubProgram subProgram;
@@ -81,15 +81,15 @@ namespace SimulatedPlayer
                 return;
             }
 
-            Func<Uri, HttpWebRequest> webRequestFactory = new HttpWebRequestFactory(program.Url).Create;
+            var webRequestFactory = new HttpWebRequestFactory(program.Url);
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
 
             var mediaElementManager = new SimulatedMediaElementManager();
 
             _tsMediaManager = new TsMediaManager(mediaElementManager, mm => new SimulatedMediaStreamSource(mm, mediaElementManager));
 
-            _segmentReaderManager = new SegmentReaderManager(playlist);
+            _segmentReaderManager = new SegmentReaderManager(playlist, webRequestFactory.CreateChildFactory(playlist.Url));
 
             _tsMediaManager.Play(_segmentReaderManager);
         }

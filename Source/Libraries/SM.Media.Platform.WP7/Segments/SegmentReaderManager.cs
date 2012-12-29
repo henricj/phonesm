@@ -27,17 +27,26 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
     public sealed class SegmentReaderManager : ISegmentReaderManager
     {
         readonly ISegmentManager _segmentManager;
+        readonly IHttpWebRequestFactory _webRequestFactory;
         ISegmentReader _segmentReader;
 
-        public SegmentReaderManager(ISegmentManager segmentManager)
+        public SegmentReaderManager(ISegmentManager segmentManager, IHttpWebRequestFactory webRequestFactory)
         {
+            if (null == webRequestFactory)
+                throw new ArgumentNullException("webRequestFactory");
+
+            if (null == segmentManager)
+                throw new ArgumentNullException("segmentManager");
+
             _segmentManager = segmentManager;
+            _webRequestFactory = webRequestFactory;
         }
 
         #region ISegmentReaderManager Members
@@ -66,7 +75,7 @@ namespace SM.Media.Segments
 
             CloseReader();
 
-            _segmentReader = new SegmentReader(segment);
+            _segmentReader = new SegmentReader(segment, _webRequestFactory.CreateChildFactory(_segmentManager.Url).Create);
 
             return true;
         }

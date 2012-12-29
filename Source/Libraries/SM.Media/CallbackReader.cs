@@ -54,6 +54,21 @@ namespace SM.Media
             _enqueue = enqueue;
         }
 
+        public Task ReaderTask
+        {
+            get
+            {
+                Task readerTask;
+
+                lock (_readerLock)
+                {
+                    readerTask = _readerTask;
+                }
+
+                return readerTask ?? TplTaskExtensions.CompletedTask;
+            }
+        }
+
         #region IDisposable Members
 
         /// <summary>
@@ -155,56 +170,6 @@ namespace SM.Media
             }
         }
 
-        #region Nested type: WorkBuffer
-
-        public class WorkBuffer
-        {
-            public readonly byte[] Buffer = new byte[BufferSize];
-            public int Length;
-
-#if DEBUG
-            static int _sequenceCounter;
-
-            public readonly int Sequence = Interlocked.Increment(ref _sequenceCounter);
-            public int ReadCount;
-#endif
-        }
-
-        #endregion
-
-        #region IBufferingReader members
-
-        public void Start(Action<byte[], int> callback)
-        {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => StartAsync(TimeSpan.Zero)));
-        }
-
-        public virtual void Seek(TimeSpan position, Action<TimeSpan> seekCompleted)
-        {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(position)
-                                                                           .ContinueWith(t => seekCompleted(t.Result))));
-        }
-
-        public void Stop(Action stopCallback)
-        {
-            _commandWorker.SendCommand(new CommandWorker.Command(StopAsync, b => stopCallback()));
-        }
-
-        public void Close(Action closeCallback)
-        {
-            lock (_readerLock)
-            {
-                _isClosed = true;
-
-                if (null != _readCancellationSource && !_readCancellationSource.IsCancellationRequested)
-                    _readCancellationSource.Cancel();
-            }
-
-            _commandWorker.SendCommand(new CommandWorker.Command(CloseAsync, b => closeCallback()));
-
-            //_commandWorker.CloseAsync();
-        }
-
         public async Task<TimeSpan> StartAsync(TimeSpan startPosition)
         {
             lock (_readerLock)
@@ -244,30 +209,65 @@ namespace SM.Media
             }
         }
 
-        async Task CloseAsync()
-        {
-            await StopAsync();
-        }
-
         async Task<TimeSpan> SeekAsync(TimeSpan position)
         {
             await StopAsync();
 
             var seekDone = new TaskCompletionSource<TimeSpan>();
 
+            CancellationTokenSource cancellationSource = null;
+
+            var isClosed = false;
+
             lock (_readerLock)
             {
-                if (_isClosed)
-                    return TimeSpan.Zero;
+                isClosed = _isClosed;
 
-                if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
-                    _readCancellationSource = new CancellationTokenSource();
+                if (!isClosed)
+                {
+                    if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
+                        _readCancellationSource = new CancellationTokenSource();
 
-                _readerRunning = true;
-                _readerTask = Task.Factory.StartNew(() => ReadAsync(position, seekDone, _readCancellationSource.Token)).Unwrap();
+                    cancellationSource = _readCancellationSource;
+
+                    _readerRunning = true;
+                    _readerTask = Task.Factory.StartNew(() => ReadAsync(position, seekDone, cancellationSource.Token), cancellationSource.Token).Unwrap();
+                }
             }
 
+            if (isClosed)
+            {
+                seekDone.SetResult(TimeSpan.Zero);
+
+                return TimeSpan.Zero;
+            }
+
+            var faultTask = _readerTask.ContinueWith(t =>
+                                                     {
+                                                         cancellationSource.Cancel();
+                                                         seekDone.TrySetException(t.Exception);
+                                                     },
+                                                     TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+
+            var cancelTask = _readerTask.ContinueWith(t => seekDone.TrySetCanceled(),
+                                                      TaskContinuationOptions.OnlyOnCanceled | TaskContinuationOptions.ExecuteSynchronously);
+
             return await seekDone.Task;
+        }
+
+        #region Nested type: WorkBuffer
+
+        public class WorkBuffer
+        {
+            public readonly byte[] Buffer = new byte[BufferSize];
+            public int Length;
+
+#if DEBUG
+            static int _sequenceCounter;
+
+            public readonly int Sequence = Interlocked.Increment(ref _sequenceCounter);
+            public int ReadCount;
+#endif
         }
 
         #endregion

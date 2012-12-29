@@ -27,7 +27,6 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -36,16 +35,18 @@ using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using SM.Media;
 using SM.Media.Playlists;
+using SM.Media.Segments;
+using SM.Media.Utility;
 
 namespace HlsView
 {
     public partial class MainPage : PhoneApplicationPage
     {
         readonly DispatcherTimer _positionSampler;
+        IMediaElementManager _mediaElementManager;
         int _positionSampleCount;
         TimeSpan _previousPosition;
         ITsMediaManager _tsMediaManager;
-        IMediaElementManager _mediaElementManager;
 
         // Constructor
         public MainPage()
@@ -110,8 +111,8 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            var programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
-            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
+            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
+            var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
 
             Program program;
             ISubProgram subProgram;
@@ -151,9 +152,9 @@ namespace HlsView
                 return;
             }
 
-            Func<Uri, HttpWebRequest> webRequestFactory = new HttpWebRequestFactory(program.Url).Create;
+            var webRequestFactory = new HttpWebRequestFactory(program.Url);
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
                                                            () =>
@@ -189,7 +190,7 @@ namespace HlsView
 
             _tsMediaManager = new TsMediaManager(_mediaElementManager, mm => new TsMediaStreamSource(mm));
 
-            _tsMediaManager.Play(new SM.Media.Segments.SegmentReaderManager(playlist));
+            _tsMediaManager.Play(new SegmentReaderManager(playlist, webRequestFactory.CreateChildFactory(playlist.Url)));
 
             _positionSampler.Start();
         }

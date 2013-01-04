@@ -214,15 +214,18 @@ namespace SM.Media
             var ms = streamHandlerFactory(pid, streamType, streamBuffer,
                                           packet =>
                                           {
-                                              if (!_timestampOffset.HasValue)
+                                              if (null != packet)
                                               {
-                                                  _timestampOffset = packet.Timestamp;
-                                                  packet.Timestamp = TimeSpan.Zero;
-                                              }
-                                              else
-                                                  packet.Timestamp -= _timestampOffset.Value;
+                                                  if (!_timestampOffset.HasValue)
+                                                  {
+                                                      _timestampOffset = packet.Timestamp;
+                                                      packet.Timestamp = TimeSpan.Zero;
+                                                  }
+                                                  else
+                                                      packet.Timestamp -= _timestampOffset.Value;
 
-                                              Debug.Assert(packet.Timestamp >= TimeSpan.Zero);
+                                                  Debug.Assert(packet.Timestamp >= TimeSpan.Zero);
+                                              }
 
                                               streamBuffer.Enqueue(packet);
                                           });

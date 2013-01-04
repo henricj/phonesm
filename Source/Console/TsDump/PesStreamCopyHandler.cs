@@ -104,7 +104,7 @@ namespace TsDump
                 Task t = null;
 
                 if (null != _stream)
-                    t = Task.Factory.FromAsync(_stream.BeginWrite, _stream.EndWrite, packet.Buffer, packet.Index, packet.Length, null);
+                    t = _stream.WriteAsync(packet.Buffer, packet.Index, packet.Length);
 
                 _hash.TransformBlock(packet.Buffer, packet.Index, packet.Length, null, 0);
 

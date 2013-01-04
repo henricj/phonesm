@@ -42,7 +42,6 @@ namespace SM.TsParser
         int _index;
         uint _length;
         uint _pid;
-        ulong? _ptsOffset;
         int _startIndex;
         byte _streamId;
 
@@ -213,7 +212,6 @@ namespace SM.TsParser
                     // TODO: ???
                 }
 
-
                 // validate marker_bit
                 if (0 == (x & 1))
                     return;
@@ -334,14 +332,6 @@ namespace SM.TsParser
 
         TsPesPacket CreatePacket(int index, int length, ulong pts)
         {
-            if (_ptsOffset.HasValue)
-                pts -= _ptsOffset.Value;
-            else
-            {
-                _ptsOffset = pts;
-                pts = 0;
-            }
-
             Debug.Assert(length > 0);
             Debug.Assert(index >= 0);
             Debug.Assert(index + length <= _bufferEntry.Buffer.Length);
@@ -414,7 +404,6 @@ namespace SM.TsParser
         {
             _startIndex = 0;
             _index = 0;
-            _ptsOffset = null;
             _length = 0;
 
             if (null != _bufferEntry)

@@ -111,8 +111,8 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
-            var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
+            var programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
+            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
 
             Program program;
             ISubProgram subProgram;
@@ -175,13 +175,16 @@ namespace HlsView
                                                            },
                                                            me =>
                                                            {
-                                                               Debug.Assert(ReferenceEquals(me, mediaElement1));
+                                                               if (null != me)
+                                                               {
+                                                                   Debug.Assert(ReferenceEquals(me, mediaElement1));
 
-                                                               ContentPanel.Children.Remove(me);
+                                                                   ContentPanel.Children.Remove(me);
 
-                                                               me.MediaFailed -= mediaElement1_MediaFailed;
-                                                               me.MediaEnded -= mediaElement1_MediaEnded;
-                                                               me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+                                                                   me.MediaFailed -= mediaElement1_MediaFailed;
+                                                                   me.MediaEnded -= mediaElement1_MediaEnded;
+                                                                   me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+                                                               }
 
                                                                mediaElement1 = null;
 

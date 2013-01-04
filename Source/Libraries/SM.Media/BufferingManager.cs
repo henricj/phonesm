@@ -94,7 +94,7 @@ namespace SM.Media
 
                         var position = queue.Oldest;
 
-                        if (position > latestPosition)
+                        if (position < latestPosition)
                             latestPosition = position;
                     }
                 }

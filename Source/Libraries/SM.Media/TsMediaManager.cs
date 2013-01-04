@@ -96,10 +96,12 @@ namespace SM.Media
         {
             var seekCompletion = new TaskCompletionSource<TimeSpan>();
 
+            var localSeekCompletion = seekCompletion;
+
             _commandWorker.SendCommand(new CommandWorker.Command(
                                            () => SeekAsync(position)
                                                      .ContinueWith(t => seekCompletion.SetResult(position)),
-                                           b => { if (!b) seekCompletion.SetCanceled(); }));
+                                           b => { if (!b) localSeekCompletion.SetCanceled(); }));
 
             return seekCompletion.Task;
         }

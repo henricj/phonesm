@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="MediaParser.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="MediaParser.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using SM.Media.Pes;
 using SM.Media.Utility;
 using SM.TsParser;
@@ -40,13 +41,14 @@ namespace SM.Media
 
         #endregion
 
+        readonly IBufferingManager _bufferingManager;
         readonly Action<IMediaParserMediaStream> _mediaParserStreamHandler;
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
         readonly PesHandlers _pesHandlers;
         readonly TsDecoder _tsDecoder;
-        readonly IBufferingManager _bufferingManager;
         IQueueThrottling _reader;
+        TimeSpan? _timestampOffset;
 
         public MediaParser(IQueueThrottling reader, Action<double> reportBuffering, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
             : this(mediaParserStreamHandler, handlerFactory)
@@ -74,9 +76,11 @@ namespace SM.Media
 
             _mediaParserStreamHandler = mediaParserStreamHandler;
 
+            //var packetCount = 0;
+
             _tsDecoder = new TsDecoder(new BufferPool(5 * 64 * 1024, 2), _pesHandlers.GetPesHandler)
                          {
-                             //PacketMonitor = Console.WriteLine
+                             //PacketMonitor = p => Debug.WriteLine("{0}: {1}", ++packetCount, p)
                          };
         }
 
@@ -207,7 +211,21 @@ namespace SM.Media
         {
             var streamBuffer = new StreamBuffer(_tsDecoder.FreePesPacket, _bufferingManager);
 
-            var ms = streamHandlerFactory(pid, streamType, streamBuffer, streamBuffer.Enqueue);
+            var ms = streamHandlerFactory(pid, streamType, streamBuffer,
+                                          packet =>
+                                          {
+                                              if (!_timestampOffset.HasValue)
+                                              {
+                                                  _timestampOffset = packet.Timestamp;
+                                                  packet.Timestamp = TimeSpan.Zero;
+                                              }
+                                              else
+                                                  packet.Timestamp -= _timestampOffset.Value;
+
+                                              Debug.Assert(packet.Timestamp >= TimeSpan.Zero);
+
+                                              streamBuffer.Enqueue(packet);
+                                          });
 
             AddMediaStream(ms);
 

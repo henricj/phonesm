@@ -36,6 +36,9 @@ namespace SM.Media.M3U8.TagSupport
 
         public ExtinfTagInstance Find(IEnumerable<M3U8TagInstance> tags)
         {
+            if (null == tags)
+                return null;
+
             return tags.Tag<M3U8ExtInfTag, ExtinfTagInstance>(this);
         }
     }

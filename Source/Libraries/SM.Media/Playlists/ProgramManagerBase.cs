@@ -69,6 +69,9 @@ namespace SM.Media.Playlists
 
             foreach (var p in parser.Playlist)
             {
+                if (null == p.Tags || p.Tags.Length < 1)
+                    continue;
+
                 var streamInf = p.Tags.FirstOrDefault(t => M3U8Tags.ExtXStreamInf == t.Tag);
 
                 var programId = long.MinValue;
@@ -88,9 +91,11 @@ namespace SM.Media.Playlists
 
                     var playlistUrl = parser.ResolveUrl(p.Uri);
 
+                    var bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth);
+
                     var subProgram = new PlaylistSubProgramBase(new ProgramStream { Urls = new[] { playlistUrl } })
                                      {
-                                         Bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth).Value,
+                                         Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
                                          Playlist = playlistUrl,
                                          AudioGroup = audioGroup
                                      };

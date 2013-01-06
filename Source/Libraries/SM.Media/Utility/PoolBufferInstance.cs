@@ -25,7 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Threading;
-using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.Utility
 {
@@ -37,7 +37,8 @@ namespace SM.Media.Utility
 #endif
         int _allocationCount;
 
-        public PoolBufferInstance(int size) : base(new byte[size])
+        public PoolBufferInstance(int size)
+            : base(new byte[size])
         { }
 
         public override void Reference()

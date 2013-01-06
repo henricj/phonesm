@@ -46,10 +46,6 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="BufferInstance.cs" />
-    <Compile Include="Crc32Msb.cs" />
-    <Compile Include="IBufferPool.cs" />
-    <Compile Include="ObjectPool.cs" />
     <Compile Include="TsPacketizedElementaryStream.cs" />
     <Compile Include="TsPesPacket.cs" />
     <Compile Include="TsProgramSpecificInformation.cs" />
@@ -60,6 +56,10 @@
     <Compile Include="TsProgramAssociationTable.cs" />
     <Compile Include="TsStream.cs" />
     <Compile Include="TsStreamType.cs" />
+    <Compile Include="Utility\BufferInstance.cs" />
+    <Compile Include="Utility\Crc32Msb.cs" />
+    <Compile Include="Utility\IBufferPool.cs" />
+    <Compile Include="Utility\ObjectPool.cs" />
     <Compile Include="Utility\RegisterExtender.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />

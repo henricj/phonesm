@@ -99,6 +99,8 @@ namespace SM.Media
                     }
                 }
 
+                Debug.Assert(latestPosition >= TimeSpan.Zero);
+
                 return latestPosition;
             }
         }
@@ -130,7 +132,11 @@ namespace SM.Media
                 }
 
                 if (newest > TimeSpan.MinValue && oldest < TimeSpan.MaxValue)
+                {
+                    Debug.Assert(newest >= oldest);
+
                     return newest - oldest;
+                }
 
                 return TimeSpan.Zero;
             }

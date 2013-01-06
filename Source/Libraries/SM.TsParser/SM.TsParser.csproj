@@ -47,12 +47,12 @@
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
     <Compile Include="BufferInstance.cs" />
+    <Compile Include="Crc32Msb.cs" />
     <Compile Include="IBufferPool.cs" />
     <Compile Include="ObjectPool.cs" />
     <Compile Include="TsPacketizedElementaryStream.cs" />
     <Compile Include="TsPesPacket.cs" />
     <Compile Include="TsProgramSpecificInformation.cs" />
-    <Compile Include="Crc32Msb.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TsDecoder.cs" />
     <Compile Include="TsPacket.cs" />
@@ -60,6 +60,7 @@
     <Compile Include="TsProgramAssociationTable.cs" />
     <Compile Include="TsStream.cs" />
     <Compile Include="TsStreamType.cs" />
+    <Compile Include="Utility\RegisterExtender.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

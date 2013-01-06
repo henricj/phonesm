@@ -193,7 +193,7 @@ namespace HlsView
 
             _tsMediaManager = new TsMediaManager(_mediaElementManager, mm => new TsMediaStreamSource(mm));
 
-            _tsMediaManager.Play(new SegmentReaderManager(playlist, webRequestFactory.CreateChildFactory(playlist.Url)));
+            _tsMediaManager.Play(new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url)));
 
             _positionSampler.Start();
         }

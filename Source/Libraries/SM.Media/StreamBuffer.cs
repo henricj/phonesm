@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="StreamBuffer.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="StreamBuffer.cs" company="Henric Jungheim">
+//  Copyright (c) 2012.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -34,7 +34,7 @@ using SM.TsParser;
 
 namespace SM.Media
 {
-    public sealed class StreamBuffer : IStreamSource, IDisposable
+    public sealed class StreamBuffer : IStreamSource, IDisposable, IManagedBuffer
     {
         readonly Queue<TsPesPacket> _packets = new Queue<TsPesPacket>();
         readonly object _packetsLock = new object();
@@ -59,7 +59,7 @@ namespace SM.Media
             _bufferingManager = bufferingManager;
 
             if (null != bufferingManager)
-                _bufferingQueue = bufferingManager.CreateQueue();
+                _bufferingQueue = bufferingManager.CreateQueue(this);
 
             _streamSample.Stream = _pesStream;
         }
@@ -231,6 +231,16 @@ namespace SM.Media
             rb.ReportExhastion();
         }
 
+        void ReportFlush()
+        {
+            var rb = _bufferingQueue;
+
+            if (null == rb)
+                return;
+
+            rb.ReportFlush();
+        }
+
         void ReportDone()
         {
             var rb = _bufferingQueue;
@@ -282,5 +292,21 @@ namespace SM.Media
         }
 
         #endregion
+
+        void IManagedBuffer.Flush()
+        {
+            TsPesPacket[] packets;
+
+            lock (_packetsLock)
+            {
+                packets = _packets.ToArray();
+                _packets.Clear();
+
+                ReportFlush();
+            }
+
+            foreach (var packet in packets)
+                _freePesPacket(packet);
+        }
     }
 }

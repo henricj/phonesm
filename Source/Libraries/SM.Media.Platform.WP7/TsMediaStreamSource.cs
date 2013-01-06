@@ -427,6 +427,8 @@ namespace SM.Media
         /// </param>
         protected override void GetSampleAsync(MediaStreamType mediaStreamType)
         {
+            CommandWorker.Command localCommand = null;
+
             var command = new CommandWorker.Command(
                 () =>
                 {
@@ -455,7 +457,16 @@ namespace SM.Media
                     }
 
                     lock (_stateLock)
-                    { }
+                    {
+                        if (State.Play != _state)
+                        {
+                            Debug.WriteLine("TsMediaStreamSource race defer Get({0})", mediaStreamType);
+                            // Use a modified closure... any better ideas (apart from a TsMediaStreamSource/TsMediaManger rewrite)?
+                            _pendingGets.Add(localCommand);
+
+                            return null;
+                        }
+                    }
 
                     if (_isClosed)
                     {
@@ -468,11 +479,13 @@ namespace SM.Media
                     return null;
                 });
 
+            localCommand = command;
+
             lock (_stateLock)
             {
                 var state = _state;
 
-                Debug.WriteLine("TsMediaStreamSource.GetSampleAsync({0}) state {1}", mediaStreamType, state);
+                //Debug.WriteLine("TsMediaStreamSource.GetSampleAsync({0}) state {1}", mediaStreamType, state);
 
                 _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
 

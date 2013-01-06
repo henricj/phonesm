@@ -422,6 +422,11 @@ namespace SM.TsParser
             }
         }
 
+        public void FlushBuffers()
+        {
+            Clear();
+        }
+
         #region Nested type: StreamId
 
         /// <summary>

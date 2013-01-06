@@ -47,18 +47,15 @@ namespace SM.Media
         readonly object _mediaStreamsLock = new object();
         readonly PesHandlers _pesHandlers;
         readonly TsDecoder _tsDecoder;
-        IQueueThrottling _reader;
         TimeSpan? _timestampOffset;
 
-        public MediaParser(IQueueThrottling reader, Action<double> reportBuffering, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
+        public MediaParser(IBufferingManager bufferingManager, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
             : this(mediaParserStreamHandler, handlerFactory)
         {
-            if (null == reader)
-                throw new ArgumentNullException("reader");
+            if (null == bufferingManager)
+                throw new ArgumentNullException("bufferingManager");
 
-            _reader = reader;
-
-            _bufferingManager = new BufferingManager(reader, reportBuffering);
+            _bufferingManager = bufferingManager;
         }
 
         public MediaParser(Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
@@ -147,29 +144,9 @@ namespace SM.Media
             Decoder.Initialize();
         }
 
-        void CompleteClear(Action clearCallback)
+        public void FlushBuffers()
         {
-            if (null != _reader)
-            {
-                using (_reader as IDisposable)
-                { }
-
-                _reader = null;
-            }
-
-            ClearImpl();
-
-            if (null != clearCallback)
-                clearCallback();
-        }
-
-        void ClearImpl()
-        {
-            _pesHandlers.Initialize();
-
-            CleanupStreams();
-
-            Decoder.Clear();
+            Decoder.FlushBuffers();
         }
 
         public void ProcessData(byte[] buffer, int length)
@@ -179,7 +156,6 @@ namespace SM.Media
             else
                 _tsDecoder.Parse(buffer, 0, length);
         }
-
 
         void AddMediaStream(IMediaParserMediaStream mediaParserMediaStream)
         {

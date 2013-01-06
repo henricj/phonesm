@@ -35,38 +35,30 @@ namespace SM.Media
 {
     public class CallbackReader : IDisposable
     {
-        const int BufferSize = 174 * 188; // Almost 32768 and saves some cycles having to rebuffer partial packets
-        const int MaxBuffers = 8;
-        readonly BlockingPool<WorkBuffer> _bufferPool = new BlockingPool<WorkBuffer>(MaxBuffers);
-        readonly CommandWorker _commandWorker = new CommandWorker();
+        readonly IBlockingPool<WorkBuffer> _bufferPool;
         readonly Action<WorkBuffer> _enqueue;
         readonly object _readerLock = new object();
-        readonly ISegmentReaderManager _segmentReaderManager;
+        readonly IAsyncEnumerable<ISegmentReader> _segmentReaders;
         bool _isClosed;
         CancellationTokenSource _readCancellationSource;
         int _readCount;
         bool _readerRunning;
         Task _readerTask;
 
-        public CallbackReader(ISegmentReaderManager segmentReaderManager, Action<WorkBuffer> enqueue)
+        public CallbackReader(IAsyncEnumerable<ISegmentReader> segmentReaders, Action<WorkBuffer> enqueue, IBlockingPool<WorkBuffer> bufferPool)
         {
-            _segmentReaderManager = segmentReaderManager;
+            if (null == segmentReaders)
+                throw new ArgumentNullException("segmentReaders");
+
+            if (null == enqueue)
+                throw new ArgumentNullException("enqueue");
+
+            if (null == bufferPool)
+                throw new ArgumentNullException("bufferPool");
+
+            _segmentReaders = segmentReaders;
             _enqueue = enqueue;
-        }
-
-        public Task ReaderTask
-        {
-            get
-            {
-                Task readerTask;
-
-                lock (_readerLock)
-                {
-                    readerTask = _readerTask;
-                }
-
-                return readerTask ?? TplTaskExtensions.CompletedTask;
-            }
+            _bufferPool = bufferPool;
         }
 
         #region IDisposable Members
@@ -81,49 +73,54 @@ namespace SM.Media
 
         #endregion
 
-        public void FreeBuffer(WorkBuffer buffer)
-        {
-            _bufferPool.Free(buffer);
-        }
-
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing)
                 return;
 
-            using (_commandWorker)
-            { }
-
-            using (_bufferPool)
-            { }
-        }
-
-        protected async Task ReadAsync(TimeSpan startTime, TaskCompletionSource<TimeSpan> seekDone, CancellationToken cancellationToken)
-        {
-            //var sw = new Stopwatch();
-
             try
             {
-                var actualPosition = await _segmentReaderManager.Seek(startTime, cancellationToken);
+                Close();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+        }
 
-                seekDone.SetResult(actualPosition);
+        void Close()
+        {
+            lock (_readerLock)
+            {
+                _isClosed = true;
+            }
 
-                while (await _segmentReaderManager.MoveNextAsync())
+            StopAsync().Wait();
+        }
+
+        protected async Task ReadAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using (var segmentReaderEnumerator = _segmentReaders.GetEnumerator())
                 {
-                    var segmentReader = _segmentReaderManager.Current;
+                    while (await segmentReaderEnumerator.MoveNextAsync())
+                    {
+                        var segmentReader = segmentReaderEnumerator.Current;
 
-                    var url = segmentReader.Url;
+                        var url = segmentReader.Url;
 
-                    Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
 
-                    //sw.Reset();
-                    //sw.Start();
+                        //sw.Reset();
+                        //sw.Start();
 
-                    await ReadSegment(segmentReader, cancellationToken);
+                        await ReadSegment(segmentReader, cancellationToken);
 
-                    //sw.Stop();
+                        //sw.Stop();
 
-                    Debug.WriteLine("---- Completed {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                        Debug.WriteLine("---- Completed {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                    }
                 }
 
                 _enqueue(null);
@@ -170,17 +167,25 @@ namespace SM.Media
             }
         }
 
-        public async Task<TimeSpan> StartAsync(TimeSpan startPosition)
+        public Task StartAsync()
         {
             lock (_readerLock)
             {
                 Debug.Assert(null == _readerTask || _readerTask.IsCompleted);
 
                 if (_isClosed)
-                    return TimeSpan.Zero;
+                    return TplTaskExtensions.CompletedTask;
+
+                if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
+                    _readCancellationSource = new CancellationTokenSource();
+
+                var cancellationSource = _readCancellationSource;
+
+                _readerRunning = true;
+                _readerTask = TaskEx.Run(() => ReadAsync(cancellationSource.Token), cancellationSource.Token);
             }
 
-            return await SeekAsync(startPosition);
+            return _readerTask;
         }
 
         public async Task StopAsync()
@@ -208,68 +213,5 @@ namespace SM.Media
                 // This is normal...
             }
         }
-
-        async Task<TimeSpan> SeekAsync(TimeSpan position)
-        {
-            await StopAsync();
-
-            var seekDone = new TaskCompletionSource<TimeSpan>();
-
-            CancellationTokenSource cancellationSource = null;
-
-            var isClosed = false;
-
-            lock (_readerLock)
-            {
-                isClosed = _isClosed;
-
-                if (!isClosed)
-                {
-                    if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
-                        _readCancellationSource = new CancellationTokenSource();
-
-                    cancellationSource = _readCancellationSource;
-
-                    _readerRunning = true;
-                    _readerTask = Task.Factory.StartNew(() => ReadAsync(position, seekDone, cancellationSource.Token), cancellationSource.Token).Unwrap();
-                }
-            }
-
-            if (isClosed)
-            {
-                seekDone.SetResult(TimeSpan.Zero);
-
-                return TimeSpan.Zero;
-            }
-
-            var faultTask = _readerTask.ContinueWith(t =>
-                                                     {
-                                                         cancellationSource.Cancel();
-                                                         seekDone.TrySetException(t.Exception);
-                                                     },
-                                                     TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
-
-            var cancelTask = _readerTask.ContinueWith(t => seekDone.TrySetCanceled(),
-                                                      TaskContinuationOptions.OnlyOnCanceled | TaskContinuationOptions.ExecuteSynchronously);
-
-            return await seekDone.Task;
-        }
-
-        #region Nested type: WorkBuffer
-
-        public class WorkBuffer
-        {
-            public readonly byte[] Buffer = new byte[BufferSize];
-            public int Length;
-
-#if DEBUG
-            static int _sequenceCounter;
-
-            public readonly int Sequence = Interlocked.Increment(ref _sequenceCounter);
-            public int ReadCount;
-#endif
-        }
-
-        #endregion
     }
 }

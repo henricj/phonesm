@@ -246,6 +246,16 @@ namespace SM.TsParser
             _oldPrograms.Clear();
         }
 
+        public void FlushBuffers()
+        {
+            foreach (var program in _programs)
+            {
+                program.FlushBuffers();
+            }
+
+            _newPrograms.Clear();
+        }
+
         #region Nested type: ProgramAssociation
 
         class ProgramAssociation : IEquatable<ProgramAssociation>
@@ -274,6 +284,11 @@ namespace SM.TsParser
             public override int GetHashCode()
             {
                 return 5 * Pid.GetHashCode() + 65537 * ProgramNumber.GetHashCode();
+            }
+
+            public void FlushBuffers()
+            {
+                MapTable.FlushBuffers();
             }
         }
 

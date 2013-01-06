@@ -147,7 +147,10 @@ namespace SimulatedPlayer
                                {
                                    await Task.Delay((int)(10 * (1 + _random.GetRandomNumber())));
 
-                                   _mediaStreamSource.GetSampleAsync(oldestIndex);
+                                   var mediaStreamSource = _mediaStreamSource;
+
+                                   if (null != mediaStreamSource)
+                                       mediaStreamSource.GetSampleAsync(oldestIndex);
                                });
         }
 

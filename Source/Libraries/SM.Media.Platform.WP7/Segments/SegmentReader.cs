@@ -169,10 +169,13 @@ namespace SM.Media.Segments
 
             if (null != webRequest)
             {
-                (webRequest).AllowReadStreamBuffering = false;
+                webRequest.AllowReadStreamBuffering = false;
 
                 if (segment.Offset > 0)
-                    (webRequest).Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-";
+                {
+                    webRequest.Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-"
+                          + segment.Length.ToString(CultureInfo.InvariantCulture);
+                }
             }
 
             return webRequest;
@@ -188,6 +191,8 @@ namespace SM.Media.Segments
                                                        return await webRequest.GetResponseAsync();
                                                    })
                                   .WithCancellation(cancellationToken);
+
+            _segment.Length = _response.ContentLength;
 
             return _response.GetResponseStream();
         }

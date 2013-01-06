@@ -100,7 +100,7 @@ namespace SM.TsParser
         public void FreePesPacket(TsPesPacket packet)
         {
 #if DEBUG
-            //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.Timestamp, packet.BufferEntry);
+    //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.Timestamp, packet.BufferEntry);
 #endif
 
             var buffer = packet.BufferEntry;
@@ -140,7 +140,7 @@ namespace SM.TsParser
             _tsIndex = 0;
         }
 
-        public void Clear()
+        void Clear()
         {
             if (null != _programAssociationTable)
             {
@@ -151,6 +151,13 @@ namespace SM.TsParser
             _packetHandlers.Clear();
             _bufferPool.Clear();
             _packetPool.Clear();
+            _destinationLength = 0;
+        }
+
+        public void FlushBuffers()
+        {
+            _programAssociationTable.FlushBuffers();
+            _destinationLength = 0;
         }
 
         bool ParseBuffer()

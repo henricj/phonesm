@@ -24,14 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public sealed class BlockingPool<TItem> : IDisposable
+    public sealed class BlockingPool<TItem> : IBlockingPool<TItem>
         where TItem : new()
     {
         readonly AsyncManualResetEvent _bufferWait = new AsyncManualResetEvent(true);
@@ -45,28 +44,11 @@ namespace SM.Media.Utility
             _poolSize = poolSize;
         }
 
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            Clear();
-        }
-
-        #endregion
-
-        void Clear()
-        {
-            lock (_pool)
-            {
-                _pool.Clear();
-                _allocationCount = 0;
-                _freeNodes.Clear();
-            }
-        }
+        #region IBlockingPool<TItem> Members
 
         public async Task<TItem> AllocateAsync(CancellationToken cancellationToken)
         {
-            for (;;)
+            for (; ; )
             {
                 var allocateBuffer = false;
 
@@ -127,6 +109,23 @@ namespace SM.Media.Utility
 
                 if (1 == _pool.Count)
                     _bufferWait.Set();
+            }
+        }
+
+        public void Dispose()
+        {
+            Clear();
+        }
+
+        #endregion
+
+        void Clear()
+        {
+            lock (_pool)
+            {
+                _pool.Clear();
+                _allocationCount = 0;
+                _freeNodes.Clear();
             }
         }
     }

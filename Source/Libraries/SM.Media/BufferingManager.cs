@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace SM.Media
@@ -46,20 +47,26 @@ namespace SM.Media
         readonly Action<double> _reportBuffering;
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
-        volatile int _isBuffering;
+        volatile int _isBuffering = 1;
         TimeSpan? _playbackPosition;
 
         public BufferingManager(IQueueThrottling queueThrottling, Action<double> reportBuffering)
         {
+            if (null == queueThrottling)
+                throw new ArgumentNullException("queueThrottling");
+
             _queueThrottling = queueThrottling;
             _reportBuffering = reportBuffering;
         }
 
         #region IBufferingManager Members
 
-        public IBufferingQueue CreateQueue()
+        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
         {
-            var queue = new Queue(this);
+            if (null == managedBuffer)
+                throw new ArgumentNullException("managedBuffer");
+
+            var queue = new Queue(this, managedBuffer);
 
             lock (_lock)
             {
@@ -77,6 +84,19 @@ namespace SM.Media
 
                 UnlockedReport();
             }
+        }
+
+        public void Flush()
+        {
+            Queue[] queues;
+
+            lock (_lock)
+            {
+                queues = _queues.ToArray();
+            }
+
+            foreach (var queue in queues)
+                queue.Flush();
         }
 
         public TimeSpan BufferPosition
@@ -178,6 +198,18 @@ namespace SM.Media
         void ReportExhaustion(Action update)
         {
             Debug.WriteLine("BufferingManager.ReportExhaustion(...)");
+
+            lock (_lock)
+            {
+                update();
+
+                UnlockedReport();
+            }
+        }
+
+        void ReportFlush(Action update)
+        {
+            Debug.WriteLine("BufferingManager.ReportFlush(...)");
 
             lock (_lock)
             {
@@ -352,6 +384,7 @@ namespace SM.Media
         class Queue : IBufferingQueue
         {
             readonly BufferingManager _bufferingManager;
+            readonly IManagedBuffer _managedBuffer;
             int _bufferSize;
             bool _firstPacket;
             bool _isDone;
@@ -359,9 +392,10 @@ namespace SM.Media
             TimeSpan _oldestPacket;
             int _packetCount;
 
-            public Queue(BufferingManager bufferingManager)
+            public Queue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
             {
                 _bufferingManager = bufferingManager;
+                _managedBuffer = managedBuffer;
             }
 
             public bool IsValid
@@ -389,6 +423,11 @@ namespace SM.Media
                 get { return _bufferSize; }
             }
 
+            public void Flush()
+            {
+                _managedBuffer.Flush();
+            }
+
             #region IBufferingQueue Members
 
             public void ReportEnqueue(int size, TimeSpan timestamp)
@@ -403,7 +442,12 @@ namespace SM.Media
 
             public void ReportExhastion()
             {
-                _bufferingManager.ReportExhaustion(Exhaused);
+                _bufferingManager.ReportExhaustion(Exhausted);
+            }
+
+            public void ReportFlush()
+            {
+                _bufferingManager.ReportFlush(Exhausted);
             }
 
             public void ReportDone()
@@ -418,10 +462,11 @@ namespace SM.Media
                 _isDone = true;
             }
 
-            void Exhaused()
+            void Exhausted()
             {
                 _packetCount = 0;
                 _bufferSize = 0;
+                _firstPacket = false;
             }
 
             void Enqueue(int size, TimeSpan timestamp)

@@ -138,6 +138,7 @@
     <Compile Include="Utility\BufferPool.cs" />
     <Compile Include="Utility\CommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
+    <Compile Include="Utility\IBlockingPool.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
     <Compile Include="Utility\IWebRequest.cs" />
     <Compile Include="Utility\MediaStreamFsm.cs" />
@@ -145,6 +146,7 @@
     <Compile Include="Utility\QueueWorker.cs" />
     <Compile Include="Utility\Retry.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
+    <Compile Include="Utility\WorkBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Threading.Tasks">

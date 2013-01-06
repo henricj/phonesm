@@ -25,6 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
@@ -33,63 +35,143 @@ namespace SM.Media.Segments
 {
     public sealed class SegmentReaderManager : ISegmentReaderManager
     {
-        readonly ISegmentManager _segmentManager;
-        readonly IHttpWebRequestFactory _webRequestFactory;
-        ISegmentReader _segmentReader;
+        readonly ISegmentManager[] _segmentManagers;
+        readonly SegmentReaderEnumerable[] _segmentReaders;
 
-        public SegmentReaderManager(ISegmentManager segmentManager, IHttpWebRequestFactory webRequestFactory)
+        public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, IHttpWebRequestFactory webRequestFactory)
         {
             if (null == webRequestFactory)
                 throw new ArgumentNullException("webRequestFactory");
 
-            if (null == segmentManager)
-                throw new ArgumentNullException("segmentManager");
+            if (null == segmentManagers)
+                throw new ArgumentNullException("segmentManagers");
 
-            _segmentManager = segmentManager;
-            _webRequestFactory = webRequestFactory;
+            _segmentManagers = segmentManagers.ToArray();
+
+            if (_segmentManagers.Length < 1)
+                throw new ArgumentException("No segment managers provided");
+
+            _segmentReaders = _segmentManagers
+                .Select(sm => new SegmentReaderEnumerable(sm, webRequestFactory))
+                .ToArray();
         }
 
         #region ISegmentReaderManager Members
 
         public void Dispose()
+        { }
+
+        public ICollection<IAsyncEnumerable<ISegmentReader>> SegmentReaders
         {
-            CloseReader();
-        }
-
-        public ISegmentReader Current
-        {
-            get { return _segmentReader; }
-        }
-
-        public Task<TimeSpan> Seek(TimeSpan timestamp, CancellationToken cancellationToken)
-        {
-            return _segmentManager.SeekAsync(timestamp);
-        }
-
-        public async Task<bool> MoveNextAsync()
-        {
-            var segment = await _segmentManager.NextAsync();
-
-            if (null == segment)
-                return false;
-
-            CloseReader();
-
-            _segmentReader = new SegmentReader(segment, _webRequestFactory.CreateChildFactory(_segmentManager.Url).Create);
-
-            return true;
+            get { return _segmentReaders; }
         }
 
         #endregion
 
-        void CloseReader()
+        public async Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken)
         {
-            var segmentReader = _segmentReader;
+            var tasks = _segmentManagers
+                .Select(sm => sm.SeekAsync(timestamp));
 
-            _segmentReader = null;
+#if WINDOWS_PHONE7
+            var results = await TaskEx.WhenAll(tasks);
+#else
+            var results = await Task.WhenAll(tasks);
+#endif
 
-            using (segmentReader)
-            { }
+            return results.Min();
         }
+
+        #region Nested type: SegmentReaderEnumearator
+
+        class SegmentReaderEnumearator : IAsyncEnumerator<ISegmentReader>
+        {
+            readonly ISegmentManager _segmentManager;
+            readonly IHttpWebRequestFactory _webRequestFactory;
+            ISegmentReader _segmentReader;
+
+            public SegmentReaderEnumearator(ISegmentManager segmentManager, IHttpWebRequestFactory webRequestFactory)
+            {
+                if (null == segmentManager)
+                    throw new ArgumentNullException("segmentManager");
+
+                if (null == webRequestFactory)
+                    throw new ArgumentNullException("webRequestFactory");
+
+                _segmentManager = segmentManager;
+                _webRequestFactory = webRequestFactory;
+            }
+
+            #region IAsyncEnumerator<ISegmentReader> Members
+
+            public void Dispose()
+            {
+                CloseReader();
+            }
+
+            public ISegmentReader Current
+            {
+                get { return _segmentReader; }
+            }
+
+            #endregion
+
+            void CloseReader()
+            {
+                var segmentReader = _segmentReader;
+
+                _segmentReader = null;
+
+                using (segmentReader)
+                { }
+            }
+
+            public async Task<bool> MoveNextAsync()
+            {
+                var segment = await _segmentManager.NextAsync();
+
+                if (null == segment)
+                    return false;
+
+                CloseReader();
+
+                _segmentReader = new SegmentReader(segment, _webRequestFactory.CreateChildFactory(_segmentManager.Url).Create);
+
+                return true;
+            }
+        }
+
+        #endregion
+
+        #region Nested type: SegmentReaderEnumerable
+
+        class SegmentReaderEnumerable : IAsyncEnumerable<ISegmentReader>
+        {
+            readonly ISegmentManager _segmentManager;
+            readonly IHttpWebRequestFactory _webRequestFactory;
+
+            public SegmentReaderEnumerable(ISegmentManager segmentManager, IHttpWebRequestFactory webRequestFactory)
+            {
+                if (null == segmentManager)
+                    throw new ArgumentNullException("segmentManager");
+
+                if (null == webRequestFactory)
+                    throw new ArgumentNullException("webRequestFactory");
+
+                _segmentManager = segmentManager;
+                _webRequestFactory = webRequestFactory;
+            }
+
+            #region IAsyncEnumerable<ISegmentReader> Members
+
+            public IAsyncEnumerator<ISegmentReader> GetEnumerator()
+            {
+                return new SegmentReaderEnumearator(_segmentManager, _webRequestFactory);
+            }
+
+            #endregion
+        }
+
+        #endregion
     }
 }

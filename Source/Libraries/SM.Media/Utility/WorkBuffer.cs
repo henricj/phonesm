@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
+//  <copyright file="WorkBuffer.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,36 +25,34 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace SM.Media.Segments
+namespace SM.Media.Utility
 {
-    public interface ISegmentReaderManager : IDisposable
+    public class WorkBuffer
     {
-        ICollection<IAsyncEnumerable<ISegmentReader>> SegmentReaders { get; }
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken);
-    }
+        const int DefaultBufferSize = 174 * 188; // Almost 32768 and saves some cycles having to rebuffer partial packets
 
-    // Windows Phone 7 gives type load exceptions if we try "IAsyncEnumerable<out T>"
-    public interface IAsyncEnumerable<T>
-    {
-        IAsyncEnumerator<T> GetEnumerator();
-    }
+        public readonly byte[] Buffer;
+        public int Length;
 
-    public interface IAsyncEnumerator<T> : IDisposable
-    {
-        T Current { get; }
+#if DEBUG
+        static int _sequenceCounter;
 
-        Task<bool> MoveNextAsync();
-    }
+        public readonly int Sequence = Interlocked.Increment(ref _sequenceCounter);
+        public int ReadCount;
+#endif
 
-    static class SegmentReaderManagerExtensions
-    {
-        public static Task<TimeSpan> StartAsync(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
+        public WorkBuffer()
+            : this(DefaultBufferSize)
+        { }
+
+        public WorkBuffer(int bufferSize)
         {
-            return segmentManager.SeekAsync(TimeSpan.Zero, cancellationToken);
+            if (bufferSize < 1)
+                throw new ArgumentException("The buffer size must be positive", "bufferSize");
+
+            Buffer = new byte[bufferSize];
         }
     }
 }

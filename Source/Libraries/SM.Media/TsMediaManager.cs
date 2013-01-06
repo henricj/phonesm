@@ -27,7 +27,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Configuration;
 using SM.Media.Segments;
 using SM.Media.Utility;
 
@@ -35,16 +38,17 @@ namespace SM.Media
 {
     public sealed class TsMediaManager : ITsMediaManager, IMediaManager, IDisposable
     {
+        const int MaxBuffers = 8;
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromSeconds(8);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromMilliseconds(250);
         readonly CommandWorker _commandWorker = new CommandWorker();
+        readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
         readonly Func<IMediaManager, IMediaStreamSource> _mediaStreamSourceFactory;
-        MediaParser _mediaParser;
+        MediaState _mediaState;
         IMediaStreamSource _mediaStreamSource;
-        QueueWorker<CallbackReader.WorkBuffer> _queueWorker;
-        CallbackReader _reader;
         ISegmentReaderManager _readerManager;
+        ReaderPipeline[] _readers;
 
         public TsMediaManager(IMediaElementManager mediaElementManager, Func<IMediaManager, IMediaStreamSource> mediaStreamSourceFactory)
         {
@@ -79,11 +83,11 @@ namespace SM.Media
             _commandWorker.SendCommand(new CommandWorker.Command(
                                            () =>
                                            {
-                                               var startReader = _reader.StartAsync(TimeSpan.Zero);
+                                               _mediaState = MediaState.OpenMedia;
 
-                                               _reader.ReaderTask.ContinueWith(t => Close(), TaskContinuationOptions.NotOnRanToCompletion);
+                                               CheckConfigurationCompleted();
 
-                                               return startReader;
+                                               return TplTaskExtensions.CompletedTask;
                                            }));
         }
 
@@ -133,10 +137,25 @@ namespace SM.Media
 
         public void ReportPosition(TimeSpan position)
         {
-            _mediaParser.ReportPosition(position);
+            foreach (var reader in _readers)
+            {
+                reader.MediaParser.ReportPosition(position);
+            }
         }
 
         #endregion
+
+        void StartReaders()
+        {
+            foreach (var reader in _readers)
+            {
+                reader.BufferingManager.Flush();
+
+                var startReader = reader.CallbackReader.StartAsync();
+
+                startReader.ContinueWith(t => Close(), TaskContinuationOptions.OnlyOnFaulted);
+            }
+        }
 
         public void Seek(TimeSpan timestamp)
         {
@@ -149,39 +168,131 @@ namespace SM.Media
 
             _readerManager = segmentManager;
 
-            _reader = new CallbackReader(_readerManager, buffer => _queueWorker.Enqueue(buffer));
-
             _mediaStreamSource = _mediaStreamSourceFactory(this);
 
-            _queueWorker = new QueueWorker<CallbackReader.WorkBuffer>(
-                wi =>
-                {
-                    if (null == wi)
-                        _mediaParser.ProcessData(null, 0);
-                    else
-                        _mediaParser.ProcessData(wi.Buffer, wi.Length);
-                }, _reader.FreeBuffer);
+            _readers = _readerManager.SegmentReaders
+                                     .Select(CreateReaderPipeline)
+                                     .ToArray();
 
-            _mediaParser = new MediaParser(_queueWorker, _mediaStreamSource.ReportProgress, mediaStream => { mediaStream.ConfigurationComplete += _mediaStreamSource.MediaStreamOnConfigurationComplete; });
+            foreach (var reader in _readers)
+            {
+                reader.QueueWorker.IsEnabled = true;
+            }
 
-            _mediaParser.Initialize();
+            _mediaState = MediaState.Opening;
 
-            _queueWorker.IsEnabled = true;
+            await _readerManager.StartAsync(CancellationToken.None);
+
+            StartReaders();
 
             await _mediaElementManager.SetSource(_mediaStreamSource);
         }
 
+        ReaderPipeline CreateReaderPipeline(IAsyncEnumerable<ISegmentReader> sr)
+        {
+            var reader = new ReaderPipeline
+                         {
+                             SegmentReaders = sr,
+                             BlockingPool = new BlockingPool<WorkBuffer>(MaxBuffers),
+                         };
+
+            var localReader = reader;
+
+            reader.QueueWorker = new QueueWorker<WorkBuffer>(
+                wi =>
+                {
+                    var mediaParser = localReader.MediaParser;
+
+                    if (null == wi)
+                        mediaParser.ProcessData(null, 0);
+                    else
+                        mediaParser.ProcessData(wi.Buffer, wi.Length);
+                }, reader.BlockingPool.Free);
+
+            reader.CallbackReader = new CallbackReader(sr, reader.QueueWorker.Enqueue, reader.BlockingPool);
+
+            reader.BufferingManager = new BufferingManager(reader.QueueWorker, value => SendBufferingProgress(value, reader));
+
+            reader.MediaParser = new MediaParser(reader.BufferingManager,
+                                                 mediaStream =>
+                                                 {
+                                                     mediaStream.ConfigurationComplete +=
+                                                         (sender, args) => SendConfigurationComplete(args, reader);
+                                                 });
+
+            reader.MediaParser.Initialize();
+
+            return reader;
+        }
+
+        void SendBufferingProgress(double obj, ReaderPipeline reader)
+        {
+            _commandWorker.SendCommand(new CommandWorker.Command(() =>
+                                                                 {
+                                                                     reader.BufferingProgress = obj;
+
+                                                                     if (MediaState.Playing != _mediaState)
+                                                                         return TplTaskExtensions.CompletedTask;
+
+                                                                     var progress = _readers.Min(r => r.BufferingProgress);
+
+                                                                     _mediaStreamSource.ReportProgress(progress);
+
+                                                                     return TplTaskExtensions.CompletedTask;
+                                                                 }));
+        }
+
+        void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)
+        {
+            _commandWorker.SendCommand(
+                new CommandWorker.Command(() =>
+                                          {
+                                              ConfigurationComplete(args, reader);
+
+                                              return TplTaskExtensions.CompletedTask;
+                                          }));
+        }
+
+        void ConfigurationComplete(ConfigurationEventArgs eventArgs, ReaderPipeline reader)
+        {
+            Debug.Assert(null == reader.ConfigurationEventArgs);
+
+            _configurationEvents.Enqueue(eventArgs);
+
+            CheckConfigurationCompleted();
+        }
+
+        void CheckConfigurationCompleted()
+        {
+            if (_mediaState != MediaState.OpenMedia)
+                return;
+
+            while (_configurationEvents.Count > 0)
+            {
+                var args = _configurationEvents.Dequeue();
+
+                _mediaStreamSource.MediaStreamOnConfigurationComplete(this, args);
+            }
+        }
+
         async Task StopAsync()
         {
-            var reader = _reader;
+            if (null == _readers)
+                return;
 
-            if (null != reader)
-                await reader.StopAsync();
+            foreach (var reader in _readers)
+            {
+                await reader.CallbackReader.StopAsync();
 
-            var queue = _queueWorker;
+                var queue = reader.QueueWorker;
 
-            if (null != queue)
-                await queue.FlushAsync();
+                if (null != queue)
+                    await queue.ClearAsync();
+
+                reader.MediaParser.FlushBuffers();
+
+                reader.BufferingManager.Flush();
+            }
         }
 
         async Task CloseAsync()
@@ -194,28 +305,25 @@ namespace SM.Media
             if (null != mss)
                 drainTask = mss.CloseAsync();
 
-            var queueWorker = _queueWorker;
-            var reader = _reader;
-
             try
             {
-                if (null != queueWorker)
-                    tasks.Add(queueWorker.CloseAsync());
-
-                // Setting the MediaElement's source to null will cause MediaElement to call TsMediaStreamSource.Dispose().
-                // Make sure we are done pushing packets before we start disposing things.
-
-                if (null != reader)
+                foreach (var reader in _readers)
                 {
-                    try
-                    {
-                        var stopAsync = reader.StopAsync();
+                    if (null != reader.QueueWorker)
+                        tasks.Add(reader.QueueWorker.CloseAsync());
 
-                        tasks.Add(stopAsync);
-                    }
-                    catch (Exception ex)
+                    if (null != reader.CallbackReader)
                     {
-                        Debug.WriteLine("TsMediaManager.CloseAsync: StopAsync failed: " + ex.Message);
+                        try
+                        {
+                            var stopAsync = reader.CallbackReader.StopAsync();
+
+                            tasks.Add(stopAsync);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("TsMediaManager.CloseAsync: StopAsync failed: " + ex.Message);
+                        }
                     }
                 }
 
@@ -241,37 +349,96 @@ namespace SM.Media
 
             await _mediaElementManager.Close();
 
-            _queueWorker = null;
-            _reader = null;
+            foreach (var reader in _readers)
+            {
+                using (reader)
+                { }
+            }
 
-            using (queueWorker)
-            { }
-
-            using (reader)
-            { }
+            _mediaState = MediaState.Closed;
         }
 
-        async Task<TimeSpan> SeekAsync(TimeSpan position)
+        bool IsSeekInRange(TimeSpan position)
         {
-            var bufferPosition = _mediaParser.BufferPosition;
-
-            if (position >= bufferPosition - SeekBeginTolerance && position < bufferPosition + SeekEndTolerance)
-                return TimeSpan.Zero;
-
-            _queueWorker.IsEnabled = false;
-
-            try
-            {
-                await _reader.StopAsync();
-            }
-            catch (OperationCanceledException)
-            {
-                // This is normal...
-            }
-
-            _queueWorker.IsEnabled = true;
-
-            return await _reader.StartAsync(position);
+            return _readers
+                .Select(reader => reader.MediaParser.BufferPosition)
+                .All(bufferPosition => position >= bufferPosition - SeekBeginTolerance && position < bufferPosition + SeekEndTolerance);
         }
+
+        async Task SeekAsync(TimeSpan position)
+        {
+            if (IsSeekInRange(position))
+                return;
+
+            foreach (var reader in _readers)
+            {
+                reader.QueueWorker.IsEnabled = false;
+            }
+
+            await TaskEx.WhenAll(_readers.Select<ReaderPipeline, Task>(async r =>
+                                                                             {
+                                                                                 await r.CallbackReader.StopAsync();
+                                                                                 await r.QueueWorker.ClearAsync();
+                                                                                 r.MediaParser.FlushBuffers();
+                                                                                 r.BufferingManager.Flush();
+                                                                             }));
+
+            foreach (var reader in _readers)
+            {
+                reader.QueueWorker.IsEnabled = true;
+            }
+
+            _mediaState = MediaState.Seeking;
+
+            var actualPosition = await _readerManager.SeekAsync(position, CancellationToken.None);
+
+            StartReaders();
+        }
+
+        #region Nested type: MediaState
+
+        enum MediaState
+        {
+            Idle,
+            Opening,
+            OpenMedia,
+            Seeking,
+            Playing,
+            Closed
+        }
+
+        #endregion
+
+        #region Nested type: ReaderPipeline
+
+        public sealed class ReaderPipeline : IDisposable
+        {
+            public BlockingPool<WorkBuffer> BlockingPool;
+            public IBufferingManager BufferingManager;
+            public double BufferingProgress;
+            public CallbackReader CallbackReader;
+            public ConfigurationEventArgs ConfigurationEventArgs;
+            public MediaParser MediaParser;
+            public QueueWorker<WorkBuffer> QueueWorker;
+            public IAsyncEnumerable<ISegmentReader> SegmentReaders;
+
+            #region IDisposable Members
+
+            public void Dispose()
+            {
+                using (CallbackReader)
+                { }
+
+                using (QueueWorker)
+                { }
+
+                using (BlockingPool)
+                { }
+            }
+
+            #endregion
+        }
+
+        #endregion
     }
 }

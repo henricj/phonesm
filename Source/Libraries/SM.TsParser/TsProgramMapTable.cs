@@ -203,6 +203,16 @@ namespace SM.TsParser
             _newPrograms.Clear();
         }
 
+        public void FlushBuffers()
+        {
+            foreach (var program in _programMap.Values)
+            {
+                program.Stream.FlushBuffers();
+            }
+
+            _newPrograms.Clear();
+        }
+
         void MapPrograms()
         {
             _programList.Clear();

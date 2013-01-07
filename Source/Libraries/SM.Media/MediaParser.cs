@@ -49,6 +49,8 @@ namespace SM.Media
         readonly TsDecoder _tsDecoder;
         TimeSpan? _timestampOffset;
 
+        public TimeSpan StartPosition { get; set; }
+
         public MediaParser(IBufferingManager bufferingManager, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
             : this(mediaParserStreamHandler, handlerFactory)
         {
@@ -147,6 +149,7 @@ namespace SM.Media
         public void FlushBuffers()
         {
             Decoder.FlushBuffers();
+            _timestampOffset = null;
         }
 
         public void ProcessData(byte[] buffer, int length)
@@ -194,13 +197,13 @@ namespace SM.Media
                                               {
                                                   if (!_timestampOffset.HasValue)
                                                   {
-                                                      _timestampOffset = packet.Timestamp;
-                                                      packet.Timestamp = TimeSpan.Zero;
+                                                      _timestampOffset = packet.Timestamp - StartPosition;
+                                                      packet.Timestamp = StartPosition;
                                                   }
                                                   else
                                                       packet.Timestamp -= _timestampOffset.Value;
 
-                                                  Debug.Assert(packet.Timestamp >= TimeSpan.Zero);
+                                                  Debug.Assert(packet.Timestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.Timestamp, StartPosition, packet.Timestamp >= StartPosition));
                                               }
 
                                               streamBuffer.Enqueue(packet);

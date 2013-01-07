@@ -33,8 +33,20 @@ namespace SM.Media.Segments
 {
     public interface ISegmentReaderManager : IDisposable
     {
-        ICollection<IAsyncEnumerable<ISegmentReader>> SegmentReaders { get; }
+        ICollection<ISegmentManagerReaders> SegmentManagerReaders { get; }
         Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken);
+    }
+
+    public interface ISegmentManagerReaders
+    {
+        ISegmentManager Manager { get; }
+        IAsyncEnumerable<ISegmentReader> Readers { get; }
+    }
+
+    public class SegmentManagerReaders :ISegmentManagerReaders
+    {
+        public ISegmentManager Manager { get; set; }
+        public IAsyncEnumerable<ISegmentReader> Readers { get; set; }
     }
 
     // Windows Phone 7 gives type load exceptions if we try "IAsyncEnumerable<out T>"

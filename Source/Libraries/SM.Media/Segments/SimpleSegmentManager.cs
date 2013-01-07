@@ -74,6 +74,11 @@ namespace SM.Media.Segments
             get { return null; }
         }
 
+        public TimeSpan StartPosition
+        {
+            get { return TimeSpan.Zero; }
+        }
+
         public Task<Segment> NextAsync()
         {
             if (null == _urlEnumerator)

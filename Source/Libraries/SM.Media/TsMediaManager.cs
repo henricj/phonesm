@@ -149,6 +149,8 @@ namespace SM.Media
         {
             foreach (var reader in _readers)
             {
+                reader.MediaParser.StartPosition = reader.SegmentReaders.Manager.StartPosition;
+
                 reader.BufferingManager.Flush();
 
                 var startReader = reader.CallbackReader.StartAsync();
@@ -170,7 +172,7 @@ namespace SM.Media
 
             _mediaStreamSource = _mediaStreamSourceFactory(this);
 
-            _readers = _readerManager.SegmentReaders
+            _readers = _readerManager.SegmentManagerReaders
                                      .Select(CreateReaderPipeline)
                                      .ToArray();
 
@@ -188,11 +190,11 @@ namespace SM.Media
             await _mediaElementManager.SetSource(_mediaStreamSource);
         }
 
-        ReaderPipeline CreateReaderPipeline(IAsyncEnumerable<ISegmentReader> sr)
+        ReaderPipeline CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
         {
             var reader = new ReaderPipeline
                          {
-                             SegmentReaders = sr,
+                             SegmentReaders = segmentManagerReaders,
                              BlockingPool = new BlockingPool<WorkBuffer>(MaxBuffers),
                          };
 
@@ -209,7 +211,7 @@ namespace SM.Media
                         mediaParser.ProcessData(wi.Buffer, wi.Length);
                 }, reader.BlockingPool.Free);
 
-            reader.CallbackReader = new CallbackReader(sr, reader.QueueWorker.Enqueue, reader.BlockingPool);
+            reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
             reader.BufferingManager = new BufferingManager(reader.QueueWorker, value => SendBufferingProgress(value, reader));
 
@@ -225,11 +227,11 @@ namespace SM.Media
             return reader;
         }
 
-        void SendBufferingProgress(double obj, ReaderPipeline reader)
+        void SendBufferingProgress(double value, ReaderPipeline reader)
         {
             _commandWorker.SendCommand(new CommandWorker.Command(() =>
                                                                  {
-                                                                     reader.BufferingProgress = obj;
+                                                                     reader.BufferingProgress = value;
 
                                                                      if (MediaState.Playing != _mediaState)
                                                                          return TplTaskExtensions.CompletedTask;
@@ -390,7 +392,7 @@ namespace SM.Media
 
             _mediaState = MediaState.Seeking;
 
-            var actualPosition = await _readerManager.SeekAsync(position, CancellationToken.None);
+            await _readerManager.SeekAsync(position, CancellationToken.None);
 
             StartReaders();
         }
@@ -420,7 +422,7 @@ namespace SM.Media
             public ConfigurationEventArgs ConfigurationEventArgs;
             public MediaParser MediaParser;
             public QueueWorker<WorkBuffer> QueueWorker;
-            public IAsyncEnumerable<ISegmentReader> SegmentReaders;
+            public ISegmentManagerReaders SegmentReaders;
 
             #region IDisposable Members
 

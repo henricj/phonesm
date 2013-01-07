@@ -86,6 +86,7 @@ namespace SM.Media.Playlists
         #region ISegmentManager Members
 
         public Uri Url { get; private set; }
+        public TimeSpan StartPosition { get; private set; }
 
         public async Task<Segment> NextAsync()
         {
@@ -117,7 +118,11 @@ namespace SM.Media.Playlists
             if (_isDynamicPlayist)
                 await CheckReload().ConfigureAwait(false);
 
-            return Seek(timestamp);
+            var actualPosition = Seek(timestamp);
+
+            StartPosition = actualPosition;
+
+            return actualPosition;
         }
 
         #endregion

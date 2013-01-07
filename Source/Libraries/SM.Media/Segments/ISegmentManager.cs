@@ -32,6 +32,7 @@ namespace SM.Media.Segments
     public interface ISegmentManager
     {
         Uri Url { get; }
+        TimeSpan StartPosition { get; }
 
         Task<Segment> NextAsync();
         Task<TimeSpan> SeekAsync(TimeSpan timestamp);

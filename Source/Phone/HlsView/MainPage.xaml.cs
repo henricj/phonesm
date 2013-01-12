@@ -77,13 +77,18 @@ namespace HlsView
                 playButton.IsEnabled = true;
                 stopButton.IsEnabled = false;
             }
+            else if (MediaElementState.Paused == state)
+            {
+                playButton.IsEnabled = true;
+                stopButton.IsEnabled = true;
+            }
             else
                 stopButton.IsEnabled = true;
         }
 
         void OnPositionSamplerOnTick(object o, EventArgs ea)
         {
-            if (null == mediaElement1)
+            if (null == mediaElement1 || MediaElementState.Playing != mediaElement1.CurrentState)
                 return;
 
             var positionSample = mediaElement1.Position;
@@ -108,6 +113,12 @@ namespace HlsView
         async void play_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("Play clicked");
+
+            if (null != mediaElement1 && MediaElementState.Paused == mediaElement1.CurrentState)
+            {
+                mediaElement1.Play();
+                return;
+            }
 
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;

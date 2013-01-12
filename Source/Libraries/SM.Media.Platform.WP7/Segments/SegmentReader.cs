@@ -174,7 +174,7 @@ namespace SM.Media.Segments
                 if (segment.Offset > 0)
                 {
                     webRequest.Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-"
-                          + segment.Length.ToString(CultureInfo.InvariantCulture);
+                                                  + segment.Length.ToString(CultureInfo.InvariantCulture);
                 }
             }
 

@@ -125,6 +125,9 @@ namespace SM.Media
             if (2 != was2 && 3 != was2)
                 return;
 
+            if (null == _mediaElement)
+                return;
+
             var state = _mediaElement.CurrentState;
 
             if (MediaElementState.Closed != state && MediaElementState.Stopped != state)

@@ -40,9 +40,16 @@ namespace SM.Media
         object _cachedObject;
         string _etag;
         string _lastModified;
+        string _noCache;
 
         public CachedWebRequest(Uri url, Func<Uri, HttpWebRequest> webRequestFactory)
         {
+            if (null == url)
+                throw new ArgumentNullException("url");
+
+            if (null == webRequestFactory)
+                throw new ArgumentNullException("webRequestFactory");
+
             _url = url;
             _webRequestFactory = webRequestFactory;
         }
@@ -78,31 +85,31 @@ namespace SM.Media
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.OK:
+                    {
+                        var date = response.Headers["Last-Modified"];
+
+                        _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
+
+                        var etag = response.Headers["ETag"];
+
+                        _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
+
+                        byte[] body;
+
+                        using (var stream = response.GetResponseStream())
                         {
-                            var date = response.Headers["Last-Modified"];
+                            var ms = response.ContentLength > 0 ? new MemoryStream((int)response.ContentLength) : new MemoryStream();
 
-                            _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
-
-                            var etag = response.Headers["ETag"];
-
-                            _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
-
-                            byte[] body;
-
-                            using (var stream = response.GetResponseStream())
+                            using (ms)
                             {
-                                var ms = response.ContentLength > 0 ? new MemoryStream((int)response.ContentLength) : new MemoryStream();
+                                await stream.CopyToAsync(ms);
 
-                                using (ms)
-                                {
-                                    await stream.CopyToAsync(ms);
-
-                                    body = ms.ToArray();
-                                }
+                                body = ms.ToArray();
                             }
-
-                            _cachedObject = factory(body);
                         }
+
+                        _cachedObject = factory(body);
+                    }
                         break;
                     case HttpStatusCode.NotModified:
                         break;
@@ -132,11 +139,37 @@ namespace SM.Media
 
         HttpWebRequest CreateRequest()
         {
-            var hr = _webRequestFactory(_url);
+            var url = _url;
 
             var haveConditional = false;
 
             if (null != _cachedObject)
+            {
+                if (null != _lastModified)
+                    haveConditional = true;
+
+                if (null != _etag)
+                    haveConditional = true;
+            }
+
+            if (!haveConditional || null == _noCache)
+                _noCache = "nocache=" + Guid.NewGuid().ToString("N");
+
+            if (null != _noCache)
+            {
+                var ub = new UriBuilder(url);
+
+                if (string.IsNullOrEmpty(ub.Query))
+                    ub.Query = _noCache;
+                else
+                    ub.Query = ub.Query.Substring(1) + "&" + _noCache;
+
+                url = ub.Uri;
+            }
+
+            var hr = _webRequestFactory(url);
+
+            if (null != _cachedObject && haveConditional)
             {
                 if (null != _lastModified)
                 {
@@ -145,24 +178,21 @@ namespace SM.Media
 #else
                     hr.IfModifiedSince = DateTime.Parse(_lastModified);
 #endif
-                    haveConditional = true;
                 }
 
                 if (null != _etag)
-                {
                     hr.Headers[HttpRequestHeader.IfNoneMatch] = _etag;
-                    haveConditional = true;
-                }
             }
 
             if (!haveConditional)
             {
                 hr.Headers[HttpRequestHeader.CacheControl] = "no-cache";
 
-                // The If-Modified-Since seems to defeat the phone's local cache.  Unfortunately,
-                // some sites seem to always return "Not Modified" if they see an
-                // If-Modified-since.  Make sure we get at least one 200 response code before
-                // we try slay the WP cache.
+#if false
+    // The If-Modified-Since seems to defeat the phone's local cache.  Unfortunately,
+    // some sites seem to always return "Not Modified" if they see an
+    // If-Modified-since.  Make sure we get at least one 200 response code before
+    // we try slay the WP cache.
                 if (null != _cachedObject)
                 {
                     //var date = DateTimeOffset.UtcNow;
@@ -173,6 +203,7 @@ namespace SM.Media
                     hr.IfModifiedSince = date.UtcDateTime;
 #endif
                 }
+#endif
             }
 
             return hr;

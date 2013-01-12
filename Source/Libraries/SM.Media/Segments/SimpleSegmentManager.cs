@@ -79,6 +79,8 @@ namespace SM.Media.Segments
             get { return TimeSpan.Zero; }
         }
 
+        public TimeSpan? Duration { get { return null; } }
+
         public Task<Segment> NextAsync()
         {
             if (null == _urlEnumerator)

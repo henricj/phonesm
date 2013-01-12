@@ -30,11 +30,22 @@ using SM.Media.Configuration;
 
 namespace SM.Media
 {
+    public class MediaConfiguration
+    {
+        public TimeSpan? Duration { get; set; }
+
+        public IStreamSource AudioStream { get; set; }
+        public IAudioConfigurationSource AudioConfiguration { get; set; }
+
+        public IStreamSource VideoStream { get; set; }
+        public IVideoConfigurationSource VideoConfiguration { get; set; }
+    }
+
     public interface IMediaStreamSource : IDisposable
     {
         Task CloseAsync();
         void ReportProgress(double obj);
-        void MediaStreamOnConfigurationComplete(object sender, ConfigurationEventArgs e);
-
+        void Configure(MediaConfiguration configuration);
+        TimeSpan? SeekTarget { get; set; }
     }
 }

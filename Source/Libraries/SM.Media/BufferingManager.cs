@@ -27,19 +27,20 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 
 namespace SM.Media
 {
     class BufferingManager : IBufferingManager
     {
-        const int BufferSizeMaximum = 300 * 1024;
-        const int BufferSizeStopBuffering = 150 * 1024;
+        const int BufferSizeMaximum = 1024 * 1024;
+        const int BufferSizeStopBuffering = 300 * 1024;
         const int BufferSizeStartBuffering = 50 * 1024;
+        static readonly TimeSpan SeekEndTolerance = TimeSpan.FromMilliseconds(256);
+        static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
         static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(2);
         static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(4);
-        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(8);
+        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(20);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly object _lock = new object();
         readonly IQueueThrottling _queueThrottling;
@@ -99,11 +100,35 @@ namespace SM.Media
                 queue.Flush();
         }
 
+        public bool IsSeekAlreadyBuffered(TimeSpan position)
+        {
+            lock (_lock)
+            {
+                foreach (var queue in _queues)
+                {
+                    // We'll ignore the "IsValid" flag for now.  The Oldest/Newest
+                    // will either be the last known values or TimeSpan.Zero.  In
+                    // either case, they should work for checking the supplied
+                    // position.
+                    //if (!queue.IsValid)
+                    //    return TimeSpan.Zero == position;
+
+                    if (position < queue.Oldest - SeekBeginTolerance)
+                        return false;
+
+                    if (position > queue.Newest + SeekEndTolerance)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         public TimeSpan BufferPosition
         {
             get
             {
-                var latestPosition = TimeSpan.Zero;
+                var latestPosition = TimeSpan.MaxValue;
 
                 lock (_lock)
                 {
@@ -120,6 +145,9 @@ namespace SM.Media
                 }
 
                 Debug.Assert(latestPosition >= TimeSpan.Zero);
+
+                if (TimeSpan.MaxValue == latestPosition)
+                    return TimeSpan.Zero;
 
                 return latestPosition;
             }
@@ -282,13 +310,13 @@ namespace SM.Media
                     oldest = oldTime;
             }
 
-            if (_playbackPosition.HasValue)
-            {
-                var time = _playbackPosition.Value;
+            //if (_playbackPosition.HasValue)
+            //{
+            //    var time = _playbackPosition.Value;
 
-                if (time < newest && time > oldest)
-                    oldest = time;
-            }
+            //    if (time < newest && time > oldest)
+            //        oldest = time;
+            //}
 
             var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;
 
@@ -423,11 +451,6 @@ namespace SM.Media
                 get { return _bufferSize; }
             }
 
-            public void Flush()
-            {
-                _managedBuffer.Flush();
-            }
-
             #region IBufferingQueue Members
 
             public void ReportEnqueue(int size, TimeSpan timestamp)
@@ -456,6 +479,11 @@ namespace SM.Media
             }
 
             #endregion
+
+            public void Flush()
+            {
+                _managedBuffer.Flush();
+            }
 
             void Done()
             {

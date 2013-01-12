@@ -49,8 +49,6 @@ namespace SM.Media
         readonly TsDecoder _tsDecoder;
         TimeSpan? _timestampOffset;
 
-        public TimeSpan StartPosition { get; set; }
-
         public MediaParser(IBufferingManager bufferingManager, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
             : this(mediaParserStreamHandler, handlerFactory)
         {
@@ -83,6 +81,8 @@ namespace SM.Media
                          };
         }
 
+        public TimeSpan StartPosition { get; set; }
+
         public IMediaParserMediaStream[] MediaStreams
         {
             get
@@ -102,6 +102,12 @@ namespace SM.Media
         public TimeSpan BufferPosition
         {
             get { return _bufferingManager.BufferPosition; }
+        }
+
+        public bool EnableProcessing
+        {
+            get { return _tsDecoder.EnableProcessing; }
+            set { _tsDecoder.EnableProcessing = value; }
         }
 
         #region IDisposable Members
@@ -152,12 +158,14 @@ namespace SM.Media
             _timestampOffset = null;
         }
 
+        public void ProcessEndOfData()
+        {
+            _tsDecoder.ParseEnd();
+        }
+
         public void ProcessData(byte[] buffer, int length)
         {
-            if (null == buffer)
-                _tsDecoder.ParseEnd();
-            else
-                _tsDecoder.Parse(buffer, 0, length);
+            _tsDecoder.Parse(buffer, 0, length);
         }
 
         void AddMediaStream(IMediaParserMediaStream mediaParserMediaStream)
@@ -197,8 +205,12 @@ namespace SM.Media
                                               {
                                                   if (!_timestampOffset.HasValue)
                                                   {
-                                                      _timestampOffset = packet.Timestamp - StartPosition;
-                                                      packet.Timestamp = StartPosition;
+                                                      var startPosition = StartPosition;
+
+                                                      Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.Timestamp);
+
+                                                      _timestampOffset = packet.Timestamp - startPosition;
+                                                      packet.Timestamp = startPosition;
                                                   }
                                                   else
                                                       packet.Timestamp -= _timestampOffset.Value;

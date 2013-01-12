@@ -83,6 +83,36 @@ namespace SimulatedPlayer
             _mediaElement.ReportOpenMediaCompleted();
         }
 
+        public void Configure(MediaConfiguration configuration)
+        {
+            lock (_lock)
+            {
+                if (null != configuration.VideoConfiguration)
+                {
+                    _mediaStreams.Add(configuration.VideoStream);
+
+                    var streamType = _mediaStreams.Count - 1;
+                    configuration.VideoStream.SetSink(sample => StreamSampleHandler(streamType, sample));
+                }
+
+                if (null != configuration.AudioConfiguration)
+                {
+                    _mediaStreams.Add(configuration.AudioStream);
+
+                    var streamType = _mediaStreams.Count - 1;
+                    configuration.AudioStream.SetSink(sample => StreamSampleHandler(streamType, sample));
+                }
+            }
+
+            Debug.WriteLine("SimulatedMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", _mediaStreams.Count);
+
+            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
+
+            _mediaElement.ReportOpenMediaCompleted();
+        }
+
+        public TimeSpan? SeekTarget { get; set; }
+
         public void OpenMediaAsync()
         {
             Debug.WriteLine("SimulatedMediaStreamSource.OpenMediaAsync()");

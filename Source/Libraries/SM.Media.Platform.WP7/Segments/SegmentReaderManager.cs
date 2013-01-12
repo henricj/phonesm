@@ -80,6 +80,11 @@ namespace SM.Media.Segments
             return results.Min();
         }
 
+        public TimeSpan? Duration
+        {
+            get { return _segmentManagers.Max(sm => sm.Duration); }
+        }
+
         #endregion
 
         #region Nested type: SegmentReaderEnumerable

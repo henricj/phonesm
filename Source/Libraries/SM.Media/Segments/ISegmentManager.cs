@@ -33,6 +33,7 @@ namespace SM.Media.Segments
     {
         Uri Url { get; }
         TimeSpan StartPosition { get; }
+        TimeSpan? Duration { get; }
 
         Task<Segment> NextAsync();
         Task<TimeSpan> SeekAsync(TimeSpan timestamp);

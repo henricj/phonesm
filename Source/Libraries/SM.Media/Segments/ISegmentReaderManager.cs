@@ -35,6 +35,7 @@ namespace SM.Media.Segments
     {
         ICollection<ISegmentManagerReaders> SegmentManagerReaders { get; }
         Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken);
+        TimeSpan? Duration { get; }
     }
 
     public interface ISegmentManagerReaders

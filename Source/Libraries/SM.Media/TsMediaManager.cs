@@ -39,25 +39,28 @@ namespace SM.Media
     public sealed class TsMediaManager : ITsMediaManager, IMediaManager, IDisposable
     {
         const int MaxBuffers = 8;
-        static readonly TimeSpan SeekEndTolerance = TimeSpan.FromSeconds(8);
-        static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromMilliseconds(250);
         readonly CommandWorker _commandWorker = new CommandWorker();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
         readonly Func<IMediaManager, IMediaStreamSource> _mediaStreamSourceFactory;
+        readonly ISegmentReaderManager _segmentReaderManager;
         MediaState _mediaState;
         IMediaStreamSource _mediaStreamSource;
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(IMediaElementManager mediaElementManager, Func<IMediaManager, IMediaStreamSource> mediaStreamSourceFactory)
+        public TsMediaManager(ISegmentReaderManager segmentReaderManager, IMediaElementManager mediaElementManager, Func<IMediaManager, IMediaStreamSource> mediaStreamSourceFactory)
         {
+            if (null == segmentReaderManager)
+                throw new ArgumentNullException("segmentReaderManager");
+
             if (null == mediaElementManager)
                 throw new ArgumentNullException("mediaElementManager");
 
             if (null == mediaStreamSourceFactory)
                 throw new ArgumentNullException("mediaStreamSourceFactory");
 
+            _segmentReaderManager = segmentReaderManager;
             _mediaElementManager = mediaElementManager;
             _mediaStreamSourceFactory = mediaStreamSourceFactory;
         }
@@ -143,6 +146,12 @@ namespace SM.Media
             }
         }
 
+        public TimeSpan? SeekTarget
+        {
+            get { return _mediaStreamSource.SeekTarget; }
+            set { _mediaStreamSource.SeekTarget = value; }
+        }
+
         #endregion
 
         void StartReaders()
@@ -206,7 +215,7 @@ namespace SM.Media
                     var mediaParser = localReader.MediaParser;
 
                     if (null == wi)
-                        mediaParser.ProcessData(null, 0);
+                        mediaParser.ProcessEndOfData();
                     else
                         mediaParser.ProcessData(wi.Buffer, wi.Length);
                 }, reader.BlockingPool.Free);
@@ -269,12 +278,35 @@ namespace SM.Media
             if (_mediaState != MediaState.OpenMedia)
                 return;
 
+            if (_configurationEvents.Count < 2)
+                return;
+
+            var configuration = new MediaConfiguration { Duration = _segmentReaderManager.Duration };
+
             while (_configurationEvents.Count > 0)
             {
                 var args = _configurationEvents.Dequeue();
 
-                _mediaStreamSource.MediaStreamOnConfigurationComplete(this, args);
+                var video = args.ConfigurationSource as IVideoConfigurationSource;
+
+                if (null != video)
+                {
+                    configuration.VideoConfiguration = video;
+                    configuration.VideoStream = args.StreamSource;
+
+                    continue;
+                }
+
+                var audio = args.ConfigurationSource as IAudioConfigurationSource;
+
+                if (null == audio)
+                    continue;
+
+                configuration.AudioConfiguration = audio;
+                configuration.AudioStream = args.StreamSource;
             }
+
+            _mediaStreamSource.Configure(configuration);
         }
 
         async Task StopAsync()
@@ -362,9 +394,7 @@ namespace SM.Media
 
         bool IsSeekInRange(TimeSpan position)
         {
-            return _readers
-                .Select(reader => reader.MediaParser.BufferPosition)
-                .All(bufferPosition => position >= bufferPosition - SeekBeginTolerance && position < bufferPosition + SeekEndTolerance);
+            return _readers.All(reader => reader.BufferingManager.IsSeekAlreadyBuffered(position));
         }
 
         async Task SeekAsync(TimeSpan position)
@@ -375,18 +405,24 @@ namespace SM.Media
             foreach (var reader in _readers)
             {
                 reader.QueueWorker.IsEnabled = false;
+                reader.MediaParser.EnableProcessing = false;
             }
 
-            await TaskEx.WhenAll(_readers.Select<ReaderPipeline, Task>(async r =>
-                                                                             {
-                                                                                 await r.CallbackReader.StopAsync();
-                                                                                 await r.QueueWorker.ClearAsync();
-                                                                                 r.MediaParser.FlushBuffers();
-                                                                                 r.BufferingManager.Flush();
-                                                                             }));
+            var stopReaderTasks = _readers.Select<ReaderPipeline, Task>(
+                async r =>
+                {
+                    await r.CallbackReader.StopAsync();
+                    await r.QueueWorker.ClearAsync();
+                });
+
+            await TaskEx.WhenAll(stopReaderTasks);
 
             foreach (var reader in _readers)
             {
+                reader.MediaParser.FlushBuffers();
+                reader.BufferingManager.Flush();
+
+                reader.MediaParser.EnableProcessing = true;
                 reader.QueueWorker.IsEnabled = true;
             }
 
@@ -413,7 +449,7 @@ namespace SM.Media
 
         #region Nested type: ReaderPipeline
 
-        public sealed class ReaderPipeline : IDisposable
+        sealed class ReaderPipeline : IDisposable
         {
             public BlockingPool<WorkBuffer> BlockingPool;
             public IBufferingManager BufferingManager;

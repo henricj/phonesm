@@ -87,6 +87,7 @@ namespace SM.Media.Playlists
 
         public Uri Url { get; private set; }
         public TimeSpan StartPosition { get; private set; }
+        public TimeSpan? Duration { get; private set; }
 
         public async Task<Segment> NextAsync()
         {
@@ -127,10 +128,12 @@ namespace SM.Media.Playlists
 
         #endregion
 
-        public TimeSpan Seek(TimeSpan timestamp)
+        TimeSpan Seek(TimeSpan timestamp)
         {
             if (null == _segments || _segments.Length < 1)
                 return TimeSpan.Zero;
+
+            ResetSegments();
 
             InitializeSegmentIndex();
 
@@ -158,6 +161,18 @@ namespace SM.Media.Playlists
             return TimeSpan.Zero;
         }
 
+        void ResetSegments()
+        {
+            // The "Segment" class should be probably be immutable.  Hack things for now.
+
+            foreach (var segment in _segments)
+            {
+                segment.Eof = false;
+                segment.Offset = 0;
+                segment.Length = 0;
+            }
+        }
+
         void InitializeSegmentIndex()
         {
             var segmentIndex = -1;
@@ -181,11 +196,6 @@ namespace SM.Media.Playlists
             }
 
             _segmentIndex = segmentIndex;
-        }
-
-        public Segment Next()
-        {
-            return NextAsync().Result;
         }
 
         Task CheckReload()
@@ -264,6 +274,8 @@ namespace SM.Media.Playlists
 
             var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);
 
+            Duration = isDynamicPlayist ? null : GetDuration(segments);
+
             lock (_segmentLock)
             {
                 var oldSegments = _segments;
@@ -290,6 +302,21 @@ namespace SM.Media.Playlists
 
                 _reReader = null;
             }
+        }
+
+        static TimeSpan? GetDuration(IEnumerable<SubStreamSegment> segments)
+        {
+            var duration = TimeSpan.Zero;
+
+            foreach (var segment in segments)
+            {
+                if (!segment.Duration.HasValue)
+                    return null;
+
+                duration += segment.Duration.Value;
+            }
+
+            return duration;
         }
     }
 }

@@ -42,7 +42,14 @@ namespace SM.TsParser
         readonly int _packetSize;
         readonly Func<uint, TsStreamType, Action<TsPesPacket>> _pesHandlerFactory;
         readonly TsPacket _tsPacket = new TsPacket();
+        volatile bool _enableProcessing = true;
         int _tsIndex;
+
+        public bool EnableProcessing
+        {
+            get { return _enableProcessing; }
+            set { _enableProcessing = value; }
+        }
 
         public TsDecoder(IBufferPool bufferPool, Func<uint, TsStreamType, Action<TsPesPacket>> pesHandlerFactory, int packetSize = -1)
         {
@@ -100,7 +107,7 @@ namespace SM.TsParser
         public void FreePesPacket(TsPesPacket packet)
         {
 #if DEBUG
-    //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.Timestamp, packet.BufferEntry);
+            //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.Timestamp, packet.BufferEntry);
 #endif
 
             var buffer = packet.BufferEntry;
@@ -189,6 +196,9 @@ namespace SM.TsParser
 
         public void Parse(byte[] buffer, int offset, int length)
         {
+            if (!EnableProcessing)
+                return;
+
             // First, finish off anything currently buffered.  Takes
             // new bytes to help finish off any pending data.
             if (_destinationLength > 0)
@@ -223,7 +233,7 @@ namespace SM.TsParser
                 // Run through as much as we can of the provided buffer
 
                 var i = offset;
-                for (; i <= offset + length - _packetSize; i += _packetSize)
+                for (; EnableProcessing && i <= offset + length - _packetSize; i += _packetSize)
                     ParsePacket(buffer, i);
 
                 _destinationLength = length - (i - offset);

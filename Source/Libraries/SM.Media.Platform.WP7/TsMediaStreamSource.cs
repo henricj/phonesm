@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
@@ -46,16 +47,14 @@ namespace SM.Media
         readonly IMediaManager _mediaManager;
         readonly List<CommandWorker.Command> _pendingGets = new List<CommandWorker.Command>();
         readonly object _stateLock = new object();
-
         readonly object _streamConfigurationLock = new object();
         MediaStreamDescription _audioStreamDescription;
         IStreamSource _audioStreamSource;
         double _bufferingProgress;
         bool _bufferingReportPending;
-
         bool _isClosed;
-
         int _isDisposed;
+        TimeSpan? _seekTarget;
         State _state;
         int _streamClosedFlags;
         int _streamOpenFlags;
@@ -78,6 +77,12 @@ namespace SM.Media
 
         #region IMediaStreamSource Members
 
+        public TimeSpan? SeekTarget
+        {
+            get { lock (_stateLock) return _seekTarget; }
+            set { lock (_stateLock) _seekTarget = value; }
+        }
+
         /// <summary>
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
@@ -95,29 +100,17 @@ namespace SM.Media
             _commandWorker.CloseAsync().Wait();
         }
 
-        public void MediaStreamOnConfigurationComplete(object sender, ConfigurationEventArgs configurationEventArgs)
+        public void Configure(MediaConfiguration configuration)
         {
-            var mediaStream = sender as IMediaParserMediaStream;
+            if (null != configuration.AudioConfiguration)
+                ConfigureAudioStream(configuration.AudioConfiguration, configuration.AudioStream);
 
-            if (null != mediaStream)
-                mediaStream.ConfigurationComplete -= MediaStreamOnConfigurationComplete;
+            if (null != configuration.VideoConfiguration)
+                ConfigureVideoStream(configuration.VideoConfiguration, configuration.VideoStream);
 
-            var videoStream = configurationEventArgs.ConfigurationSource as IVideoConfigurationSource;
-
-            if (null != videoStream)
+            lock (_streamConfigurationLock)
             {
-                ConfigureVideoStream(videoStream, configurationEventArgs.StreamSource);
-
-                return;
-            }
-
-            var audioStream = configurationEventArgs.ConfigurationSource as IAudioConfigurationSource;
-
-            if (null != audioStream)
-            {
-                ConfigureAudioStream(audioStream, configurationEventArgs.StreamSource);
-
-                return;
+                CompleteConfigure(configuration.Duration);
             }
         }
 
@@ -228,8 +221,6 @@ namespace SM.Media
             {
                 _videoStreamSource = videoSource;
                 _videoStreamDescription = videoStreamDescription;
-
-                CompleteConfigure();
             }
         }
 
@@ -250,8 +241,6 @@ namespace SM.Media
             {
                 _audioStreamSource = audioSource;
                 _audioStreamDescription = audioStreamDescription;
-
-                CompleteConfigure();
             }
         }
 
@@ -295,11 +284,8 @@ namespace SM.Media
             }
         }
 
-        void CompleteConfigure()
+        void CompleteConfigure(TimeSpan? duration)
         {
-            if (null == _videoStreamSource || null == _audioStreamSource)
-                return;
-
             var msd = new List<MediaStreamDescription>();
 
             if (null != _videoStreamSource && null != _videoStreamDescription)
@@ -316,16 +302,30 @@ namespace SM.Media
 
             var mediaSourceAttributes = new Dictionary<MediaSourceAttributesKeys, string>();
 
-            //mediaSourceAttributes[MediaSourceAttributesKeys.Duration] = TimeSpan.FromMinutes(10).Ticks.ToString(CultureInfo.InvariantCulture);
-            mediaSourceAttributes[MediaSourceAttributesKeys.CanSeek] = "0";
+            if (duration.HasValue)
+                mediaSourceAttributes[MediaSourceAttributesKeys.Duration] = duration.Value.Ticks.ToString(CultureInfo.InvariantCulture);
+
+            var canSeek = duration.HasValue;
+
+            mediaSourceAttributes[MediaSourceAttributesKeys.CanSeek] = canSeek.ToString();
 
             _commandWorker.SendCommand(new CommandWorker.Command(
                                            () =>
                                            {
                                                Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
 
-                                               _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
+                                               foreach (var kv in mediaSourceAttributes)
+                                                   Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
+
+                                               _mediaManager.ValidateEvent(canSeek
+                                                                               ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
+                                                                               : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
                                                ReportOpenMediaCompleted(mediaSourceAttributes, msd);
+
+                                               lock (_stateLock)
+                                               {
+                                                   _state = canSeek ? State.Seek : State.Play;
+                                               }
 
                                                return null;
                                            }));
@@ -366,6 +366,11 @@ namespace SM.Media
         {
             var seekTimestamp = TimeSpan.FromTicks(seekToTime);
 
+            var seekTarget = SeekTarget;
+
+            if (seekTarget.HasValue)
+                seekTimestamp = seekTarget.Value;
+
             Debug.WriteLine("TsMediaStreamSource.SeekAsync({0})", seekTimestamp);
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
 
@@ -386,7 +391,7 @@ namespace SM.Media
                                                    return;
 
                                                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
-                                               ReportSeekCompleted(position.Ticks);
+                                               ReportSeekCompleted(seekTimestamp.Ticks);
 
                                                CommandWorker.Command[] pendingGets;
 

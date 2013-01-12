@@ -40,6 +40,7 @@ namespace SM.Media.Utility
             MediaStreamSourceAssigned, // MediaStreamSource.SetSource(...)
             OpenMediaAsyncCalled,
             CallingReportOpenMediaCompleted,
+            CallingReportOpenMediaCompletedLive,
             SeekAsyncCalled,
             CallingReportSeekCompleted,
             CallingReportSampleCompleted,
@@ -99,8 +100,10 @@ namespace SM.Media.Utility
                                        MediaState.Opening,
                                        new Dictionary<MediaEvent, MediaState>
                                        {
-                                           // ReportOpenMediaCompleted() has been called
-                                           { MediaEvent.CallingReportOpenMediaCompleted, MediaState.AwaitSeek }
+                                           // ReportOpenMediaCompleted() has been called on a non-seekable stream
+                                           { MediaEvent.CallingReportOpenMediaCompleted, MediaState.AwaitSeek },
+                                           // ReportOpenMediaCompleted() has been called on a seekable stream
+                                           { MediaEvent.CallingReportOpenMediaCompletedLive, MediaState.Playing }
                                        }
                                    },
                                    {

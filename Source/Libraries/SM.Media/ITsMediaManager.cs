@@ -36,5 +36,10 @@ namespace SM.Media
         void Pause();
         void Resume();
         void ReportPosition(TimeSpan position);
+
+        /// <summary>
+        /// "MediaElement.Position = x" always turns into "SeekAsync(0)" on WP7...?!?
+        /// </summary>
+        TimeSpan? SeekTarget { get; set; }
     }
 }

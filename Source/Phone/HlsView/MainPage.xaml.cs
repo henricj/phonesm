@@ -42,6 +42,7 @@ namespace HlsView
 {
     public partial class MainPage : PhoneApplicationPage
     {
+        static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         readonly DispatcherTimer _positionSampler;
         IMediaElementManager _mediaElementManager;
         int _positionSampleCount;
@@ -191,9 +192,11 @@ namespace HlsView
                                                                UpdateState(MediaElementState.Closed);
                                                            });
 
-            _tsMediaManager = new TsMediaManager(_mediaElementManager, mm => new TsMediaStreamSource(mm));
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
 
-            _tsMediaManager.Play(new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url)));
+            _tsMediaManager = new TsMediaManager(segmentReaderManager , _mediaElementManager, mm => new TsMediaStreamSource(mm));
+
+            _tsMediaManager.Play(segmentReaderManager);
 
             _positionSampler.Start();
         }
@@ -251,6 +254,38 @@ namespace HlsView
 
             if (null != _mediaElementManager)
                 _mediaElementManager.Close().Wait();
+        }
+
+        void plusButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (null == mediaElement1 || mediaElement1.CurrentState != MediaElementState.Playing)
+                return;
+
+            var position = mediaElement1.Position;
+
+            _tsMediaManager.SeekTarget = position + StepSize;
+
+            mediaElement1.Position = position + StepSize;
+
+            Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
+        }
+
+        void minusButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (null == mediaElement1 || mediaElement1.CurrentState != MediaElementState.Playing)
+                return;
+
+            var position = mediaElement1.Position;
+
+            if (position < StepSize)
+                position = TimeSpan.Zero;
+            else
+                position -= StepSize;
+
+            _tsMediaManager.SeekTarget = position;
+            mediaElement1.Position = position;
+
+            Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
         }
     }
 }

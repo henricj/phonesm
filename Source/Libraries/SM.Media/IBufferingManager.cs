@@ -36,6 +36,7 @@ namespace SM.Media
         IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
         void ReportPosition(TimeSpan playbackPosition);
         void Flush();
+        bool IsSeekAlreadyBuffered(TimeSpan position);
     }
 
     public interface IBufferingQueue

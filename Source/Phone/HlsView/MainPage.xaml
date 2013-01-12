@@ -26,11 +26,8 @@
         <!--TitlePanel contains the name of the application and page title-->
         <StackPanel x:Name="TitlePanel"
                     Grid.Row="0"
-                    Margin="4"
+                    Margin="2"
                     Orientation="Horizontal">
-            <TextBlock x:Name="ApplicationTitle"
-                       Text="HlsView"
-                       Style="{StaticResource PhoneTextNormalStyle}" />
             <Button Content="Play"
                     Height="Auto"
                     Name="playButton"
@@ -52,6 +49,10 @@
                     VerticalAlignment="Center"
                     BorderThickness="2"
                     Click="wakeButton_Click" />
+            <Button Content="-"
+                    Click="minusButton_Click" />
+            <Button Content="+"
+                    Click="plusButton_Click" />
             <TextBlock Name="PositionBox"
                        HorizontalAlignment="Left"
                        VerticalAlignment="Center"
@@ -62,7 +63,7 @@
         </StackPanel>
         <Grid x:Name="ContentPanel"
               Grid.Row="1"
-              Margin="4">
+              Margin="2">
             <TextBlock Name="errorBox"
                        Visibility="Collapsed" />
             <MediaElement Name="mediaElement1"

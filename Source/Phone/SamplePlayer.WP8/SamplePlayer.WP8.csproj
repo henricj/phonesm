@@ -160,6 +160,14 @@
       <Project>{503BEB79-3826-4966-9767-F957F1D83E0C}</Project>
       <Name>SM.Media.MediaPlayer.WP8</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
+      <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
+      <Name>SM.Media.Platform.WP8</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media\SM.Media.csproj">
+      <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
+      <Name>SM.Media</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />

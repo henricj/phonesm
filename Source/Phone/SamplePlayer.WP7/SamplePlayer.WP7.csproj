@@ -110,6 +110,14 @@
       <Project>{C7D17600-4DF4-4E0F-B906-30E68C69BDD4}</Project>
       <Name>SM.Media.MediaPlayer.WP7</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Platform.WP7\SM.Media.Platform.WP7.csproj">
+      <Project>{89D3F028-F32F-4113-A711-29E4FE9AC877}</Project>
+      <Name>SM.Media.Platform.WP7</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media\SM.Media.csproj">
+      <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
+      <Name>SM.Media</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.$(TargetFrameworkProfile).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.CSharp.targets" />

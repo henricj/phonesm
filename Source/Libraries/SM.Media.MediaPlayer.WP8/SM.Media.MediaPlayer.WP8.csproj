@@ -91,7 +91,7 @@
     </Compile>
     <Compile Include="MediaElementWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StreamingPlugin.cs" />
+    <Compile Include="StreamingMediaPlugin.cs" />
   </ItemGroup>
   <ItemGroup>
     <SDKReference Include="Microsoft.PlayerFramework.WP8.Core, Version=1.7.1.0">

@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using SM.Media;
@@ -97,7 +98,13 @@ namespace SimulatedPlayer
         public void ReportGetSampleCompleted(int streamType, IStreamSample sample)
         {
             if (null == sample)
+            {
+                Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) null sample", streamType);
+
                 return;
+            }
+
+            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1}", streamType, sample.Timestamp);
 
             var timestamp = sample.Timestamp;
             var oldestTimestamp = TimeSpan.MaxValue;

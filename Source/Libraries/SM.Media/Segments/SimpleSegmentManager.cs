@@ -81,7 +81,7 @@ namespace SM.Media.Segments
 
         public TimeSpan? Duration { get { return null; } }
 
-        public Task<Segment> NextAsync()
+        public Task<ISegment> NextAsync()
         {
             if (null == _urlEnumerator)
                 return null;
@@ -92,7 +92,7 @@ namespace SM.Media.Segments
                 return null;
             }
 
-            return TaskEx.FromResult<Segment>(new SimpleSegment(_urlEnumerator.Current));
+            return TaskEx.FromResult<ISegment>(new SimpleSegment(_urlEnumerator.Current));
         }
 
         #endregion

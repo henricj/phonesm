@@ -91,7 +91,7 @@ namespace SM.Media.Playlists
         public TimeSpan StartPosition { get; private set; }
         public TimeSpan? Duration { get; private set; }
 
-        public async Task<Segment> NextAsync()
+        public async Task<ISegment> NextAsync()
         {
             for (; ; )
             {
@@ -133,8 +133,6 @@ namespace SM.Media.Playlists
             if (null == _segments || _segments.Length < 1)
                 return TimeSpan.Zero;
 
-            ResetSegments();
-
             InitializeSegmentIndex();
 
             if (TimeSpan.Zero < timestamp)
@@ -159,18 +157,6 @@ namespace SM.Media.Playlists
             }
 
             return TimeSpan.Zero;
-        }
-
-        void ResetSegments()
-        {
-            // The "Segment" class should be probably be immutable.  Hack things for now.
-
-            foreach (var segment in _segments)
-            {
-                segment.Eof = false;
-                segment.Offset = 0;
-                segment.Length = 0;
-            }
         }
 
         void InitializeSegmentIndex()

@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using SM.Media.M3U8;
+using SM.Media.M3U8.TagSupport;
 
 namespace SM.Media.Playlists
 {
@@ -89,25 +90,39 @@ namespace SM.Media.Playlists
 
         public static IEnumerable<SubStreamSegment> GetPlaylist(M3U8Parser parser)
         {
-            Uri previous = null;
+            var lastOffset = 0L;
 
             foreach (var p in parser.Playlist)
             {
                 var url = parser.ResolveUrl(p.Uri);
 
-                if (null != previous && url == previous)
-                    continue;
-
                 var segment = new SubStreamSegment(url);
 
-                var info = M3U8Tags.ExtXInf.Find(p.Tags);
+                if (null != p.Tags && 0 != p.Tags.Length)
+                {
+                    var info = M3U8Tags.ExtXInf.Find(p.Tags);
 
-                if (null != info)
-                    segment.Duration = TimeSpan.FromSeconds((double)info.Duration);
+                    if (null != info)
+                        segment.Duration = TimeSpan.FromSeconds((double)info.Duration);
+
+                    var byteRange = M3U8Tags.ExtXByteRange.Find(p.Tags);
+
+                    if (null != byteRange)
+                    {
+                        if (byteRange.Offset.HasValue)
+                        {
+                            segment.Offset = byteRange.Offset.Value;
+                            lastOffset = byteRange.Offset.Value;
+                        }
+                        else
+                            segment.Offset = lastOffset;
+
+                        segment.Length = byteRange.Length;
+                        lastOffset += byteRange.Length;
+                    }
+                }
 
                 yield return segment;
-
-                previous = url;
             }
         }
     }

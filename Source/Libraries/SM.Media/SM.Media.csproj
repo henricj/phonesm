@@ -46,6 +46,7 @@
     <Compile Include="IMediaStreamSource.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
+    <Compile Include="M3U8\TagSupport\M3U8ByterangeTag.cs" />
     <Compile Include="M3U8\TagSupport\ExtKeyTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\ExtStreamInfTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ExtKeyTag.cs" />
@@ -127,7 +128,7 @@
     <Compile Include="Segments\ISegmentManager.cs" />
     <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="Segments\ISegmentReaderManager.cs" />
-    <Compile Include="Segments\Segment.cs" />
+    <Compile Include="Segments\ISegment.cs" />
     <Compile Include="Segments\SegmentManagerReaders.cs" />
     <Compile Include="Segments\SimpleSegment.cs" />
     <Compile Include="Segments\SimpleSegmentManager.cs" />

@@ -35,7 +35,7 @@ namespace SM.Media.Segments
         TimeSpan StartPosition { get; }
         TimeSpan? Duration { get; }
 
-        Task<Segment> NextAsync();
+        Task<ISegment> NextAsync();
         Task<TimeSpan> SeekAsync(TimeSpan timestamp);
     }
 

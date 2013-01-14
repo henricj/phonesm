@@ -29,7 +29,7 @@ using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
-    public class SubStreamSegment : Segment
+    public class SubStreamSegment : ISegment
     {
         readonly Uri _url;
 
@@ -40,7 +40,11 @@ namespace SM.Media.Playlists
 
         public TimeSpan? Duration { get; set; }
 
-        public override Uri Url
+        public long Offset { get; set; }
+
+        public long Length { get; set; }
+
+        public Uri Url
         {
             get { return _url; }
         }

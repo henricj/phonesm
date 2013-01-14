@@ -37,12 +37,15 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
-        readonly Segment _segment;
+        readonly Uri _url;
         readonly Func<Uri, HttpWebRequest> _webRequestFactory;
+        long _endOffset;
         WebResponse _response;
         Stream _responseStream;
+        long _startOffset;
+        readonly Func<Stream, Stream> _streamFilter;
 
-        public SegmentReader(Segment segment, Func<Uri, HttpWebRequest> webRequestFactory)
+        public SegmentReader(ISegment segment, Func<Uri, HttpWebRequest> webRequestFactory, Func<Stream, Stream> streamFilter = null)
         {
             if (null == segment)
                 throw new ArgumentNullException("segment");
@@ -50,33 +53,22 @@ namespace SM.Media.Segments
             if (null == webRequestFactory)
                 throw new ArgumentNullException("webRequestFactory");
 
-            _segment = segment;
             _webRequestFactory = webRequestFactory;
+            _streamFilter = streamFilter;
+
+            _startOffset = segment.Offset;
+            _endOffset = _startOffset + segment.Length - 1;
+            _url = segment.Url;
         }
 
         #region ISegmentReader Members
 
         public Uri Url
         {
-            get
-            {
-                if (null == _segment)
-                    return null;
-
-                return _segment.Url;
-            }
+            get { return _url; }
         }
 
-        public bool IsEof
-        {
-            get
-            {
-                if (null == _segment)
-                    return false;
-
-                return _segment.Eof;
-            }
-        }
+        public bool IsEof { get; private set; }
 
         public void Dispose()
         {
@@ -105,7 +97,7 @@ namespace SM.Media.Segments
 
                     if (count < 1)
                     {
-                        _segment.Eof = true;
+                        IsEof = true;
 
                         _responseStream.Close();
                         _responseStream = null;
@@ -113,7 +105,7 @@ namespace SM.Media.Segments
                         return index;
                     }
 
-                    _segment.Offset += count;
+                    _startOffset += count;
 
                     index += count;
                 }
@@ -123,7 +115,7 @@ namespace SM.Media.Segments
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Read of {0} failed at {1}: {2}", _segment.Url, _segment.Offset, ex.Message);
+                    Debug.WriteLine("Read of {0} failed at {1}: {2}", _url, _startOffset, ex.Message);
 
                     if (--retryCount <= 0)
                         throw;
@@ -163,18 +155,22 @@ namespace SM.Media.Segments
 
         #endregion
 
-        WebRequest CreateWebRequest(Segment segment)
+        WebRequest CreateWebRequest()
         {
-            var webRequest = _webRequestFactory(segment.Url);
+            var webRequest = _webRequestFactory(_url);
 
             if (null != webRequest)
             {
                 webRequest.AllowReadStreamBuffering = false;
 
-                if (segment.Offset > 0)
+                if (_startOffset >= 0 && _endOffset > 0)
                 {
-                    webRequest.Headers["Range"] = "bytes=" + segment.Offset.ToString(CultureInfo.InvariantCulture) + "-"
-                                                  + segment.Length.ToString(CultureInfo.InvariantCulture);
+#if WINDOWS_PHONE
+                    webRequest.Headers["Range"] = "bytes=" + _startOffset.ToString(CultureInfo.InvariantCulture) + "-"
+                                                  + _endOffset.ToString(CultureInfo.InvariantCulture);
+#else
+                    webRequest.AddRange(_startOffset, _endOffset);
+#endif
                 }
             }
 
@@ -186,15 +182,21 @@ namespace SM.Media.Segments
             _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
                                   .CallAsync(async () =>
                                                    {
-                                                       var webRequest = CreateWebRequest(_segment);
+                                                       var webRequest = CreateWebRequest();
 
                                                        return await webRequest.GetResponseAsync();
                                                    })
                                   .WithCancellation(cancellationToken);
 
-            _segment.Length = _response.ContentLength;
+            if (_endOffset <= 0)
+                _endOffset = _response.ContentLength;
 
-            return _response.GetResponseStream();
+            var stream = _response.GetResponseStream();
+
+            if (null != _streamFilter)
+                stream = _streamFilter(stream);
+
+            return stream;
         }
     }
 }

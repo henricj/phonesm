@@ -37,7 +37,7 @@ namespace SM.Media.M3U8
         #region Tags
 
         public static readonly M3U8ExtInfTag ExtXInf = new M3U8ExtInfTag("#EXTINF", M3U8TagScope.Segment);
-        public static readonly M3U8Tag ExtXByteRange = new M3U8Tag("#EXT-X-BYTERANGE", M3U8TagScope.Segment, ByterangeTagInstance.Create);
+        public static readonly M3U8ByterangeTag ExtXByteRange = new M3U8ByterangeTag("#EXT-X-BYTERANGE", M3U8TagScope.Segment);
         public static readonly M3U8Tag ExtXTargetDuration = new M3U8Tag("#EXT-X-TARGETDURATION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
         public static readonly M3U8Tag ExtXMediaSequence = new M3U8Tag("#EXT-X-MEDIA-SEQUENCE", M3U8TagScope.Global, ValueTagInstance.CreateLong);
         public static readonly M3U8ExtKeyTag ExtXKey = new M3U8ExtKeyTag("#EXT-X-KEY", M3U8TagScope.Shared);

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ByterangeTagInstance.cs" company="Henric Jungheim">
+//  <copyright file="M3U8ExtInfTag.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,45 +24,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Globalization;
+using System.Collections.Generic;
 
 namespace SM.Media.M3U8.TagSupport
 {
-    public sealed class ByterangeTagInstance : M3U8TagInstance
+    public class M3U8ByterangeTag : M3U8Tag
     {
-        public ByterangeTagInstance(M3U8Tag tag, long length, long? offset)
-            : base(tag)
+        public M3U8ByterangeTag(string name, M3U8TagScope scope)
+            : base(name, scope, ByterangeTagInstance.Create)
+        { }
+
+        public ByterangeTagInstance Find(IEnumerable<M3U8TagInstance> tags)
         {
-            Length = length;
-            Offset = offset;
-        }
+            if (null == tags)
+                return null;
 
-        public long Length { get; private set; }
-        public long? Offset { get; private set; }
-
-        internal static M3U8TagInstance Create(M3U8Tag tag, string value)
-        {
-            // TODO: Consolidate code between ByterangeAttributeInstance and ByterangeTagInstance
-
-            var index = value.IndexOf('@');
-
-            if (index < 0 || index + 1 >= value.Length)
-                return new ByterangeTagInstance(tag, long.Parse(value), null);
-
-            var length = long.Parse(value.Substring(0, index));
-            var offset = long.Parse(value.Substring(index + 1));
-
-            return new ByterangeTagInstance(tag, length, offset);
-        }
-
-        public override string ToString()
-        {
-            // TODO: Consolidate code between ByterangeAttributeInstance and ByterangeTagInstance
-
-            if (Offset.HasValue)
-                return string.Format(CultureInfo.InvariantCulture, "{0}:{1}@{2}", Tag, Length, Offset.Value);
-
-            return string.Format(CultureInfo.InvariantCulture, "{0}:{1}", Tag, Length);
+            return tags.Tag<M3U8ByterangeTag, ByterangeTagInstance>(this);
         }
     }
 }

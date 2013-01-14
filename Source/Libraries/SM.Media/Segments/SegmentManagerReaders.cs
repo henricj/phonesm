@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
+//  <copyright file="SegmentManagerReaders.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,32 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentReaderManager : IDisposable
-    {
-        ICollection<ISegmentManagerReaders> SegmentManagerReaders { get; }
-        TimeSpan? Duration { get; }
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken);
-    }
-
-    public interface ISegmentManagerReaders
-    {
-        ISegmentManager Manager { get; }
-        IAsyncEnumerable<ISegmentReader> Readers { get; }
-    }
-
-    static class SegmentReaderManagerExtensions
-    {
-        public static Task<TimeSpan> StartAsync(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
-        {
-            return segmentManager.SeekAsync(TimeSpan.Zero, cancellationToken);
-        }
-    }
 }

@@ -36,7 +36,7 @@ namespace SM.Media.Segments
     public sealed class SegmentReaderManager : ISegmentReaderManager
     {
         readonly ISegmentManager[] _segmentManagers;
-        readonly SegmentManagerReaders[] _segmentReaders;
+        readonly ManagerReaders[] _segmentReaders;
 
         public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, IHttpWebRequestFactory webRequestFactory)
         {
@@ -52,7 +52,7 @@ namespace SM.Media.Segments
                 throw new ArgumentException("No segment managers provided");
 
             _segmentReaders = _segmentManagers
-                .Select(sm => new SegmentManagerReaders { Manager = sm, Readers = new SegmentReaderEnumerable(sm, webRequestFactory) })
+                .Select(sm => new ManagerReaders { Manager = sm, Readers = new SegmentReaderEnumerable(sm, webRequestFactory) })
                 .ToArray();
         }
 
@@ -83,6 +83,20 @@ namespace SM.Media.Segments
         public TimeSpan? Duration
         {
             get { return _segmentManagers.Max(sm => sm.Duration); }
+        }
+
+        #endregion
+
+        #region Nested type: ManagerReaders
+
+        class ManagerReaders : ISegmentManagerReaders
+        {
+            #region ISegmentManagerReaders Members
+
+            public ISegmentManager Manager { get; set; }
+            public IAsyncEnumerable<ISegmentReader> Readers { get; set; }
+
+            #endregion
         }
 
         #endregion

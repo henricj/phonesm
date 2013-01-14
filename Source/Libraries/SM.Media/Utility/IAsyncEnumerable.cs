@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
+//  <copyright file="IAsyncEnumerable.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,31 +25,37 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.Utility;
 
-namespace SM.Media.Segments
+namespace SM.Media.Utility
 {
-    public interface ISegmentReaderManager : IDisposable
+    public interface IAsyncEnumerable<T>
     {
-        ICollection<ISegmentManagerReaders> SegmentManagerReaders { get; }
-        TimeSpan? Duration { get; }
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken);
+        // Windows Phone 7 gives type load exceptions if we try "IAsyncEnumerable<out T>"
+
+        IAsyncEnumerator<T> GetEnumerator();
     }
 
-    public interface ISegmentManagerReaders
+    public interface IAsyncEnumerator<T> : IDisposable
     {
-        ISegmentManager Manager { get; }
-        IAsyncEnumerable<ISegmentReader> Readers { get; }
+        // Windows Phone 7 gives type load exceptions if we try "IAsyncEnumerator<out T>"
+
+        T Current { get; }
+
+        Task<bool> MoveNextAsync();
     }
 
-    static class SegmentReaderManagerExtensions
+    public static class AsyncEnumerableExtensions
     {
-        public static Task<TimeSpan> StartAsync(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
+        public static async Task<T> FirstOrDefault<T>(this IAsyncEnumerable<T> source)
         {
-            return segmentManager.SeekAsync(TimeSpan.Zero, cancellationToken);
+            using (var enumerator = source.GetEnumerator())
+            {
+                if (!await enumerator.MoveNextAsync())
+                    return default(T);
+
+                return enumerator.Current;
+            }
         }
     }
 }

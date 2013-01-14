@@ -128,6 +128,7 @@
     <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="Segments\ISegmentReaderManager.cs" />
     <Compile Include="Segments\Segment.cs" />
+    <Compile Include="Segments\SegmentManagerReaders.cs" />
     <Compile Include="Segments\SimpleSegment.cs" />
     <Compile Include="Segments\SimpleSegmentManager.cs" />
     <Compile Include="StreamBuffer.cs" />
@@ -140,6 +141,7 @@
     <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\IBlockingPool.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
+    <Compile Include="Utility\IAsyncEnumerable.cs" />
     <Compile Include="Utility\IWebRequest.cs" />
     <Compile Include="Utility\MediaStreamFsm.cs" />
     <Compile Include="Utility\PoolBufferInstance.cs" />

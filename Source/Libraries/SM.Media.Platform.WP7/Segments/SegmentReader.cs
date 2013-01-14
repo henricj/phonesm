@@ -37,13 +37,13 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
+        readonly Func<Stream, Stream> _streamFilter;
         readonly Uri _url;
         readonly Func<Uri, HttpWebRequest> _webRequestFactory;
         long _endOffset;
         WebResponse _response;
         Stream _responseStream;
         long _startOffset;
-        readonly Func<Stream, Stream> _streamFilter;
 
         public SegmentReader(ISegment segment, Func<Uri, HttpWebRequest> webRequestFactory, Func<Stream, Stream> streamFilter = null)
         {
@@ -197,6 +197,14 @@ namespace SM.Media.Segments
                 stream = _streamFilter(stream);
 
             return stream;
+        }
+
+        public override string ToString()
+        {
+            if (_startOffset > 0 || _endOffset > 0)
+                return string.Format("{0} [{1}-{2}]", Url, _startOffset, _endOffset);
+
+            return Url.ToString();
         }
     }
 }

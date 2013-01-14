@@ -26,6 +26,7 @@
 
 using System;
 using System.Threading.Tasks;
+using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
@@ -35,7 +36,8 @@ namespace SM.Media.Segments
         TimeSpan StartPosition { get; }
         TimeSpan? Duration { get; }
 
-        Task<ISegment> NextAsync();
+        IAsyncEnumerable<ISegment> Playlist { get; }
+
         Task<TimeSpan> SeekAsync(TimeSpan timestamp);
     }
 

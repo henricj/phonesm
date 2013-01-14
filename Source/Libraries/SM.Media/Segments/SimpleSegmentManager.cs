@@ -27,14 +27,14 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
-    public sealed class SimpleSegmentManager : ISegmentManager, IDisposable
+    public sealed class SimpleSegmentManager : ISegmentManager, IDisposable, IAsyncEnumerable<ISegment>
     {
         static readonly Task<TimeSpan> TimeSpanZeroTask;
         readonly IEnumerable<Uri> _urls;
-        IEnumerator<Uri> _urlEnumerator;
 
         static SimpleSegmentManager()
         {
@@ -49,12 +49,19 @@ namespace SM.Media.Segments
             _urls = urls;
         }
 
+        #region IAsyncEnumerable<ISegment> Members
+
+        IAsyncEnumerator<ISegment> IAsyncEnumerable<ISegment>.GetEnumerator()
+        {
+            return new SimpleEnumerator(_urls);
+        }
+
+        #endregion
+
         #region IDisposable Members
 
         public void Dispose()
-        {
-            CleanupEnumerator();
-        }
+        { }
 
         #endregion
 
@@ -62,10 +69,6 @@ namespace SM.Media.Segments
 
         public Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
-            CleanupEnumerator();
-
-            _urlEnumerator = _urls.GetEnumerator();
-
             return TimeSpanZeroTask;
         }
 
@@ -79,32 +82,52 @@ namespace SM.Media.Segments
             get { return TimeSpan.Zero; }
         }
 
-        public TimeSpan? Duration { get { return null; } }
-
-        public Task<ISegment> NextAsync()
+        public TimeSpan? Duration
         {
-            if (null == _urlEnumerator)
-                return null;
+            get { return null; }
+        }
 
-            if (!_urlEnumerator.MoveNext())
-            {
-                CleanupEnumerator();
-                return null;
-            }
-
-            return TaskEx.FromResult<ISegment>(new SimpleSegment(_urlEnumerator.Current));
+        public IAsyncEnumerable<ISegment> Playlist
+        {
+            get { return this; }
         }
 
         #endregion
 
-        void CleanupEnumerator()
+        #region Nested type: SimpleEnumerator
+
+        class SimpleEnumerator : IAsyncEnumerator<ISegment>
         {
-            if (null == _urlEnumerator)
-                return;
+            readonly IEnumerator<Uri> _enumerator;
 
-            _urlEnumerator.Dispose();
+            public SimpleEnumerator(IEnumerable<Uri> urls)
+            {
+                _enumerator = urls.GetEnumerator();
+            }
 
-            _urlEnumerator = null;
+            #region IAsyncEnumerator<ISegment> Members
+
+            public void Dispose()
+            {
+                using (_enumerator)
+                { }
+            }
+
+            public ISegment Current { get; private set; }
+
+            public Task<bool> MoveNextAsync()
+            {
+                if (!_enumerator.MoveNext())
+                    return TplTaskExtensions.FalseTask;
+
+                Current = new SimpleSegment(_enumerator.Current);
+
+                return TplTaskExtensions.TrueTask;
+            }
+
+            #endregion
         }
+
+        #endregion
     }
 }

@@ -136,7 +136,8 @@ namespace SM.Media.Segments
 
         class SegmentReaderEnumerator : IAsyncEnumerator<ISegmentReader>
         {
-            readonly ISegmentManager _segmentManager;
+            readonly Uri _baseUrl;
+            readonly IAsyncEnumerator<ISegment> _segmentEnumerator;
             readonly IHttpWebRequestFactory _webRequestFactory;
             ISegmentReader _segmentReader;
 
@@ -148,7 +149,8 @@ namespace SM.Media.Segments
                 if (null == webRequestFactory)
                     throw new ArgumentNullException("webRequestFactory");
 
-                _segmentManager = segmentManager;
+                _baseUrl = segmentManager.Url;
+                _segmentEnumerator = segmentManager.Playlist.GetEnumerator();
                 _webRequestFactory = webRequestFactory;
             }
 
@@ -157,6 +159,9 @@ namespace SM.Media.Segments
             public void Dispose()
             {
                 CloseReader();
+
+                using (_segmentEnumerator)
+                { }
             }
 
             public ISegmentReader Current
@@ -166,14 +171,14 @@ namespace SM.Media.Segments
 
             public async Task<bool> MoveNextAsync()
             {
-                var segment = await _segmentManager.NextAsync();
-
-                if (null == segment)
-                    return false;
-
                 CloseReader();
 
-                _segmentReader = new SegmentReader(segment, _webRequestFactory.CreateChildFactory(_segmentManager.Url).Create);
+                if (!await _segmentEnumerator.MoveNextAsync())
+                    return false;
+
+                var segment = _segmentEnumerator.Current;
+
+                _segmentReader = new SegmentReader(segment, _webRequestFactory.CreateChildFactory(_baseUrl).Create);
 
                 return true;
             }

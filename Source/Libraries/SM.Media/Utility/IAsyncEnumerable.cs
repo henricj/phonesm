@@ -47,7 +47,7 @@ namespace SM.Media.Utility
 
     public static class AsyncEnumerableExtensions
     {
-        public static async Task<T> FirstOrDefault<T>(this IAsyncEnumerable<T> source)
+        public static async Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source)
         {
             using (var enumerator = source.GetEnumerator())
             {

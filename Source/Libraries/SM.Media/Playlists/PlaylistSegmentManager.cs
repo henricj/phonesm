@@ -332,7 +332,7 @@ namespace SM.Media.Playlists
         class PlaylistEnumerator : IAsyncEnumerator<ISegment>
         {
             readonly PlaylistSegmentManager _segmentManager;
-            int _index;
+            int _index = -1;
             SubStreamSegment[] _segments;
 
             public PlaylistEnumerator(PlaylistSegmentManager segmentManager)
@@ -341,11 +341,6 @@ namespace SM.Media.Playlists
                     throw new ArgumentNullException("segmentManager");
 
                 _segmentManager = segmentManager;
-
-                lock (_segmentManager._segmentLock)
-                {
-                    _index = _segmentManager._startSegmentIndex;
-                }
             }
 
             #region IAsyncEnumerator<ISegment> Members
@@ -379,6 +374,8 @@ namespace SM.Media.Playlists
                     {
                         if (null != _segments)
                             _index = FindNewIndex(_segments, segments, _index);
+                        else if (-1 == _index)
+                            _index = startIndex;
 
                         _segments = segments;
                     }

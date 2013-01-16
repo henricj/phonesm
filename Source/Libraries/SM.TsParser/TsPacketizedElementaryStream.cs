@@ -24,7 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#define PES_USE_PACKET_POOL
 using System;
 using System.Diagnostics;
 using SM.TsParser.Utility;
@@ -343,16 +342,11 @@ namespace SM.TsParser
             Debug.Assert(index >= 0);
             Debug.Assert(index + length <= _bufferEntry.Buffer.Length);
 
-#if PES_USE_PACKET_POOL
-            var pes = _decoder.AllocatePesPacket();
+            var pes = _decoder.AllocatePesPacket(_bufferEntry);
 
-            pes.BufferEntry = _bufferEntry;
             pes.Index = index;
             pes.Length = length;
             pes.Timestamp = PtsToTimestamp(pts);
-#else
-            var pes = new TsPesPacket { BufferEntry = _bufferEntry, Index = payloadIndex, Length = _index - payloadIndex, Timestamp = PtsToTimestamp(pts) };
-#endif
 
             Debug.Assert(pes.Timestamp >= TimeSpan.Zero);
 

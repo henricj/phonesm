@@ -61,6 +61,7 @@
     <Compile Include="Utility\IBufferPool.cs" />
     <Compile Include="Utility\ObjectPool.cs" />
     <Compile Include="Utility\RegisterExtender.cs" />
+    <Compile Include="Utility\TsPesPacketPool.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -24,8 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#define PES_USE_PACKET_POOL
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,24 +34,23 @@ namespace SM.TsParser
 {
     public sealed class TsDecoder : IDisposable
     {
+        readonly IBufferPool _bufferPool;
         readonly byte[] _destinationArray;
-        int _destinationLength;
         readonly Dictionary<uint, Action<TsPacket>> _packetHandlers = new Dictionary<uint, Action<TsPacket>>();
         readonly int _packetSize;
         readonly Func<uint, TsStreamType, Action<TsPesPacket>> _pesHandlerFactory;
         readonly TsPacket _tsPacket = new TsPacket();
+        readonly TsPesPacketPool _tsPesPacketPool;
+        int _destinationLength;
         volatile bool _enableProcessing = true;
+        TsProgramAssociationTable _programAssociationTable;
         int _tsIndex;
-
-        public bool EnableProcessing
-        {
-            get { return _enableProcessing; }
-            set { _enableProcessing = value; }
-        }
 
         public TsDecoder(IBufferPool bufferPool, Func<uint, TsStreamType, Action<TsPesPacket>> pesHandlerFactory, int packetSize = -1)
         {
             _bufferPool = bufferPool;
+
+            _tsPesPacketPool = new TsPesPacketPool(_bufferPool.Free);
 
             _pesHandlerFactory = pesHandlerFactory;
 
@@ -62,7 +59,22 @@ namespace SM.TsParser
             _destinationArray = new byte[_packetSize * 174];
         }
 
+        public bool EnableProcessing
+        {
+            get { return _enableProcessing; }
+            set { _enableProcessing = value; }
+        }
+
         public Action<TsPacket> PacketMonitor { get; set; }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            Clear();
+        }
+
+        #endregion
 
         internal void RegisterHandler(uint pid, Action<TsPacket> handler)
         {
@@ -82,17 +94,10 @@ namespace SM.TsParser
             return _pesHandlerFactory(pid, streamType);
         }
 
-        readonly IBufferPool _bufferPool;
-
-#if PES_USE_PACKET_POOL
-        readonly ObjectPool<TsPesPacket> _packetPool = new ObjectPool<TsPesPacket>();
-        TsProgramAssociationTable _programAssociationTable;
-
-        internal TsPesPacket AllocatePesPacket()
+        internal TsPesPacket AllocatePesPacket(BufferInstance bufferInstance)
         {
-            return _packetPool.Allocate();
+            return _tsPesPacketPool.AllocatePesPacket(bufferInstance);
         }
-#endif
 
         internal BufferInstance AllocateBuffer(int bufferSize)
         {
@@ -106,32 +111,7 @@ namespace SM.TsParser
 
         public void FreePesPacket(TsPesPacket packet)
         {
-#if DEBUG
-            //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.Timestamp, packet.BufferEntry);
-#endif
-
-            var buffer = packet.BufferEntry;
-
-            if (null != buffer)
-            {
-#if DEBUG
-                for (var i = packet.Index; i < packet.Index + packet.Length; ++i)
-                    packet.Buffer[i] = 0xcc;
-#endif
-                packet.BufferEntry = null;
-
-                FreeBuffer(buffer);
-            }
-
-#if DEBUG
-            packet.Index = int.MinValue;
-            packet.Length = int.MinValue;
-            packet.Timestamp = TimeSpan.MaxValue;
-#endif
-
-#if PES_USE_PACKET_POOL
-            _packetPool.Free(packet);
-#endif
+            _tsPesPacketPool.FreePesPacket(packet);
         }
 
         public void Initialize()
@@ -156,8 +136,8 @@ namespace SM.TsParser
             }
 
             _packetHandlers.Clear();
+            _tsPesPacketPool.Clear();
             _bufferPool.Clear();
-            _packetPool.Clear();
             _destinationLength = 0;
         }
 
@@ -228,24 +208,17 @@ namespace SM.TsParser
                 }
             }
 
-            if (null != buffer)
-            {
-                // Run through as much as we can of the provided buffer
+            // Run through as much as we can of the provided buffer
 
-                var i = offset;
-                for (; EnableProcessing && i <= offset + length - _packetSize; i += _packetSize)
-                    ParsePacket(buffer, i);
+            var i = offset;
+            for (; EnableProcessing && i <= offset + length - _packetSize; i += _packetSize)
+                ParsePacket(buffer, i);
 
-                _destinationLength = length - (i - offset);
+            _destinationLength = length - (i - offset);
 
-                // Store any remainder
-                if (_destinationLength > 0)
-                    Array.Copy(buffer, i, _destinationArray, 0, _destinationLength);
-            }
-            else
-            {
-                //ParsePacket(null, 0);
-            }
+            // Store any remainder
+            if (_destinationLength > 0)
+                Array.Copy(buffer, i, _destinationArray, 0, _destinationLength);
         }
 
         public void Parse(Stream stream)
@@ -292,11 +265,6 @@ namespace SM.TsParser
 
             if (null != pm)
                 pm(_tsPacket);
-        }
-
-        public void Dispose()
-        {
-            Clear();
         }
     }
 }

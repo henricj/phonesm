@@ -33,7 +33,7 @@ namespace SM.Media
 {
     public static class TsMediaHandlerFactories
     {
-        static readonly MediaParser.PacketHandlerFactory Mp3StreamHandlerFactory =
+        static readonly TsMediaParser.PacketHandlerFactory Mp3StreamHandlerFactory =
             (pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new Mp3Configurator();
@@ -42,7 +42,7 @@ namespace SM.Media
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };
 
-        static readonly MediaParser.PacketHandlerFactory AacStreamHandlerFactory =
+        static readonly TsMediaParser.PacketHandlerFactory AacStreamHandlerFactory =
             (pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new AacConfigurator();
@@ -51,7 +51,7 @@ namespace SM.Media
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };
 
-        static readonly MediaParser.PacketHandlerFactory H264StreamHandlerFactory =
+        static readonly TsMediaParser.PacketHandlerFactory H264StreamHandlerFactory =
             (pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new H264Configurator();
@@ -60,8 +60,13 @@ namespace SM.Media
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };
 
-        public static IDictionary<byte, MediaParser.PacketHandlerFactory> DefaultFactories =
-            new Dictionary<byte, MediaParser.PacketHandlerFactory>
+        // The magic constants are the same as in TsStreamType.Types.
+        // See also:
+        //    Table 2-34 Stream type assignments
+        //    ISO/IEC 13818-1:2007/Amd.3:2009 (E)
+        //    Rec. ITU-T H.222.0 (2006)/Amd.3 (03/2009)
+        public static IDictionary<byte, TsMediaParser.PacketHandlerFactory> DefaultFactories =
+            new Dictionary<byte, TsMediaParser.PacketHandlerFactory>
             {
                 { 0x03, Mp3StreamHandlerFactory },
                 { 0x1b, H264StreamHandlerFactory },

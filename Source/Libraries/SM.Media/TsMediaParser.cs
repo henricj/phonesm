@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaParser.cs" company="Henric Jungheim">
+//  <copyright file="TsMediaParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -33,7 +33,7 @@ using SM.TsParser;
 
 namespace SM.Media
 {
-    public sealed class MediaParser : IDisposable
+    public sealed class TsMediaParser : IMediaParser
     {
         #region Delegates
 
@@ -46,10 +46,11 @@ namespace SM.Media
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
         readonly PesHandlers _pesHandlers;
+        readonly List<Action<TimeSpan>> _timestampOffsetHandlers = new List<Action<TimeSpan>>();
         readonly TsDecoder _tsDecoder;
         TimeSpan? _timestampOffset;
 
-        public MediaParser(IBufferingManager bufferingManager, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
+        public TsMediaParser(IBufferingManager bufferingManager, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
             : this(mediaParserStreamHandler, handlerFactory)
         {
             if (null == bufferingManager)
@@ -58,7 +59,7 @@ namespace SM.Media
             _bufferingManager = bufferingManager;
         }
 
-        public MediaParser(Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
+        public TsMediaParser(Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
         {
             if (null == handlerFactory)
             {
@@ -81,8 +82,6 @@ namespace SM.Media
                          };
         }
 
-        public TimeSpan StartPosition { get; set; }
-
         public IMediaParserMediaStream[] MediaStreams
         {
             get
@@ -104,13 +103,15 @@ namespace SM.Media
             get { return _bufferingManager.BufferPosition; }
         }
 
+        #region IMediaParser Members
+
+        public TimeSpan StartPosition { get; set; }
+
         public bool EnableProcessing
         {
             get { return _tsDecoder.EnableProcessing; }
             set { _tsDecoder.EnableProcessing = value; }
         }
-
-        #region IDisposable Members
 
         /// <summary>
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
@@ -125,25 +126,6 @@ namespace SM.Media
 
             using (_tsDecoder)
             { }
-        }
-
-        #endregion
-
-        void CleanupStreams()
-        {
-            IMediaParserMediaStream[] oldStreams;
-
-            lock (_mediaStreamsLock)
-            {
-                oldStreams = _mediaStreams.ToArray();
-                _mediaStreams.Clear();
-            }
-
-            foreach (var ms in oldStreams)
-            {
-                using (ms)
-                { }
-            }
         }
 
         public void Initialize()
@@ -166,6 +148,30 @@ namespace SM.Media
         public void ProcessData(byte[] buffer, int length)
         {
             _tsDecoder.Parse(buffer, 0, length);
+        }
+
+        public void ReportPosition(TimeSpan position)
+        {
+            _bufferingManager.ReportPosition(position);
+        }
+
+        #endregion
+
+        void CleanupStreams()
+        {
+            IMediaParserMediaStream[] oldStreams;
+
+            lock (_mediaStreamsLock)
+            {
+                oldStreams = _mediaStreams.ToArray();
+                _mediaStreams.Clear();
+            }
+
+            foreach (var ms in oldStreams)
+            {
+                using (ms)
+                { }
+            }
         }
 
         void AddMediaStream(IMediaParserMediaStream mediaParserMediaStream)
@@ -198,22 +204,43 @@ namespace SM.Media
         {
             var streamBuffer = new StreamBuffer(_tsDecoder.FreePesPacket, _bufferingManager);
 
+            var localStreamBuffer = streamBuffer;
+
+            lock (_mediaStreamsLock)
+            {
+                _timestampOffsetHandlers.Add(ts => localStreamBuffer.TimestampOffset = ts);
+            }
+
+            var gotFirstPacket = false;
+
             var ms = streamHandlerFactory(pid, streamType, streamBuffer,
                                           packet =>
                                           {
                                               if (null != packet)
                                               {
-                                                  if (!_timestampOffset.HasValue)
+                                                  if (!gotFirstPacket)
                                                   {
+                                                      gotFirstPacket = true;
+
                                                       var startPosition = StartPosition;
 
                                                       Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.Timestamp);
 
-                                                      _timestampOffset = packet.Timestamp - startPosition;
-                                                      packet.Timestamp = startPosition;
+                                                      var timestampOffset = packet.Timestamp - startPosition;
+
+                                                      if (!_timestampOffset.HasValue || timestampOffset < _timestampOffset)
+                                                      {
+                                                          _timestampOffset = timestampOffset;
+
+                                                          lock (_mediaStreamsLock)
+                                                          {
+                                                              foreach (var timestampOffsetHandler in _timestampOffsetHandlers)
+                                                              {
+                                                                  timestampOffsetHandler(timestampOffset);
+                                                              }
+                                                          }
+                                                      }
                                                   }
-                                                  else
-                                                      packet.Timestamp -= _timestampOffset.Value;
 
                                                   Debug.Assert(packet.Timestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.Timestamp, StartPosition, packet.Timestamp >= StartPosition));
                                               }
@@ -224,11 +251,6 @@ namespace SM.Media
             AddMediaStream(ms);
 
             return ms.PacketHandler;
-        }
-
-        public void ReportPosition(TimeSpan position)
-        {
-            _bufferingManager.ReportPosition(position);
         }
     }
 }

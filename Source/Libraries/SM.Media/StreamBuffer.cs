@@ -53,6 +53,8 @@ namespace SM.Media
         readonly int _streamBufferId = Interlocked.Increment(ref _streamBufferCounter);
 #endif
 
+        public TimeSpan TimestampOffset { get; set; }
+
         public StreamBuffer(Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager)
         {
             _freePesPacket = freePesPacket;
@@ -153,9 +155,11 @@ namespace SM.Media
                     {
                         _pesStream.Packet = packet;
 
-                        ReportDequeue(packet.Length, packet.Timestamp);
+                        var timestamp = packet.Timestamp - TimestampOffset;
 
-                        _streamSample.Timestamp = packet.Timestamp;
+                        ReportDequeue(packet.Length, timestamp);
+
+                        _streamSample.Timestamp = timestamp;
 
 #if DEBUG
                         //Debug.WriteLine("StreamBuffer {0} forwarding sample {1}", _streamBufferId, _streamSample.Timestamp);

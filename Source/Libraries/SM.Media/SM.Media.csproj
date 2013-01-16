@@ -43,6 +43,7 @@
     <Compile Include="CallbackReader.cs" />
     <Compile Include="IMediaElementManager.cs" />
     <Compile Include="IMediaManager.cs" />
+    <Compile Include="IMediaParser.cs" />
     <Compile Include="IMediaStreamSource.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
@@ -51,6 +52,8 @@
     <Compile Include="M3U8\TagSupport\ExtStreamInfTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ExtKeyTag.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ExtStreamInfTag.cs" />
+    <Compile Include="MP3\Mp3FrameHeader.cs" />
+    <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="Playlists\IProgramManager.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -93,7 +96,7 @@
     <Compile Include="M3U8\M3U8TagInstanceExtensions.cs" />
     <Compile Include="M3U8\M3U8Tags.cs" />
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
-    <Compile Include="MediaParser.cs" />
+    <Compile Include="TsMediaParser.cs" />
     <Compile Include="H264\H256MetadataParser.cs" />
     <Compile Include="H264\H264Bitstream.cs" />
     <Compile Include="H264\H264BitstreamExtensions.cs" />

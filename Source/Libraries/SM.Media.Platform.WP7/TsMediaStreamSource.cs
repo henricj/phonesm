@@ -41,7 +41,6 @@ namespace SM.Media
         const int AudioStreamFlag = 1 << 0;
         const int VideoStreamFlag = 1 << 1;
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
-        readonly object _bufferingLock = new object();
         readonly CommandWorker _commandWorker = new CommandWorker();
         readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
         readonly IMediaManager _mediaManager;
@@ -50,12 +49,13 @@ namespace SM.Media
         readonly object _streamConfigurationLock = new object();
         MediaStreamDescription _audioStreamDescription;
         IStreamSource _audioStreamSource;
-        double _bufferingProgress;
+        double _bufferingProgress = 1;
+        bool _bufferingProgressDirty;
         bool _bufferingReportPending;
         bool _isClosed;
         int _isDisposed;
         TimeSpan? _seekTarget;
-        State _state;
+        SourceState _state;
         int _streamClosedFlags;
         int _streamOpenFlags;
         MediaStreamDescription _videoStreamDescription;
@@ -73,6 +73,18 @@ namespace SM.Media
         bool IsDisposed
         {
             get { return 0 != _isDisposed; }
+        }
+
+        SourceState State
+        {
+            get { lock (_stateLock) return _state; }
+            set
+            {
+                lock (_stateLock)
+                {
+                    UnlockedSetState(value);
+                }
+            }
         }
 
         #region IMediaStreamSource Members
@@ -116,30 +128,12 @@ namespace SM.Media
 
         public void ReportProgress(double bufferingProgress)
         {
-            lock (_bufferingLock)
+            lock (_stateLock)
             {
                 _bufferingProgress = bufferingProgress;
+                _bufferingProgressDirty = true;
 
-                if (_bufferingReportPending)
-                    return;
-
-                _bufferingReportPending = true;
-
-                _commandWorker.SendCommand(new CommandWorker.Command(
-                                               () =>
-                                               {
-                                                   double value;
-
-                                                   lock (_bufferingLock)
-                                                   {
-                                                       _bufferingReportPending = false;
-                                                       value = _bufferingProgress;
-                                                   }
-
-                                                   ReportGetSampleProgress(value);
-
-                                                   return null;
-                                               }));
+                UnlockedReportProgress();
             }
         }
 
@@ -152,13 +146,90 @@ namespace SM.Media
             {
                 _isClosed = true;
 
-                _state = State.WaitForClose;
+                _state = SourceState.WaitForClose;
             }
 
             return _drainCompleted.WaitAsync();
         }
 
         #endregion
+
+        void UnlockedSetState(SourceState state)
+        {
+            if (_state == state)
+                return;
+
+            _state = state;
+
+            if (SourceState.Play != state)
+                return;
+
+            SetPlayState();
+        }
+
+        /// <summary>
+        ///     Handle any pending events, now that we are in the "Play" state.
+        /// </summary>
+        void SetPlayState()
+        {
+            CommandWorker.Command[] pendingGets;
+
+            lock (_stateLock)
+            {
+                pendingGets = _pendingGets.ToArray();
+
+                _pendingGets.Clear();
+
+                _state = SourceState.Play;
+            }
+
+            foreach (var getCmd in pendingGets)
+                _commandWorker.SendCommand(getCmd);
+        }
+
+        void CheckPendingBufferingProgress()
+        {
+            lock (_stateLock)
+            {
+                UnlockedReportProgress();
+            }
+        }
+
+        void UnlockedReportProgress()
+        {
+            if (_bufferingReportPending || !_bufferingProgressDirty)
+                return;
+
+            _bufferingReportPending = true;
+
+            _commandWorker.SendCommand(new CommandWorker.Command(
+                                           () =>
+                                           {
+                                               if (null != _videoStreamSource)
+                                               {
+                                                   if (_videoStreamSource.IfPending(ReportSampleProgress))
+                                                       return null;
+                                               }
+
+                                               if (null != _audioStreamSource)
+                                               {
+                                                   if (_audioStreamSource.IfPending(ReportSampleProgress))
+                                                       return null;
+                                               }
+
+                                               return null;
+                                           }));
+        }
+
+        void ReportSampleProgress()
+        {
+            var value = _bufferingProgress;
+
+            _bufferingProgressDirty = false;
+
+            Debug.WriteLine("TsMediaStreamSource.UnlockedReportProgress: ReportGetSampleProgress({0})", value);
+            ReportGetSampleProgress(value);
+        }
 
         void ThrowIfDisposed()
         {
@@ -322,10 +393,7 @@ namespace SM.Media
                                                                                : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
                                                ReportOpenMediaCompleted(mediaSourceAttributes, msd);
 
-                                               lock (_stateLock)
-                                               {
-                                                   _state = canSeek ? State.Seek : State.Play;
-                                               }
+                                               State = canSeek ? SourceState.Seek : SourceState.Play;
 
                                                return null;
                                            }));
@@ -374,10 +442,7 @@ namespace SM.Media
             Debug.WriteLine("TsMediaStreamSource.SeekAsync({0})", seekTimestamp);
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
 
-            lock (_stateLock)
-            {
-                _state = State.Seek;
-            }
+            State = SourceState.Seek;
 
             _commandWorker.SendCommand(new CommandWorker.Command(
                                            async () =>
@@ -393,19 +458,9 @@ namespace SM.Media
                                                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                                                ReportSeekCompleted(seekTimestamp.Ticks);
 
-                                               CommandWorker.Command[] pendingGets;
+                                               Debug.WriteLine("TsMediaStreamSource.SeekAsync({0}) completed", seekTimestamp);
 
-                                               lock (_stateLock)
-                                               {
-                                                   pendingGets = _pendingGets.ToArray();
-
-                                                   _pendingGets.Clear();
-
-                                                   _state = State.Play;
-                                               }
-
-                                               foreach (var getCmd in pendingGets)
-                                                   _commandWorker.SendCommand(getCmd);
+                                               State = SourceState.Play;
                                            }));
         }
 
@@ -463,7 +518,7 @@ namespace SM.Media
 
                     lock (_stateLock)
                     {
-                        if (State.Play != _state)
+                        if (SourceState.Play != _state)
                         {
                             Debug.WriteLine("TsMediaStreamSource race defer Get({0})", mediaStreamType);
                             // Use a modified closure... any better ideas (apart from a TsMediaStreamSource/TsMediaManger rewrite)?
@@ -479,7 +534,12 @@ namespace SM.Media
                         return null;
                     }
 
-                    streamSource.GetNextSample();
+                    if (!streamSource.GetNextSample())
+                    {
+                        // Since we couldn't feed MediaElement a sample, let's see if we can tell it about buffering.
+
+                        CheckPendingBufferingProgress();
+                    }
 
                     return null;
                 });
@@ -494,7 +554,7 @@ namespace SM.Media
 
                 _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
 
-                if (State.Play != state)
+                if (SourceState.Play != state)
                 {
                     Debug.WriteLine("TsMediaStreamSource defer Get({0})", mediaStreamType);
                     _pendingGets.Add(command);
@@ -549,7 +609,7 @@ namespace SM.Media
             {
                 _isClosed = true;
 
-                _state = State.Closed;
+                _state = SourceState.Closed;
             }
 
             _mediaManager.CloseMedia();
@@ -563,9 +623,9 @@ namespace SM.Media
             return _drainCompleted.WaitAsync();
         }
 
-        #region Nested type: State
+        #region Nested type: SourceState
 
-        enum State
+        enum SourceState
         {
             Idle,
             Open,

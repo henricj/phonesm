@@ -44,6 +44,7 @@ namespace SM.Media
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
         readonly Func<IMediaManager, IMediaStreamSource> _mediaStreamSourceFactory;
+        readonly object _progressLock = new object();
         readonly ISegmentReaderManager _segmentReaderManager;
         MediaState _mediaState;
         IMediaStreamSource _mediaStreamSource;
@@ -252,11 +253,11 @@ namespace SM.Media
             if (null == reader.MediaParser)
             {
                 reader.MediaParser = new TsMediaParser(reader.BufferingManager,
-                                                     mediaStream =>
-                                                     {
-                                                         mediaStream.ConfigurationComplete +=
-                                                             (sender, args) => SendConfigurationComplete(args, reader);
-                                                     });
+                                                       mediaStream =>
+                                                       {
+                                                           mediaStream.ConfigurationComplete +=
+                                                               (sender, args) => SendConfigurationComplete(args, reader);
+                                                       });
 
                 reader.ExpectedStreamCount = 2;
             }
@@ -268,19 +269,14 @@ namespace SM.Media
 
         void SendBufferingProgress(double value, ReaderPipeline reader)
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(() =>
-                                                                 {
-                                                                     reader.BufferingProgress = value;
+            lock (_progressLock)
+            {
+                reader.BufferingProgress = value;
 
-                                                                     //if (MediaState.Playing != _mediaState)
-                                                                     //    return TplTaskExtensions.CompletedTask;
+                var progress = _readers.Min(r => r.BufferingProgress);
 
-                                                                     var progress = _readers.Min(r => r.BufferingProgress);
-
-                                                                     _mediaStreamSource.ReportProgress(progress);
-
-                                                                     return TplTaskExtensions.CompletedTask;
-                                                                 }));
+                _mediaStreamSource.ReportProgress(progress);
+            }
         }
 
         void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)
@@ -487,12 +483,12 @@ namespace SM.Media
             public IBufferingManager BufferingManager;
             public double BufferingProgress;
             public CallbackReader CallbackReader;
+            public int CompletedStreamCount;
             public ConfigurationEventArgs ConfigurationEventArgs;
+            public int ExpectedStreamCount;
             public IMediaParser MediaParser;
             public QueueWorker<WorkBuffer> QueueWorker;
             public ISegmentManagerReaders SegmentReaders;
-            public int ExpectedStreamCount;
-            public int CompletedStreamCount;
 
             #region IDisposable Members
 

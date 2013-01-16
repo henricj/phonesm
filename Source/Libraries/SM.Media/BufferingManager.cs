@@ -44,7 +44,7 @@ namespace SM.Media
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly object _lock = new object();
         readonly IQueueThrottling _queueThrottling;
-        readonly List<Queue> _queues = new List<Queue>();
+        readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
         readonly Action<double> _reportBuffering;
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
@@ -67,7 +67,7 @@ namespace SM.Media
             if (null == managedBuffer)
                 throw new ArgumentNullException("managedBuffer");
 
-            var queue = new Queue(this, managedBuffer);
+            var queue = new BufferingQueue(this, managedBuffer);
 
             lock (_lock)
             {
@@ -83,13 +83,13 @@ namespace SM.Media
             {
                 _playbackPosition = playbackPosition;
 
-                UnlockedReport();
+                //UnlockedReport();
             }
         }
 
         public void Flush()
         {
-            Queue[] queues;
+            BufferingQueue[] queues;
 
             lock (_lock)
             {
@@ -266,8 +266,7 @@ namespace SM.Media
             if (0 != wasBuffering)
                 return;
 
-            if (null != _reportBuffering)
-                _reportBuffering(0);
+            ReportBuffering(0);
         }
 
         bool UpdateState()
@@ -320,7 +319,13 @@ namespace SM.Media
 
             var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;
 
-            Debug.Assert(timestampDifference >= TimeSpan.Zero);
+            // The presentation order is not always the same as the decoding order.  Fudge things
+            // in the assert so we can still catch grievous errors.
+
+            Debug.Assert(timestampDifference == TimeSpan.MaxValue || timestampDifference + TimeSpan.FromMilliseconds(500) >= TimeSpan.Zero);
+
+            if (timestampDifference < TimeSpan.Zero)
+                timestampDifference = TimeSpan.Zero;
 
             if (0 != _isBuffering)
             {
@@ -367,8 +372,7 @@ namespace SM.Media
 
                 Debug.WriteLine("BufferingManager.UpdateBuffering done buffering: {0} duration, {1} size, {2} memory", timestampDifference, bufferSize, GC.GetTotalMemory(false));
 
-                if (null != _reportBuffering)
-                    _reportBuffering(1);
+                ReportBuffering(1);
             }
             else
             {
@@ -388,10 +392,15 @@ namespace SM.Media
 
                     Debug.WriteLine("BufferingManager.UpdateBuffering: {0}%, {1} duration, {2} size, {3} memory", bufferingStatus * 100, timestampDifference, bufferSize, GC.GetTotalMemory(false));
 
-                    if (null != _reportBuffering)
-                        _reportBuffering(bufferingStatus);
+                    ReportBuffering(bufferingStatus);
                 }
             }
+        }
+
+        void ReportBuffering(double bufferingProgress)
+        {
+            if (null != _reportBuffering)
+                _reportBuffering(bufferingProgress);
         }
 
         void HandleStateChange()
@@ -407,9 +416,9 @@ namespace SM.Media
                 er.Resume();
         }
 
-        #region Nested type: Queue
+        #region Nested type: BufferingQueue
 
-        class Queue : IBufferingQueue
+        class BufferingQueue : IBufferingQueue
         {
             readonly BufferingManager _bufferingManager;
             readonly IManagedBuffer _managedBuffer;
@@ -420,7 +429,7 @@ namespace SM.Media
             TimeSpan _oldestPacket;
             int _packetCount;
 
-            public Queue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
+            public BufferingQueue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
             {
                 _bufferingManager = bufferingManager;
                 _managedBuffer = managedBuffer;
@@ -433,12 +442,12 @@ namespace SM.Media
 
             public TimeSpan Newest
             {
-                get { return _newestPacket; }
+                get { return _newestPacket - _managedBuffer.TimestampOffset; }
             }
 
             public TimeSpan Oldest
             {
-                get { return _oldestPacket; }
+                get { return _oldestPacket - _managedBuffer.TimestampOffset; }
             }
 
             public int PacketCount

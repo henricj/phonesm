@@ -98,7 +98,7 @@ namespace SM.Media
 
         async Task<byte[]> FetchObject(HttpWebResponse response)
         {
-            var date = response.Headers[HttpRequestHeader.LastModified];
+            var date = response.Headers["Last-Modified"];
 
             _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
 
@@ -106,7 +106,7 @@ namespace SM.Media
 
             _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
 
-            var cacheControl = response.Headers[HttpRequestHeader.CacheControl];
+            var cacheControl = response.Headers["Cache-Control"];
 
             _cacheControl = !string.IsNullOrWhiteSpace(cacheControl) ? cacheControl : null;
 

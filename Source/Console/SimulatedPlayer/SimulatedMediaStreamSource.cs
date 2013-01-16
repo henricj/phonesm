@@ -29,7 +29,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using SM.Media;
-using SM.Media.Configuration;
 using SM.Media.Utility;
 
 namespace SimulatedPlayer
@@ -60,28 +59,8 @@ namespace SimulatedPlayer
             { }
         }
 
-        public void ReportProgress(double obj)
+        public void ReportProgress(double bufferingProgress)
         { }
-
-        public void MediaStreamOnConfigurationComplete(object sender, ConfigurationEventArgs e)
-        {
-            lock (_lock)
-            {
-                _mediaStreams.Add(e.StreamSource);
-
-                var streamType = _mediaStreams.Count - 1;
-                e.StreamSource.SetSink(sample => StreamSampleHandler(streamType, sample));
-
-                if (_mediaStreams.Count < 2)
-                    return;
-            }
-
-            Debug.WriteLine("SimulatedMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", 2);
-
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
-
-            _mediaElement.ReportOpenMediaCompleted();
-        }
 
         public void Configure(MediaConfiguration configuration)
         {
@@ -247,5 +226,5 @@ namespace SimulatedPlayer
         }
 
         #endregion
-    }
-}
+            }
+            }

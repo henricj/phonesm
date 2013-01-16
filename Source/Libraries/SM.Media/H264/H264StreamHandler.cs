@@ -59,7 +59,6 @@ namespace SM.Media.H264
                 _currentParser = null;
             }
 
-            // We will ignore 
             switch (nal_unit_type)
             {
                 case 7: // SPS

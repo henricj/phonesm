@@ -104,7 +104,7 @@ namespace SM.Media
             _streamSampleHandler = streamSampleHandler;
         }
 
-        public void GetNextSample()
+        public bool GetNextSample()
         {
             //Debug.WriteLine("StreamBuffer.GetNextSample()");
 
@@ -116,7 +116,7 @@ namespace SM.Media
                 {
                     RequestNextSample();
 
-                    return;
+                    return false;
                 }
             }
 
@@ -135,7 +135,7 @@ namespace SM.Media
 
                             ReportExhaustion();
 
-                            return;
+                            return false;
                         }
                     }
                     else
@@ -168,6 +168,8 @@ namespace SM.Media
                         _streamSampleHandler(_streamSample);
 
                         _pesStream.Packet = null;
+
+                        return true;
                     }
                 }
             }
@@ -184,6 +186,8 @@ namespace SM.Media
                 ThrowIfDisposed();
 #endif
             }
+
+            return false;
         }
 
         void RequestNextSample()
@@ -200,6 +204,22 @@ namespace SM.Media
                 {
                     return _packets.Count > 0;
                 }
+            }
+        }
+
+        public bool IfPending(Action action)
+        {
+            if (0 == Interlocked.Exchange(ref _nextSampleRequested, 0))
+                return false;
+
+            try
+            {
+                action();
+                return true;
+            }
+            finally
+            {
+                RequestNextSample();
             }
         }
 

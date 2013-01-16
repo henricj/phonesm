@@ -51,5 +51,6 @@ namespace SM.Media
     public interface IManagedBuffer
     {
         void Flush();
+        TimeSpan TimestampOffset { get; }
     }
 }

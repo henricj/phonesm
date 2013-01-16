@@ -43,9 +43,9 @@ namespace SM.Media
 
     public interface IMediaStreamSource : IDisposable
     {
-        Task CloseAsync();
-        void ReportProgress(double obj);
-        void Configure(MediaConfiguration configuration);
         TimeSpan? SeekTarget { get; set; }
+        Task CloseAsync();
+        void ReportProgress(double bufferingProgress);
+        void Configure(MediaConfiguration configuration);
     }
 }

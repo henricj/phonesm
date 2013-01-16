@@ -46,8 +46,9 @@ namespace SM.Media
     {
         void SetSink(Action<IStreamSample> streamSampleHandler);
 
-        void GetNextSample();
+        bool GetNextSample();
 
         bool HasSample { get; }
+        bool IfPending(Action action);
     }
 }

@@ -31,6 +31,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Configuration;
+using SM.Media.MP3;
 using SM.Media.Segments;
 using SM.Media.Utility;
 
@@ -166,6 +167,8 @@ namespace SM.Media
 
                 startReader.ContinueWith(t => Close(), TaskContinuationOptions.OnlyOnFaulted);
             }
+
+            _mediaState = MediaState.Playing;
         }
 
         public void Seek(TimeSpan timestamp)
@@ -181,9 +184,8 @@ namespace SM.Media
 
             _mediaStreamSource = _mediaStreamSourceFactory(this);
 
-            _readers = _readerManager.SegmentManagerReaders
-                                     .Select(CreateReaderPipeline)
-                                     .ToArray();
+            _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
+                                                          .Select(CreateReaderPipeline));
 
             foreach (var reader in _readers)
             {
@@ -199,7 +201,7 @@ namespace SM.Media
             await _mediaElementManager.SetSource(_mediaStreamSource);
         }
 
-        ReaderPipeline CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
+        async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
         {
             var reader = new ReaderPipeline
                          {
@@ -224,12 +226,40 @@ namespace SM.Media
 
             reader.BufferingManager = new BufferingManager(reader.QueueWorker, value => SendBufferingProgress(value, reader));
 
-            reader.MediaParser = new MediaParser(reader.BufferingManager,
-                                                 mediaStream =>
-                                                 {
-                                                     mediaStream.ConfigurationComplete +=
-                                                         (sender, args) => SendConfigurationComplete(args, reader);
-                                                 });
+            var firstSegment = await reader.SegmentReaders.Manager.Playlist.FirstOrDefaultAsync();
+
+            var filename = firstSegment.Url.LocalPath;
+
+            var lastPeriod = filename.LastIndexOf('.');
+
+            if (lastPeriod > 0)
+            {
+                var ext = filename.Substring(lastPeriod);
+
+                if (ext.ToLower() == ".mp3")
+                {
+                    var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2));
+
+                    mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
+
+                    reader.MediaParser = mediaParser;
+
+                    reader.ExpectedStreamCount = 1;
+                }
+            }
+
+
+            if (null == reader.MediaParser)
+            {
+                reader.MediaParser = new TsMediaParser(reader.BufferingManager,
+                                                     mediaStream =>
+                                                     {
+                                                         mediaStream.ConfigurationComplete +=
+                                                             (sender, args) => SendConfigurationComplete(args, reader);
+                                                     });
+
+                reader.ExpectedStreamCount = 2;
+            }
 
             reader.MediaParser.Initialize();
 
@@ -242,8 +272,8 @@ namespace SM.Media
                                                                  {
                                                                      reader.BufferingProgress = value;
 
-                                                                     if (MediaState.Playing != _mediaState)
-                                                                         return TplTaskExtensions.CompletedTask;
+                                                                     //if (MediaState.Playing != _mediaState)
+                                                                     //    return TplTaskExtensions.CompletedTask;
 
                                                                      var progress = _readers.Min(r => r.BufferingProgress);
 
@@ -268,6 +298,8 @@ namespace SM.Media
         {
             Debug.Assert(null == reader.ConfigurationEventArgs);
 
+            ++reader.CompletedStreamCount;
+
             _configurationEvents.Enqueue(eventArgs);
 
             CheckConfigurationCompleted();
@@ -278,7 +310,7 @@ namespace SM.Media
             if (_mediaState != MediaState.OpenMedia)
                 return;
 
-            if (_configurationEvents.Count < 2)
+            if (_readers.Any(r => r.ExpectedStreamCount != r.CompletedStreamCount))
                 return;
 
             var configuration = new MediaConfiguration { Duration = _segmentReaderManager.Duration };
@@ -456,9 +488,11 @@ namespace SM.Media
             public double BufferingProgress;
             public CallbackReader CallbackReader;
             public ConfigurationEventArgs ConfigurationEventArgs;
-            public MediaParser MediaParser;
+            public IMediaParser MediaParser;
             public QueueWorker<WorkBuffer> QueueWorker;
             public ISegmentManagerReaders SegmentReaders;
+            public int ExpectedStreamCount;
+            public int CompletedStreamCount;
 
             #region IDisposable Members
 

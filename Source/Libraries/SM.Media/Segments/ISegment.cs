@@ -35,5 +35,7 @@ namespace SM.Media.Segments
         long Offset { get; }
 
         long Length { get; }
+
+        TimeSpan? Duration { get; }
     }
 }

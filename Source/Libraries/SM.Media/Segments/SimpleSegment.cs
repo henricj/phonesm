@@ -37,7 +37,7 @@ namespace SM.Media.Segments
             _url = url;
         }
 
-        #region Segment Members
+        #region ISegment Members
 
         public Uri Url
         {
@@ -47,6 +47,8 @@ namespace SM.Media.Segments
         public long Offset { get; set; }
 
         public long Length { get; set; }
+
+        public TimeSpan? Duration { get; set; }
 
         #endregion
     }

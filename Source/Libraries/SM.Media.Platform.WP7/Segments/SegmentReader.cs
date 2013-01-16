@@ -37,6 +37,8 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
+        static readonly TimeSpan DefaultNotFoundDelay = TimeSpan.FromSeconds(5);
+        readonly ISegment _segment;
         readonly Func<Stream, Stream> _streamFilter;
         readonly Uri _url;
         readonly Func<Uri, HttpWebRequest> _webRequestFactory;
@@ -56,6 +58,7 @@ namespace SM.Media.Segments
             _webRequestFactory = webRequestFactory;
             _streamFilter = streamFilter;
 
+            _segment = segment;
             _startOffset = segment.Offset;
             _endOffset = _startOffset + segment.Length - 1;
             _url = segment.Url;
@@ -179,14 +182,62 @@ namespace SM.Media.Segments
 
         async Task<Stream> OpenStream(CancellationToken cancellationToken)
         {
-            _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
-                                  .CallAsync(async () =>
-                                                   {
-                                                       var webRequest = CreateWebRequest();
+            var notFoundRetry = 4;
 
-                                                       return await webRequest.GetResponseAsync();
-                                                   })
-                                  .WithCancellation(cancellationToken);
+            for (; ; )
+            {
+                try
+                {
+                    _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
+                                          .CallAsync(async () =>
+                                                           {
+                                                               var webRequest = CreateWebRequest();
+
+                                                               return await webRequest.GetResponseAsync();
+                                                           })
+                                          .WithCancellation(cancellationToken);
+
+                    break;
+                }
+                catch (AggregateException aggregateException)
+                {
+                    aggregateException.Handle(ex =>
+                                              {
+                                                  var webException = ex as WebException;
+
+                                                  if (null == webException)
+                                                      return false;
+
+                                                  var response = webException.Response as HttpWebResponse;
+
+                                                  return null != response && response.StatusCode == HttpStatusCode.NotFound && 0 > notFoundRetry--;
+                                              });
+                }
+                catch (WebException webException)
+                {
+                    var response = webException.Response as HttpWebResponse;
+
+                    if (null == response || response.StatusCode != HttpStatusCode.NotFound || 0 > notFoundRetry--)
+                        throw;
+                }
+
+                var delay = DefaultNotFoundDelay;
+
+                var duration = _segment.Duration;
+
+                if (duration.HasValue)
+                {
+                    delay = TimeSpan.FromTicks(duration.Value.Ticks / 2);
+                }
+
+                Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _url, delay);
+
+#if WINDOWS_PHONE7
+                await TaskEx.Delay(delay, cancellationToken);
+#else
+                await Task.Delay(delay, cancellationToken);
+#endif
+            }
 
             if (_endOffset <= 0)
                 _endOffset = _response.ContentLength;
@@ -201,8 +252,8 @@ namespace SM.Media.Segments
 
         public override string ToString()
         {
-            if (_startOffset > 0 || _endOffset > 0)
-                return string.Format("{0} [{1}-{2}]", Url, _startOffset, _endOffset);
+            if (_segment.Offset > 0 || _segment.Length > 0)
+                return string.Format("{0} [{1}-{2}]", Url, _segment.Offset, _segment.Offset + _segment.Length);
 
             return Url.ToString();
         }

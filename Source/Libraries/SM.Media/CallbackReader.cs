@@ -110,16 +110,11 @@ namespace SM.Media
 
                         var url = segmentReader.Url;
 
-                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
-
-                        //sw.Reset();
-                        //sw.Start();
+                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", segmentReader, DateTimeOffset.Now, GC.GetTotalMemory(false));
 
                         await ReadSegment(segmentReader, cancellationToken);
 
-                        //sw.Stop();
-
-                        Debug.WriteLine("---- Completed {0} at {1}.  Total memory: {2}", url, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                        Debug.WriteLine("---- Completed {0} at {1}.  Total memory: {2}", segmentReader, DateTimeOffset.Now, GC.GetTotalMemory(false));
                     }
                 }
 

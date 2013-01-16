@@ -155,11 +155,9 @@ namespace SM.Media
                     {
                         _pesStream.Packet = packet;
 
-                        var timestamp = packet.Timestamp - TimestampOffset;
+                        ReportDequeue(packet.Length, packet.Timestamp);
 
-                        ReportDequeue(packet.Length, timestamp);
-
-                        _streamSample.Timestamp = timestamp;
+                        _streamSample.Timestamp = packet.Timestamp - TimestampOffset;
 
 #if DEBUG
                         //Debug.WriteLine("StreamBuffer {0} forwarding sample {1}", _streamBufferId, _streamSample.Timestamp);

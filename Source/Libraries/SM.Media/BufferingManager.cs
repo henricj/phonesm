@@ -278,10 +278,14 @@ namespace SM.Media
             var totalBuffered = 0;
 
             var validData = false;
+            var allDone = true;
 
             for (var i = 0; i < _queues.Count; ++i)
             {
                 var queue = _queues[i];
+
+                if (!queue.IsDone)
+                    allDone = false;
 
                 if (!queue.IsValid)
                     continue;
@@ -329,7 +333,18 @@ namespace SM.Media
 
             if (0 != _isBuffering)
             {
-                UpdateBuffering(timestampDifference, totalBuffered);
+                if (allDone)
+                {
+#pragma warning disable 0420
+                    Interlocked.Exchange(ref _isBuffering, 0);
+#pragma warning restore 0420
+
+                    Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
+
+                    ReportBuffering(1);
+                }
+                else
+                    UpdateBuffering(timestampDifference, totalBuffered);
 
                 if (0 != _isBuffering)
                     return false;
@@ -337,7 +352,7 @@ namespace SM.Media
             else
             {
                 //if (validData && 0 == lowestCount && timestampDifference < BufferDurationEnableThreshold && totalBuffered < BufferSizeStartBuffering)
-                if (validData && 0 == highestCount)
+                if (!allDone && (!validData || 0 == highestCount))
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
 
@@ -433,6 +448,11 @@ namespace SM.Media
             {
                 _bufferingManager = bufferingManager;
                 _managedBuffer = managedBuffer;
+            }
+
+            public bool IsDone
+            {
+                get { return _isDone; }
             }
 
             public bool IsValid

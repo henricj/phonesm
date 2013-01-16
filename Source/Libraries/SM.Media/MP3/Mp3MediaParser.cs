@@ -294,9 +294,6 @@ namespace SM.Media.MP3
             _bufferEntry = newBuffer;
         }
 
-        void ExtractFrames()
-        { }
-
         void Clear()
         {
             _packetPool.Clear();

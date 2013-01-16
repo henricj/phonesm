@@ -40,6 +40,7 @@ namespace SM.Media
         string _etag;
         string _lastModified;
         string _noCache;
+        string _cacheControl;
 
         public CachedWebRequest(Uri url, Func<Uri, HttpWebRequest> webRequestFactory)
         {
@@ -97,13 +98,17 @@ namespace SM.Media
 
         async Task<byte[]> FetchObject(HttpWebResponse response)
         {
-            var date = response.Headers["Last-Modified"];
+            var date = response.Headers[HttpRequestHeader.LastModified];
 
             _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
 
             var etag = response.Headers["ETag"];
 
             _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
+
+            var cacheControl = response.Headers[HttpRequestHeader.CacheControl];
+
+            _cacheControl = !string.IsNullOrWhiteSpace(cacheControl) ? cacheControl : null;
 
             byte[] body;
 
@@ -154,7 +159,8 @@ namespace SM.Media
                     haveConditional = true;
             }
 
-            if (!haveConditional || null == _noCache)
+            // Do not rotate the nocache query string if the server has an explicit cache policy.
+            if ((!haveConditional && null == _cacheControl) || null == _noCache)
                 _noCache = "nocache=" + Guid.NewGuid().ToString("N");
 
             if (null != _noCache)

@@ -36,13 +36,20 @@ namespace SimulatedPlayer
         {
             GlobalPlatformServices.Default = new PlatformServices();
 
-            using (var simulator = new Simulator())
+            try
             {
-                simulator.Run().Wait();
+                using (var simulator = new Simulator())
+                {
+                    simulator.Run().Wait();
 
-                Console.WriteLine("Press any key to exit");
+                    Console.WriteLine("Press <enter> to exit");
 
-                Console.ReadLine();
+                    Console.ReadLine();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
             }
         }
     }

@@ -32,8 +32,14 @@ namespace SM.Media.Playlists
 {
     class SimpleSubProgram : SubProgram, IProgramStream
     {
+        readonly Uri[] _playlistUrl;
         static readonly IProgramStream[] NoStreams = new IProgramStream[0];
         readonly ICollection<SubStreamSegment> _segments = new List<SubStreamSegment>();
+
+        public SimpleSubProgram(Uri playlistUrl)
+        {
+            _playlistUrl = new Uri[] { playlistUrl };
+        }
 
         public ICollection<SubStreamSegment> Segments
         {
@@ -74,7 +80,7 @@ namespace SM.Media.Playlists
 
         public IEnumerable<Uri> Urls
         {
-            get { return null; }
+            get { return _playlistUrl; }
         }
 
         #endregion

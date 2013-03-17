@@ -123,7 +123,7 @@ namespace SM.Media.Playlists
                     {
                         if (null == simpleSubProgram)
                         {
-                            simpleSubProgram = new SimpleSubProgram();
+                            simpleSubProgram = new SimpleSubProgram(parser.BaseUrl);
 
                             var program = new Program
                             {

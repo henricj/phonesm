@@ -108,13 +108,15 @@ namespace SM.Media
                     {
                         var segmentReader = segmentReaderEnumerator.Current;
 
-                        var url = segmentReader.Url;
+                        var start = DateTimeOffset.Now;
 
-                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", segmentReader, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", segmentReader, start, GC.GetTotalMemory(false));
 
                         await ReadSegment(segmentReader, cancellationToken);
 
-                        Debug.WriteLine("---- Completed {0} at {1}.  Total memory: {2}", segmentReader, DateTimeOffset.Now, GC.GetTotalMemory(false));
+                        var complete = DateTimeOffset.Now;
+
+                        Debug.WriteLine("---- Completed {0} at {1} ({2}).  Total memory: {3}", segmentReader, complete, complete - start, GC.GetTotalMemory(false));
                     }
                 }
 

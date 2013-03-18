@@ -369,35 +369,37 @@ namespace SM.Media
 
             try
             {
-                foreach (var reader in _readers)
+                if (null != _readers)
                 {
-                    if (null != reader.QueueWorker)
-                        tasks.Add(reader.QueueWorker.CloseAsync());
+                    foreach (var reader in _readers)
+                    {
+                        if (null != reader.QueueWorker)
+                            tasks.Add(reader.QueueWorker.CloseAsync());
 
-                    if (null != reader.CallbackReader)
+                        if (null != reader.CallbackReader)
+                        {
+                            try
+                            {
+                                var stopAsync = reader.CallbackReader.StopAsync();
+
+                                tasks.Add(stopAsync);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("TsMediaManager.CloseAsync: StopAsync failed: " + ex.Message);
+                            }
+                        }
+                    }
+                    if (tasks.Count > 0)
                     {
                         try
                         {
-                            var stopAsync = reader.CallbackReader.StopAsync();
-
-                            tasks.Add(stopAsync);
+                            await TaskEx.WhenAll(tasks);
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine("TsMediaManager.CloseAsync: StopAsync failed: " + ex.Message);
+                            Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
                         }
-                    }
-                }
-
-                if (tasks.Count > 0)
-                {
-                    try
-                    {
-                        await TaskEx.WhenAll(tasks);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
                     }
                 }
 
@@ -409,12 +411,16 @@ namespace SM.Media
                 Debug.WriteLine("TsMediaManager.CloseAsync: " + ex.Message);
             }
 
-            await _mediaElementManager.Close();
+            if (null != _mediaElementManager)
+                await _mediaElementManager.Close();
 
-            foreach (var reader in _readers)
+            if (null != _readers)
             {
-                using (reader)
-                { }
+                foreach (var reader in _readers)
+                {
+                    using (reader)
+                    { }
+                }
             }
 
             _mediaState = MediaState.Closed;
@@ -436,7 +442,7 @@ namespace SM.Media
                 reader.MediaParser.EnableProcessing = false;
             }
 
-            var stopReaderTasks = _readers.Select<ReaderPipeline, Task>(
+            var stopReaderTasks = _readers.Select(
                 async r =>
                 {
                     await r.CallbackReader.StopAsync();

@@ -39,7 +39,13 @@ namespace SM.Media.Playlists
 {
     public class PlaylistSegmentManager : ISegmentManager, IDisposable
     {
+        static readonly TimeSpan NotDue = new TimeSpan(0, 0, 0, 0, -1);
+        static readonly TimeSpan NotPeriodic = new TimeSpan(0, 0, 0, 0, -1);
+        static readonly TimeSpan MinimumReload = new TimeSpan(0, 0, 0, 5);
         readonly CancellationTokenSource _abortTokenSource;
+        readonly List<SubStreamSegment[]> _dynamicPlaylists = new List<SubStreamSegment[]>();
+        readonly Timer _expirationTimer;
+        readonly List<SubStreamSegment> _segmentList = new List<SubStreamSegment>();
         readonly object _segmentLock = new object();
         readonly ISubProgram _subProgram;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
@@ -69,6 +75,7 @@ namespace SM.Media.Playlists
             _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             _isDynamicPlaylist = true;
+            _expirationTimer = new Timer(PlaylistExpiration, null, NotDue, NotPeriodic);
 
             Playlist = new PlaylistEnumerable(this);
         }
@@ -83,6 +90,9 @@ namespace SM.Media.Playlists
         public void Dispose()
         {
             _abortTokenSource.Cancel();
+
+            using (_expirationTimer)
+            { }
         }
 
         #endregion
@@ -112,6 +122,24 @@ namespace SM.Media.Playlists
         }
 
         #endregion
+
+        void PlaylistExpiration(object state)
+        {
+            Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration ({0})", DateTimeOffset.Now);
+
+            lock (_segmentLock)
+            {
+                if (!_isDynamicPlaylist)
+                    return;
+
+                if (null == _reReader)
+                {
+                    Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
+
+                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken).Unwrap();
+                }
+            }
+        }
 
         void Seek(TimeSpan timestamp)
         {
@@ -172,15 +200,19 @@ namespace SM.Media.Playlists
 
         Task CheckReload(int index)
         {
+            Debug.WriteLine("PlaylistSegmentManager.CheckReload ({0})", DateTimeOffset.Now);
+
             lock (_segmentLock)
             {
-                if (null != _segments && index + 2 < _segments.Length && (!_isDynamicPlaylist || _segmentsExpiration - Environment.TickCount > 0))
+                if (!_isDynamicPlaylist || _segmentsExpiration - Environment.TickCount > 0)
                     return TplTaskExtensions.CompletedTask;
 
-                if (null != _reReader)
-                    return _reReader;
+                if (null == _reReader)
+                {
+                    Debug.WriteLine("PlaylistSegmentManager.CheckReload is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList).Unwrap();
+                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken).Unwrap();
+                }
 
                 if (null == _segments || index + 1 >= _segments.Length)
                     return _reReader;
@@ -223,9 +255,17 @@ namespace SM.Media.Playlists
 
         async Task ReadSubList()
         {
+            Debug.WriteLine("PlaylistSegmentManager.ReadSubList ({0})", DateTimeOffset.Now);
+
+            _expirationTimer.Change(NotDue, NotPeriodic);
+
             var programStream = _subProgram.Video;
 
+            var start = DateTime.UtcNow;
+
             var parser = await FetchPlaylist(programStream.Urls);
+
+            var fetchElapsed = DateTime.UtcNow - start;
 
             if (null == parser)
             {
@@ -243,6 +283,7 @@ namespace SM.Media.Playlists
             Url = parser.BaseUrl;
 
             var segments = PlaylistSubProgramBase.GetPlaylist(parser).ToArray();
+            var segments0 = segments;
 
             var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);
 
@@ -250,37 +291,121 @@ namespace SM.Media.Playlists
 
             lock (_segmentLock)
             {
-                var oldSegments = _segments;
-                var oldSegmentIndex = _startSegmentIndex;
+                var needReload = false;
 
-                _segments = segments;
+                if (isDynamicPlayist || _dynamicPlaylists.Count > 0)
+                {
+                    var lastPlaylist = _dynamicPlaylists.LastOrDefault();
+
+                    if (segments.Length > 0)
+                    {
+                        if (null != lastPlaylist && lastPlaylist[0].Url == segments[0].Url)
+                        {
+                            // We are running out of playlist, but the server just gave us the
+                            // same list as last time.
+                            Debug.WriteLine("PlaylistSegmentManager.ReadSubList: need reload ({0})", DateTimeOffset.Now);
+
+                            needReload = true;
+                        }
+                        else
+                        {
+                            _dynamicPlaylists.Add(segments);
+
+                            if (_dynamicPlaylists.Count > 4)
+                                _dynamicPlaylists.RemoveAt(0);
+                        }
+                    }
+
+                    if (!needReload)
+                    {
+                        var previousPlaylist = null as SubStreamSegment[];
+
+                        foreach (var playlist in _dynamicPlaylists)
+                        {
+                            if (null == previousPlaylist)
+                            {
+                                _startSegmentIndex = -1;
+                                _segmentList.AddRange(playlist);
+
+                                previousPlaylist = playlist;
+                                continue;
+                            }
+
+                            var found = false;
+
+                            for (var i = 0; i < previousPlaylist.Length; ++i)
+                            {
+                                if (previousPlaylist[i].Url == playlist[0].Url)
+                                {
+                                    _startSegmentIndex = _segmentList.Count - 1;
+
+                                    for (var j = 0; j < playlist.Length; ++j)
+                                    {
+                                        if (i + j < previousPlaylist.Length && previousPlaylist[i + j].Url == playlist[j].Url)
+                                            continue;
+
+                                        _segmentList.Add(playlist[j]);
+                                    }
+
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            if (!found)
+                            {
+                                _startSegmentIndex = _segmentList.Count - 1;
+                                _segmentList.AddRange(playlist);
+                            }
+
+                            previousPlaylist = playlist;
+                        }
+
+                        segments = _segmentList.ToArray();
+                        _segmentList.Clear();
+                    }
+                }
+
+                if (!needReload)
+                    _segments = segments;
+
                 _isDynamicPlaylist = isDynamicPlayist;
-
-                InitializeSegmentIndex();
-
-                var index = PlaylistEnumerator.FindNewIndex(oldSegments, segments, oldSegmentIndex);
-
-                if (index >= 0)
-                    _startSegmentIndex = index;
 
                 if (isDynamicPlayist)
                 {
+                    var reloadDelay = GetDuration(segments0, Math.Max(1, segments0.Length - 4), segments0.Length);
+
+                    if (!reloadDelay.HasValue)
+                    {
+                        var segmentCount = segments0.Length - 1;
+
+                        if (segmentCount > 0)
+                            reloadDelay = new TimeSpan(0, 0, 0, 5 * segmentCount);
+                        else
+                            reloadDelay = TimeSpan.Zero;
+                    }
+
+                    var expire = reloadDelay.Value;
+
+                    if (expire < MinimumReload)
+                        expire = MinimumReload;
+
+                    _expirationTimer.Change(expire, NotPeriodic);
+
                     // We use the system uptime rather than DateTime.UtcNow to
                     // avoid grief if there is a step in the system time.
                     // TODO: Make sure the TickCount doesn't get confused by steps in the system time.
                     var segmentsExpiration = Environment.TickCount;
 
-                    if (Duration.HasValue)
-                        segmentsExpiration += (int)(Duration.Value.TotalMilliseconds * 0.75);
-                    else
-                        segmentsExpiration += 5000 * segments.Length;
+                    segmentsExpiration += (int)expire.TotalMilliseconds;
 
                     _segmentsExpiration = segmentsExpiration;
                 }
 
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList: playlist {0} loaded with {1} entries. index: {2} dynamic: {3} expires: {4}",
-                                parser.BaseUrl, _segments.Length, _startSegmentIndex, isDynamicPlayist,
-                                isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero);
+                Debug.WriteLine("PlaylistSegmentManager.ReadSubList: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
+                                parser.BaseUrl, _segments.Length, fetchElapsed, _startSegmentIndex, isDynamicPlayist,
+                                isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
+                                DateTimeOffset.Now);
 
                 _reReader = null;
             }
@@ -292,6 +417,23 @@ namespace SM.Media.Playlists
 
             foreach (var segment in segments)
             {
+                if (!segment.Duration.HasValue)
+                    return null;
+
+                duration += segment.Duration.Value;
+            }
+
+            return duration;
+        }
+
+        static TimeSpan? GetDuration(SubStreamSegment[] segments, int start, int end)
+        {
+            var duration = TimeSpan.Zero;
+
+            for (var i = start; i < end; ++i)
+            {
+                var segment = segments[i];
+
                 if (!segment.Duration.HasValue)
                     return null;
 
@@ -352,7 +494,7 @@ namespace SM.Media.Playlists
 
             public async Task<bool> MoveNextAsync()
             {
-                for (; ; )
+                for (;;)
                 {
                     await _segmentManager.CheckReload(_index);
 
@@ -393,15 +535,25 @@ namespace SM.Media.Playlists
                     if (!isDynamicPlaylist)
                         return false;
 
-                    await TaskEx.Delay(5000);
+                    var delay = 5000;
+
+                    if (null != segments && 0 < segments.Length)
+                    {
+                        var lastSegment = segments[segments.Length - 1];
+
+                        if (lastSegment.Duration.HasValue)
+                            delay = (int)(lastSegment.Duration.Value.TotalMilliseconds / 2);
+                    }
+
+                    await TaskEx.Delay(delay, _segmentManager.CancellationToken);
                 }
             }
 
             #endregion
 
-            public static int FindNewIndex(IList<ISegment> oldSegments, IList<ISegment> newSegments, int oldIndex)
+            static int FindNewIndex(ISegment[] oldSegments, ISegment[] newSegments, int oldIndex)
             {
-                if (null == oldSegments || oldIndex < 0 || oldIndex >= oldSegments.Count)
+                if (null == oldSegments || oldIndex < 0 || oldIndex >= oldSegments.Length)
                     return -1;
 
                 var url = oldSegments[oldIndex].Url;

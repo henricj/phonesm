@@ -30,7 +30,7 @@ using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManager
+    public interface ISegmentManager : IDisposable
     {
         Uri Url { get; }
         TimeSpan StartPosition { get; }
@@ -39,6 +39,8 @@ namespace SM.Media.Segments
         IAsyncEnumerable<ISegment> Playlist { get; }
 
         Task<TimeSpan> SeekAsync(TimeSpan timestamp);
+        Task StartAsync();
+        Task StopAsync();
     }
 
     public static class SegmentManagerAsyncExtensions

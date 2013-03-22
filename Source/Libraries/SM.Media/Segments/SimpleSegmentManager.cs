@@ -31,7 +31,7 @@ using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
-    public sealed class SimpleSegmentManager : ISegmentManager, IDisposable, IAsyncEnumerable<ISegment>
+    public sealed class SimpleSegmentManager : ISegmentManager, IAsyncEnumerable<ISegment>
     {
         static readonly Task<TimeSpan> TimeSpanZeroTask;
         readonly IEnumerable<Uri> _urls;
@@ -58,18 +58,24 @@ namespace SM.Media.Segments
 
         #endregion
 
-        #region IDisposable Members
+        #region ISegmentManager Members
 
         public void Dispose()
         { }
 
-        #endregion
-
-        #region ISegmentManager Members
-
         public Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
             return TimeSpanZeroTask;
+        }
+
+        public Task StartAsync()
+        {
+            return TplTaskExtensions.CompletedTask;
+        }
+
+        public Task StopAsync()
+        {
+            return TplTaskExtensions.CompletedTask;
         }
 
         public Uri Url

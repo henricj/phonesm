@@ -59,11 +59,42 @@ namespace SM.Media.Segments
         #region ISegmentReaderManager Members
 
         public void Dispose()
-        { }
+        {
+            if (null != _segmentManagers)
+            {
+                foreach (var segmentManager in _segmentManagers)
+                {
+                    using (segmentManager)
+                    { }
+                }
+            }
+        }
 
         public ICollection<ISegmentManagerReaders> SegmentManagerReaders
         {
             get { return _segmentReaders; }
+        }
+
+        public Task StartAsync()
+        {
+            var tasks = _segmentManagers.Select(sm => sm.StartAsync());
+
+#if WINDOWS_PHONE7
+            return TaskEx.WhenAll(tasks);
+#else
+            return Task.WhenAll(tasks);
+#endif
+        }
+
+        public Task StopAsync()
+        {
+            var tasks = _segmentManagers.Select(sm => sm.StopAsync());
+
+#if WINDOWS_PHONE7
+            return TaskEx.WhenAll(tasks);
+#else
+            return Task.WhenAll(tasks);
+#endif
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken)

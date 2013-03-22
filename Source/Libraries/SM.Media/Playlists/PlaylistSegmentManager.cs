@@ -37,7 +37,7 @@ using SM.Media.Utility;
 
 namespace SM.Media.Playlists
 {
-    public class PlaylistSegmentManager : ISegmentManager, IDisposable
+    public class PlaylistSegmentManager : ISegmentManager
     {
         static readonly TimeSpan NotDue = new TimeSpan(0, 0, 0, 0, -1);
         static readonly TimeSpan NotPeriodic = new TimeSpan(0, 0, 0, 0, -1);
@@ -50,6 +50,7 @@ namespace SM.Media.Playlists
         readonly ISubProgram _subProgram;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         bool _isDynamicPlaylist;
+        bool _isRunning;
         Task _reReader;
         Task _reader;
         SubStreamSegment[] _segments;
@@ -85,7 +86,7 @@ namespace SM.Media.Playlists
             get { return _abortTokenSource.Token; }
         }
 
-        #region IDisposable Members
+        #region ISegmentManager Members
 
         public void Dispose()
         {
@@ -95,14 +96,37 @@ namespace SM.Media.Playlists
             { }
         }
 
-        #endregion
-
-        #region ISegmentManager Members
-
         public Uri Url { get; private set; }
         public TimeSpan StartPosition { get; private set; }
         public TimeSpan? Duration { get; private set; }
         public IAsyncEnumerable<ISegment> Playlist { get; private set; }
+
+        public Task StartAsync()
+        {
+            lock (_segmentLock)
+            {
+                _isRunning = true;
+            }
+
+            return TplTaskExtensions.CompletedTask;
+        }
+
+        public Task StopAsync()
+        {
+            _expirationTimer.Change(NotDue, NotPeriodic);
+
+            lock (_segmentLock)
+            {
+                _isRunning = false;
+
+                var reReader = _reReader;
+
+                if (null != reReader)
+                    return reReader;
+            }
+
+            return TplTaskExtensions.CompletedTask;
+        }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
@@ -129,7 +153,7 @@ namespace SM.Media.Playlists
 
             lock (_segmentLock)
             {
-                if (!_isDynamicPlaylist)
+                if (!_isDynamicPlaylist || !_isRunning)
                     return;
 
                 if (null == _reReader)
@@ -173,38 +197,13 @@ namespace SM.Media.Playlists
             }
         }
 
-        void InitializeSegmentIndex()
-        {
-            var segmentIndex = -1;
-
-            if (_isDynamicPlaylist)
-            {
-                // We don't want to start with the first segment in case
-                // we need to buffer.  We don't want to start too far into
-                // the playlist since this would mean reloading the thing
-                // too often.  With enough buffering, we will eventually 
-                // miss segments.  To get that working properly, we must
-                // adjust the sample timestamps since otherwise there will
-                // be a discontinuity for MediaElement to choke on.
-                segmentIndex = _segments.Length / 4 - 1;
-
-                if (segmentIndex + 4 >= _segments.Length)
-                    segmentIndex = _segments.Length - 5;
-
-                if (segmentIndex < -1)
-                    segmentIndex = -1;
-            }
-
-            _startSegmentIndex = segmentIndex;
-        }
-
         Task CheckReload(int index)
         {
             Debug.WriteLine("PlaylistSegmentManager.CheckReload ({0})", DateTimeOffset.Now);
 
             lock (_segmentLock)
             {
-                if (!_isDynamicPlaylist || _segmentsExpiration - Environment.TickCount > 0)
+                if (!_isDynamicPlaylist || !_isRunning || _segmentsExpiration - Environment.TickCount > 0)
                     return TplTaskExtensions.CompletedTask;
 
                 if (null == _reReader)
@@ -291,6 +290,9 @@ namespace SM.Media.Playlists
 
             lock (_segmentLock)
             {
+                if (!_isRunning)
+                    return;
+
                 var needReload = false;
 
                 if (isDynamicPlayist || _dynamicPlaylists.Count > 0)
@@ -494,7 +496,7 @@ namespace SM.Media.Playlists
 
             public async Task<bool> MoveNextAsync()
             {
-                for (;;)
+                for (; ; )
                 {
                     await _segmentManager.CheckReload(_index);
 

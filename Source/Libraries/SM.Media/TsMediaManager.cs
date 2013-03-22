@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,8 +38,35 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
+    public class TsMediaManagerStateEventArgs : EventArgs
+    {
+        public readonly TsMediaManager.MediaState State;
+        public readonly string Message;
+
+        public TsMediaManagerStateEventArgs(TsMediaManager.MediaState state, string message = null)
+        {
+            State = state;
+            Message = message;
+        }
+    }
+
     public sealed class TsMediaManager : ITsMediaManager, IMediaManager, IDisposable
     {
+        #region MediaState enum
+
+        public enum MediaState
+        {
+            Idle,
+            Opening,
+            OpenMedia,
+            Seeking,
+            Playing,
+            Closed,
+            Error
+        }
+
+        #endregion
+
         const int MaxBuffers = 8;
         readonly CommandWorker _commandWorker = new CommandWorker();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
@@ -67,6 +95,27 @@ namespace SM.Media
             _mediaStreamSourceFactory = mediaStreamSourceFactory;
         }
 
+        public MediaState State
+        {
+            get { return _mediaState; }
+            set { SetMediaState(value, null); }
+        }
+
+        void SetMediaState(MediaState state, string message)
+        {
+            if (state == _mediaState)
+                return;
+
+            _mediaState = state;
+
+            var handlers = OnStateChange;
+
+            if (null == handlers)
+                return;
+
+            handlers(this, new TsMediaManagerStateEventArgs(state, message));
+        }
+
         #region IDisposable Members
 
         public void Dispose()
@@ -88,7 +137,7 @@ namespace SM.Media
             _commandWorker.SendCommand(new CommandWorker.Command(
                                            () =>
                                            {
-                                               _mediaState = MediaState.OpenMedia;
+                                               State = MediaState.OpenMedia;
 
                                                CheckConfigurationCompleted();
 
@@ -156,6 +205,8 @@ namespace SM.Media
 
         #endregion
 
+        public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+
         void StartReaders()
         {
             foreach (var reader in _readers)
@@ -169,7 +220,7 @@ namespace SM.Media
                 startReader.ContinueWith(t => Close(), TaskContinuationOptions.OnlyOnFaulted);
             }
 
-            _mediaState = MediaState.Playing;
+            State = MediaState.Playing;
         }
 
         public void Seek(TimeSpan timestamp)
@@ -183,23 +234,42 @@ namespace SM.Media
 
             _readerManager = segmentManager;
 
-            _mediaStreamSource = _mediaStreamSourceFactory(this);
+            Exception exception;
 
-            _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
-                                                          .Select(CreateReaderPipeline));
-
-            foreach (var reader in _readers)
+            try
             {
-                reader.QueueWorker.IsEnabled = true;
+                _mediaStreamSource = _mediaStreamSourceFactory(this);
+
+                _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
+                                                              .Select(CreateReaderPipeline));
+
+                foreach (var reader in _readers)
+                {
+                    reader.QueueWorker.IsEnabled = true;
+                }
+
+                State = MediaState.Opening;
+
+                await _readerManager.StartAsync(CancellationToken.None);
+
+                StartReaders();
+
+                await _mediaElementManager.SetSource(_mediaStreamSource);
+
+                return;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TsMediaManager.PlayAsync failed: " + ex.Message);
+
+                SetMediaState(MediaState.Error, "Unable to play media");
+
+                exception = new AggregateException(ex);
             }
 
-            _mediaState = MediaState.Opening;
+            await StopAsync();
 
-            await _readerManager.StartAsync(CancellationToken.None);
-
-            StartReaders();
-
-            await _mediaElementManager.SetSource(_mediaStreamSource);
+            throw exception;
         }
 
         async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
@@ -209,6 +279,8 @@ namespace SM.Media
                              SegmentReaders = segmentManagerReaders,
                              BlockingPool = new BlockingPool<WorkBuffer>(MaxBuffers),
                          };
+
+            var startReaderTask = reader.SegmentReaders.Manager.StartAsync();
 
             var localReader = reader;
 
@@ -227,7 +299,12 @@ namespace SM.Media
 
             reader.BufferingManager = new BufferingManager(reader.QueueWorker, value => SendBufferingProgress(value, reader));
 
+            await startReaderTask;
+
             var firstSegment = await reader.SegmentReaders.Manager.Playlist.FirstOrDefaultAsync();
+
+            if (null == firstSegment)
+                throw new FileNotFoundException();
 
             var filename = firstSegment.Url.LocalPath;
 
@@ -237,7 +314,7 @@ namespace SM.Media
             {
                 var ext = filename.Substring(lastPeriod);
 
-                if (ext.ToLower() == ".mp3")
+                if (string.Equals(ext, ".mp3", StringComparison.CurrentCultureIgnoreCase))
                 {
                     var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2));
 
@@ -303,7 +380,7 @@ namespace SM.Media
 
         void CheckConfigurationCompleted()
         {
-            if (_mediaState != MediaState.OpenMedia)
+            if (State != MediaState.OpenMedia)
                 return;
 
             if (_readers.Any(r => r.ExpectedStreamCount != r.CompletedStreamCount))
@@ -361,6 +438,13 @@ namespace SM.Media
         {
             var tasks = new List<Task>();
 
+            Task stopPlaylist = null;
+
+            var readerManager = _readerManager;
+
+            if (null != readerManager)
+                stopPlaylist = readerManager.StopAsync();
+
             var mss = _mediaStreamSource;
 
             Task drainTask = null;
@@ -404,7 +488,7 @@ namespace SM.Media
                 }
 
                 if (null != drainTask)
-                    await TaskEx.WhenAny(drainTask, TaskEx.Delay(1500));
+                    await TaskEx.WhenAny(drainTask, stopPlaylist, TaskEx.Delay(1500));
             }
             catch (Exception ex)
             {
@@ -423,7 +507,7 @@ namespace SM.Media
                 }
             }
 
-            _mediaState = MediaState.Closed;
+            State = MediaState.Closed;
         }
 
         bool IsSeekInRange(TimeSpan position)
@@ -442,6 +526,8 @@ namespace SM.Media
                 reader.MediaParser.EnableProcessing = false;
             }
 
+            var stopPlaylist = _readerManager.StopAsync();
+
             var stopReaderTasks = _readers.Select(
                 async r =>
                 {
@@ -450,6 +536,8 @@ namespace SM.Media
                 });
 
             await TaskEx.WhenAll(stopReaderTasks);
+
+            await stopPlaylist;
 
             foreach (var reader in _readers)
             {
@@ -460,26 +548,14 @@ namespace SM.Media
                 reader.QueueWorker.IsEnabled = true;
             }
 
-            _mediaState = MediaState.Seeking;
+            await _readerManager.StartAsync();
+
+            State = MediaState.Seeking;
 
             await _readerManager.SeekAsync(position, CancellationToken.None);
 
             StartReaders();
         }
-
-        #region Nested type: MediaState
-
-        enum MediaState
-        {
-            Idle,
-            Opening,
-            OpenMedia,
-            Seeking,
-            Playing,
-            Closed
-        }
-
-        #endregion
 
         #region Nested type: ReaderPipeline
 

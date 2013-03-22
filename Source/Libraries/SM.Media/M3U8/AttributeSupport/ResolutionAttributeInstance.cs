@@ -48,8 +48,8 @@ namespace SM.Media.M3U8.AttributeSupport
             if (index < 1 || index + 1 >= value.Length)
                 return null;
 
-            var x = int.Parse(value.Substring(0, index));
-            var y = int.Parse(value.Substring(index + 1));
+            var x = int.Parse(value.Substring(0, index), CultureInfo.InvariantCulture);
+            var y = int.Parse(value.Substring(index + 1), CultureInfo.InvariantCulture);
 
             return new ResolutionAttributeInstance(attribute, x, y);
         }

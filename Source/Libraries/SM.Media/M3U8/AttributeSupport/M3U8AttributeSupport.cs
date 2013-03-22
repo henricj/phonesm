@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace SM.Media.M3U8.AttributeSupport
@@ -39,7 +40,7 @@ namespace SM.Media.M3U8.AttributeSupport
 
         public static M3U8AttributeValueInstance<long> DecimalIntegerParser(M3U8Attribute attribute, string value)
         {
-            return new M3U8AttributeValueInstance<long>(attribute, long.Parse(value));
+            return new M3U8AttributeValueInstance<long>(attribute, long.Parse(value, CultureInfo.InvariantCulture));
         }
 
         public static M3U8AttributeValueInstance<string> QuotedStringParser(M3U8Attribute attribute, string value)

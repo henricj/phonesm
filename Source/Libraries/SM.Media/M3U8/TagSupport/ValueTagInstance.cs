@@ -46,7 +46,7 @@ namespace SM.Media.M3U8.TagSupport
 
         internal static M3U8TagInstance CreateLong(M3U8Tag tag, string value)
         {
-            return Create(tag, value, v => long.Parse(v));
+            return Create(tag, value, v => long.Parse(v, CultureInfo.InvariantCulture));
         }
 
         public override string ToString()

@@ -47,10 +47,10 @@ namespace SM.Media.M3U8.TagSupport
             var index = value.IndexOf('@');
 
             if (index < 0 || index + 1 >= value.Length)
-                return new ByterangeTagInstance(tag, long.Parse(value), null);
+                return new ByterangeTagInstance(tag, long.Parse(value, CultureInfo.InvariantCulture), null);
 
-            var length = long.Parse(value.Substring(0, index));
-            var offset = long.Parse(value.Substring(index + 1));
+            var length = long.Parse(value.Substring(0, index), CultureInfo.InvariantCulture);
+            var offset = long.Parse(value.Substring(index + 1), CultureInfo.InvariantCulture);
 
             return new ByterangeTagInstance(tag, length, offset);
         }

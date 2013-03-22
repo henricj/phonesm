@@ -46,9 +46,9 @@ namespace SM.Media.M3U8.TagSupport
             var index = value.IndexOf(',');
 
             if (index < 0)
-                return new ExtinfTagInstance(tag, Decimal.Parse(value));
+                return new ExtinfTagInstance(tag, decimal.Parse(value, CultureInfo.InvariantCulture));
 
-            var duration = Decimal.Parse(value.Substring(0, index));
+            var duration = decimal.Parse(value.Substring(0, index), CultureInfo.InvariantCulture);
 
             var title = string.Empty;
 

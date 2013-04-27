@@ -165,8 +165,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <SDKReference Include="Microsoft.PlayerFramework.WP8.Core, Version=1.8.0.5">
-      <Name>Microsoft Player Framework %28Microsoft.PlayerFramework.WP8.Core, Version=1.8.0.5%29</Name>
+    <SDKReference Include="Microsoft.PlayerFramework.WP8.Core, Version=1.8.1.0">
+      <Name>Microsoft Player Framework</Name>
     </SDKReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />

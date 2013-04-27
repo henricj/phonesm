@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Diagnostics;
 using System.Threading;
 using SM.TsParser.Utility;
 
@@ -43,11 +44,15 @@ namespace SM.Media.Utility
 
         public override void Reference()
         {
+            Debug.Assert(_allocationCount >= 0);
+
             Interlocked.Increment(ref _allocationCount);
         }
 
         public override bool Dereference()
         {
+            Debug.Assert(_allocationCount > 0);
+
             return 0 == Interlocked.Decrement(ref _allocationCount);
         }
 

@@ -456,9 +456,9 @@ namespace SM.Media
                                                    return;
 
                                                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
-                                               ReportSeekCompleted(seekTimestamp.Ticks);
+                                               ReportSeekCompleted(position.Ticks);
 
-                                               Debug.WriteLine("TsMediaStreamSource.SeekAsync({0}) completed", seekTimestamp);
+                                               Debug.WriteLine("TsMediaStreamSource.SeekAsync({0}) completed, actual: {1}", seekTimestamp, position);
 
                                                State = SourceState.Play;
                                            }));

@@ -40,8 +40,8 @@ namespace SM.Media
 {
     public class TsMediaManagerStateEventArgs : EventArgs
     {
-        public readonly TsMediaManager.MediaState State;
         public readonly string Message;
+        public readonly TsMediaManager.MediaState State;
 
         public TsMediaManagerStateEventArgs(TsMediaManager.MediaState state, string message = null)
         {
@@ -95,32 +95,12 @@ namespace SM.Media
             _mediaStreamSourceFactory = mediaStreamSourceFactory;
         }
 
-        public MediaState State
-        {
-            get { return _mediaState; }
-            set { SetMediaState(value, null); }
-        }
-
-        void SetMediaState(MediaState state, string message)
-        {
-            if (state == _mediaState)
-                return;
-
-            _mediaState = state;
-
-            var handlers = OnStateChange;
-
-            if (null == handlers)
-                return;
-
-            handlers(this, new TsMediaManagerStateEventArgs(state, message));
-        }
-
         #region IDisposable Members
 
         public void Dispose()
         {
-            CloseAsync().Wait();
+            CloseAsync()
+                .Wait();
 
             using (_readerManager)
             { }
@@ -135,14 +115,14 @@ namespace SM.Media
         public void OpenMedia()
         {
             _commandWorker.SendCommand(new CommandWorker.Command(
-                                           () =>
-                                           {
-                                               State = MediaState.OpenMedia;
+                () =>
+                {
+                    State = MediaState.OpenMedia;
 
-                                               CheckConfigurationCompleted();
+                    CheckConfigurationCompleted();
 
-                                               return TplTaskExtensions.CompletedTask;
-                                           }));
+                    return TplTaskExtensions.CompletedTask;
+                }));
         }
 
         public void CloseMedia()
@@ -157,9 +137,9 @@ namespace SM.Media
             var localSeekCompletion = seekCompletion;
 
             _commandWorker.SendCommand(new CommandWorker.Command(
-                                           () => SeekAsync(position)
-                                                     .ContinueWith(t => seekCompletion.SetResult(position)),
-                                           b => { if (!b) localSeekCompletion.SetCanceled(); }));
+                () => SeekAsync(position)
+                    .ContinueWith(t => seekCompletion.SetResult(t.Result)),
+                b => { if (!b) localSeekCompletion.SetCanceled(); }));
 
             return seekCompletion.Task;
         }
@@ -172,6 +152,12 @@ namespace SM.Media
         #endregion
 
         #region ITsMediaManager Members
+
+        public MediaState State
+        {
+            get { return _mediaState; }
+            set { SetMediaState(value, null); }
+        }
 
         public void Play(ISegmentReaderManager segmentManager)
         {
@@ -191,10 +177,11 @@ namespace SM.Media
 
         public void ReportPosition(TimeSpan position)
         {
+            if (null == _readers)
+                return;
+
             foreach (var reader in _readers)
-            {
                 reader.MediaParser.ReportPosition(position);
-            }
         }
 
         public TimeSpan? SeekTarget
@@ -203,9 +190,24 @@ namespace SM.Media
             set { _mediaStreamSource.SeekTarget = value; }
         }
 
+        public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+
         #endregion
 
-        public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+        void SetMediaState(MediaState state, string message)
+        {
+            if (state == _mediaState)
+                return;
+
+            _mediaState = state;
+
+            var handlers = OnStateChange;
+
+            if (null == handlers)
+                return;
+
+            handlers(this, new TsMediaManagerStateEventArgs(state, message));
+        }
 
         void StartReaders()
         {
@@ -244,9 +246,7 @@ namespace SM.Media
                                                               .Select(CreateReaderPipeline));
 
                 foreach (var reader in _readers)
-                {
                     reader.QueueWorker.IsEnabled = true;
-                }
 
                 State = MediaState.Opening;
 
@@ -326,15 +326,14 @@ namespace SM.Media
                 }
             }
 
-
             if (null == reader.MediaParser)
             {
                 reader.MediaParser = new TsMediaParser(reader.BufferingManager,
-                                                       mediaStream =>
-                                                       {
-                                                           mediaStream.ConfigurationComplete +=
-                                                               (sender, args) => SendConfigurationComplete(args, reader);
-                                                       });
+                    mediaStream =>
+                    {
+                        mediaStream.ConfigurationComplete +=
+                            (sender, args) => SendConfigurationComplete(args, reader);
+                    });
 
                 reader.ExpectedStreamCount = 2;
             }
@@ -515,10 +514,10 @@ namespace SM.Media
             return _readers.All(reader => reader.BufferingManager.IsSeekAlreadyBuffered(position));
         }
 
-        async Task SeekAsync(TimeSpan position)
+        async Task<TimeSpan> SeekAsync(TimeSpan position)
         {
             if (IsSeekInRange(position))
-                return;
+                return position;
 
             foreach (var reader in _readers)
             {
@@ -552,9 +551,11 @@ namespace SM.Media
 
             State = MediaState.Seeking;
 
-            await _readerManager.SeekAsync(position, CancellationToken.None);
+            var actualPosition = await _readerManager.SeekAsync(position, CancellationToken.None);
 
             StartReaders();
+
+            return actualPosition;
         }
 
         #region Nested type: ReaderPipeline

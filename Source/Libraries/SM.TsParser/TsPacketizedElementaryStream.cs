@@ -350,8 +350,6 @@ namespace SM.TsParser
 
             Debug.Assert(pes.Timestamp >= TimeSpan.Zero);
 
-            _bufferEntry.Reference();
-
 #if DEBUG
             //Debug.WriteLine("Create PES Packet({0}) Index {1} Length {2} Time {3} {4}", pes.PacketId, pes.Index, pes.Length, pes.Timestamp, pes.BufferEntry);
 #endif

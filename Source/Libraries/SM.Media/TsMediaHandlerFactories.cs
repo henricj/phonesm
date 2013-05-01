@@ -69,6 +69,7 @@ namespace SM.Media
             new Dictionary<byte, TsMediaParser.PacketHandlerFactory>
             {
                 { 0x03, Mp3StreamHandlerFactory },
+                { 0x04, Mp3StreamHandlerFactory },
                 { 0x1b, H264StreamHandlerFactory },
                 { 0x0f, AacStreamHandlerFactory }
             };

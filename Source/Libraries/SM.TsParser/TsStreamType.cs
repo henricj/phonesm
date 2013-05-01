@@ -55,7 +55,7 @@ namespace SM.TsParser
                 new TsStreamType(0x01, StreamContents.Video, "ISO/IEC 11172-2 Video"),
                 new TsStreamType(0x02, StreamContents.Video, "ITU-T Rec. H.262 | ISO/IEC 13818-2 Video or ISO/IEC 11172-2 constrained parameter video stream"),
                 new TsStreamType(0x03, StreamContents.Audio, "ISO/IEC 11172-3 Audio") { FileExtension = ".mp3" },
-                new TsStreamType(0x04, StreamContents.Audio, "ISO/IEC 13818-3 Audio"),
+                new TsStreamType(0x04, StreamContents.Audio, "ISO/IEC 13818-3 Audio") { FileExtension = ".mp3" },
                 new TsStreamType(0x05, StreamContents.Other, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 private_sections"),
                 new TsStreamType(0x06, StreamContents.Other, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 PES packets containing private data"),
                 new TsStreamType(0x07, StreamContents.Other, "ISO/IEC 13522 MHEG"),

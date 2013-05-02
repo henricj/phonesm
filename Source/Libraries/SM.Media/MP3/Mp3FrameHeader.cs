@@ -89,7 +89,7 @@ namespace SM.Media.MP3
         {
             var lastIndex = index + length;
 
-            if (length < 8)
+            if (length < 4)
                 return false;
 
             // http://www.mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm
@@ -100,14 +100,17 @@ namespace SM.Media.MP3
             {
                 for (; ; )
                 {
+                    if (index + 4 > lastIndex)
+                        return false;
+
                     var frameSync = buffer[index++];
 
                     if (0xff == frameSync)
                         break;
-
-                    if (index >= lastIndex - 8)
-                        return false;
                 }
+
+                if (index + 3 > lastIndex)
+                    return false;
 
                 h1 = buffer[index++];
 

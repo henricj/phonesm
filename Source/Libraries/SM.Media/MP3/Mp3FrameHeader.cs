@@ -30,94 +30,92 @@ namespace SM.Media.MP3
 {
     class Mp3FrameHeader
     {
-        static readonly short[] V1L1
-            = new short[]
-              {
-                  0, 32, 64, 96, 128, 160, 192, 224,
-                  256, 288, 320, 352, 384, 416, 448, -1,
-              };
+        static readonly short[] V1L1 =
+        {
+            0, 32, 64, 96, 128, 160, 192, 224,
+            256, 288, 320, 352, 384, 416, 448, -1
+        };
 
-        static readonly short[] V1L2
-            = new short[]
-              {
-                  0, 32, 48, 56, 64, 80, 96, 112,
-                  128, 160, 192, 224, 256, 320, 384, -1,
-              };
+        static readonly short[] V1L2 =
+        {
+            0, 32, 48, 56, 64, 80, 96, 112,
+            128, 160, 192, 224, 256, 320, 384, -1
+        };
 
-        static readonly short[] V1L3
-            = new short[]
-              {
-                  0, 32, 40, 48, 56, 64, 80, 96,
-                  112, 128, 160, 192, 224, 256, 320, -1,
-              };
+        static readonly short[] V1L3 =
+        {
+            0, 32, 40, 48, 56, 64, 80, 96,
+            112, 128, 160, 192, 224, 256, 320, -1
+        };
 
-        static readonly short[] V2L1
-            = new short[]
-              {
-                  0, 32, 48, 56, 64, 80, 96, 112,
-                  128, 144, 160, 176, 192, 224, 256, -1,
-              };
+        static readonly short[] V2L1 =
+        {
+            0, 32, 48, 56, 64, 80, 96, 112,
+            128, 144, 160, 176, 192, 224, 256, -1
+        };
 
-        static readonly short[] V2L23
-            = new short[]
-              {
-                  0, 8, 16, 24, 32, 40, 48, 56,
-                  64, 80, 96, 112, 128, 144, 160, -1,
-              };
+        static readonly short[] V2L23 =
+        {
+            0, 8, 16, 24, 32, 40, 48, 56,
+            64, 80, 96, 112, 128, 144, 160, -1
+        };
 
-        static readonly short[] SamplesV1
-            = new short[]
-              {
-                  -1,
-                  384,
-                  1152,
-                  1152
-              };
+        static readonly short[] SamplesV1 =
+        {
+            -1,
+            384,
+            1152,
+            1152
+        };
 
-        static readonly short[] SamplesV2
-            = new short[]
-              {
-                  -1,
-                  384,
-                  1152,
-                  576
-              };
+        static readonly short[] SamplesV2 =
+        {
+            -1,
+            384,
+            1152,
+            576
+        };
 
-        static readonly int[] Rates = new[] { 11025, 12000, 8000 };
-        static readonly int[] VersionRateMultiplier = new[] { 0, 4, 2, 1 };
+        static readonly int[] Rates = { 11025, 12000, 8000 };
+        static readonly int[] VersionRateMultiplier = { 0, 4, 2, 1 };
 
         public int ChannelMode { get; set; }
         public int FrameLength { get; set; }
         public int SampleRate { get; set; }
         public int Bitrate { get; set; }
         public TimeSpan Duration { get; set; }
- 
+
         public bool Parse(byte[] buffer, int index, int length)
         {
             var lastIndex = index + length;
 
-            if (length < 4)
+            if (length < 8)
                 return false;
 
             // http://www.mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm
 
+            byte h1;
+
             for (; ; )
             {
-                var frameSync = buffer[index++];
+                for (; ; )
+                {
+                    var frameSync = buffer[index++];
 
-                if (0xff == frameSync)
+                    if (0xff == frameSync)
+                        break;
+
+                    if (index >= lastIndex - 8)
+                        return false;
+                }
+
+                h1 = buffer[index++];
+
+                var frameSync2 = (h1 >> 5) & 7;
+
+                if (7 == frameSync2)
                     break;
-
-                if (index >= lastIndex - 8)
-                    return false;
             }
-
-            var h1 = buffer[index++];
-
-            var frameSync2 = (h1 >> 5) & 7;
-
-            if (7 != frameSync2)
-                return false;
 
             var versionCode = (h1 >> 3) & 3;
 
@@ -158,12 +156,6 @@ namespace SM.Media.MP3
 
             var emphasis = h3 & 3;
 
-            //if (crcFlag)
-            //{
-            //    var crcHi = buffer[index++];
-            //    var crcLo = buffer[index++];
-            //}
-
             ChannelMode = channelMode;
             Bitrate = bitrate;
             SampleRate = sampleRate;
@@ -178,9 +170,7 @@ namespace SM.Media.MP3
             short[] lookup = null;
 
             if (version > 1)
-            {
                 lookup = layer == 1 ? V2L1 : V2L23;
-            }
             else
             {
                 switch (layer)

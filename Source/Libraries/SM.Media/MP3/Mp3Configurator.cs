@@ -46,23 +46,10 @@ namespace SM.Media.MP3
 
         public bool Parse(byte[] buffer, int index, int length)
         {
-            var lastIndex = index + length;
-
-            if (length < 50)
+            if (length < 10)
                 return false;
 
-            for (; ; )
-            {
-                var frameSync = buffer[index++];
-
-                if (0xff == frameSync)
-                    break;
-
-                if (index >= lastIndex - 8)
-                    return false;
-            }
-
-            if (!_frameHeader.Parse(buffer, index, lastIndex - index))
+            if (!_frameHeader.Parse(buffer, index, length))
                 return false;
 
             Configure(_frameHeader);

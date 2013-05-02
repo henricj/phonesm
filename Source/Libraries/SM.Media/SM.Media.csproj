@@ -40,6 +40,7 @@
     </Compile>
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
+    <Compile Include="CachedWebRequest.cs" />
     <Compile Include="CallbackReader.cs" />
     <Compile Include="IMediaElementManager.cs" />
     <Compile Include="IMediaManager.cs" />
@@ -47,6 +48,7 @@
     <Compile Include="IMediaStreamSource.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
+    <Compile Include="M3U8\M3U8ParserPlatformExtensions.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ByterangeTag.cs" />
     <Compile Include="M3U8\TagSupport\ExtKeyTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\ExtStreamInfTagInstance.cs" />
@@ -56,6 +58,7 @@
     <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="Playlists\IProgramManager.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />
+    <Compile Include="Playlists\ProgramManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BufferingManager.cs" />
     <Compile Include="Configuration\ConfigurationEventArgs.cs" />
@@ -96,6 +99,8 @@
     <Compile Include="M3U8\M3U8TagInstanceExtensions.cs" />
     <Compile Include="M3U8\M3U8Tags.cs" />
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
+    <Compile Include="Segments\SegmentReader.cs" />
+    <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="TsMediaParser.cs" />
     <Compile Include="H264\H256MetadataParser.cs" />
     <Compile Include="H264\H264Bitstream.cs" />
@@ -132,7 +137,6 @@
     <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="Segments\ISegmentReaderManager.cs" />
     <Compile Include="Segments\ISegment.cs" />
-    <Compile Include="Segments\SegmentManagerReaders.cs" />
     <Compile Include="Segments\SimpleSegment.cs" />
     <Compile Include="Segments\SimpleSegmentManager.cs" />
     <Compile Include="StreamBuffer.cs" />
@@ -143,7 +147,9 @@
     <Compile Include="Utility\BufferPool.cs" />
     <Compile Include="Utility\CommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
+    <Compile Include="Utility\HttpWebRequestFactory.cs" />
     <Compile Include="Utility\IBlockingPool.cs" />
+    <Compile Include="Utility\IHttpWebRequestFactory.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
     <Compile Include="Utility\IAsyncEnumerable.cs" />
     <Compile Include="Utility\IWebRequest.cs" />
@@ -151,6 +157,7 @@
     <Compile Include="Utility\PoolBufferInstance.cs" />
     <Compile Include="Utility\QueueWorker.cs" />
     <Compile Include="Utility\Retry.cs" />
+    <Compile Include="Utility\RetryPolicy.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
   </ItemGroup>
@@ -162,6 +169,15 @@
       <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.16\lib\portable-net40+sl4+win8+wp71\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Net.Http">
+      <HintPath>..\..\packages\Microsoft.Net.Http.2.1.3-beta\lib\portable-net40+sl4+win8+wp71\System.Net.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.Extensions">
+      <HintPath>..\..\packages\Microsoft.Net.Http.2.1.3-beta\lib\portable-net40+sl4+win8+wp71\System.Net.Http.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.Primitives">
+      <HintPath>..\..\packages\Microsoft.Net.Http.2.1.3-beta\lib\portable-net40+sl4+win8+wp71\System.Net.Http.Primitives.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime">
       <HintPath>..\..\packages\Microsoft.Bcl.1.0.19\lib\portable-net40+sl4+win8+wp71\System.Runtime.dll</HintPath>
     </Reference>

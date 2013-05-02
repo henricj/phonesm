@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSubProgram.cs" company="Henric Jungheim">
+//  <copyright file="M3U8ParserPlatformExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,23 +25,33 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Net;
-using SM.Media.M3U8;
+using System.IO;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using SM.Media.Utility;
 
-namespace SM.Media.Playlists
+namespace SM.Media.M3U8
 {
-    //class PlaylistSubProgram : PlaylistSubProgramBase
-    //{
-    //    protected M3U8Parser Parse(Uri playlist)
-    //    {
-    //        var parser = new M3U8Parser();
+    public static class M3U8ParserPlatformExtensions
+    {
+        public static async Task ParseAsync(this M3U8Parser parser, Uri playlist, CancellationToken cancellationToken)
+        {
+            var playlistString = await new Retry(4, 100, RetryPolicy.IsWebExceptionRetryable)
+                .CallAsync(async () =>
+                                 {
+                                     var response = await new HttpClient().GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken);
 
-    //        using (var f = new WebClient().OpenReadTaskAsync(playlist).Result)
-    //        {
-    //            parser.Parse(playlist, f);
-    //        }
+                                     response.EnsureSuccessStatusCode();
 
-    //        return parser;
-    //    }
-    //}
+                                     return await response.Content.ReadAsStringAsync();
+                                 })
+                .WithCancellation(cancellationToken);
+
+            using (var sr = new StringReader(playlistString))
+            {
+                parser.Parse(playlist, sr);
+            }
+        }
+    }
 }

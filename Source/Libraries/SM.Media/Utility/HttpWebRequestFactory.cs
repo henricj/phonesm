@@ -51,7 +51,7 @@ namespace SM.Media.Utility
             var request = WebRequest.CreateHttp(url);
 
             if (null != _userAgent)
-                request.UserAgent = _userAgent;
+                request.Headers[HttpRequestHeader.UserAgent] = _userAgent;
 
             if (null != _credentials)
                 request.Credentials = _credentials;
@@ -61,11 +61,7 @@ namespace SM.Media.Utility
 
             if (null != _referrer)
             {
-#if WINDOWS_PHONE
                 request.Headers[HttpRequestHeader.Referer] = _referrer.ToString();
-#else
-                request.Referer  = _referrer.ToString();
-#endif
             }
 
             return request;

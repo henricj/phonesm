@@ -102,7 +102,7 @@ namespace SM.Media.Segments
                     {
                         IsEof = true;
 
-                        _responseStream.Close();
+                        _responseStream.Dispose();
                         _responseStream = null;
 
                         return index;
@@ -134,11 +134,7 @@ namespace SM.Media.Segments
 
                     delay += delay;
 
-#if WINDOWS_PHONE7
                     await TaskEx.Delay(actualDelay, cancellationToken);
-#else
-                    await Task.Delay(actualDelay, cancellationToken);
-#endif
                 }
             } while (index < thresholdSize);
 
@@ -164,16 +160,12 @@ namespace SM.Media.Segments
 
             if (null != webRequest)
             {
-                webRequest.AllowReadStreamBuffering = false;
+                //webRequest.AllowReadStreamBuffering = false;
 
                 if (_startOffset >= 0 && _endOffset > 0)
                 {
-#if WINDOWS_PHONE
                     webRequest.Headers["Range"] = "bytes=" + _startOffset.ToString(CultureInfo.InvariantCulture) + "-"
                                                   + _endOffset.ToString(CultureInfo.InvariantCulture);
-#else
-                    webRequest.AddRange(_startOffset, _endOffset);
-#endif
                 }
             }
 
@@ -232,11 +224,7 @@ namespace SM.Media.Segments
 
                 Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _url, delay);
 
-#if WINDOWS_PHONE7
                 await TaskEx.Delay(delay, cancellationToken);
-#else
-                await Task.Delay(delay, cancellationToken);
-#endif
             }
 
             if (_endOffset <= 0)

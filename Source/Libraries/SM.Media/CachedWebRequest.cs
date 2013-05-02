@@ -181,11 +181,7 @@ namespace SM.Media
             {
                 if (null != _lastModified)
                 {
-#if WINDOWS_PHONE
                     hr.Headers[HttpRequestHeader.IfModifiedSince] = _lastModified;
-#else
-                    hr.IfModifiedSince = DateTime.Parse(_lastModified);
-#endif
                 }
 
                 if (null != _etag)

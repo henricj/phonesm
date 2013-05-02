@@ -29,13 +29,6 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public interface IWebRequest
-    {
-        Uri Url { get; }
-
-        Task<int> ReadAsync(byte[] buffer, int offset, int length);
-    }
-
     public interface ICachedWebRequest
     {
         Uri Url { get; }

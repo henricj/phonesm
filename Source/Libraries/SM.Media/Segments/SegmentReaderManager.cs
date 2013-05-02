@@ -79,22 +79,14 @@ namespace SM.Media.Segments
         {
             var tasks = _segmentManagers.Select(sm => sm.StartAsync());
 
-#if WINDOWS_PHONE7
             return TaskEx.WhenAll(tasks);
-#else
-            return Task.WhenAll(tasks);
-#endif
         }
 
         public Task StopAsync()
         {
             var tasks = _segmentManagers.Select(sm => sm.StopAsync());
 
-#if WINDOWS_PHONE7
             return TaskEx.WhenAll(tasks);
-#else
-            return Task.WhenAll(tasks);
-#endif
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken)
@@ -102,11 +94,7 @@ namespace SM.Media.Segments
             var tasks = _segmentManagers
                 .Select(sm => sm.SeekAsync(timestamp));
 
-#if WINDOWS_PHONE7
             var results = await TaskEx.WhenAll(tasks);
-#else
-            var results = await Task.WhenAll(tasks);
-#endif
 
             return results.Min();
         }

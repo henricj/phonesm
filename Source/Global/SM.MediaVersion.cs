@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="GlobalAssemblyInfo.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  <copyright file="SM.MediaVersion.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Reflection;
-using System.Resources;
 
 // Version information for an assembly consists of the following four values:
 //
@@ -38,5 +37,6 @@ using System.Resources;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1 alpha2")]

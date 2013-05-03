@@ -38,6 +38,9 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="..\..\Global\SM.MediaVersion.cs">
+      <Link>Properties\SM.MediaVersion.cs</Link>
+    </Compile>
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
     <Compile Include="CachedWebRequest.cs" />
@@ -132,7 +135,6 @@
     <Compile Include="Playlists\SubStream.cs" />
     <Compile Include="Playlists\SubStreamSegment.cs" />
     <Compile Include="H264\RbspDecoder.cs" />
-    <Compile Include="Properties\SM.MediaVersion.cs" />
     <Compile Include="Segments\ISegmentManager.cs" />
     <Compile Include="Segments\ISegmentReader.cs" />
     <Compile Include="Segments\ISegmentReaderManager.cs" />

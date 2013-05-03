@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Net;
 
 namespace SM.Media.Utility
@@ -51,7 +52,10 @@ namespace SM.Media.Utility
             var request = WebRequest.CreateHttp(url);
 
             if (null != _userAgent)
+            {
                 request.Headers[HttpRequestHeader.UserAgent] = _userAgent;
+                //request.UserAgent = _userAgent;
+            }
 
             if (null != _credentials)
                 request.Credentials = _credentials;
@@ -61,7 +65,15 @@ namespace SM.Media.Utility
 
             if (null != _referrer)
             {
-                request.Headers[HttpRequestHeader.Referer] = _referrer.ToString();
+                try
+                {
+                    request.Headers[HttpRequestHeader.Referer] = _referrer.ToString();
+                    //request.Referer = _referrer.ToString();
+                }
+                catch (ArgumentException e)
+                {
+                    Debug.WriteLine("How can one set the referrer when using the Microsoft.Net.Http NuGet package? :" + e);
+                }
             }
 
             return request;

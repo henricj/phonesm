@@ -55,7 +55,7 @@ namespace SM.Media.Playlists
         Task _reader;
         SubStreamSegment[] _segments;
         int _segmentsExpiration;
-        int _startSegmentIndex;
+        int _startSegmentIndex = -1;
         ICachedWebRequest _subPlaylistRequest;
 
         public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program)

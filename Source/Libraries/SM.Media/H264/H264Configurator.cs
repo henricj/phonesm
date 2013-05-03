@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="H264Configurator.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="H264Configurator.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -45,7 +46,8 @@ namespace SM.Media.H264
                   86u,
                   118u,
                   128u
-              }.OrderBy(k => k).ToArray();
+              }.OrderBy(k => k)
+               .ToArray();
 
         readonly StringBuilder _codecPrivateData = new StringBuilder();
         IEnumerable<byte> _ppsBytes;
@@ -207,13 +209,9 @@ namespace SM.Media.H264
                         if (0 != seq_scaling_matrix_present_flag)
                         {
                             if (i < 6)
-                            {
                                 ParseScalingList(r, 16);
-                            }
                             else
-                            {
                                 ParseScalingList(r, 64);
-                            }
                         }
                     }
                 }
@@ -269,6 +267,64 @@ namespace SM.Media.H264
 
             Height = (int)height;
             Width = (int)width;
+
+#if DEBUG
+            Debug.WriteLine("Configuration h.264 profile \"{0}\" level {1} {2}x{3}",
+                ProfileName(profile_idc, constraint_sets), level_idc / 10.0, width, height);
+#endif
+        }
+
+        string ProfileName(uint profile_idc, uint constraint_sets)
+        {
+            var constraint_set1 = 0 != (constraint_sets & (1 << 1));
+            var constraint_set3 = 0 != (constraint_sets & (1 << 3));
+            var constraint_set4 = 0 != (constraint_sets & (1 << 4));
+            var constraint_set5 = 0 != (constraint_sets & (1 << 5));
+
+            switch (profile_idc)
+            {
+                case 44:
+                    return "CAVLC 4:4:4 Intra";
+                case 66:
+                    return constraint_set1 ? "Constrained Baseline" : "Baseline";
+                case 88:
+                    return "Extended";
+                case 77:
+                    return "Main";
+                case 244:
+                    return constraint_set3 ? "High 4:4:4 Intra" : "High 4:4:4 Predictive";
+                case 122:
+                    return constraint_set3 ? "High 4:2:2 Intra" : "High 4:2:2";
+                case 110:
+                    return constraint_set3 ? "High 10 Intra" : "High 10";
+                case 100:
+                    if (constraint_set4 && constraint_set5)
+                        return "Constrained High";
+
+                    if (constraint_set4)
+                        return "Progressive High";
+
+                    return "High";
+            }
+
+            if (constraint_set1)
+                return "Constrained Baseline";
+
+            var sb = new StringBuilder();
+
+            sb.AppendFormat("P{0}-CS[", profile_idc);
+
+            for (var i = 0; i < 8; ++i)
+            {
+                if (0 != (constraint_sets & (1 << i)))
+                    sb.Append(i);
+                else
+                    sb.Append('.');
+            }
+
+            sb.Append(']');
+
+            return sb.ToString();
         }
     }
 }

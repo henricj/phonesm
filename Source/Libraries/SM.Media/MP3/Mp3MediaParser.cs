@@ -150,7 +150,7 @@ namespace SM.Media.MP3
 
                         // We now have an MP3 header.
 
-                        if (!_frameHeader.Parse(_bufferEntry.Buffer, _startIndex, _index - _startIndex))
+                        if (!_frameHeader.Parse(_bufferEntry.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
                         {
                             SkipInvalidFrameHeader();
 

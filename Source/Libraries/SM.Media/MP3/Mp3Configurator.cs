@@ -49,7 +49,7 @@ namespace SM.Media.MP3
             if (length < 10)
                 return false;
 
-            if (!_frameHeader.Parse(buffer, index, length))
+            if (!_frameHeader.Parse(buffer, index, length, true))
                 return false;
 
             Configure(_frameHeader);

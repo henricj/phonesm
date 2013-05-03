@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3FrameHeader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 
 namespace SM.Media.MP3
 {
@@ -79,13 +80,29 @@ namespace SM.Media.MP3
         static readonly int[] Rates = { 11025, 12000, 8000 };
         static readonly int[] VersionRateMultiplier = { 0, 4, 2, 1 };
 
+        static readonly string[] VersionName =
+        {
+            "MPEG Version 2.5",
+            "Reserved01",
+            "MPEG Version 2 (ISO/IEC 13818-3)",
+            "MPEG Version 1 (ISO/IEC 11172-3)"
+        };
+
+        static readonly string[] LayerName =
+        {
+            "Reserved00",
+            "Layer III",
+            "Layer II",
+            "Layer I"
+        };
+
         public int ChannelMode { get; set; }
         public int FrameLength { get; set; }
         public int SampleRate { get; set; }
         public int Bitrate { get; set; }
         public TimeSpan Duration { get; set; }
 
-        public bool Parse(byte[] buffer, int index, int length)
+        public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
         {
             var lastIndex = index + length;
 
@@ -126,7 +143,9 @@ namespace SM.Media.MP3
             if (0 == (versionCode & 1))
                 version = 0 == (versionCode & 2) ? 3 : 2;
 
-            var layer = 4 - ((h1 >> 1) & 3);
+            var layerCode = ((h1 >> 1) & 3);
+
+            var layer = 4 - layerCode;
 
             var crcFlag = 0 == (h1 & 1);
 
@@ -165,6 +184,13 @@ namespace SM.Media.MP3
             FrameLength = GetFrameSize(layer, bitrate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
 
+#if DEBUG
+            if (verbose)
+            {
+                Debug.WriteLine("Configuration MP3 Frame:  {0}, {1} sample {2}kHz bitrate {3}kHz channel mode {4}",
+                    VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitrate / 1000.0, channelMode);
+            }
+#endif
             return true;
         }
 

@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="Simulator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -52,8 +52,14 @@ namespace SimulatedPlayer
 
         public async Task Run()
         {
-            _programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
-            //_programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
+            _programManager = new ProgramManager
+                              {
+                                  Playlists = new[]
+                                              {
+                                                  //new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+                                                  new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
+                                              }
+                              };
 
             SM.Media.Playlists.Program program;
             ISubProgram subProgram;
@@ -65,19 +71,16 @@ namespace SimulatedPlayer
                 program = programs.Values.FirstOrDefault();
 
                 if (null == program)
-                {
                     return;
-                }
 
                 subProgram = program.SubPrograms.FirstOrDefault();
 
                 if (null == subProgram)
-                {
                     return;
-                }
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Program load failed: " + ex.Message);
                 return;
             }
 

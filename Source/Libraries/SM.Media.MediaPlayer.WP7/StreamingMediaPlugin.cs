@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="StreamingMediaPlugin.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -65,7 +65,7 @@ namespace SM.Media.MediaPlayer
         const DeliveryMethods SupportedDeliveryMethodsInternal = DeliveryMethods.Streaming;
 
         const double SupportedPlaybackRate = 1;
-        static readonly double[] SupportedRates = new[] { SupportedPlaybackRate };
+        static readonly double[] SupportedRates = { SupportedPlaybackRate };
 
         protected MediaElement MediaElement { get; set; }
 
@@ -226,8 +226,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null && MediaElement.NaturalDuration.HasTimeSpan
-                           ? MediaElement.NaturalDuration.TimeSpan
-                           : TimeSpan.Zero;
+                    ? MediaElement.NaturalDuration.TimeSpan
+                    : TimeSpan.Zero;
             }
         }
 
@@ -257,8 +257,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.LicenseAcquirer
-                           : null;
+                    ? MediaElement.LicenseAcquirer
+                    : null;
             }
             set { MediaElement.IfNotNull(i => i.LicenseAcquirer = value); }
         }
@@ -271,8 +271,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? new Size(MediaElement.NaturalVideoWidth, MediaElement.NaturalVideoHeight)
-                           : Size.Empty;
+                    ? new Size(MediaElement.NaturalVideoWidth, MediaElement.NaturalVideoHeight)
+                    : Size.Empty;
             }
         }
 
@@ -300,8 +300,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? ConvertToPlayState(MediaElement.CurrentState)
-                           : MediaPluginState.Stopped;
+                    ? ConvertToPlayState(MediaElement.CurrentState)
+                    : MediaPluginState.Stopped;
             }
         }
 
@@ -313,8 +313,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.Position
-                           : TimeSpan.Zero;
+                    ? MediaElement.Position
+                    : TimeSpan.Zero;
             }
             set
             {
@@ -351,8 +351,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.Stretch
-                           : default(Stretch);
+                    ? MediaElement.Stretch
+                    : default(Stretch);
             }
             set { MediaElement.IfNotNull(i => i.Stretch = value); }
         }
@@ -407,8 +407,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.Volume
-                           : 0;
+                    ? MediaElement.Volume
+                    : 0;
             }
             set { MediaElement.IfNotNull(i => i.Volume = value); }
         }
@@ -421,8 +421,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.DroppedFramesPerSecond
-                           : 0;
+                    ? MediaElement.DroppedFramesPerSecond
+                    : 0;
             }
         }
 
@@ -434,8 +434,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.RenderedFramesPerSecond
-                           : 0;
+                    ? MediaElement.RenderedFramesPerSecond
+                    : 0;
             }
         }
 
@@ -447,8 +447,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.BufferingProgress
-                           : default(double);
+                    ? MediaElement.BufferingProgress
+                    : default(double);
             }
         }
 
@@ -460,8 +460,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.BufferingTime
-                           : TimeSpan.Zero;
+                    ? MediaElement.BufferingTime
+                    : TimeSpan.Zero;
             }
             set { MediaElement.IfNotNull(i => i.BufferingTime = value); }
         }
@@ -490,8 +490,8 @@ namespace SM.Media.MediaPlayer
             get
             {
                 return MediaElement != null
-                           ? MediaElement.Source
-                           : null;
+                    ? MediaElement.Source
+                    : null;
             }
             set { MediaElement.IfNotNull(i => { var task = SetMediaSource(value); }); }
         }
@@ -597,8 +597,8 @@ namespace SM.Media.MediaPlayer
         /// <param name="data">User data.</param>
         /// <returns>A reference to the IAdContext that contains information about the scheduled ad.</returns>
         public IAdContext ScheduleAd(Uri adSource, DeliveryMethods deliveryMethod, TimeSpan? duration = null,
-                                     TimeSpan? startTime = null, TimeSpan? startOffset = null, Uri clickThrough = null, bool pauseTimeline = true,
-                                     IAdContext appendToAd = null, object data = null, bool isLinearClip = false)
+            TimeSpan? startTime = null, TimeSpan? startOffset = null, Uri clickThrough = null, bool pauseTimeline = true,
+            IAdContext appendToAd = null, object data = null, bool isLinearClip = false)
         {
             throw new NotImplementedException();
         }
@@ -696,9 +696,9 @@ namespace SM.Media.MediaPlayer
         }
 
         void SendLogEntry(string type, LogLevel severity = LogLevel.Information,
-                          string message = null,
-                          DateTime? timeStamp = null,
-                          IEnumerable<KeyValuePair<string, object>> extendedProperties = null)
+            string message = null,
+            DateTime? timeStamp = null,
+            IEnumerable<KeyValuePair<string, object>> extendedProperties = null)
         {
             if (LogReady != null)
             {
@@ -759,8 +759,8 @@ namespace SM.Media.MediaPlayer
             var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
 
             _mediaElementManager = new MediaElementManager(MediaElement.Dispatcher,
-                                                           () => MediaElement,
-                                                           me => { });
+                () => MediaElement,
+                me => { });
 
             var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
 

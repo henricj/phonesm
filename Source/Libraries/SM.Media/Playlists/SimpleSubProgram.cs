@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SimpleSubProgram.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,13 +32,13 @@ namespace SM.Media.Playlists
 {
     class SimpleSubProgram : SubProgram, IProgramStream
     {
-        readonly Uri[] _playlistUrl;
         static readonly IProgramStream[] NoStreams = new IProgramStream[0];
+        readonly Uri[] _playlistUrl;
         readonly ICollection<SubStreamSegment> _segments = new List<SubStreamSegment>();
 
         public SimpleSubProgram(Uri playlistUrl)
         {
-            _playlistUrl = new Uri[] { playlistUrl };
+            _playlistUrl = new[] { playlistUrl };
         }
 
         public ICollection<SubStreamSegment> Segments

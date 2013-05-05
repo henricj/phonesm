@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8AttributeParserSupport.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,11 +33,11 @@ namespace SM.Media.M3U8.AttributeSupport
     static class M3U8AttributeParserSupport
     {
         static readonly M3U8AttributeInstance[] NoAttributes = new M3U8AttributeInstance[0];
-        static readonly char[] PostEqualsChars = new[] { ',', '"' };
+        static readonly char[] PostEqualsChars = { ',', '"' };
 
         internal static IEnumerable<M3U8AttributeInstance> ParseAttributes(string value, IDictionary<string, M3U8Attribute> attributes)
         {
-            if (String.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value))
                 return NoAttributes;
 
             var lastIndex = 0;
@@ -61,10 +61,6 @@ namespace SM.Media.M3U8.AttributeSupport
                     // See section 3.2 of http://tools.ietf.org/html/draft-pantos-http-live-streaming-10
                     if ((c >= 'A' && c <= 'Z') || '-' == c)
                         sb.Append(c);
-                    else
-                    {
-                        // TODO: Complain about invalid characters?  Ignore them? 
-                    }
                 }
 
                 var attributeName = sb.ToString();
@@ -110,10 +106,6 @@ namespace SM.Media.M3U8.AttributeSupport
 
                     if (null != attributeInstance)
                         attributeInstances.Add(attributeInstance);
-                }
-                else
-                {
-                    // TODO: Make some fuss here.
                 }
             }
 

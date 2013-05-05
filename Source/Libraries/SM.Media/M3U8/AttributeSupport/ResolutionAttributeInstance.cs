@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ResolutionAttributeInstance.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ namespace SM.Media.M3U8.AttributeSupport
 {
     sealed class ResolutionAttributeInstance : M3U8AttributeInstance
     {
-        static readonly char[] ResolutionSeparator = new[] { 'x', 'X' };
+        static readonly char[] ResolutionSeparator = { 'x', 'X' };
         public readonly int X;
         public readonly int Y;
 

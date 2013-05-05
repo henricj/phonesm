@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Crc32Msb.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 
 namespace SM.TsParser.Utility
 {
-    class Crc32Msb
+    static class Crc32Msb
     {
         // MSB CRC32 Lookup for 0x04c11db7
         // x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1
@@ -95,7 +95,7 @@ namespace SM.TsParser.Utility
             0x89b8fd09, 0x8d79e0be, 0x803ac667, 0x84fbdbd0,
             0x9abc8bd5, 0x9e7d9662, 0x933eb0bb, 0x97ffad0c,
             0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668,
-            0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4,
+            0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
         };
 
         public static bool Validate(byte[] buffer, int offset, int length)
@@ -110,9 +110,7 @@ namespace SM.TsParser.Utility
             var crc32 = ~0u;
 
             for (var i = offset; i < offset + length; ++i)
-            {
                 crc32 = (crc32 << 8) ^ Crc32Table[((crc32 >> 24) ^ buffer[i]) & 0xff];
-            }
 
             return ~crc32;
         }

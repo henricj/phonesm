@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ProgramManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
@@ -36,6 +35,8 @@ namespace SM.Media.Playlists
     public class ProgramManager : ProgramManagerBase, IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
+
+        #region IProgramManager Members
 
         public IEnumerable<Uri> Playlists { get; set; }
 
@@ -58,5 +59,7 @@ namespace SM.Media.Playlists
 
             return Load(actualPlaylist, parser);
         }
+
+        #endregion
     }
 }

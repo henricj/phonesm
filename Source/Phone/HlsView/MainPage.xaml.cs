@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -58,10 +58,20 @@ namespace HlsView
             _positionSampler.Tick += OnPositionSamplerOnTick;
         }
 
-
         void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
+
+            if (null != _mediaElementManager)
+            {
+                var managerState = _tsMediaManager.State;
+
+                if (MediaElementState.Closed == state)
+                {
+                    if (TsMediaManager.MediaState.OpenMedia == managerState || TsMediaManager.MediaState.Opening == managerState || TsMediaManager.MediaState.Playing == managerState)
+                        state = MediaElementState.Opening;
+                }
+            }
 
             UpdateState(state);
         }
@@ -98,8 +108,6 @@ namespace HlsView
 
             _previousPosition = positionSample;
 
-            _tsMediaManager.ReportPosition(positionSample);
-
             if (++_positionSampleCount > 2)
             {
                 _positionSampleCount = 0;
@@ -123,8 +131,14 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            var programManager = new ProgramManager { Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") } };
-            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
+            var programManager = new ProgramManager
+                                 {
+                                     Playlists = new[]
+                                                 {
+                                                     new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+                                                     //new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                                                 }
+                                 };
 
             Program program;
             ISubProgram subProgram;
@@ -169,47 +183,68 @@ namespace HlsView
             var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
-                                                           () =>
-                                                           {
-                                                               var me = new MediaElement { Margin = new Thickness(0) };
+                () =>
+                {
+                    var me = new MediaElement { Margin = new Thickness(0) };
 
-                                                               me.MediaFailed += mediaElement1_MediaFailed;
-                                                               me.MediaEnded += mediaElement1_MediaEnded;
-                                                               me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
+                    me.MediaFailed += mediaElement1_MediaFailed;
+                    me.MediaEnded += mediaElement1_MediaEnded;
+                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
 
-                                                               ContentPanel.Children.Add(me);
+                    ContentPanel.Children.Add(me);
 
-                                                               mediaElement1 = me;
+                    mediaElement1 = me;
 
-                                                               UpdateState(MediaElementState.Opening);
+                    UpdateState(MediaElementState.Opening);
 
-                                                               return me;
-                                                           },
-                                                           me =>
-                                                           {
-                                                               if (null != me)
-                                                               {
-                                                                   Debug.Assert(ReferenceEquals(me, mediaElement1));
+                    return me;
+                },
+                me =>
+                {
+                    if (null != me)
+                    {
+                        Debug.Assert(ReferenceEquals(me, mediaElement1));
 
-                                                                   ContentPanel.Children.Remove(me);
+                        ContentPanel.Children.Remove(me);
 
-                                                                   me.MediaFailed -= mediaElement1_MediaFailed;
-                                                                   me.MediaEnded -= mediaElement1_MediaEnded;
-                                                                   me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
-                                                               }
+                        me.MediaFailed -= mediaElement1_MediaFailed;
+                        me.MediaEnded -= mediaElement1_MediaEnded;
+                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+                    }
 
-                                                               mediaElement1 = null;
+                    mediaElement1 = null;
 
-                                                               UpdateState(MediaElementState.Closed);
-                                                           });
+                    UpdateState(MediaElementState.Closed);
+                });
 
             var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager , _mediaElementManager, mm => new TsMediaStreamSource(mm));
+            if (null != _tsMediaManager)
+                _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
+
+            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, mm => new TsMediaStreamSource(mm));
+
+            _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
 
             _tsMediaManager.Play(segmentReaderManager);
 
             _positionSampler.Start();
+        }
+
+        void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        {
+            Dispatcher.InvokeAsync(() =>
+                                   {
+                                       var message = tsMediaManagerStateEventArgs.Message;
+
+                                       if (!string.IsNullOrWhiteSpace(message))
+                                       {
+                                           errorBox.Text = message;
+                                           errorBox.Visibility = Visibility.Visible;
+                                       }
+
+                                       mediaElement1_CurrentStateChanged(null, null);
+                                   });
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -256,7 +291,10 @@ namespace HlsView
             CleanupMedia();
 
             if (null != _mediaElementManager)
-                _mediaElementManager.Close().Wait();
+            {
+                _mediaElementManager.Close()
+                                    .Wait();
+            }
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -264,7 +302,10 @@ namespace HlsView
             base.OnNavigatedTo(e);
 
             if (null != _mediaElementManager)
-                _mediaElementManager.Close().Wait();
+            {
+                _mediaElementManager.Close()
+                                    .Wait();
+            }
         }
 
         void plusButton_Click(object sender, RoutedEventArgs e)

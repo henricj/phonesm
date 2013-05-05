@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -82,6 +82,8 @@ namespace SM.Media.Segments
         {
             var index = 0;
             var thresholdSize = length - length / 4;
+            var retryCount = 3;
+            var delay = 200;
 
             do
             {
@@ -90,8 +92,6 @@ namespace SM.Media.Segments
 
                 Debug.Assert(null != _responseStream);
 
-                var retryCount = 3;
-                var delay = 200;
                 var retry = false;
 
                 try
@@ -165,7 +165,7 @@ namespace SM.Media.Segments
                 if (_startOffset >= 0 && _endOffset > 0)
                 {
                     webRequest.Headers["Range"] = "bytes=" + _startOffset.ToString(CultureInfo.InvariantCulture) + "-"
-                                                  + _endOffset.ToString(CultureInfo.InvariantCulture);
+                        + _endOffset.ToString(CultureInfo.InvariantCulture);
                 }
             }
 
@@ -174,20 +174,20 @@ namespace SM.Media.Segments
 
         async Task<Stream> OpenStream(CancellationToken cancellationToken)
         {
-            var notFoundRetry = 4;
+            var notFoundRetry = 2;
 
             for (; ; )
             {
                 try
                 {
                     _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
-                                          .CallAsync(async () =>
-                                                           {
-                                                               var webRequest = CreateWebRequest();
+                        .CallAsync(async () =>
+                                         {
+                                             var webRequest = CreateWebRequest();
 
-                                                               return await webRequest.GetResponseAsync();
-                                                           })
-                                          .WithCancellation(cancellationToken);
+                                             return await webRequest.GetResponseAsync();
+                                         })
+                        .WithCancellation(cancellationToken);
 
                     break;
                 }
@@ -218,9 +218,7 @@ namespace SM.Media.Segments
                 var duration = _segment.Duration;
 
                 if (duration.HasValue)
-                {
                     delay = TimeSpan.FromTicks(duration.Value.Ticks / 2);
-                }
 
                 Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _url, delay);
 

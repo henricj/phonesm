@@ -204,15 +204,15 @@ namespace SM.Media
             {
                 update(size, timestamp);
 
-                UnlockedReport();
+                UnlockedReport(false);
 
                 //Debug.WriteLine("Report Sample({0}, {1}) blockReads {2} => {3} ({4})", size, timestamp, wasBlock, _blockReads, DateTimeOffset.Now);
             }
         }
 
-        void UnlockedReport()
+        void UnlockedReport(bool isExhausted)
         {
-            var shouldBlock = UpdateState();
+            var shouldBlock = UpdateState(isExhausted);
 
             if (shouldBlock != _blockReads)
             {
@@ -230,7 +230,7 @@ namespace SM.Media
             {
                 update();
 
-                UnlockedReport();
+                UnlockedReport(true);
             }
         }
 
@@ -242,7 +242,7 @@ namespace SM.Media
             {
                 update();
 
-                UnlockedReport();
+                UnlockedReport(false);
             }
         }
 
@@ -252,7 +252,7 @@ namespace SM.Media
             {
                 update();
 
-                UnlockedReport();
+                UnlockedReport(false);
             }
         }
 
@@ -268,7 +268,7 @@ namespace SM.Media
             ReportBuffering(0);
         }
 
-        bool UpdateState()
+        bool UpdateState(bool isExhausted)
         {
             var newest = TimeSpan.MinValue;
             var oldest = TimeSpan.MaxValue;
@@ -351,7 +351,7 @@ namespace SM.Media
             else
             {
                 //if (validData && 0 == lowestCount && timestampDifference < BufferDurationEnableThreshold && totalBuffered < BufferSizeStartBuffering)
-                if (!allDone && (!validData || 0 == highestCount))
+                if (!allDone && isExhausted && (!validData || 0 == highestCount))
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
 

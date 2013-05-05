@@ -48,6 +48,7 @@ namespace SM.Media
         readonly IBufferingQueue _bufferingQueue;
         int _isDisposed;
         bool _isDone;
+        double _bufferingProgress;
 
 #if DEBUG
         static int _streamBufferCounter;
@@ -118,14 +119,28 @@ namespace SM.Media
             {
                 lock (_packetsLock)
                 {
+                    if (null != _bufferingManager && _bufferingManager.IsBuffering)
+                    {
+                        var bufferingProgress = _bufferingManager.BufferingProgress;
+
+                        if (_bufferingProgress != bufferingProgress)
+                        {
+                            if (null != _progressHandler)
+                                _progressHandler(bufferingProgress);
+
+                            _bufferingProgress = bufferingProgress;
+                        }
+
+                        RequestNextSample();
+
+                        return;
+                    }
+
                     if (_packets.Count < 1)
                     {
                         // Keep returning null packets if we are done.
                         if (!_isDone)
                         {
-                            if (null != _bufferingManager && _bufferingManager.IsBuffering && null != _progressHandler)
-                                _progressHandler(_bufferingManager.BufferingProgress);
-
                             RequestNextSample();
 
                             ReportExhaustion();

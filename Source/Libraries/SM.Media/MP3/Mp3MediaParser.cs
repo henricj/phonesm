@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3MediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,6 @@ namespace SM.Media.MP3
     public sealed class Mp3MediaParser : IMediaParser
     {
         readonly IBufferPool _bufferPool;
-        readonly IBufferingManager _bufferingManager;
         readonly Mp3Configurator _configurator;
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly MediaStream _mediaStream;
@@ -53,13 +52,11 @@ namespace SM.Media.MP3
             if (null == bufferPool)
                 throw new ArgumentNullException("bufferPool");
 
-            _bufferingManager = bufferingManager;
-
             _bufferPool = bufferPool;
 
             _packetPool = new TsPesPacketPool(_bufferPool.Free);
 
-            _streamBuffer = new StreamBuffer(_packetPool.FreePesPacket, _bufferingManager);
+            _streamBuffer = new StreamBuffer(_packetPool.FreePesPacket, bufferingManager);
 
             _configurator = new Mp3Configurator();
 
@@ -99,11 +96,6 @@ namespace SM.Media.MP3
         public bool EnableProcessing { get; set; }
         public TimeSpan StartPosition { get; set; }
 
-        public void ReportPosition(TimeSpan position)
-        {
-            _bufferingManager.ReportPosition(position);
-        }
-
         public void Initialize()
         { }
 
@@ -141,9 +133,7 @@ namespace SM.Media.MP3
                             _index = _startIndex;
                     }
                     else if (2 == storedLength)
-                    {
                         _bufferEntry.Buffer[_index++] = data;
-                    }
                     else if (3 == storedLength)
                     {
                         _bufferEntry.Buffer[_index++] = data;
@@ -244,7 +234,7 @@ namespace SM.Media.MP3
                 _index = _startIndex + 3;
             }
             else if (0xff == _bufferEntry.Buffer[_startIndex + 2] &&
-                     0xe0 == (0xe0 & _bufferEntry.Buffer[_startIndex + 3]))
+                0xe0 == (0xe0 & _bufferEntry.Buffer[_startIndex + 3]))
             {
                 // _bufferEntry.Buffer[_startIndex] is already 0xff
                 _bufferEntry.Buffer[_startIndex + 1] = _bufferEntry.Buffer[_startIndex + 3];

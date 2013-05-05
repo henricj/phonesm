@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SimulatedMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -59,9 +59,6 @@ namespace SimulatedPlayer
             { }
         }
 
-        public void ReportProgress(double bufferingProgress)
-        { }
-
         public void Configure(MediaConfiguration configuration)
         {
             lock (_lock)
@@ -71,7 +68,7 @@ namespace SimulatedPlayer
                     _mediaStreams.Add(configuration.VideoStream);
 
                     var streamType = _mediaStreams.Count - 1;
-                    configuration.VideoStream.SetSink(sample => StreamSampleHandler(streamType, sample));
+                    configuration.VideoStream.SetSink(sample => StreamSampleHandler(streamType, sample), ReportProgress);
                 }
 
                 if (null != configuration.AudioConfiguration)
@@ -79,7 +76,7 @@ namespace SimulatedPlayer
                     _mediaStreams.Add(configuration.AudioStream);
 
                     var streamType = _mediaStreams.Count - 1;
-                    configuration.AudioStream.SetSink(sample => StreamSampleHandler(streamType, sample));
+                    configuration.AudioStream.SetSink(sample => StreamSampleHandler(streamType, sample), ReportProgress);
                 }
             }
 
@@ -108,34 +105,33 @@ namespace SimulatedPlayer
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
 
             _commandWorker.SendCommand(new CommandWorker.Command(
-                                           async () =>
-                                           {
-                                               if (_isClosed)
-                                                   return;
+                async () =>
+                {
+                    if (_isClosed)
+                        return;
 
-                                               var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
+                    var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
 
-                                               if (_isClosed)
-                                                   return;
+                    if (_isClosed)
+                        return;
 
-                                               _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
-                                               _mediaElement.ReportSeekCompleted(position.Ticks);
+                    _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                    _mediaElement.ReportSeekCompleted(position.Ticks);
 
+                    CommandWorker.Command[] pendingGets;
 
-                                               CommandWorker.Command[] pendingGets;
+                    lock (_stateLock)
+                    {
+                        pendingGets = _pendingGets.ToArray();
 
-                                               lock (_stateLock)
-                                               {
-                                                   pendingGets = _pendingGets.ToArray();
+                        _pendingGets.Clear();
 
-                                                   _pendingGets.Clear();
+                        _state = State.Play;
+                    }
 
-                                                   _state = State.Play;
-                                               }
-
-                                               foreach (var getCmd in pendingGets)
-                                                   _commandWorker.SendCommand(getCmd);
-                                           }));
+                    foreach (var getCmd in pendingGets)
+                        _commandWorker.SendCommand(getCmd);
+                }));
         }
 
         public void GetSampleAsync(int streamType)
@@ -202,6 +198,9 @@ namespace SimulatedPlayer
 
         #endregion
 
+        public void ReportProgress(double bufferingProgress)
+        { }
+
         void StreamSampleHandler(int streamType, IStreamSample sample)
         {
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
@@ -226,5 +225,5 @@ namespace SimulatedPlayer
         }
 
         #endregion
-            }
-            }
+    }
+}

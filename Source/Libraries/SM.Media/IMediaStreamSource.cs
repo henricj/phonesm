@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,7 +45,6 @@ namespace SM.Media
     {
         TimeSpan? SeekTarget { get; set; }
         Task CloseAsync();
-        void ReportProgress(double bufferingProgress);
         void Configure(MediaConfiguration configuration);
     }
 }

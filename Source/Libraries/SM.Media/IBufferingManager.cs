@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IBufferingManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,11 +30,9 @@ namespace SM.Media
 {
     public interface IBufferingManager
     {
-        TimeSpan BufferPosition { get; }
-        TimeSpan BufferDuration { get; }
+        double BufferingProgress { get; }
         bool IsBuffering { get; }
         IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
-        void ReportPosition(TimeSpan playbackPosition);
         void Flush();
         bool IsSeekAlreadyBuffered(TimeSpan position);
     }
@@ -50,7 +48,8 @@ namespace SM.Media
 
     public interface IManagedBuffer
     {
-        void Flush();
         TimeSpan TimestampOffset { get; }
+        void CheckBuffer();
+        void Flush();
     }
 }

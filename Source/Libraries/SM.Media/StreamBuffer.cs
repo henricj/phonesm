@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="StreamBuffer.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,6 +41,7 @@ namespace SM.Media
         readonly PesStream _pesStream = new PesStream();
         readonly StreamSample _streamSample = new StreamSample();
         Action<IStreamSample> _streamSampleHandler;
+        Action<double> _progressHandler;
         readonly Action<TsPesPacket> _freePesPacket;
         int _nextSampleRequested;
         readonly IBufferingManager _bufferingManager;
@@ -99,26 +100,17 @@ namespace SM.Media
 
         #region IStreamSource Members
 
-        public void SetSink(Action<IStreamSample> streamSampleHandler)
+        public void SetSink(Action<IStreamSample> streamSampleHandler, Action<double> progressHandler)
         {
             _streamSampleHandler = streamSampleHandler;
+            _progressHandler = progressHandler;
         }
 
-        public bool GetNextSample()
+        public void GetNextSample()
         {
             //Debug.WriteLine("StreamBuffer.GetNextSample()");
 
             ThrowIfDisposed();
-
-            if (null != _bufferingManager)
-            {
-                if (_bufferingManager.IsBuffering)
-                {
-                    RequestNextSample();
-
-                    return false;
-                }
-            }
 
             TsPesPacket packet = null;
 
@@ -131,44 +123,45 @@ namespace SM.Media
                         // Keep returning null packets if we are done.
                         if (!_isDone)
                         {
+                            if (null != _bufferingManager && _bufferingManager.IsBuffering && null != _progressHandler)
+                                _progressHandler(_bufferingManager.BufferingProgress);
+
                             RequestNextSample();
 
                             ReportExhaustion();
 
-                            return false;
+                            return;
                         }
                     }
                     else
                         packet = _packets.Dequeue();
                 }
 
-                if (null != _streamSampleHandler)
+                if (null == _streamSampleHandler)
+                    return;
+
+                if (null == packet)
                 {
-                    if (null == packet)
-                    {
-                        //Debug.WriteLine("StreamBuffer {0} forwarding null sample", _streamBufferId);
+                    //Debug.WriteLine("StreamBuffer {0} forwarding null sample", _streamBufferId);
 
-                        // Propagate end-of-stream
-                        _streamSampleHandler(null);
-                    }
-                    else
-                    {
-                        _pesStream.Packet = packet;
+                    // Propagate end-of-stream
+                    _streamSampleHandler(null);
+                }
+                else
+                {
+                    _pesStream.Packet = packet;
 
-                        ReportDequeue(packet.Length, packet.Timestamp);
+                    ReportDequeue(packet.Length, packet.Timestamp);
 
-                        _streamSample.Timestamp = packet.Timestamp - TimestampOffset;
+                    _streamSample.Timestamp = packet.Timestamp - TimestampOffset;
 
 #if DEBUG
-                        //Debug.WriteLine("StreamBuffer {0} forwarding sample {1}", _streamBufferId, _streamSample.Timestamp);
+                    //Debug.WriteLine("StreamBuffer {0} forwarding sample {1}", _streamBufferId, _streamSample.Timestamp);
 #endif
 
-                        _streamSampleHandler(_streamSample);
+                    _streamSampleHandler(_streamSample);
 
-                        _pesStream.Packet = null;
-
-                        return true;
-                    }
+                    _pesStream.Packet = null;
                 }
             }
             catch (Exception ex)
@@ -184,8 +177,6 @@ namespace SM.Media
                 ThrowIfDisposed();
 #endif
             }
-
-            return false;
         }
 
         void RequestNextSample()
@@ -202,22 +193,6 @@ namespace SM.Media
                 {
                     return _packets.Count > 0;
                 }
-            }
-        }
-
-        public bool IfPending(Action action)
-        {
-            if (0 == Interlocked.Exchange(ref _nextSampleRequested, 0))
-                return false;
-
-            try
-            {
-                action();
-                return true;
-            }
-            finally
-            {
-                RequestNextSample();
             }
         }
 
@@ -273,6 +248,17 @@ namespace SM.Media
             rb.ReportDone();
         }
 
+        public void CheckBuffer()
+        {
+            ThrowIfDisposed();
+
+            CheckGetNextSample();
+
+#if DEBUG
+            ThrowIfDisposed();
+#endif
+        }
+
         public void Enqueue(TsPesPacket packet)
         {
             ThrowIfDisposed();
@@ -290,15 +276,20 @@ namespace SM.Media
                 }
             }
 
+            CheckGetNextSample();
+
+#if DEBUG
+            ThrowIfDisposed();
+#endif
+        }
+
+        void CheckGetNextSample()
+        {
             if (0 != Interlocked.Exchange(ref _nextSampleRequested, 0))
             {
                 //Debug.WriteLine("Calling deferred GetNextSample");
                 GetNextSample();
             }
-
-#if DEBUG
-            ThrowIfDisposed();
-#endif
         }
 
         #region Nested type: StreamSample

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -175,15 +175,6 @@ namespace SM.Media
         public void Resume()
         { }
 
-        public void ReportPosition(TimeSpan position)
-        {
-            if (null == _readers)
-                return;
-
-            foreach (var reader in _readers)
-                reader.MediaParser.ReportPosition(position);
-        }
-
         public TimeSpan? SeekTarget
         {
             get { return _mediaStreamSource.SeekTarget; }
@@ -297,7 +288,7 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = new BufferingManager(reader.QueueWorker, value => SendBufferingProgress(value, reader));
+            reader.BufferingManager = new BufferingManager(reader.QueueWorker);
 
             await startReaderTask;
 
@@ -343,18 +334,6 @@ namespace SM.Media
             return reader;
         }
 
-        void SendBufferingProgress(double value, ReaderPipeline reader)
-        {
-            lock (_progressLock)
-            {
-                reader.BufferingProgress = value;
-
-                var progress = _readers.Min(r => r.BufferingProgress);
-
-                _mediaStreamSource.ReportProgress(progress);
-            }
-        }
-
         void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)
         {
             _commandWorker.SendCommand(
@@ -368,8 +347,6 @@ namespace SM.Media
 
         void ConfigurationComplete(ConfigurationEventArgs eventArgs, ReaderPipeline reader)
         {
-            Debug.Assert(null == reader.ConfigurationEventArgs);
-
             ++reader.CompletedStreamCount;
 
             _configurationEvents.Enqueue(eventArgs);
@@ -564,10 +541,8 @@ namespace SM.Media
         {
             public BlockingPool<WorkBuffer> BlockingPool;
             public IBufferingManager BufferingManager;
-            public double BufferingProgress;
             public CallbackReader CallbackReader;
             public int CompletedStreamCount;
-            public ConfigurationEventArgs ConfigurationEventArgs;
             public int ExpectedStreamCount;
             public IMediaParser MediaParser;
             public QueueWorker<WorkBuffer> QueueWorker;

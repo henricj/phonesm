@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,9 +49,6 @@ namespace SM.Media
         readonly object _streamConfigurationLock = new object();
         MediaStreamDescription _audioStreamDescription;
         IStreamSource _audioStreamSource;
-        double _bufferingProgress = 1;
-        bool _bufferingProgressDirty;
-        bool _bufferingReportPending;
         bool _isClosed;
         int _isDisposed;
         TimeSpan? _seekTarget;
@@ -109,7 +106,8 @@ namespace SM.Media
 
             _isClosed = true;
 
-            _commandWorker.CloseAsync().Wait();
+            _commandWorker.CloseAsync()
+                          .Wait();
         }
 
         public void Configure(MediaConfiguration configuration)
@@ -123,17 +121,6 @@ namespace SM.Media
             lock (_streamConfigurationLock)
             {
                 CompleteConfigure(configuration.Duration);
-            }
-        }
-
-        public void ReportProgress(double bufferingProgress)
-        {
-            lock (_stateLock)
-            {
-                _bufferingProgress = bufferingProgress;
-                _bufferingProgressDirty = true;
-
-                UnlockedReportProgress();
             }
         }
 
@@ -187,50 +174,6 @@ namespace SM.Media
                 _commandWorker.SendCommand(getCmd);
         }
 
-        void CheckPendingBufferingProgress()
-        {
-            lock (_stateLock)
-            {
-                UnlockedReportProgress();
-            }
-        }
-
-        void UnlockedReportProgress()
-        {
-            if (_bufferingReportPending || !_bufferingProgressDirty)
-                return;
-
-            _bufferingReportPending = true;
-
-            _commandWorker.SendCommand(new CommandWorker.Command(
-                                           () =>
-                                           {
-                                               if (null != _videoStreamSource)
-                                               {
-                                                   if (_videoStreamSource.IfPending(ReportSampleProgress))
-                                                       return null;
-                                               }
-
-                                               if (null != _audioStreamSource)
-                                               {
-                                                   if (_audioStreamSource.IfPending(ReportSampleProgress))
-                                                       return null;
-                                               }
-
-                                               return null;
-                                           }));
-        }
-
-        void ReportSampleProgress()
-        {
-            var value = _bufferingProgress;
-
-            _bufferingProgressDirty = false;
-
-            Debug.WriteLine("TsMediaStreamSource.UnlockedReportProgress: ReportGetSampleProgress({0})", value);
-            ReportGetSampleProgress(value);
-        }
-
         void ThrowIfDisposed()
         {
             if (0 == _isDisposed)
@@ -272,7 +215,7 @@ namespace SM.Media
 
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
         {
-            videoSource.SetSink(streamSample => StreamSampleHandler(streamSample, _videoStreamDescription, VideoStreamFlag));
+            videoSource.SetSink(streamSample => StreamSampleHandler(streamSample, _videoStreamDescription, VideoStreamFlag), ReportGetSampleProgress);
 
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
@@ -297,7 +240,7 @@ namespace SM.Media
 
         void ConfigureAudioStream(IAudioConfigurationSource configurationSource, IStreamSource audioSource)
         {
-            audioSource.SetSink(streamSample => StreamSampleHandler(streamSample, _audioStreamDescription, AudioStreamFlag));
+            audioSource.SetSink(streamSample => StreamSampleHandler(streamSample, _audioStreamDescription, AudioStreamFlag), ReportGetSampleProgress);
 
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
@@ -381,22 +324,22 @@ namespace SM.Media
             mediaSourceAttributes[MediaSourceAttributesKeys.CanSeek] = canSeek.ToString();
 
             _commandWorker.SendCommand(new CommandWorker.Command(
-                                           () =>
-                                           {
-                                               Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
+                () =>
+                {
+                    Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
 
-                                               foreach (var kv in mediaSourceAttributes)
-                                                   Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
+                    foreach (var kv in mediaSourceAttributes)
+                        Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
 
-                                               _mediaManager.ValidateEvent(canSeek
-                                                                               ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
-                                                                               : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
-                                               ReportOpenMediaCompleted(mediaSourceAttributes, msd);
+                    _mediaManager.ValidateEvent(canSeek
+                        ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
+                        : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
+                    ReportOpenMediaCompleted(mediaSourceAttributes, msd);
 
-                                               State = canSeek ? SourceState.Seek : SourceState.Play;
+                    State = canSeek ? SourceState.Seek : SourceState.Play;
 
-                                               return null;
-                                           }));
+                    return null;
+                }));
 
             //ReportGetSampleProgress(0);
         }
@@ -445,23 +388,23 @@ namespace SM.Media
             State = SourceState.Seek;
 
             _commandWorker.SendCommand(new CommandWorker.Command(
-                                           async () =>
-                                           {
-                                               if (_isClosed)
-                                                   return;
+                async () =>
+                {
+                    if (_isClosed)
+                        return;
 
-                                               var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
+                    var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
 
-                                               if (_isClosed)
-                                                   return;
+                    if (_isClosed)
+                        return;
 
-                                               _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
-                                               ReportSeekCompleted(position.Ticks);
+                    _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                    ReportSeekCompleted(position.Ticks);
 
-                                               Debug.WriteLine("TsMediaStreamSource.SeekAsync({0}) completed, actual: {1}", seekTimestamp, position);
+                    Debug.WriteLine("TsMediaStreamSource.SeekAsync({0}) completed, actual: {1}", seekTimestamp, position);
 
-                                               State = SourceState.Play;
-                                           }));
+                    State = SourceState.Play;
+                }));
         }
 
         /// <summary>
@@ -534,12 +477,7 @@ namespace SM.Media
                         return null;
                     }
 
-                    if (!streamSource.GetNextSample())
-                    {
-                        // Since we couldn't feed MediaElement a sample, let's see if we can tell it about buffering.
-
-                        CheckPendingBufferingProgress();
-                    }
+                    streamSource.GetNextSample();
 
                     return null;
                 });

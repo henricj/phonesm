@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="BufferingManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,83 +45,17 @@ namespace SM.Media
         readonly object _lock = new object();
         readonly IQueueThrottling _queueThrottling;
         readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
-        readonly Action<double> _reportBuffering;
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
+        double _bufferingProgress;
         volatile int _isBuffering = 1;
-        TimeSpan? _playbackPosition;
 
-        public BufferingManager(IQueueThrottling queueThrottling, Action<double> reportBuffering)
+        public BufferingManager(IQueueThrottling queueThrottling)
         {
             if (null == queueThrottling)
                 throw new ArgumentNullException("queueThrottling");
 
             _queueThrottling = queueThrottling;
-            _reportBuffering = reportBuffering;
-        }
-
-        #region IBufferingManager Members
-
-        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
-        {
-            if (null == managedBuffer)
-                throw new ArgumentNullException("managedBuffer");
-
-            var queue = new BufferingQueue(this, managedBuffer);
-
-            lock (_lock)
-            {
-                _queues.Add(queue);
-            }
-
-            return queue;
-        }
-
-        public void ReportPosition(TimeSpan playbackPosition)
-        {
-            lock (_lock)
-            {
-                _playbackPosition = playbackPosition;
-
-                //UnlockedReport();
-            }
-        }
-
-        public void Flush()
-        {
-            BufferingQueue[] queues;
-
-            lock (_lock)
-            {
-                queues = _queues.ToArray();
-            }
-
-            foreach (var queue in queues)
-                queue.Flush();
-        }
-
-        public bool IsSeekAlreadyBuffered(TimeSpan position)
-        {
-            lock (_lock)
-            {
-                foreach (var queue in _queues)
-                {
-                    // We'll ignore the "IsValid" flag for now.  The Oldest/Newest
-                    // will either be the last known values or TimeSpan.Zero.  In
-                    // either case, they should work for checking the supplied
-                    // position.
-                    //if (!queue.IsValid)
-                    //    return TimeSpan.Zero == position;
-
-                    if (position < queue.Oldest - SeekBeginTolerance)
-                        return false;
-
-                    if (position > queue.Newest + SeekEndTolerance)
-                        return false;
-                }
-            }
-
-            return true;
         }
 
         public TimeSpan BufferPosition
@@ -190,9 +124,74 @@ namespace SM.Media
             }
         }
 
+        #region IBufferingManager Members
+
+        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
+        {
+            if (null == managedBuffer)
+                throw new ArgumentNullException("managedBuffer");
+
+            var queue = new BufferingQueue(this, managedBuffer);
+
+            lock (_lock)
+            {
+                _queues.Add(queue);
+            }
+
+            return queue;
+        }
+
+        public void Flush()
+        {
+            BufferingQueue[] queues;
+
+            lock (_lock)
+            {
+                queues = _queues.ToArray();
+            }
+
+            foreach (var queue in queues)
+                queue.Flush();
+        }
+
+        public bool IsSeekAlreadyBuffered(TimeSpan position)
+        {
+            lock (_lock)
+            {
+                foreach (var queue in _queues)
+                {
+                    // We'll ignore the "IsValid" flag for now.  The Oldest/Newest
+                    // will either be the last known values or TimeSpan.Zero.  In
+                    // either case, they should work for checking the supplied
+                    // position.
+                    //if (!queue.IsValid)
+                    //    return TimeSpan.Zero == position;
+
+                    if (position < queue.Oldest - SeekBeginTolerance)
+                        return false;
+
+                    if (position > queue.Newest + SeekEndTolerance)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         public bool IsBuffering
         {
             get { return 0 != _isBuffering; }
+        }
+
+        public double BufferingProgress
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _bufferingProgress;
+                }
+            }
         }
 
         #endregion
@@ -414,8 +413,10 @@ namespace SM.Media
 
         void ReportBuffering(double bufferingProgress)
         {
-            if (null != _reportBuffering)
-                _reportBuffering(bufferingProgress);
+            _bufferingProgress = bufferingProgress;
+
+            foreach (var queue in _queues)
+                queue.CheckBuffer();
         }
 
         void HandleStateChange()
@@ -552,6 +553,11 @@ namespace SM.Media
                     _newestPacket = timestamp;
                     _firstPacket = true;
                 }
+            }
+
+            public void CheckBuffer()
+            {
+                _managedBuffer.CheckBuffer();
             }
         }
 

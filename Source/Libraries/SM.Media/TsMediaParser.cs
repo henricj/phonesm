@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -98,11 +98,6 @@ namespace SM.Media
             get { return _tsDecoder; }
         }
 
-        public TimeSpan BufferPosition
-        {
-            get { return _bufferingManager.BufferPosition; }
-        }
-
         #region IMediaParser Members
 
         public TimeSpan StartPosition { get; set; }
@@ -148,11 +143,6 @@ namespace SM.Media
         public void ProcessData(byte[] buffer, int length)
         {
             _tsDecoder.Parse(buffer, 0, length);
-        }
-
-        public void ReportPosition(TimeSpan position)
-        {
-            _bufferingManager.ReportPosition(position);
         }
 
         #endregion
@@ -214,39 +204,37 @@ namespace SM.Media
             var gotFirstPacket = false;
 
             var ms = streamHandlerFactory(pid, streamType, streamBuffer,
-                                          packet =>
-                                          {
-                                              if (null != packet)
-                                              {
-                                                  if (!gotFirstPacket)
-                                                  {
-                                                      gotFirstPacket = true;
+                packet =>
+                {
+                    if (null != packet)
+                    {
+                        if (!gotFirstPacket)
+                        {
+                            gotFirstPacket = true;
 
-                                                      var startPosition = StartPosition;
+                            var startPosition = StartPosition;
 
-                                                      Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.Timestamp);
+                            Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.Timestamp);
 
-                                                      var timestampOffset = packet.Timestamp - startPosition;
+                            var timestampOffset = packet.Timestamp - startPosition;
 
-                                                      if (!_timestampOffset.HasValue || timestampOffset < _timestampOffset)
-                                                      {
-                                                          _timestampOffset = timestampOffset;
+                            if (!_timestampOffset.HasValue || timestampOffset < _timestampOffset)
+                            {
+                                _timestampOffset = timestampOffset;
 
-                                                          lock (_mediaStreamsLock)
-                                                          {
-                                                              foreach (var timestampOffsetHandler in _timestampOffsetHandlers)
-                                                              {
-                                                                  timestampOffsetHandler(timestampOffset);
-                                                              }
-                                                          }
-                                                      }
-                                                  }
+                                lock (_mediaStreamsLock)
+                                {
+                                    foreach (var timestampOffsetHandler in _timestampOffsetHandlers)
+                                        timestampOffsetHandler(timestampOffset);
+                                }
+                            }
+                        }
 
-                                                  Debug.Assert(packet.Timestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.Timestamp, StartPosition, packet.Timestamp >= StartPosition));
-                                              }
+                        Debug.Assert(packet.Timestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.Timestamp, StartPosition, packet.Timestamp >= StartPosition));
+                    }
 
-                                              streamBuffer.Enqueue(packet);
-                                          });
+                    streamBuffer.Enqueue(packet);
+                });
 
             AddMediaStream(ms);
 

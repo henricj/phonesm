@@ -44,7 +44,7 @@ namespace SM.Media.MP3
         TimeSpan? _position;
         int _startIndex;
 
-        public Mp3MediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool)
+        public Mp3MediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
@@ -56,7 +56,7 @@ namespace SM.Media.MP3
 
             _packetPool = new TsPesPacketPool(_bufferPool.Free);
 
-            _streamBuffer = new StreamBuffer(_packetPool.FreePesPacket, bufferingManager);
+            _streamBuffer = new StreamBuffer(_packetPool.FreePesPacket, bufferingManager, checkForSamples);
 
             _configurator = new Mp3Configurator();
 

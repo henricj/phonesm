@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SimulatedMediaElementManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,7 +36,7 @@ namespace SimulatedPlayer
 {
     sealed class SimulatedMediaElementManager : IMediaElementManager, ISimulatedMediaElement, IDisposable
     {
-        readonly CommandWorker _commandWorker = new CommandWorker();
+        readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
         readonly object _lock = new object();
         readonly RandomNumbers _random = new RandomNumbers();
         readonly Dictionary<int, SampleState> _streams = new Dictionary<int, SampleState>();
@@ -60,6 +60,11 @@ namespace SimulatedPlayer
 
         #region IMediaElementManager Members
 
+        Task IMediaElementManager.Close()
+        {
+            return Close();
+        }
+
         Task IMediaElementManager.Dispatch(Action action)
         {
             return Dispatch(action);
@@ -68,11 +73,6 @@ namespace SimulatedPlayer
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
         {
             _mediaStreamFsm.ValidateEvent(mediaEvent);
-        }
-
-        Task IMediaElementManager.Close()
-        {
-            return Close();
         }
 
         Task IMediaElementManager.SetSource(IMediaStreamSource source)
@@ -86,7 +86,7 @@ namespace SimulatedPlayer
 
         public void ReportOpenMediaCompleted()
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(PlayMedia));
+            _commandWorker.SendCommand(new WorkCommand(PlayMedia));
         }
 
         public void ReportSeekCompleted(long ticks)
@@ -116,7 +116,11 @@ namespace SimulatedPlayer
 
                 if (!_streams.TryGetValue(streamType, out sampleState))
                 {
-                    sampleState = new SampleState { IsPending = false, Timestamp = timestamp };
+                    sampleState = new SampleState
+                                  {
+                                      IsPending = false,
+                                      Timestamp = timestamp
+                                  };
 
                     _streams[streamType] = sampleState;
                 }
@@ -150,6 +154,7 @@ namespace SimulatedPlayer
             }
 
             if (oldestIndex >= 0)
+            {
                 Task.Run(async () =>
                                {
                                    await Task.Delay((int)(10 * (1 + _random.GetRandomNumber())));
@@ -159,6 +164,14 @@ namespace SimulatedPlayer
                                    if (null != mediaStreamSource)
                                        mediaStreamSource.GetSampleAsync(oldestIndex);
                                });
+            }
+        }
+
+        void ISimulatedMediaElement.ErrorOccurred(string message)
+        {
+            Debug.WriteLine("SimulatedMediaElement.ErrorOccurred({0})", message);
+
+            var task = Close();
         }
 
         #endregion
@@ -169,7 +182,7 @@ namespace SimulatedPlayer
 
             _mediaStreamSource = (ISimulatedMediaStreamSource)source;
 
-            _commandWorker.SendCommand(new CommandWorker.Command(OpenMedia));
+            _commandWorker.SendCommand(new WorkCommand(OpenMedia));
 
             return TplTaskExtensions.CompletedTask;
         }
@@ -177,9 +190,7 @@ namespace SimulatedPlayer
         public Task Close()
         {
             if (null != _mediaStreamSource)
-            {
                 _mediaStreamSource.Dispose();
-            }
 
             _mediaStreamSource = null;
 

@@ -51,7 +51,8 @@ namespace TsDump
 
             try
             {
-                using (var parser = new SM.Media.TsMediaParser(null, (pid, streamType) => new PesStreamCopyHandler(pid, streamType, FreePacket).PacketHandler))
+                using (var parser = new SM.Media.TsMediaParser(null, () => { }, _ => { },
+                    (pid, streamType) => new PesStreamCopyHandler(pid, streamType, FreePacket).PacketHandler))
                 {
                     _freePesHandler = parser.Decoder.FreePesPacket;
 

@@ -68,11 +68,10 @@ namespace SM.Media
         #endregion
 
         const int MaxBuffers = 8;
-        readonly CommandWorker _commandWorker = new CommandWorker();
+        readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
         readonly Func<IMediaManager, IMediaStreamSource> _mediaStreamSourceFactory;
-        readonly object _progressLock = new object();
         readonly ISegmentReaderManager _segmentReaderManager;
         MediaState _mediaState;
         IMediaStreamSource _mediaStreamSource;
@@ -114,7 +113,7 @@ namespace SM.Media
 
         public void OpenMedia()
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(
+            _commandWorker.SendCommand(new WorkCommand(
                 () =>
                 {
                     State = MediaState.OpenMedia;
@@ -136,7 +135,7 @@ namespace SM.Media
 
             var localSeekCompletion = seekCompletion;
 
-            _commandWorker.SendCommand(new CommandWorker.Command(
+            _commandWorker.SendCommand(new WorkCommand(
                 () => SeekAsync(position)
                     .ContinueWith(t => seekCompletion.SetResult(t.Result)),
                 b => { if (!b) localSeekCompletion.SetCanceled(); }));
@@ -161,12 +160,12 @@ namespace SM.Media
 
         public void Play(ISegmentReaderManager segmentManager)
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => PlayAsync(segmentManager)));
+            _commandWorker.SendCommand(new WorkCommand(() => PlayAsync(segmentManager)));
         }
 
         public void Close()
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(CloseAsync));
+            _commandWorker.SendCommand(new WorkCommand(CloseAsync));
         }
 
         public void Pause()
@@ -198,6 +197,12 @@ namespace SM.Media
                 return;
 
             handlers(this, new TsMediaManagerStateEventArgs(state, message));
+
+            if (MediaState.Error == state)
+            {
+                if (null != _mediaStreamSource)
+                    _mediaStreamSource.ReportError(message);
+            }
         }
 
         void StartReaders()
@@ -218,7 +223,7 @@ namespace SM.Media
 
         public void Seek(TimeSpan timestamp)
         {
-            _commandWorker.SendCommand(new CommandWorker.Command(() => SeekAsync(timestamp)));
+            _commandWorker.SendCommand(new WorkCommand(() => SeekAsync(timestamp)));
         }
 
         async Task PlayAsync(ISegmentReaderManager segmentManager)
@@ -234,7 +239,7 @@ namespace SM.Media
                 _mediaStreamSource = _mediaStreamSourceFactory(this);
 
                 _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
-                                                              .Select(CreateReaderPipeline));
+                                                              .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples)));
 
                 foreach (var reader in _readers)
                     reader.QueueWorker.IsEnabled = true;
@@ -263,7 +268,7 @@ namespace SM.Media
             throw exception;
         }
 
-        async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
+        async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders, Action bufferingChange)
         {
             var reader = new ReaderPipeline
                          {
@@ -288,7 +293,7 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = new BufferingManager(reader.QueueWorker);
+            reader.BufferingManager = new BufferingManager(reader.QueueWorker, bufferingChange);
 
             await startReaderTask;
 
@@ -307,7 +312,7 @@ namespace SM.Media
 
                 if (string.Equals(ext, ".mp3", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2));
+                    var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
 
                     mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -319,7 +324,7 @@ namespace SM.Media
 
             if (null == reader.MediaParser)
             {
-                reader.MediaParser = new TsMediaParser(reader.BufferingManager,
+                reader.MediaParser = new TsMediaParser(reader.BufferingManager, _mediaStreamSource.CheckForSamples,
                     mediaStream =>
                     {
                         mediaStream.ConfigurationComplete +=
@@ -337,12 +342,12 @@ namespace SM.Media
         void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)
         {
             _commandWorker.SendCommand(
-                new CommandWorker.Command(() =>
-                                          {
-                                              ConfigurationComplete(args, reader);
+                new WorkCommand(() =>
+                                {
+                                    ConfigurationComplete(args, reader);
 
-                                              return TplTaskExtensions.CompletedTask;
-                                          }));
+                                    return TplTaskExtensions.CompletedTask;
+                                }));
         }
 
         void ConfigurationComplete(ConfigurationEventArgs eventArgs, ReaderPipeline reader)
@@ -362,7 +367,10 @@ namespace SM.Media
             if (_readers.Any(r => r.ExpectedStreamCount != r.CompletedStreamCount))
                 return;
 
-            var configuration = new MediaConfiguration { Duration = _segmentReaderManager.Duration };
+            var configuration = new MediaConfiguration
+                                {
+                                    Duration = _segmentReaderManager.Duration
+                                };
 
             while (_configurationEvents.Count > 0)
             {
@@ -427,6 +435,8 @@ namespace SM.Media
             if (null != mss)
                 drainTask = mss.CloseAsync();
 
+            string error = null;
+
             try
             {
                 if (null != _readers)
@@ -447,6 +457,7 @@ namespace SM.Media
                             catch (Exception ex)
                             {
                                 Debug.WriteLine("TsMediaManager.CloseAsync: StopAsync failed: " + ex.Message);
+                                error = "Stop failed: " + ex.Message;
                             }
                         }
                     }
@@ -459,6 +470,7 @@ namespace SM.Media
                         catch (Exception ex)
                         {
                             Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
+                            error = ex.Message;
                         }
                     }
                 }
@@ -469,6 +481,7 @@ namespace SM.Media
             catch (Exception ex)
             {
                 Debug.WriteLine("TsMediaManager.CloseAsync: " + ex.Message);
+                error = "Close failed: " + ex.Message;
             }
 
             if (null != _mediaElementManager)
@@ -483,7 +496,16 @@ namespace SM.Media
                 }
             }
 
-            State = MediaState.Closed;
+            if (null != _mediaStreamSource)
+            {
+                _mediaStreamSource.Dispose();
+                _mediaStreamSource = null;
+            }
+
+            if (null == error)
+                State = MediaState.Closed;
+            else
+                SetMediaState(MediaState.Error, error);
         }
 
         bool IsSeekInRange(TimeSpan position)

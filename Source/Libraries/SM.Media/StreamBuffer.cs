@@ -40,10 +40,8 @@ namespace SM.Media
         readonly object _packetsLock = new object();
         readonly PesStream _pesStream = new PesStream();
         readonly StreamSample _streamSample = new StreamSample();
-        Action<IStreamSample> _streamSampleHandler;
-        Action<double> _progressHandler;
+        readonly Action _checkForSamples;
         readonly Action<TsPesPacket> _freePesPacket;
-        int _nextSampleRequested;
         readonly IBufferingManager _bufferingManager;
         readonly IBufferingQueue _bufferingQueue;
         int _isDisposed;
@@ -57,10 +55,11 @@ namespace SM.Media
 
         public TimeSpan TimestampOffset { get; set; }
 
-        public StreamBuffer(Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager)
+        public StreamBuffer(Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager, Action checkForSamples)
         {
             _freePesPacket = freePesPacket;
             _bufferingManager = bufferingManager;
+            _checkForSamples = checkForSamples;
 
             if (null != bufferingManager)
                 _bufferingQueue = bufferingManager.CreateQueue(this);
@@ -101,13 +100,7 @@ namespace SM.Media
 
         #region IStreamSource Members
 
-        public void SetSink(Action<IStreamSample> streamSampleHandler, Action<double> progressHandler)
-        {
-            _streamSampleHandler = streamSampleHandler;
-            _progressHandler = progressHandler;
-        }
-
-        public void GetNextSample()
+        public bool GetNextSample(Func<IStreamSample, bool> streamSampleHandler)
         {
             //Debug.WriteLine("StreamBuffer.GetNextSample()");
 
@@ -125,15 +118,14 @@ namespace SM.Media
 
                         if (_bufferingProgress != bufferingProgress)
                         {
-                            if (null != _progressHandler)
-                                _progressHandler(bufferingProgress);
+                            _streamSample.BufferingProgress = bufferingProgress;
+
+                            streamSampleHandler(_streamSample);
 
                             _bufferingProgress = bufferingProgress;
                         }
 
-                        RequestNextSample();
-
-                        return;
+                        return false;
                     }
 
                     if (_packets.Count < 1)
@@ -141,26 +133,24 @@ namespace SM.Media
                         // Keep returning null packets if we are done.
                         if (!_isDone)
                         {
-                            RequestNextSample();
-
                             ReportExhaustion();
 
-                            return;
+                            return false;
                         }
                     }
                     else
                         packet = _packets.Dequeue();
                 }
 
-                if (null == _streamSampleHandler)
-                    return;
+                if (null == streamSampleHandler)
+                    return true;
 
                 if (null == packet)
                 {
                     //Debug.WriteLine("StreamBuffer {0} forwarding null sample", _streamBufferId);
 
                     // Propagate end-of-stream
-                    _streamSampleHandler(null);
+                    streamSampleHandler(null);
                 }
                 else
                 {
@@ -174,10 +164,14 @@ namespace SM.Media
                     //Debug.WriteLine("StreamBuffer {0} forwarding sample {1}", _streamBufferId, _streamSample.Timestamp);
 #endif
 
-                    _streamSampleHandler(_streamSample);
+                    _streamSample.BufferingProgress = null;
+
+                    streamSampleHandler(_streamSample);
 
                     _pesStream.Packet = null;
                 }
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -192,12 +186,8 @@ namespace SM.Media
                 ThrowIfDisposed();
 #endif
             }
-        }
 
-        void RequestNextSample()
-        {
-            //Debug.WriteLine("Requesting deferred GetNextSample");
-            Interlocked.Exchange(ref _nextSampleRequested, 1);
+            return false;
         }
 
         public bool HasSample
@@ -300,11 +290,10 @@ namespace SM.Media
 
         void CheckGetNextSample()
         {
-            if (0 != Interlocked.Exchange(ref _nextSampleRequested, 0))
-            {
-                //Debug.WriteLine("Calling deferred GetNextSample");
-                GetNextSample();
-            }
+            var checkForSamples = _checkForSamples;
+
+            if (null != checkForSamples)
+                checkForSamples();
         }
 
         #region Nested type: StreamSample
@@ -315,6 +304,7 @@ namespace SM.Media
 
             public TimeSpan Timestamp { get; set; }
             public Stream Stream { get; set; }
+            public double? BufferingProgress { get; set; }
 
             #endregion
         }

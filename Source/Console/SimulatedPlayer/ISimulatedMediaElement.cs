@@ -34,5 +34,6 @@ namespace SimulatedPlayer
         void ReportSeekCompleted(long ticks);
         void ReportGetSampleProgress(double progress);
         void ReportGetSampleCompleted(int streamType, IStreamSample sample);
+        void ErrorOccurred(string message);
     }
 }

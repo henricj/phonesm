@@ -35,12 +35,12 @@ namespace SimulatedPlayer
 {
     class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {
-        readonly CommandWorker _commandWorker = new CommandWorker();
+        readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
         readonly IMediaManager _mediaManager;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
-        readonly List<CommandWorker.Command> _pendingGets = new List<CommandWorker.Command>();
+        readonly List<WorkCommand> _pendingGets = new List<WorkCommand>();
         readonly object _stateLock = new object();
         bool _isClosed;
         State _state;
@@ -59,6 +59,11 @@ namespace SimulatedPlayer
             { }
         }
 
+        Task IMediaStreamSource.CloseAsync()
+        {
+            return CloseAsync();
+        }
+
         public void Configure(MediaConfiguration configuration)
         {
             lock (_lock)
@@ -68,7 +73,6 @@ namespace SimulatedPlayer
                     _mediaStreams.Add(configuration.VideoStream);
 
                     var streamType = _mediaStreams.Count - 1;
-                    configuration.VideoStream.SetSink(sample => StreamSampleHandler(streamType, sample), ReportProgress);
                 }
 
                 if (null != configuration.AudioConfiguration)
@@ -76,7 +80,6 @@ namespace SimulatedPlayer
                     _mediaStreams.Add(configuration.AudioStream);
 
                     var streamType = _mediaStreams.Count - 1;
-                    configuration.AudioStream.SetSink(sample => StreamSampleHandler(streamType, sample), ReportProgress);
                 }
             }
 
@@ -85,6 +88,13 @@ namespace SimulatedPlayer
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
 
             _mediaElement.ReportOpenMediaCompleted();
+        }
+
+        public void ReportError(string message)
+        {
+            Debug.WriteLine("SimulatedMediaStreamSource.ReportError({0})", message);
+
+            _mediaElement.ErrorOccurred(message);
         }
 
         public TimeSpan? SeekTarget { get; set; }
@@ -104,7 +114,7 @@ namespace SimulatedPlayer
             Debug.WriteLine("SimulatedMediaStreamSource.SeekAsync({0})", seekTimestamp);
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
 
-            _commandWorker.SendCommand(new CommandWorker.Command(
+            _commandWorker.SendCommand(new WorkCommand(
                 async () =>
                 {
                     if (_isClosed)
@@ -118,7 +128,7 @@ namespace SimulatedPlayer
                     _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                     _mediaElement.ReportSeekCompleted(position.Ticks);
 
-                    CommandWorker.Command[] pendingGets;
+                    WorkCommand[] pendingGets;
 
                     lock (_stateLock)
                     {
@@ -136,7 +146,7 @@ namespace SimulatedPlayer
 
         public void GetSampleAsync(int streamType)
         {
-            var command = new CommandWorker.Command(
+            var command = new WorkCommand(
                 () =>
                 {
                     IStreamSource streamSource = null;
@@ -158,7 +168,7 @@ namespace SimulatedPlayer
                         return null;
                     }
 
-                    streamSource.GetNextSample();
+                    streamSource.GetNextSample(sample => StreamSampleHandler(streamType, sample));
 
                     return null;
                 });
@@ -198,13 +208,15 @@ namespace SimulatedPlayer
 
         #endregion
 
-        public void ReportProgress(double bufferingProgress)
+        public void CheckForSamples()
         { }
 
-        void StreamSampleHandler(int streamType, IStreamSample sample)
+        bool StreamSampleHandler(int streamType, IStreamSample sample)
         {
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
             _mediaElement.ReportGetSampleCompleted(streamType, sample);
+
+            return true;
         }
 
         public Task CloseAsync()

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="CommandWorker.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  <copyright file="TaskCommandWorker.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,20 +26,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public sealed class CommandWorker : IDisposable
+    public sealed class TaskCommandWorker : ICommandWorker
     {
-        readonly Queue<Command> _commandQueue = new Queue<Command>();
+        readonly Queue<WorkCommand> _commandQueue = new Queue<WorkCommand>();
         readonly TaskCompletionSource<bool> _workerClosedTaskCompletionSource = new TaskCompletionSource<bool>();
         bool _isClosed;
         bool _managerRunning;
         Task _managerTask;
 
-        #region IDisposable Members
+        #region ICommandWorker Members
 
         public void Dispose()
         {
@@ -50,36 +50,23 @@ namespace SM.Media.Utility
                 _isClosed = true;
 
                 if (null != _managerTask && !_managerTask.IsCompleted && _managerRunning)
-                {
                     waitTask = _managerTask;
-                }
             }
 
             if (null != waitTask)
                 waitTask.Wait();
         }
 
-        #endregion
-
-        public void SendCommand(Command command)
+        public void SendCommand(WorkCommand command)
         {
             lock (_commandQueue)
             {
                 if (_isClosed)
-                    throw new ObjectDisposedException("CommandWorker");
+                    throw new ObjectDisposedException("TaskCommandWorker");
 
                 _commandQueue.Enqueue(command);
 
                 UnlockedPokeWorker();
-            }
-        }
-
-        void UnlockedPokeWorker()
-        {
-            if (null == _managerTask || _managerTask.IsCompleted || !_managerRunning)
-            {
-                _managerRunning = true;
-                _managerTask = Task.Factory.StartNew((Func<Task>)ManageAsync).Unwrap();
             }
         }
 
@@ -98,9 +85,20 @@ namespace SM.Media.Utility
             }
         }
 
+        #endregion
+
+        void UnlockedPokeWorker()
+        {
+            if (null == _managerTask || _managerTask.IsCompleted || !_managerRunning)
+            {
+                _managerRunning = true;
+                _managerTask = Task.Factory.StartNew((Func<Task>)ManageAsync, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default).Unwrap();
+            }
+        }
+
         async Task ManageAsync()
         {
-            var commands = new List<Command>();
+            var commands = new List<WorkCommand>();
 
             for (; ; )
             {
@@ -109,9 +107,7 @@ namespace SM.Media.Utility
                 lock (_commandQueue)
                 {
                     while (_commandQueue.Count > 0)
-                    {
                         commands.Add(_commandQueue.Dequeue());
-                    }
 
                     if (commands.Count < 1)
                     {
@@ -123,54 +119,8 @@ namespace SM.Media.Utility
                     }
                 }
 
-                foreach (var command in commands)
-                {
-                    var run = command.RunAsync;
-
-                    var failed = false;
-
-                    if (null != run)
-                    {
-                        try
-                        {
-                            var task = run();
-
-                            if (null != task)
-                                await task;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            failed = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine("Command failed: " + ex.Message);
-                            failed = true;
-                        }
-                    }
-
-                    var callback = command.Complete;
-
-                    if (null != callback)
-                        callback(!failed);
-                }
+                await CommandWorkerBase.RunCommands(commands);
             }
         }
-
-        #region Nested type: Command
-
-        public class Command
-        {
-            public readonly Action<bool> Complete;
-            public readonly Func<Task> RunAsync;
-
-            public Command(Func<Task> run, Action<bool> complete = null)
-            {
-                RunAsync = run;
-                Complete = complete;
-            }
-        }
-
-        #endregion
     }
 }

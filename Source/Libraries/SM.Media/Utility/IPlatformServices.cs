@@ -24,6 +24,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+using System.Threading;
+
 namespace SM.Media.Utility
 {
     public interface IPlatformServices
@@ -37,5 +40,22 @@ namespace SM.Media.Utility
         /// </summary>
         /// <returns></returns>
         double GetRandomNumber();
+
+        /// <summary>
+        /// Create and start a thread.
+        /// </summary>
+        /// <remarks>Use the TPL when possible.</remarks>
+        /// <param name="name"></param>
+        /// <param name="run"></param>
+        /// <returns></returns>
+        Thread RunThread(string name, Action run);
+
+        /// <summary>
+        /// Join a thread.
+        /// </summary>
+        /// <remarks>Use the TPL when possible.</remarks>
+        /// <param name="thread"></param>
+        /// <returns></returns>
+        void JoinThread(Thread thread);
     }
 }

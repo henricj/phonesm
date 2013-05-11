@@ -41,16 +41,20 @@ namespace SM.Media
         const int AudioStreamFlag = 1 << 0;
         const int VideoStreamFlag = 1 << 1;
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
-        readonly CommandWorker _commandWorker = new CommandWorker();
         readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
         readonly IMediaManager _mediaManager;
-        readonly List<CommandWorker.Command> _pendingGets = new List<CommandWorker.Command>();
+        readonly List<Task> _pendingGets = new List<Task>();
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
+        readonly SingleThreadSignalTaskScheduler _taskScheduler;
+
         MediaStreamDescription _audioStreamDescription;
         IStreamSource _audioStreamSource;
+        double _bufferingProgress;
         bool _isClosed;
         int _isDisposed;
+        int _pendingOperations;
+        TimeSpan _pendingSeekTarget;
         TimeSpan? _seekTarget;
         SourceState _state;
         int _streamClosedFlags;
@@ -65,6 +69,8 @@ namespace SM.Media
 
             //AudioBufferLength = 150;     // 150ms of internal buffering, instead of 1s.
             _mediaManager = mediaManager;
+
+            _taskScheduler = new SingleThreadSignalTaskScheduler("TsMediaStreamSource", SignalHandler);
         }
 
         bool IsDisposed
@@ -97,8 +103,7 @@ namespace SM.Media
         /// </summary>
         public void Dispose()
         {
-            var wasDisposed = Interlocked.Exchange(ref _isDisposed, 1);
-            if (0 != wasDisposed)
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
                 return;
 
             Debug.WriteLine("TsMediaStreamSource.Dispose()");
@@ -106,8 +111,8 @@ namespace SM.Media
 
             _isClosed = true;
 
-            _commandWorker.CloseAsync()
-                          .Wait();
+            if (null != _taskScheduler)
+                _taskScheduler.Dispose();
         }
 
         public void Configure(MediaConfiguration configuration)
@@ -122,6 +127,11 @@ namespace SM.Media
             {
                 CompleteConfigure(configuration.Duration);
             }
+        }
+
+        public void ReportError(string message)
+        {
+            Task.Factory.StartNew(() => ErrorOccurred(message), CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
         }
 
         public Task CloseAsync()
@@ -141,6 +151,96 @@ namespace SM.Media
 
         #endregion
 
+        async Task SeekHandler()
+        {
+            TimeSpan seekTimestamp;
+
+            _taskScheduler.ThrowIfNotOnThread();
+
+            lock (_stateLock)
+            {
+                seekTimestamp = _pendingSeekTarget;
+            }
+
+            try
+            {
+                var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
+
+                _taskScheduler.ThrowIfNotOnThread();
+
+                if (_isClosed)
+                    return;
+
+                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                ReportSeekCompleted(position.Ticks);
+
+                Debug.WriteLine("TsMediaStreamSource.SeekHandler({0}) completed, actual: {1}", seekTimestamp, position);
+
+                State = SourceState.Play;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TsMediaStreamSource.SeekHandler({0}) failed: {1}", seekTimestamp, ex.Message);
+                ErrorOccurred("Seek failed: " + ex.Message);
+
+                _taskScheduler.ThrowIfNotOnThread();
+            }
+        }
+
+        void SignalHandler()
+        {
+            _taskScheduler.ThrowIfNotOnThread();
+
+            if (_isClosed)
+                return;
+
+            var lastOperation = Operation.None;
+
+            for (;;)
+            {
+                if (HandleOperation(Operation.Seek))
+                {
+                    // Request the last operation again if we
+                    // detect a possible  seek/getsample race.
+                    if (Operation.None != lastOperation)
+                        RequestOperation(lastOperation);
+
+                    var task = SeekHandler();
+
+                    return;
+                }
+
+                if (SourceState.Play != State)
+                    return;
+
+                if (HandleOperation(Operation.Video))
+                {
+                    if (_videoStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _videoStreamDescription, VideoStreamFlag)))
+                    {
+                        lastOperation = Operation.Video;
+
+                        continue;
+                    }
+
+                    RequestOperation(Operation.Video);
+                }
+
+                if (HandleOperation(Operation.Audio))
+                {
+                    if (_audioStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _audioStreamDescription, AudioStreamFlag)))
+                    {
+                        lastOperation = Operation.Audio;
+
+                        continue;
+                    }
+
+                    RequestOperation(Operation.Audio);
+                }
+
+                return;
+            }
+        }
+
         void UnlockedSetState(SourceState state)
         {
             if (_state == state)
@@ -159,7 +259,7 @@ namespace SM.Media
         /// </summary>
         void SetPlayState()
         {
-            CommandWorker.Command[] pendingGets;
+            Task[] pendingGets;
 
             lock (_stateLock)
             {
@@ -171,7 +271,7 @@ namespace SM.Media
             }
 
             foreach (var getCmd in pendingGets)
-                _commandWorker.SendCommand(getCmd);
+                getCmd.Start(_taskScheduler);
         }
 
         void ThrowIfDisposed()
@@ -182,26 +282,48 @@ namespace SM.Media
             throw new ObjectDisposedException(GetType().Name);
         }
 
-        void StreamSampleHandler(IStreamSample streamSample, MediaStreamDescription mediaStreamDescription, int streamFlag)
+        bool StreamSampleHandler(IStreamSample streamSample, MediaStreamDescription mediaStreamDescription, int streamFlag)
         {
-            if (!_isClosed && null != streamSample)
-            {
-                var sample = new MediaStreamSample(mediaStreamDescription, streamSample.Stream, 0, streamSample.Stream.Length, streamSample.Timestamp.Ticks, NoMediaSampleAttributes);
+            _taskScheduler.ThrowIfNotOnThread();
 
-                //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
+            if (_isClosed || null == streamSample)
+            {
+                SendLastStreamSample(mediaStreamDescription, streamFlag);
+                return true;
+            }
+
+            var progress = streamSample.BufferingProgress;
+
+            if (progress.HasValue)
+            {
+                if (Math.Abs(_bufferingProgress - progress.Value) < 0.05)
+                    return false;
+
+                Debug.WriteLine("Sample {0} buffering {1:F2}%", mediaStreamDescription.Type, progress * 100);
+
+                _bufferingProgress = progress.Value;
 
                 _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
-                ReportGetSampleCompleted(sample);
+                ReportGetSampleProgress(progress.Value);
+
+                return false;
             }
-            else
-                SendLastStreamSample(mediaStreamDescription, streamFlag);
+
+            var sample = new MediaStreamSample(mediaStreamDescription, streamSample.Stream, 0, streamSample.Stream.Length, streamSample.Timestamp.Ticks, NoMediaSampleAttributes);
+
+            Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
+
+            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+            ReportGetSampleCompleted(sample);
+
+            return true;
         }
 
         void SendLastStreamSample(MediaStreamDescription mediaStreamDescription, int streamFlag)
         {
             var sample = new MediaStreamSample(mediaStreamDescription, null, 0, 0, 0, NoMediaSampleAttributes);
 
-            Debug.WriteLine("Sample is null");
+            Debug.WriteLine("Sample {0} is null", mediaStreamDescription.Type);
 
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
             ReportGetSampleCompleted(sample);
@@ -213,10 +335,16 @@ namespace SM.Media
             }
         }
 
+        public void CheckForSamples()
+        {
+            if (0 == (_pendingOperations & (int) (Operation.Audio | Operation.Video)))
+                return;
+
+            _taskScheduler.Signal();
+        }
+
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
         {
-            videoSource.SetSink(streamSample => StreamSampleHandler(streamSample, _videoStreamDescription, VideoStreamFlag), ReportGetSampleProgress);
-
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
             msa[MediaStreamAttributeKeys.VideoFourCC] = configurationSource.VideoFourCc;
@@ -240,8 +368,6 @@ namespace SM.Media
 
         void ConfigureAudioStream(IAudioConfigurationSource configurationSource, IStreamSource audioSource)
         {
-            audioSource.SetSink(streamSample => StreamSampleHandler(streamSample, _audioStreamDescription, AudioStreamFlag), ReportGetSampleProgress);
-
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
             var cpd = configurationSource.CodecPrivateData;
@@ -262,7 +388,7 @@ namespace SM.Media
         {
             var oldFlags = _streamOpenFlags;
 
-            for (; ; )
+            for (;;)
             {
                 var newFlags = oldFlags | flag;
 
@@ -279,7 +405,7 @@ namespace SM.Media
         {
             var oldFlags = _streamClosedFlags;
 
-            for (; ; )
+            for (;;)
             {
                 var newFlags = oldFlags & ~flag;
 
@@ -323,23 +449,20 @@ namespace SM.Media
 
             mediaSourceAttributes[MediaSourceAttributesKeys.CanSeek] = canSeek.ToString();
 
-            _commandWorker.SendCommand(new CommandWorker.Command(
-                () =>
-                {
-                    Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
+            Task.Factory.StartNew(() =>
+                                  {
+                                      Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
 
-                    foreach (var kv in mediaSourceAttributes)
-                        Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
+                                      foreach (var kv in mediaSourceAttributes)
+                                          Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
 
-                    _mediaManager.ValidateEvent(canSeek
-                        ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
-                        : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
-                    ReportOpenMediaCompleted(mediaSourceAttributes, msd);
+                                      _mediaManager.ValidateEvent(canSeek
+                                          ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
+                                          : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
+                                      ReportOpenMediaCompleted(mediaSourceAttributes, msd);
 
-                    State = canSeek ? SourceState.Seek : SourceState.Play;
-
-                    return null;
-                }));
+                                      State = canSeek ? SourceState.Seek : SourceState.Play;
+                                  }, CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
 
             //ReportGetSampleProgress(0);
         }
@@ -377,34 +500,28 @@ namespace SM.Media
         {
             var seekTimestamp = TimeSpan.FromTicks(seekToTime);
 
-            var seekTarget = SeekTarget;
-
-            if (seekTarget.HasValue)
-                seekTimestamp = seekTarget.Value;
-
             Debug.WriteLine("TsMediaStreamSource.SeekAsync({0})", seekTimestamp);
             _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
 
-            State = SourceState.Seek;
+            StartSeek(seekTimestamp);
+        }
 
-            _commandWorker.SendCommand(new CommandWorker.Command(
-                async () =>
+        void StartSeek(TimeSpan seekTimestamp)
+        {
+            lock (_stateLock)
+            {
+                _state = SourceState.Seek;
+
+                if (_seekTarget.HasValue)
                 {
-                    if (_isClosed)
-                        return;
+                    _pendingSeekTarget = _seekTarget.Value;
+                    _seekTarget = null;
+                }
+                else
+                    _pendingSeekTarget = seekTimestamp;
+            }
 
-                    var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
-
-                    if (_isClosed)
-                        return;
-
-                    _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
-                    ReportSeekCompleted(position.Ticks);
-
-                    Debug.WriteLine("TsMediaStreamSource.SeekAsync({0}) completed, actual: {1}", seekTimestamp, position);
-
-                    State = SourceState.Play;
-                }));
+            RequestOperationAndSignal(Operation.Seek);
         }
 
         /// <summary>
@@ -430,76 +547,11 @@ namespace SM.Media
         /// </param>
         protected override void GetSampleAsync(MediaStreamType mediaStreamType)
         {
-            CommandWorker.Command localCommand = null;
+            //Debug.WriteLine("TsMediaStreamSource.GetSampleAsync({0})", mediaStreamType);
 
-            var command = new CommandWorker.Command(
-                () =>
-                {
-                    IStreamSource streamSource = null;
-                    MediaStreamDescription streamDescription = null;
-                    var streamFlag = 0;
+            var op = LookupOperation(mediaStreamType);
 
-                    switch (mediaStreamType)
-                    {
-                        case MediaStreamType.Video:
-                            streamSource = _videoStreamSource;
-                            streamDescription = _videoStreamDescription;
-                            streamFlag = VideoStreamFlag;
-                            break;
-                        case MediaStreamType.Audio:
-                            streamSource = _audioStreamSource;
-                            streamDescription = _audioStreamDescription;
-                            streamFlag = AudioStreamFlag;
-                            break;
-                    }
-
-                    if (null == streamSource)
-                    {
-                        ReportGetSampleProgress(0);
-                        return null;
-                    }
-
-                    lock (_stateLock)
-                    {
-                        if (SourceState.Play != _state)
-                        {
-                            Debug.WriteLine("TsMediaStreamSource race defer Get({0})", mediaStreamType);
-                            // Use a modified closure... any better ideas (apart from a TsMediaStreamSource/TsMediaManger rewrite)?
-                            _pendingGets.Add(localCommand);
-
-                            return null;
-                        }
-                    }
-
-                    if (_isClosed)
-                    {
-                        SendLastStreamSample(streamDescription, streamFlag);
-                        return null;
-                    }
-
-                    streamSource.GetNextSample();
-
-                    return null;
-                });
-
-            localCommand = command;
-
-            lock (_stateLock)
-            {
-                var state = _state;
-
-                //Debug.WriteLine("TsMediaStreamSource.GetSampleAsync({0}) state {1}", mediaStreamType, state);
-
-                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
-
-                if (SourceState.Play != state)
-                {
-                    Debug.WriteLine("TsMediaStreamSource defer Get({0})", mediaStreamType);
-                    _pendingGets.Add(command);
-                }
-                else
-                    _commandWorker.SendCommand(command);
-            }
+            RequestOperationAndSignal(op);
         }
 
         /// <summary>
@@ -553,6 +605,69 @@ namespace SM.Media
             _mediaManager.CloseMedia();
         }
 
+        Operation LookupOperation(MediaStreamType mediaStreamType)
+        {
+            switch (mediaStreamType)
+            {
+            case MediaStreamType.Audio:
+                return Operation.Audio;
+            case MediaStreamType.Video:
+                return Operation.Video;
+            }
+
+            Debug.Assert(false);
+
+            return 0;
+        }
+
+        void RequestOperationAndSignal(Operation operation)
+        {
+            if (RequestOperation(operation))
+                _taskScheduler.Signal();
+        }
+
+        bool RequestOperation(Operation operation)
+        {
+            var op = (int) operation;
+            var current = _pendingOperations;
+
+            for (;;)
+            {
+                var value = current | op;
+
+                if (value == current)
+                    return false;
+
+                var existing = Interlocked.CompareExchange(ref _pendingOperations, value, current);
+
+                if (existing == current)
+                    return true;
+
+                current = existing;
+            }
+        }
+
+        bool HandleOperation(Operation operation)
+        {
+            var op = (int) operation;
+            var current = _pendingOperations;
+
+            for (;;)
+            {
+                var value = current & ~op;
+
+                if (value == current)
+                    return false;
+
+                var existing = Interlocked.CompareExchange(ref _pendingOperations, value, current);
+
+                if (existing == current)
+                    return true;
+
+                current = existing;
+            }
+        }
+
         public Task WaitDrain()
         {
             if (0 == _streamOpenFlags)
@@ -560,6 +675,19 @@ namespace SM.Media
 
             return _drainCompleted.WaitAsync();
         }
+
+        #region Nested type: Operation
+
+        [Flags]
+        enum Operation
+        {
+            None = 0,
+            Audio = 1,
+            Video = 2,
+            Seek = 4
+        }
+
+        #endregion
 
         #region Nested type: SourceState
 

@@ -42,6 +42,7 @@ namespace SM.Media
         static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(4);
         static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(20);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
+        readonly Action _bufferingChange;
         readonly object _lock = new object();
         readonly IQueueThrottling _queueThrottling;
         readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
@@ -50,12 +51,15 @@ namespace SM.Media
         double _bufferingProgress;
         volatile int _isBuffering = 1;
 
-        public BufferingManager(IQueueThrottling queueThrottling)
+        public BufferingManager(IQueueThrottling queueThrottling, Action bufferingChange)
         {
             if (null == queueThrottling)
                 throw new ArgumentNullException("queueThrottling");
+            if (bufferingChange == null)
+                throw new ArgumentNullException("bufferingChange");
 
             _queueThrottling = queueThrottling;
+            _bufferingChange = bufferingChange;
         }
 
         public TimeSpan BufferPosition
@@ -204,15 +208,15 @@ namespace SM.Media
             {
                 update(size, timestamp);
 
-                UnlockedReport(false);
+                UnlockedReport();
 
                 //Debug.WriteLine("Report Sample({0}, {1}) blockReads {2} => {3} ({4})", size, timestamp, wasBlock, _blockReads, DateTimeOffset.Now);
             }
         }
 
-        void UnlockedReport(bool isExhausted)
+        void UnlockedReport()
         {
-            var shouldBlock = UpdateState(isExhausted);
+            var shouldBlock = UpdateState();
 
             if (shouldBlock != _blockReads)
             {
@@ -230,7 +234,7 @@ namespace SM.Media
             {
                 update();
 
-                UnlockedReport(true);
+                UnlockedReport();
             }
         }
 
@@ -242,7 +246,7 @@ namespace SM.Media
             {
                 update();
 
-                UnlockedReport(false);
+                UnlockedReport();
             }
         }
 
@@ -252,7 +256,7 @@ namespace SM.Media
             {
                 update();
 
-                UnlockedReport(false);
+                UnlockedReport();
             }
         }
 
@@ -268,7 +272,7 @@ namespace SM.Media
             ReportBuffering(0);
         }
 
-        bool UpdateState(bool isExhausted)
+        bool UpdateState()
         {
             var newest = TimeSpan.MinValue;
             var oldest = TimeSpan.MaxValue;
@@ -278,13 +282,18 @@ namespace SM.Media
 
             var validData = false;
             var allDone = true;
+            var isExhausted = false;
+            var allExhausted = true;
 
-            for (var i = 0; i < _queues.Count; ++i)
+            foreach (var queue in _queues)
             {
-                var queue = _queues[i];
-
                 if (!queue.IsDone)
                     allDone = false;
+
+                if (queue.IsExhausted)
+                    isExhausted = true;
+                else
+                    allExhausted = false;
 
                 if (!queue.IsValid)
                     continue;
@@ -311,14 +320,6 @@ namespace SM.Media
                 if (oldTime < oldest)
                     oldest = oldTime;
             }
-
-            //if (_playbackPosition.HasValue)
-            //{
-            //    var time = _playbackPosition.Value;
-
-            //    if (time < newest && time > oldest)
-            //        oldest = time;
-            //}
 
             var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;
 
@@ -351,7 +352,9 @@ namespace SM.Media
             else
             {
                 //if (validData && 0 == lowestCount && timestampDifference < BufferDurationEnableThreshold && totalBuffered < BufferSizeStartBuffering)
-                if (!allDone && isExhausted && (!validData || 0 == highestCount))
+                //if (!allDone && isExhausted && (!validData || 0 == highestCount))
+                //if (!allDone && allExhausted && validData)
+                if (!allDone && isExhausted)
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
 
@@ -404,7 +407,7 @@ namespace SM.Media
 
                     var bufferingStatus = Math.Max(Math.Min(bufferingStatus1, bufferingStatus2), bufferingStatus3);
 
-                    Debug.WriteLine("BufferingManager.UpdateBuffering: {0}%, {1} duration, {2} size, {3} memory", bufferingStatus * 100, timestampDifference, bufferSize, GC.GetTotalMemory(false));
+                    Debug.WriteLine("BufferingManager.UpdateBuffering: {0:F2}%, {1} duration, {2} size, {3} memory", bufferingStatus * 100, timestampDifference, bufferSize, GC.GetTotalMemory(false));
 
                     ReportBuffering(bufferingStatus);
                 }
@@ -415,8 +418,7 @@ namespace SM.Media
         {
             _bufferingProgress = bufferingProgress;
 
-            foreach (var queue in _queues)
-                queue.CheckBuffer();
+            _bufferingChange();
         }
 
         void HandleStateChange()
@@ -447,6 +449,11 @@ namespace SM.Media
 
             public BufferingQueue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
             {
+                if (bufferingManager == null)
+                    throw new ArgumentNullException("bufferingManager");
+                if (managedBuffer == null)
+                    throw new ArgumentNullException("managedBuffer");
+
                 _bufferingManager = bufferingManager;
                 _managedBuffer = managedBuffer;
             }
@@ -481,10 +488,13 @@ namespace SM.Media
                 get { return _bufferSize; }
             }
 
+            public bool IsExhausted { get; private set; }
+
             #region IBufferingQueue Members
 
             public void ReportEnqueue(int size, TimeSpan timestamp)
             {
+                IsExhausted = false;
                 _bufferingManager.Report(Enqueue, size, timestamp);
             }
 
@@ -495,6 +505,7 @@ namespace SM.Media
 
             public void ReportExhastion()
             {
+                IsExhausted = true;
                 _bufferingManager.ReportExhaustion(Exhausted);
             }
 
@@ -553,11 +564,6 @@ namespace SM.Media
                     _newestPacket = timestamp;
                     _firstPacket = true;
                 }
-            }
-
-            public void CheckBuffer()
-            {
-                _managedBuffer.CheckBuffer();
             }
         }
 

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IStreamSource.cs" company="Henric Jungheim">
+//  <copyright file="WorkCommand.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,28 +25,19 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
+using System.Threading.Tasks;
 
-namespace SM.Media
+namespace SM.Media.Utility
 {
-    public interface IStreamSample
+    public class WorkCommand
     {
-        TimeSpan Timestamp { get; }
-        Stream Stream { get; }
-        double? BufferingProgress { get; }
-    }
+        public readonly Action<bool> Complete;
+        public readonly Func<Task> RunAsync;
 
-    public interface IStreamSink
-    {
-        void NextSample(IStreamSample sample);
-
-        void StreamDone();
-    }
-
-    public interface IStreamSource
-    {
-        bool HasSample { get; }
-
-        bool GetNextSample(Func<IStreamSample, bool> streamSampleHandler);
+        public WorkCommand(Func<Task> run, Action<bool> complete = null)
+        {
+            RunAsync = run;
+            Complete = complete;
+        }
     }
 }

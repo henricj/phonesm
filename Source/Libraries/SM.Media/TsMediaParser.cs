@@ -42,6 +42,7 @@ namespace SM.Media
         #endregion
 
         readonly IBufferingManager _bufferingManager;
+        readonly Action _checkForSamples;
         readonly Action<IMediaParserMediaStream> _mediaParserStreamHandler;
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
@@ -50,17 +51,16 @@ namespace SM.Media
         readonly TsDecoder _tsDecoder;
         TimeSpan? _timestampOffset;
 
-        public TsMediaParser(IBufferingManager bufferingManager, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
-            : this(mediaParserStreamHandler, handlerFactory)
+        public TsMediaParser(IBufferingManager bufferingManager, Action checkForSamples, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
+            if (checkForSamples == null)
+                throw new ArgumentNullException("checkForSamples");
 
             _bufferingManager = bufferingManager;
-        }
+            _checkForSamples = checkForSamples;
 
-        public TsMediaParser(Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
-        {
             if (null == handlerFactory)
             {
                 var phf = new PesHandlerFactory();
@@ -192,7 +192,7 @@ namespace SM.Media
 
         Action<TsPesPacket> CreatePacketHandler(PacketHandlerFactory streamHandlerFactory, uint pid, TsStreamType streamType)
         {
-            var streamBuffer = new StreamBuffer(_tsDecoder.FreePesPacket, _bufferingManager);
+            var streamBuffer = new StreamBuffer(_tsDecoder.FreePesPacket, _bufferingManager, _checkForSamples);
 
             var localStreamBuffer = streamBuffer;
 

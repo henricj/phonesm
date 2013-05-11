@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IMediaStreamSource.cs" company="Henric Jungheim">
+//  <copyright file="CommandWorkerBase.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,28 +25,56 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
-using SM.Media.Configuration;
 
-namespace SM.Media
+namespace SM.Media.Utility
 {
-    public class MediaConfiguration
+    class CommandWorkerBase
     {
-        public TimeSpan? Duration { get; set; }
+        public static async Task RunCommands(IEnumerable<WorkCommand> commands)
+        {
+            foreach (var command in commands)
+            {
+                var run = command.RunAsync;
 
-        public IStreamSource AudioStream { get; set; }
-        public IAudioConfigurationSource AudioConfiguration { get; set; }
+                var failed = false;
 
-        public IStreamSource VideoStream { get; set; }
-        public IVideoConfigurationSource VideoConfiguration { get; set; }
-    }
+                if (null != run)
+                {
+                    try
+                    {
+                        var task = run();
 
-    public interface IMediaStreamSource : IDisposable
-    {
-        TimeSpan? SeekTarget { get; set; }
-        Task CloseAsync();
-        void Configure(MediaConfiguration configuration);
-        void ReportError(string message);
-        void CheckForSamples();
+                        if (null != task)
+                            await task;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        failed = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Command failed: " + ex.Message);
+                        failed = true;
+                    }
+                }
+
+                var callback = command.Complete;
+
+                if (null == callback)
+                    continue;
+
+                try
+                {
+                    callback(!failed);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Command callback failed: " + ex.Message);
+                }
+            }
+        }
     }
 }

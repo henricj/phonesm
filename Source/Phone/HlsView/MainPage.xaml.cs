@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -54,8 +55,16 @@ namespace HlsView
         {
             InitializeComponent();
 
-            _positionSampler = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(75) };
+            _positionSampler = new DispatcherTimer
+                               {
+                                   Interval = TimeSpan.FromMilliseconds(75)
+                               };
             _positionSampler.Tick += OnPositionSamplerOnTick;
+        }
+
+        void OnBufferingProgressChanged(object sender, RoutedEventArgs routedEventArgs)
+        {
+            mediaElement1_CurrentStateChanged(sender, routedEventArgs);
         }
 
         void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
@@ -80,7 +89,10 @@ namespace HlsView
         {
             Debug.WriteLine("MediaElement State: " + state);
 
-            MediaStateBox.Text = state.ToString();
+            if (MediaElementState.Buffering == state && null != mediaElement1)
+                MediaStateBox.Text = string.Format("Buffering {0:F2}%", mediaElement1.BufferingProgress * 100);
+            else
+                MediaStateBox.Text = state.ToString();
 
             if (MediaElementState.Closed == state)
             {
@@ -108,16 +120,27 @@ namespace HlsView
 
             _previousPosition = positionSample;
 
-            if (++_positionSampleCount > 2)
-            {
-                _positionSampleCount = 0;
-
-                var positionText = positionSample.ToString();
-
-                PositionBox.Text = positionText;
-            }
+            PositionBox.Text = FormatTimeSpan(positionSample);
         }
 
+        string FormatTimeSpan(TimeSpan timeSpan)
+        {
+            var sb = new StringBuilder();
+
+            if (timeSpan < TimeSpan.Zero)
+            {
+                sb.Append('-');
+
+                timeSpan = -timeSpan;
+            }
+
+            if (timeSpan.Days > 1)
+                sb.AppendFormat(timeSpan.ToString(@"%d\."));
+
+            sb.Append(timeSpan.ToString(@"hh\:mm\:ss\.ff"));
+
+            return sb.ToString();
+        }
         async void play_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("Play clicked");
@@ -185,12 +208,15 @@ namespace HlsView
             _mediaElementManager = new MediaElementManager(Dispatcher,
                 () =>
                 {
-                    var me = new MediaElement { Margin = new Thickness(0) };
+                    var me = new MediaElement
+                             {
+                                 Margin = new Thickness(0)
+                             };
 
                     me.MediaFailed += mediaElement1_MediaFailed;
                     me.MediaEnded += mediaElement1_MediaEnded;
                     me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
-
+                    me.BufferingProgressChanged += OnBufferingProgressChanged;
                     ContentPanel.Children.Add(me);
 
                     mediaElement1 = me;
@@ -210,6 +236,7 @@ namespace HlsView
                         me.MediaFailed -= mediaElement1_MediaFailed;
                         me.MediaEnded -= mediaElement1_MediaEnded;
                         me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+                        me.BufferingProgressChanged -= OnBufferingProgressChanged;
                     }
 
                     mediaElement1 = null;

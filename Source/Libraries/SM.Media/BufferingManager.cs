@@ -33,14 +33,13 @@ namespace SM.Media
 {
     class BufferingManager : IBufferingManager
     {
-        const int BufferSizeMaximum = 1024 * 1024;
-        const int BufferSizeStopBuffering = 300 * 1024;
-        const int BufferSizeStartBuffering = 50 * 1024;
+        const int BufferSizeMaximum = 2048 * 1024;
+        const int BufferSizeStopBuffering = 768 * 1024;
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromMilliseconds(256);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
-        static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(2);
-        static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(4);
-        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(20);
+        static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(3);
+        static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(6);
+        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(30);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly Action _bufferingChange;
         readonly object _lock = new object();
@@ -351,7 +350,6 @@ namespace SM.Media
             }
             else
             {
-                //if (validData && 0 == lowestCount && timestampDifference < BufferDurationEnableThreshold && totalBuffered < BufferSizeStartBuffering)
                 //if (!allDone && isExhausted && (!validData || 0 == highestCount))
                 //if (!allDone && allExhausted && validData)
                 if (!allDone && isExhausted)

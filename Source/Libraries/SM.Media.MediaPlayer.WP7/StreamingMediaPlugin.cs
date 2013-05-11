@@ -493,12 +493,13 @@ namespace SM.Media.MediaPlayer
                     ? MediaElement.Source
                     : null;
             }
-            set { MediaElement.IfNotNull(i => { var task = SetMediaSource(value); }); }
+            set { MediaElement.IfNotNull(i => SetMediaSource(value)); }
         }
 
         Stream _streamSource;
         MediaElementManager _mediaElementManager;
         TsMediaManager _tsMediaManager;
+        ProgramManager _programManager;
 
         public Stream StreamSource
         {
@@ -521,7 +522,7 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public void Play()
         {
-            MediaElement.IfNotNull(i => i.Play());
+            MediaElement.IfNotNull(i => StartPlayback());
         }
 
         /// <summary>
@@ -670,16 +671,26 @@ namespace SM.Media.MediaPlayer
         void MediaElement_MediaEnded(object sender, RoutedEventArgs e)
         {
             MediaEnded.IfNotNull(i => i(this));
+
+            CleanupMedia();
         }
 
         void MediaElement_MediaFailed(object sender, ExceptionRoutedEventArgs e)
         {
             MediaFailed.IfNotNull(i => i(this, e.ErrorException));
+
+            CleanupMedia();
         }
 
         void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
         {
             MediaOpened.IfNotNull(i => i(this));
+        }
+
+        void CleanupMedia()
+        {
+            if (null != _tsMediaManager)
+                _tsMediaManager.Close();
         }
 
         void MediaElement_LogReady(object sender, LogReadyRoutedEventArgs e)
@@ -718,25 +729,45 @@ namespace SM.Media.MediaPlayer
 
         static MediaPluginState ConvertToPlayState(MediaElementState mediaElementState)
         {
-            return (MediaPluginState)Enum.Parse(typeof(MediaPluginState), mediaElementState.ToString(), true);
+            return (MediaPluginState) Enum.Parse(typeof (MediaPluginState), mediaElementState.ToString(), true);
         }
 
-        async Task SetMediaSource(Uri source)
+        void SetMediaSource(Uri source)
         {
-            var programManager = new ProgramManager { Playlists = new[] { source } };
+            _programManager = new ProgramManager
+                              {
+                                  Playlists = new[] { source }
+                              };
+        }
+
+        async Task StartPlayback()
+        {
+            if (null == MediaElement)
+                return;
+
+            if (null == _programManager)
+                return;
+
+            if (MediaElementState.Closed != MediaElement.CurrentState)
+            {
+                if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(MediaElement.CurrentState))
+                    MediaElement.Play();
+
+                return;
+            }
 
             Program program;
             ISubProgram subProgram;
 
             try
             {
-                var programs = await programManager.LoadAsync();
+                var programs = await _programManager.LoadAsync();
 
                 program = programs.Values.FirstOrDefault();
 
                 if (null == program)
                 {
-                    Debug.WriteLine("StreamingMediaPlugin.SetMediaSource: program not found");
+                    Debug.WriteLine("StreamingMediaPlugin.StartPlayback: program not found");
                     return;
                 }
 
@@ -744,14 +775,14 @@ namespace SM.Media.MediaPlayer
 
                 if (null == subProgram)
                 {
-                    Debug.WriteLine("StreamingMediaPlugin.SetMediaSource: no sub programs found");
+                    Debug.WriteLine("StreamingMediaPlugin.StartPlayback: no sub programs found");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("StreamingMediaPlugin.SetMediaSource: " + ex.Message);
-                return;
+                Debug.WriteLine("StreamingMediaPlugin.StartPlayback: " + ex.Message);
+                throw;
             }
 
             var webRequestFactory = new HttpWebRequestFactory(program.Url);

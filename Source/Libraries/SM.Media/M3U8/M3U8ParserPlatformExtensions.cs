@@ -27,6 +27,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
@@ -35,16 +36,25 @@ namespace SM.Media.M3U8
 {
     public static class M3U8ParserPlatformExtensions
     {
+        static readonly MediaTypeWithQualityHeaderValue AcceptMpegurlHeader = new MediaTypeWithQualityHeaderValue("application/vnd.apple.mpegurl");
+        static readonly MediaTypeWithQualityHeaderValue AcceptAnyHeader = new MediaTypeWithQualityHeaderValue("*/*");
+
         public static async Task ParseAsync(this M3U8Parser parser, Uri playlist, CancellationToken cancellationToken)
         {
             var playlistString = await new Retry(4, 100, RetryPolicy.IsWebExceptionRetryable)
                 .CallAsync(async () =>
                                  {
-                                     var response = await new HttpClient().GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken);
+                                     using (var httpClient = new HttpClient())
+                                     {
+                                         httpClient.DefaultRequestHeaders.Accept.Add(AcceptMpegurlHeader);
+                                         httpClient.DefaultRequestHeaders.Accept.Add(AcceptAnyHeader);
 
-                                     response.EnsureSuccessStatusCode();
+                                         var response = await httpClient.GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken);
 
-                                     return await response.Content.ReadAsStringAsync();
+                                         response.EnsureSuccessStatusCode();
+
+                                         return await response.Content.ReadAsStringAsync();
+                                     }
                                  })
                 .WithCancellation(cancellationToken);
 

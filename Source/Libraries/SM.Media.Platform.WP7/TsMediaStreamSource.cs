@@ -512,13 +512,7 @@ namespace SM.Media
             {
                 _state = SourceState.Seek;
 
-                if (_seekTarget.HasValue)
-                {
-                    _pendingSeekTarget = _seekTarget.Value;
-                    _seekTarget = null;
-                }
-                else
-                    _pendingSeekTarget = seekTimestamp;
+                _pendingSeekTarget = _seekTarget ?? seekTimestamp;
             }
 
             RequestOperationAndSignal(Operation.Seek);

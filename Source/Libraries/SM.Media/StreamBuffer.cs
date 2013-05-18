@@ -313,18 +313,30 @@ namespace SM.Media
 
         void IManagedBuffer.Flush()
         {
-            TsPesPacket[] packets;
+            TsPesPacket[] packets = null;
 
             lock (_packetsLock)
             {
-                packets = _packets.ToArray();
-                _packets.Clear();
+                if (_packets.Count > 0)
+                {
+                    packets = _packets.ToArray();
+
+                    _packets.Clear();
+                }
 
                 ReportFlush();
             }
 
+            if (null == packets)
+                return;
+
             foreach (var packet in packets)
+            {
+                if (null == packet)
+                    continue;
+
                 _freePesPacket(packet);
+            }
         }
     }
 }

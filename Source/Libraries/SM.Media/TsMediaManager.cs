@@ -491,6 +491,15 @@ namespace SM.Media
             {
                 foreach (var reader in _readers)
                 {
+                    if (null != reader.MediaParser)
+                    {
+                        reader.MediaParser.EnableProcessing = false;
+                        reader.MediaParser.FlushBuffers();
+                    }
+
+                    if (null != reader.BufferingManager)
+                        reader.BufferingManager.Flush();
+
                     using (reader)
                     { }
                 }

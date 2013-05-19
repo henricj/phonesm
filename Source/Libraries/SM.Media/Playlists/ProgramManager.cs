@@ -26,15 +26,27 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
+using SM.Media.Utility;
 
 namespace SM.Media.Playlists
 {
     public class ProgramManager : ProgramManagerBase, IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
+        readonly HttpClient _httpClient;
+
+        public ProgramManager(HttpClient httpClient)
+        {
+            if (httpClient == null)
+                throw new ArgumentNullException("httpClient");
+
+            _httpClient = httpClient;
+        }
 
         #region IProgramManager Members
 
@@ -51,7 +63,27 @@ namespace SM.Media.Playlists
             {
                 actualPlaylist = playlist;
 
-                await parser.ParseAsync(actualPlaylist, cancellationToken).ConfigureAwait(false);
+                var localPlaylist = playlist;
+
+                var playlistString = await new Retry(4, 100, RetryPolicy.IsWebExceptionRetryable)
+                    .CallAsync(async () =>
+                                     {
+                                         var response = await _httpClient.GetAsync(localPlaylist, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                                                                         .ConfigureAwait(false);
+
+                                         response.EnsureSuccessStatusCode();
+
+                                         return await response.Content.ReadAsStringAsync()
+                                                              .ConfigureAwait(false);
+                                     })
+                    .ConfigureAwait(false);
+
+                using (var sr = new StringReader(playlistString))
+                {
+                    parser.Parse(actualPlaylist, sr);
+                }
+
+                break;
             }
 
             if (null == actualPlaylist)

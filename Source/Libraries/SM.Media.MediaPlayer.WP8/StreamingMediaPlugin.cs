@@ -24,14 +24,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+using System.Net.Http.Headers;
 using System.Windows;
 using Microsoft.PlayerFramework;
+using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.MediaPlayer
 {
     public class StreamingMediaPlugin : IMediaPlugin
     {
+        static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
+        IHttpClients _httpClients;
         MediaElementWrapper _mediaElement;
+
+        IHttpClients HttpClients
+        {
+            get
+            {
+                if (null == _httpClients)
+                    _httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue(ApplicationInformation.Title ?? "Unknown", ApplicationInformation.Version ?? "0.0"));
+
+                return _httpClients;
+            }
+        }
 
         #region IMediaPlugin Members
 
@@ -49,6 +66,14 @@ namespace SM.Media.MediaPlayer
 
             if (null != _mediaElement)
                 _mediaElement.Cleanup();
+
+            if (null != _httpClients)
+            {
+                using (_httpClients as IDisposable)
+                { }
+
+                _httpClients = null;
+            }
         }
 
         public Microsoft.PlayerFramework.MediaPlayer MediaPlayer { get; set; }
@@ -60,7 +85,7 @@ namespace SM.Media.MediaPlayer
                 if (null != _mediaElement)
                     return _mediaElement;
 
-                _mediaElement = new MediaElementWrapper();
+                _mediaElement = new MediaElementWrapper(HttpClients);
 
                 return _mediaElement;
             }

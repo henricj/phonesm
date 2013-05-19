@@ -28,6 +28,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -36,6 +38,7 @@ using Microsoft.PlayerFramework;
 using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
 using TimelineMarkerRoutedEventArgs = System.Windows.Media.TimelineMarkerRoutedEventArgs;
@@ -53,6 +56,7 @@ namespace SM.Media.MediaPlayer
     /// </remarks>
     public class MediaElementWrapper : ContentControl, IMediaElement
     {
+        readonly IHttpClients _httpClients;
         // This class is 
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
 
@@ -64,8 +68,14 @@ namespace SM.Media.MediaPlayer
         /// <summary>
         ///     Creates a new instance of the MediaElementWrapper class.
         /// </summary>
-        public MediaElementWrapper()
+        /// <param name="httpClients"></param>
+        public MediaElementWrapper(IHttpClients httpClients)
         {
+            if (httpClients == null)
+                throw new ArgumentNullException("httpClients");
+
+            _httpClients = httpClients;
+
             HorizontalContentAlignment = HorizontalAlignment.Stretch;
             VerticalContentAlignment = VerticalAlignment.Stretch;
             MediaElement = new MediaElement();
@@ -380,7 +390,7 @@ namespace SM.Media.MediaPlayer
 
         async Task SetMediaSourceAsync(Uri value)
         {
-            _programManager = new ProgramManager
+            _programManager = new ProgramManager(_httpClients.RootPlaylistClient)
                               {
                                   Playlists = new[] { value }
                               };
@@ -543,13 +553,11 @@ namespace SM.Media.MediaPlayer
                 throw new FileNotFoundException("Unable to load program stream");
             }
 
-            var webRequestFactory = new HttpWebRequestFactory(program.Url);
-
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(uri)), subProgram);
 
             _mediaElementManager = new NoOpMediaElementManager();
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;

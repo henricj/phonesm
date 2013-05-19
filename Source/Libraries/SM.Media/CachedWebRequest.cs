@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="CachedWebRequest.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,8 +25,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
 
@@ -34,24 +36,30 @@ namespace SM.Media
 {
     public class CachedWebRequest : ICachedWebRequest
     {
+        static readonly CacheControlHeaderValue NoCacheHeader = new CacheControlHeaderValue
+                                                                {
+                                                                    NoCache = true
+                                                                };
+
+        readonly HttpClient _httpClient;
         readonly Uri _url;
         readonly Func<Uri, HttpWebRequest> _webRequestFactory;
+        CacheControlHeaderValue _cacheControl;
         object _cachedObject;
-        string _etag;
-        string _lastModified;
+        EntityTagHeaderValue _etag;
+        DateTimeOffset? _lastModified;
         string _noCache;
-        string _cacheControl;
 
-        public CachedWebRequest(Uri url, Func<Uri, HttpWebRequest> webRequestFactory)
+        public CachedWebRequest(Uri url, HttpClient httpClient)
         {
             if (null == url)
                 throw new ArgumentNullException("url");
 
-            if (null == webRequestFactory)
-                throw new ArgumentNullException("webRequestFactory");
+            if (httpClient == null)
+                throw new ArgumentNullException("httpClient");
 
             _url = url;
-            _webRequestFactory = webRequestFactory;
+            _httpClient = httpClient;
         }
 
         #region ICachedWebRequest Members
@@ -61,14 +69,14 @@ namespace SM.Media
             get { return _url; }
         }
 
-        public async Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory)
+        public async Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
             where TCached : class
         {
             if (null == _cachedObject as TCached)
                 _cachedObject = null;
 
             await new Retry(4, 250, RetryPolicy.IsWebExceptionRetryable)
-                .CallAsync(() => Fetch(factory))
+                .CallAsync(() => Fetch(factory, cancellationToken))
                 .ConfigureAwait(false);
 
             return _cachedObject as TCached;
@@ -76,76 +84,33 @@ namespace SM.Media
 
         #endregion
 
-        async Task Fetch<TCached>(Func<byte[], TCached> factory)
+        async Task Fetch<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
             where TCached : class
         {
             var request = CreateRequest();
 
-            using (var response = await GetHttpWebResponseAsync(request).ConfigureAwait(false))
+            using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                                                   .ConfigureAwait(false))
             {
-                switch (response.StatusCode)
-                {
-                    case HttpStatusCode.OK:
-                        _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
-                        break;
-                    case HttpStatusCode.NotModified:
-                        break;
-                    default:
-                        _cachedObject = null;
-                        break;
-                }
+                if (response.IsSuccessStatusCode)
+                    _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
+                else if (response.StatusCode != HttpStatusCode.NotModified)
+                    _cachedObject = null;
             }
         }
 
-        async Task<byte[]> FetchObject(HttpWebResponse response)
+        async Task<byte[]> FetchObject(HttpResponseMessage response)
         {
-            var date = response.Headers["Last-Modified"];
+            _lastModified = response.Content.Headers.LastModified;
 
-            _lastModified = !string.IsNullOrWhiteSpace(date) ? date : null;
+            _etag = response.Headers.ETag;
 
-            var etag = response.Headers["ETag"];
+            _cacheControl = response.Headers.CacheControl;
 
-            _etag = !string.IsNullOrWhiteSpace(etag) ? etag : null;
-
-            var cacheControl = response.Headers["Cache-Control"];
-
-            _cacheControl = !string.IsNullOrWhiteSpace(cacheControl) ? cacheControl : null;
-
-            byte[] body;
-
-            using (var stream = response.GetResponseStream())
-            {
-                var ms = response.ContentLength > 0 ? new MemoryStream((int)response.ContentLength) : new MemoryStream();
-
-                using (ms)
-                {
-                    await stream.CopyToAsync(ms).ConfigureAwait(false);
-
-                    body = ms.ToArray();
-                }
-            }
-
-            return body;
+            return await response.Content.ReadAsByteArrayAsync();
         }
 
-        async Task<HttpWebResponse> GetHttpWebResponseAsync(HttpWebRequest request)
-        {
-            try
-            {
-                return (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false);
-            }
-            catch (WebException ex)
-            {
-                var response = ex.Response as HttpWebResponse;
-
-                if (null != response && HttpStatusCode.NotModified == response.StatusCode)
-                    return response;
-
-                throw;
-            }
-        }
-
-        HttpWebRequest CreateRequest()
+        HttpRequestMessage CreateRequest()
         {
             var url = _url;
 
@@ -176,21 +141,19 @@ namespace SM.Media
                 url = ub.Uri;
             }
 
-            var hr = _webRequestFactory(url);
+            var hr = new HttpRequestMessage(HttpMethod.Get, url);
 
             if (null != _cachedObject && haveConditional)
             {
                 if (null != _lastModified)
-                {
-                    hr.Headers[HttpRequestHeader.IfModifiedSince] = _lastModified;
-                }
+                    hr.Headers.IfModifiedSince = _lastModified;
 
                 if (null != _etag)
-                    hr.Headers[HttpRequestHeader.IfNoneMatch] = _etag;
+                    hr.Headers.IfNoneMatch.Add(_etag);
             }
 
             if (!haveConditional)
-                hr.Headers[HttpRequestHeader.CacheControl] = "no-cache";
+                hr.Headers.CacheControl = NoCacheHeader;
 
             return hr;
         }

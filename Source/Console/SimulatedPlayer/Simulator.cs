@@ -30,15 +30,24 @@ using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Playlists;
 using SM.Media.Segments;
-using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SimulatedPlayer
 {
     sealed class Simulator : IDisposable
     {
+        readonly IHttpClients _httpClients;
         ProgramManager _programManager;
         SegmentReaderManager _segmentReaderManager;
         TsMediaManager _tsMediaManager;
+
+        public Simulator(IHttpClients httpClients)
+        {
+            if (httpClients == null)
+                throw new ArgumentNullException("httpClients");
+
+            _httpClients = httpClients;
+        }
 
         #region IDisposable Members
 
@@ -52,7 +61,7 @@ namespace SimulatedPlayer
 
         public async Task Run()
         {
-            _programManager = new ProgramManager
+            _programManager = new ProgramManager(_httpClients.RootPlaylistClient)
                               {
                                   Playlists = new[]
                                               {
@@ -84,13 +93,11 @@ namespace SimulatedPlayer
                 return;
             }
 
-            var webRequestFactory = new HttpWebRequestFactory(program.Url);
-
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(uri)), subProgram);
 
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
+            _segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
 
             _tsMediaManager = new TsMediaManager(_segmentReaderManager, mediaElementManager, new SimulatedMediaStreamSource(mediaElementManager));
 

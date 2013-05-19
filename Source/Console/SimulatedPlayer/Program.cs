@@ -25,8 +25,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Net.Http.Headers;
 using SM.Media;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SimulatedPlayer
 {
@@ -38,7 +40,8 @@ namespace SimulatedPlayer
 
             try
             {
-                using (var simulator = new Simulator())
+                using (var httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue("SimulatedPlayer", "1.0")))
+                using (var simulator = new Simulator(httpClients))
                 {
                     simulator.Run().Wait();
 

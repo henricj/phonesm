@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -38,15 +39,17 @@ using SM.Media;
 using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace HlsView
 {
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
+        static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
+        readonly IHttpClients _httpClients;
         readonly DispatcherTimer _positionSampler;
         IMediaElementManager _mediaElementManager;
-        int _positionSampleCount;
         TimeSpan _previousPosition;
         ITsMediaManager _tsMediaManager;
 
@@ -54,6 +57,8 @@ namespace HlsView
         public MainPage()
         {
             InitializeComponent();
+
+            _httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue(ApplicationInformation.Title ?? "Unknown", ApplicationInformation.Version ?? "0.0"));
 
             _positionSampler = new DispatcherTimer
                                {
@@ -141,6 +146,7 @@ namespace HlsView
 
             return sb.ToString();
         }
+
         async void play_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("Play clicked");
@@ -154,7 +160,7 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            var programManager = new ProgramManager
+            var programManager = new ProgramManager(_httpClients.RootPlaylistClient)
                                  {
                                      Playlists = new[]
                                                  {
@@ -201,9 +207,7 @@ namespace HlsView
                 return;
             }
 
-            var webRequestFactory = new HttpWebRequestFactory(program.Url);
-
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(program.Url)), subProgram);
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
                 () =>
@@ -244,7 +248,7 @@ namespace HlsView
                     UpdateState(MediaElementState.Closed);
                 });
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;

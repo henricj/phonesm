@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="IWebRequest.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="ApplicationInformation.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,17 +24,44 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Xml;
 
 namespace SM.Media.Utility
 {
-    public interface ICachedWebRequest
+    public class ApplicationInformation : IApplicationInformation
     {
-        Uri Url { get; }
+        readonly string _title;
+        readonly string _version;
 
-        Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
-            where TCached : class;
+        public ApplicationInformation()
+        {
+            using (var rdr = XmlReader.Create("WMAppManifest.xml",
+                new XmlReaderSettings
+                {
+                    XmlResolver = new XmlXapResolver()
+                }))
+            {
+                if (!rdr.ReadToDescendant("App") || !rdr.IsStartElement())
+                    Debug.WriteLine("Cannot find <App> in WMAppManifest.xml");
+
+                _title = rdr.GetAttribute("Title");
+                _version = rdr.GetAttribute("Version");
+            }
+        }
+
+        #region IApplicationInformation Members
+
+        public string Title
+        {
+            get { return _title; }
+        }
+
+        public string Version
+        {
+            get { return _version; }
+        }
+
+        #endregion
     }
 }

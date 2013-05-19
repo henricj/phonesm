@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
@@ -38,11 +39,8 @@ namespace SM.Media.Segments
         readonly ISegmentManager[] _segmentManagers;
         readonly ManagerReaders[] _segmentReaders;
 
-        public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, IHttpWebRequestFactory webRequestFactory)
+        public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, Func<Uri, HttpClient> clientFactory)
         {
-            if (null == webRequestFactory)
-                throw new ArgumentNullException("webRequestFactory");
-
             if (null == segmentManagers)
                 throw new ArgumentNullException("segmentManagers");
 
@@ -52,7 +50,11 @@ namespace SM.Media.Segments
                 throw new ArgumentException("No segment managers provided");
 
             _segmentReaders = _segmentManagers
-                .Select(sm => new ManagerReaders { Manager = sm, Readers = new SegmentReaderEnumerable(sm, webRequestFactory) })
+                .Select(sm => new ManagerReaders
+                              {
+                                  Manager = sm,
+                                  Readers = new SegmentReaderEnumerable(sm, clientFactory)
+                              })
                 .ToArray();
         }
 
@@ -124,26 +126,26 @@ namespace SM.Media.Segments
 
         class SegmentReaderEnumerable : IAsyncEnumerable<ISegmentReader>
         {
+            readonly Func<Uri, HttpClient> _clientFactory;
             readonly ISegmentManager _segmentManager;
-            readonly IHttpWebRequestFactory _webRequestFactory;
 
-            public SegmentReaderEnumerable(ISegmentManager segmentManager, IHttpWebRequestFactory webRequestFactory)
+            public SegmentReaderEnumerable(ISegmentManager segmentManager, Func<Uri, HttpClient> clientFactory)
             {
                 if (null == segmentManager)
                     throw new ArgumentNullException("segmentManager");
 
-                if (null == webRequestFactory)
-                    throw new ArgumentNullException("webRequestFactory");
+                if (clientFactory == null)
+                    throw new ArgumentNullException("clientFactory");
 
                 _segmentManager = segmentManager;
-                _webRequestFactory = webRequestFactory;
+                _clientFactory = clientFactory;
             }
 
             #region IAsyncEnumerable<ISegmentReader> Members
 
             public IAsyncEnumerator<ISegmentReader> GetEnumerator()
             {
-                return new SegmentReaderEnumerator(_segmentManager, _webRequestFactory);
+                return new SegmentReaderEnumerator(_segmentManager, _clientFactory);
             }
 
             #endregion
@@ -156,21 +158,21 @@ namespace SM.Media.Segments
         class SegmentReaderEnumerator : IAsyncEnumerator<ISegmentReader>
         {
             readonly Uri _baseUrl;
+            readonly Func<Uri, HttpClient> _clientFactory;
             readonly IAsyncEnumerator<ISegment> _segmentEnumerator;
-            readonly IHttpWebRequestFactory _webRequestFactory;
             ISegmentReader _segmentReader;
 
-            public SegmentReaderEnumerator(ISegmentManager segmentManager, IHttpWebRequestFactory webRequestFactory)
+            public SegmentReaderEnumerator(ISegmentManager segmentManager, Func<Uri, HttpClient> clientFactory)
             {
                 if (null == segmentManager)
                     throw new ArgumentNullException("segmentManager");
 
-                if (null == webRequestFactory)
-                    throw new ArgumentNullException("webRequestFactory");
+                if (clientFactory == null)
+                    throw new ArgumentNullException("clientFactory");
 
                 _baseUrl = segmentManager.Url;
                 _segmentEnumerator = segmentManager.Playlist.GetEnumerator();
-                _webRequestFactory = webRequestFactory;
+                _clientFactory = clientFactory;
             }
 
             #region IAsyncEnumerator<ISegmentReader> Members
@@ -197,7 +199,7 @@ namespace SM.Media.Segments
 
                 var segment = _segmentEnumerator.Current;
 
-                _segmentReader = new SegmentReader(segment, _webRequestFactory.CreateChildFactory(_baseUrl).Create);
+                _segmentReader = new SegmentReader(segment, _clientFactory(_baseUrl));
 
                 return true;
             }

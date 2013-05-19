@@ -51,7 +51,6 @@
     <Compile Include="IMediaStreamSource.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
-    <Compile Include="M3U8\M3U8ParserPlatformExtensions.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ByterangeTag.cs" />
     <Compile Include="M3U8\TagSupport\ExtKeyTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\ExtStreamInfTagInstance.cs" />
@@ -148,6 +147,7 @@
     <Compile Include="Utility\BlockingPool.cs" />
     <Compile Include="Utility\BufferPool.cs" />
     <Compile Include="Utility\CommandWorkerBase.cs" />
+    <Compile Include="Utility\IApplicationInformation.cs" />
     <Compile Include="Utility\ICommandWorker.cs" />
     <Compile Include="Utility\SingleThreadSignalTaskScheduler.cs" />
     <Compile Include="Utility\TaskCommandWorker.cs" />
@@ -167,6 +167,8 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Utility\WorkCommand.cs" />
+    <Compile Include="Web\HttpClients.cs" />
+    <Compile Include="Web\IHttpClients.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Threading.Tasks">

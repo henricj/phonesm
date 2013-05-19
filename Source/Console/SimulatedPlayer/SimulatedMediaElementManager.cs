@@ -65,11 +65,6 @@ namespace SimulatedPlayer
             return Close();
         }
 
-        Task IMediaElementManager.Dispatch(Action action)
-        {
-            return Dispatch(action);
-        }
-
         Task IMediaElementManager.SetSource(IMediaStreamSource source)
         {
             return SetSource(source);

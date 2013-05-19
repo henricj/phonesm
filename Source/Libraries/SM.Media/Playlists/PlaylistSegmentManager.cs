@@ -244,7 +244,7 @@ namespace SM.Media.Playlists
                 var localPlaylist = playlist;
 
                 CancellationToken.ThrowIfCancellationRequested();
-
+                
                 var parsedPlaylist = await _subPlaylistRequest.ReadAsync(
                     bytes =>
                     {
@@ -261,7 +261,7 @@ namespace SM.Media.Playlists
                         }
 
                         return parser;
-                    })
+                    }, CancellationToken)
                     .ConfigureAwait(false);
 
                 if (null != parsedPlaylist)

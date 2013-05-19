@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="IWebRequest.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="IApplicationInformation.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,17 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace SM.Media.Utility
 {
-    public interface ICachedWebRequest
+    public interface IApplicationInformation
     {
-        Uri Url { get; }
-
-        Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
-            where TCached : class;
+        string Title { get; }
+        string Version { get; }
     }
 }

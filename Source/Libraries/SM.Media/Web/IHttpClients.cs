@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IWebRequest.cs" company="Henric Jungheim">
+//  <copyright file="IHttpClients.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,16 +25,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Net.Http;
 
-namespace SM.Media.Utility
+namespace SM.Media.Web
 {
-    public interface ICachedWebRequest
+    public interface IHttpClients
     {
-        Uri Url { get; }
-
-        Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
-            where TCached : class;
+        HttpClient RootPlaylistClient { get; }
+        HttpClient GetPlaylistClient(Uri rootPlaylist);
+        HttpClient GetSegmentClient(Uri segmentPlaylist);
     }
 }

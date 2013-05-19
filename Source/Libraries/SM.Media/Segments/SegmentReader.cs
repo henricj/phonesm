@@ -26,9 +26,10 @@
 
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
@@ -38,27 +39,27 @@ namespace SM.Media.Segments
     sealed class SegmentReader : ISegmentReader
     {
         static readonly TimeSpan DefaultNotFoundDelay = TimeSpan.FromSeconds(5);
+        readonly HttpClient _httpClient;
         readonly ISegment _segment;
         readonly Func<Stream, Stream> _streamFilter;
         readonly Uri _url;
-        readonly Func<Uri, HttpWebRequest> _webRequestFactory;
         long _endOffset;
-        WebResponse _response;
+        HttpResponseMessage _response;
         Stream _responseStream;
         long _startOffset;
 
-        public SegmentReader(ISegment segment, Func<Uri, HttpWebRequest> webRequestFactory, Func<Stream, Stream> streamFilter = null)
+        public SegmentReader(ISegment segment, HttpClient httpClient, Func<Stream, Stream> streamFilter = null)
         {
             if (null == segment)
                 throw new ArgumentNullException("segment");
 
-            if (null == webRequestFactory)
-                throw new ArgumentNullException("webRequestFactory");
+            if (httpClient == null)
+                throw new ArgumentNullException("httpClient");
 
-            _webRequestFactory = webRequestFactory;
             _streamFilter = streamFilter;
 
             _segment = segment;
+            _httpClient = httpClient;
             _startOffset = segment.Offset;
             _endOffset = _startOffset + segment.Length - 1;
             _url = segment.Url;
@@ -154,24 +155,6 @@ namespace SM.Media.Segments
 
         #endregion
 
-        WebRequest CreateWebRequest()
-        {
-            var webRequest = _webRequestFactory(_url);
-
-            if (null != webRequest)
-            {
-                //webRequest.AllowReadStreamBuffering = false;
-
-                if (_startOffset >= 0 && _endOffset > 0)
-                {
-                    webRequest.Headers["Range"] = "bytes=" + _startOffset.ToString(CultureInfo.InvariantCulture) + "-"
-                        + _endOffset.ToString(CultureInfo.InvariantCulture);
-                }
-            }
-
-            return webRequest;
-        }
-
         async Task<Stream> OpenStream(CancellationToken cancellationToken)
         {
             var notFoundRetry = 2;
@@ -181,14 +164,18 @@ namespace SM.Media.Segments
                 try
                 {
                     _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
-                        .CallAsync(async () =>
-                                         {
-                                             var webRequest = CreateWebRequest();
+                        .CallAsync(() =>
+                                   {
+                                       var msg = new HttpRequestMessage(HttpMethod.Get, _url);
 
-                                             return await webRequest.GetResponseAsync().ConfigureAwait(false);
-                                         })
-                        .WithCancellation(cancellationToken)
+                                       if (_startOffset >= 0 && _endOffset > 0)
+                                           msg.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
+
+                                       return _httpClient.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                                   })
                         .ConfigureAwait(false);
+
+                    _response.EnsureSuccessStatusCode();
 
                     break;
                 }
@@ -227,9 +214,9 @@ namespace SM.Media.Segments
             }
 
             if (_endOffset <= 0)
-                _endOffset = _response.ContentLength;
+                _endOffset = _response.Content.Headers.ContentLength ?? 0;
 
-            var stream = _response.GetResponseStream();
+            var stream = await _response.Content.ReadAsStreamAsync();
 
             if (null != _streamFilter)
                 stream = _streamFilter(stream);

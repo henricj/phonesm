@@ -30,6 +30,9 @@ using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -41,6 +44,7 @@ using Microsoft.SilverlightMediaFramework.Utilities.Extensions;
 using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.MediaPlayer
 {
@@ -500,6 +504,8 @@ namespace SM.Media.MediaPlayer
         MediaElementManager _mediaElementManager;
         TsMediaManager _tsMediaManager;
         ProgramManager _programManager;
+        HttpClients _httpClients;
+        readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
 
         public Stream StreamSource
         {
@@ -548,6 +554,11 @@ namespace SM.Media.MediaPlayer
         {
             try
             {
+                if (null != _httpClients)
+                    _httpClients.Dispose();
+
+                _httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue(_applicationInformation.Title ?? "Unknown", _applicationInformation.Version ?? "0.0"));
+
                 InitializeStreamingMediaElement();
                 IsLoaded = true;
                 PluginLoaded.IfNotNull(i => i(this));
@@ -567,6 +578,13 @@ namespace SM.Media.MediaPlayer
             try
             {
                 IsLoaded = false;
+
+                if (null != _httpClients)
+                {
+                    _httpClients.Dispose();
+                    _httpClients = null;
+                }
+
                 DestroyStreamingMediaElement();
                 PluginUnloaded.IfNotNull(i => i(this));
                 //SendLogEntry(KnownLogEntryTypes.ProgressiveMediaPluginUnloaded, message: ProgressiveMediaPluginResources.ProgressiveMediaPluginUnloadedLogMessage);
@@ -729,12 +747,12 @@ namespace SM.Media.MediaPlayer
 
         static MediaPluginState ConvertToPlayState(MediaElementState mediaElementState)
         {
-            return (MediaPluginState) Enum.Parse(typeof (MediaPluginState), mediaElementState.ToString(), true);
+            return (MediaPluginState)Enum.Parse(typeof(MediaPluginState), mediaElementState.ToString(), true);
         }
 
         void SetMediaSource(Uri source)
         {
-            _programManager = new ProgramManager
+            _programManager = new ProgramManager(_httpClients.RootPlaylistClient)
                               {
                                   Playlists = new[] { source }
                               };
@@ -785,15 +803,11 @@ namespace SM.Media.MediaPlayer
                 throw;
             }
 
-            var webRequestFactory = new HttpWebRequestFactory(program.Url);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(uri)), subProgram);
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
+            _mediaElementManager = new MediaElementManager(MediaElement.Dispatcher, () => MediaElement, me => { });
 
-            _mediaElementManager = new MediaElementManager(MediaElement.Dispatcher,
-                () => MediaElement,
-                me => { });
-
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
 
             _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
 

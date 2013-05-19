@@ -68,7 +68,8 @@ namespace SM.Media
                 _cachedObject = null;
 
             await new Retry(4, 250, RetryPolicy.IsWebExceptionRetryable)
-                .CallAsync(() => Fetch(factory));
+                .CallAsync(() => Fetch(factory))
+                .ConfigureAwait(false);
 
             return _cachedObject as TCached;
         }
@@ -80,12 +81,12 @@ namespace SM.Media
         {
             var request = CreateRequest();
 
-            using (var response = await GetHttpWebResponseAsync(request))
+            using (var response = await GetHttpWebResponseAsync(request).ConfigureAwait(false))
             {
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.OK:
-                        _cachedObject = factory(await FetchObject(response));
+                        _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
                         break;
                     case HttpStatusCode.NotModified:
                         break;
@@ -118,7 +119,7 @@ namespace SM.Media
 
                 using (ms)
                 {
-                    await stream.CopyToAsync(ms);
+                    await stream.CopyToAsync(ms).ConfigureAwait(false);
 
                     body = ms.ToArray();
                 }
@@ -131,7 +132,7 @@ namespace SM.Media
         {
             try
             {
-                return (HttpWebResponse)await request.GetResponseAsync();
+                return (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false);
             }
             catch (WebException ex)
             {

@@ -27,6 +27,7 @@
 using System;
 using System.Threading.Tasks;
 using SM.Media.Configuration;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
@@ -44,9 +45,12 @@ namespace SM.Media
     public interface IMediaStreamSource : IDisposable
     {
         TimeSpan? SeekTarget { get; set; }
+        IMediaManager MediaManager { get; set; }
         Task CloseAsync();
         void Configure(MediaConfiguration configuration);
         void ReportError(string message);
         void CheckForSamples();
+
+        void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
     }
 }

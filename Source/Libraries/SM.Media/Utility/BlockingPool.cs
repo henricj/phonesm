@@ -84,7 +84,9 @@ namespace SM.Media.Utility
 
                 //var sw = Stopwatch.StartNew();
 
-                await _bufferWait.WaitAsync().WithCancellation(cancellationToken);
+                await _bufferWait.WaitAsync()
+                    .WithCancellation(cancellationToken)
+                    .ConfigureAwait(false);
 
                 //sw.Stop();
 

@@ -85,7 +85,9 @@ namespace SM.Media.Utility
                                        new Dictionary<MediaEvent, MediaState>
                                        {
                                            // A MediaStreamSource is assigned to the MediaElement
-                                           { MediaEvent.MediaStreamSourceAssigned, MediaState.Assigned }
+                                           { MediaEvent.MediaStreamSourceAssigned, MediaState.Assigned },
+                                           // OpenMediaAsync() has been called
+                                           { MediaEvent.OpenMediaAsyncCalled, MediaState.Opening }
                                        }
                                    },
                                    {

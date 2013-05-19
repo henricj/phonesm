@@ -92,9 +92,9 @@ namespace SimulatedPlayer
 
             _segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
 
-            _tsMediaManager = new TsMediaManager(_segmentReaderManager, mediaElementManager, mm => new SimulatedMediaStreamSource(mm, mediaElementManager));
+            _tsMediaManager = new TsMediaManager(_segmentReaderManager, mediaElementManager, new SimulatedMediaStreamSource(mediaElementManager));
 
-            _tsMediaManager.Play(_segmentReaderManager);
+            _tsMediaManager.Play();
         }
     }
 }

@@ -28,18 +28,19 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using SM.TsParser;
 
 namespace SM.Media
 {
     class BufferingManager : IBufferingManager
     {
-        const int BufferSizeMaximum = 2048 * 1024;
-        const int BufferSizeStopBuffering = 768 * 1024;
+        const int BufferSizeMaximum = 8192 * 1024;
+        const int BufferSizeStopBuffering = 1024 * 1024;
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromMilliseconds(256);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
-        static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(3);
-        static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(6);
-        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(30);
+        static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(8);
+        static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(12);
+        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(25);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly Action _bufferingChange;
         readonly object _lock = new object();
@@ -49,6 +50,7 @@ namespace SM.Media
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
         double _bufferingProgress;
         volatile int _isBuffering = 1;
+        int _totalBufferedStart;
 
         public BufferingManager(IQueueThrottling queueThrottling, Action bufferingChange)
         {
@@ -227,8 +229,6 @@ namespace SM.Media
 
         void ReportExhaustion(Action update)
         {
-            Debug.WriteLine("BufferingManager.ReportExhaustion(...)");
-
             lock (_lock)
             {
                 update();
@@ -239,8 +239,6 @@ namespace SM.Media
 
         void ReportFlush(Action update)
         {
-            Debug.WriteLine("BufferingManager.ReportFlush(...)");
-
             lock (_lock)
             {
                 update();
@@ -343,7 +341,7 @@ namespace SM.Media
                     ReportBuffering(1);
                 }
                 else
-                    UpdateBuffering(timestampDifference, totalBuffered);
+                    UpdateBuffering(timestampDifference, Math.Max(0, totalBuffered - _totalBufferedStart));
 
                 if (0 != _isBuffering)
                     return false;
@@ -351,10 +349,12 @@ namespace SM.Media
             else
             {
                 //if (!allDone && isExhausted && (!validData || 0 == highestCount))
-                //if (!allDone && allExhausted && validData)
-                if (!allDone && isExhausted)
+                if (!allDone && allExhausted && validData)
+                //if (!allDone && isExhausted)
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
+
+                    _totalBufferedStart = totalBuffered;
 
                     UnlockedStartBuffering();
 
@@ -367,6 +367,9 @@ namespace SM.Media
 
             if (totalBuffered > BufferSizeMaximum)
                 return true;
+
+            if (isExhausted)
+                return false;
 
             if (timestampDifference < BufferDurationEnableThreshold)
                 return false;
@@ -444,6 +447,7 @@ namespace SM.Media
             TimeSpan _newestPacket;
             TimeSpan _oldestPacket;
             int _packetCount;
+            TsStreamType _streamType;
 
             public BufferingQueue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
             {
@@ -454,6 +458,7 @@ namespace SM.Media
 
                 _bufferingManager = bufferingManager;
                 _managedBuffer = managedBuffer;
+                _streamType = managedBuffer.StreamType;
             }
 
             public bool IsDone
@@ -501,19 +506,25 @@ namespace SM.Media
                 _bufferingManager.Report(Dequeue, size, timestamp);
             }
 
-            public void ReportExhastion()
+            public void ReportExhaustion()
             {
+                Debug.WriteLine("BufferingQueue.ReportExhaustion(): " + _streamType.Contents);
+
                 IsExhausted = true;
                 _bufferingManager.ReportExhaustion(Exhausted);
             }
 
             public void ReportFlush()
             {
+                Debug.WriteLine("BufferingQueue.ReportFlush(): " + _streamType.Contents);
+
                 _bufferingManager.ReportFlush(Exhausted);
             }
 
             public void ReportDone()
             {
+                Debug.WriteLine("BufferingQueue.ReportDone(): " + _streamType.Contents);
+
                 _bufferingManager.ReportDone(Done);
             }
 

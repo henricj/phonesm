@@ -56,7 +56,7 @@ namespace SM.Media.Utility
             {
                 try
                 {
-                    return await operation();
+                    return await operation().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -71,9 +71,9 @@ namespace SM.Media.Utility
                 _delay += _delay;
 
 #if WINDOWS_PHONE8
-                await Task.Delay(actualDelay);
+                await Task.Delay(actualDelay).ConfigureAwait(false);
 #else
-                await TaskEx.Delay(actualDelay);
+                await TaskEx.Delay(actualDelay).ConfigureAwait(false);
 #endif
             }
         }
@@ -102,9 +102,9 @@ namespace SM.Media.Utility
                 _delay += _delay;
 
 #if WINDOWS_PHONE8
-                await Task.Delay(actualDelay);
+                await Task.Delay(actualDelay).ConfigureAwait(false);
 #else
-                await TaskEx.Delay(actualDelay);
+                await TaskEx.Delay(actualDelay).ConfigureAwait(false);
 #endif
             }
         }
@@ -116,7 +116,7 @@ namespace SM.Media.Utility
         {
             return retry.CallAsync(async () =>
                                     {
-                                        await operation();
+                                        await operation().ConfigureAwait(false);
                                         return 0;
                                     });
         }

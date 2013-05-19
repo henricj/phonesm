@@ -94,7 +94,7 @@ namespace SM.Media.Segments
             var tasks = _segmentManagers
                 .Select(sm => sm.SeekAsync(timestamp));
 
-            var results = await TaskEx.WhenAll(tasks);
+            var results = await TaskEx.WhenAll(tasks).ConfigureAwait(false);
 
             return results.Min();
         }
@@ -192,7 +192,7 @@ namespace SM.Media.Segments
             {
                 CloseReader();
 
-                if (!await _segmentEnumerator.MoveNextAsync())
+                if (!await _segmentEnumerator.MoveNextAsync().ConfigureAwait(false))
                     return false;
 
                 var segment = _segmentEnumerator.Current;

@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="StreamingPlugin.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  <copyright file="StreamingMediaPlugin.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,24 +24,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Windows;
 using Microsoft.PlayerFramework;
 
 namespace SM.Media.MediaPlayer
 {
     public class StreamingMediaPlugin : IMediaPlugin
     {
-        IMediaElement _mediaElement;
+        MediaElementWrapper _mediaElement;
 
         #region IMediaPlugin Members
 
         public void Load()
-        { }
+        {
+            MediaPlayer.MediaClosed += MediaPlayer_MediaClosed;
+        }
 
         public void Update(IMediaSource mediaSource)
         { }
 
         public void Unload()
-        { }
+        {
+            MediaPlayer.MediaClosed -= MediaPlayer_MediaClosed;
+
+            if (null != _mediaElement)
+                _mediaElement.Cleanup();
+        }
 
         public Microsoft.PlayerFramework.MediaPlayer MediaPlayer { get; set; }
 
@@ -59,5 +67,13 @@ namespace SM.Media.MediaPlayer
         }
 
         #endregion
+
+        void MediaPlayer_MediaClosed(object sender, RoutedEventArgs e)
+        {
+            if (null == _mediaElement)
+                return;
+
+            _mediaElement.Close();
+        }
     }
 }

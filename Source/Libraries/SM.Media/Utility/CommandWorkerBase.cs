@@ -48,7 +48,7 @@ namespace SM.Media.Utility
                         var task = run();
 
                         if (null != task)
-                            await task;
+                            await task.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {

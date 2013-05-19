@@ -49,14 +49,15 @@ namespace SM.Media.M3U8
                                          httpClient.DefaultRequestHeaders.Accept.Add(AcceptMpegurlHeader);
                                          httpClient.DefaultRequestHeaders.Accept.Add(AcceptAnyHeader);
 
-                                         var response = await httpClient.GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken);
+                                         var response = await httpClient.GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
 
                                          response.EnsureSuccessStatusCode();
 
-                                         return await response.Content.ReadAsStringAsync();
+                                         return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                                      }
                                  })
-                .WithCancellation(cancellationToken);
+                .WithCancellation(cancellationToken)
+                .ConfigureAwait(false);
 
             using (var sr = new StringReader(playlistString))
             {

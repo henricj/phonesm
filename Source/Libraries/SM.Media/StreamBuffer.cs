@@ -41,6 +41,7 @@ namespace SM.Media
         readonly PesStream _pesStream = new PesStream();
         readonly StreamSample _streamSample = new StreamSample();
         readonly Action _checkForSamples;
+        readonly TsStreamType _streamType;
         readonly Action<TsPesPacket> _freePesPacket;
         readonly IBufferingManager _bufferingManager;
         readonly IBufferingQueue _bufferingQueue;
@@ -55,8 +56,15 @@ namespace SM.Media
 
         public TimeSpan TimestampOffset { get; set; }
 
-        public StreamBuffer(Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager, Action checkForSamples)
+        public StreamBuffer(TsStreamType streamType, Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager, Action checkForSamples)
         {
+            if (streamType == null)
+                throw new ArgumentNullException("streamType");
+
+            if (freePesPacket == null)
+                throw new ArgumentNullException("freePesPacket");
+
+            _streamType = streamType;
             _freePesPacket = freePesPacket;
             _bufferingManager = bufferingManager;
             _checkForSamples = checkForSamples;
@@ -230,7 +238,7 @@ namespace SM.Media
             if (null == rb)
                 return;
 
-            rb.ReportExhastion();
+            rb.ReportExhaustion();
         }
 
         void ReportFlush()
@@ -251,17 +259,6 @@ namespace SM.Media
                 return;
 
             rb.ReportDone();
-        }
-
-        public void CheckBuffer()
-        {
-            ThrowIfDisposed();
-
-            CheckGetNextSample();
-
-#if DEBUG
-            ThrowIfDisposed();
-#endif
         }
 
         public void Enqueue(TsPesPacket packet)
@@ -337,6 +334,11 @@ namespace SM.Media
 
                 _freePesPacket(packet);
             }
+        }
+
+        public TsStreamType StreamType
+        {
+            get { return _streamType; }
         }
     }
 }

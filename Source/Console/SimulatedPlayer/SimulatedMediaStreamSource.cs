@@ -38,17 +38,19 @@ namespace SimulatedPlayer
         readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
-        readonly IMediaManager _mediaManager;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
         readonly List<WorkCommand> _pendingGets = new List<WorkCommand>();
         readonly object _stateLock = new object();
         bool _isClosed;
         State _state;
+        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 
-        public SimulatedMediaStreamSource(IMediaManager mediaManager, ISimulatedMediaElement mediaElement)
+
+        public SimulatedMediaStreamSource(ISimulatedMediaElement mediaElement)
         {
-            _mediaManager = mediaManager;
             _mediaElement = mediaElement;
+
+            _mediaStreamFsm.Reset();
         }
 
         #region ISimulatedMediaStreamSource Members
@@ -58,6 +60,8 @@ namespace SimulatedPlayer
             using (_commandWorker)
             { }
         }
+
+        public IMediaManager MediaManager { get; set; }
 
         Task IMediaStreamSource.CloseAsync()
         {
@@ -85,7 +89,7 @@ namespace SimulatedPlayer
 
             Debug.WriteLine("SimulatedMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", _mediaStreams.Count);
 
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
+            ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
 
             _mediaElement.ReportOpenMediaCompleted();
         }
@@ -102,9 +106,14 @@ namespace SimulatedPlayer
         public void OpenMediaAsync()
         {
             Debug.WriteLine("SimulatedMediaStreamSource.OpenMediaAsync()");
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.OpenMediaAsyncCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.OpenMediaAsyncCalled);
 
-            _mediaManager.OpenMedia();
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
+
+            mediaManager.OpenMedia();
         }
 
         public void SeekAsync(long seekToTime)
@@ -112,7 +121,12 @@ namespace SimulatedPlayer
             var seekTimestamp = TimeSpan.FromTicks(seekToTime);
 
             Debug.WriteLine("SimulatedMediaStreamSource.SeekAsync({0})", seekTimestamp);
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
+
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
 
             _commandWorker.SendCommand(new WorkCommand(
                 async () =>
@@ -120,12 +134,12 @@ namespace SimulatedPlayer
                     if (_isClosed)
                         return;
 
-                    var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
+                    var position = await mediaManager.SeekMediaAsync(seekTimestamp);
 
                     if (_isClosed)
                         return;
 
-                    _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                    ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                     _mediaElement.ReportSeekCompleted(position.Ticks);
 
                     WorkCommand[] pendingGets;
@@ -179,7 +193,7 @@ namespace SimulatedPlayer
 
                 //Debug.WriteLine("SimulatedMediaStreamSource.GetSampleAsync({0}) state {1}", streamType, state);
 
-                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
+                ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
 
                 if (State.Play != state)
                 {
@@ -194,7 +208,7 @@ namespace SimulatedPlayer
         public void CloseMedia()
         {
             Debug.WriteLine("SimulatedMediaStreamSource.CloseMedia()");
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CloseMediaCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.CloseMediaCalled);
 
             lock (_stateLock)
             {
@@ -203,7 +217,12 @@ namespace SimulatedPlayer
                 _state = State.Closed;
             }
 
-            _mediaManager.CloseMedia();
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
+
+            mediaManager.CloseMedia();
         }
 
         #endregion
@@ -211,9 +230,14 @@ namespace SimulatedPlayer
         public void CheckForSamples()
         { }
 
+        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
+        {
+            _mediaStreamFsm.ValidateEvent(mediaEvent);
+        }
+
         bool StreamSampleHandler(int streamType, IStreamSample sample)
         {
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+            ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
             _mediaElement.ReportGetSampleCompleted(streamType, sample);
 
             return true;

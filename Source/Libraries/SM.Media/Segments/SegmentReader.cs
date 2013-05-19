@@ -88,7 +88,7 @@ namespace SM.Media.Segments
             do
             {
                 if (null == _responseStream)
-                    _responseStream = await OpenStream(cancellationToken);
+                    _responseStream = await OpenStream(cancellationToken).ConfigureAwait(false);
 
                 Debug.Assert(null != _responseStream);
 
@@ -96,7 +96,7 @@ namespace SM.Media.Segments
 
                 try
                 {
-                    var count = await _responseStream.ReadAsync(buffer, offset + index, length - index, cancellationToken);
+                    var count = await _responseStream.ReadAsync(buffer, offset + index, length - index, cancellationToken).ConfigureAwait(false);
 
                     if (count < 1)
                     {
@@ -134,7 +134,7 @@ namespace SM.Media.Segments
 
                     delay += delay;
 
-                    await TaskEx.Delay(actualDelay, cancellationToken);
+                    await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
                 }
             } while (index < thresholdSize);
 
@@ -185,9 +185,10 @@ namespace SM.Media.Segments
                                          {
                                              var webRequest = CreateWebRequest();
 
-                                             return await webRequest.GetResponseAsync();
+                                             return await webRequest.GetResponseAsync().ConfigureAwait(false);
                                          })
-                        .WithCancellation(cancellationToken);
+                        .WithCancellation(cancellationToken)
+                        .ConfigureAwait(false);
 
                     break;
                 }
@@ -222,7 +223,7 @@ namespace SM.Media.Segments
 
                 Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _url, delay);
 
-                await TaskEx.Delay(delay, cancellationToken);
+                await TaskEx.Delay(delay, cancellationToken).ConfigureAwait(false);
             }
 
             if (_endOffset <= 0)

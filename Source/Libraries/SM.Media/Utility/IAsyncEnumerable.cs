@@ -51,7 +51,7 @@ namespace SM.Media.Utility
         {
             using (var enumerator = source.GetEnumerator())
             {
-                if (!await enumerator.MoveNextAsync())
+                if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
                     return default(T);
 
                 return enumerator.Current;

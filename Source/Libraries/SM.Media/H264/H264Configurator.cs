@@ -269,7 +269,7 @@ namespace SM.Media.H264
             Width = (int)width;
 
 #if DEBUG
-            Debug.WriteLine("Configuration h.264 profile \"{0}\" level {1} {2}x{3}",
+            Debug.WriteLine("Configuration H.264 profile \"{0}\" level {1} {2}x{3}",
                 ProfileName(profile_idc, constraint_sets), level_idc / 10.0, width, height);
 #endif
         }

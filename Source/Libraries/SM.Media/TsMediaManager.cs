@@ -71,14 +71,13 @@ namespace SM.Media
         readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
-        readonly Func<IMediaManager, IMediaStreamSource> _mediaStreamSourceFactory;
+        readonly IMediaStreamSource _mediaStreamSource;
         readonly ISegmentReaderManager _segmentReaderManager;
         MediaState _mediaState;
-        IMediaStreamSource _mediaStreamSource;
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(ISegmentReaderManager segmentReaderManager, IMediaElementManager mediaElementManager, Func<IMediaManager, IMediaStreamSource> mediaStreamSourceFactory)
+        public TsMediaManager(ISegmentReaderManager segmentReaderManager, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource)
         {
             if (null == segmentReaderManager)
                 throw new ArgumentNullException("segmentReaderManager");
@@ -86,12 +85,14 @@ namespace SM.Media
             if (null == mediaElementManager)
                 throw new ArgumentNullException("mediaElementManager");
 
-            if (null == mediaStreamSourceFactory)
-                throw new ArgumentNullException("mediaStreamSourceFactory");
+            if (mediaStreamSource == null)
+                throw new ArgumentNullException("mediaStreamSource");
 
             _segmentReaderManager = segmentReaderManager;
             _mediaElementManager = mediaElementManager;
-            _mediaStreamSourceFactory = mediaStreamSourceFactory;
+            _mediaStreamSource = mediaStreamSource;
+
+            _mediaStreamSource.MediaManager = this;
         }
 
         #region IDisposable Members
@@ -143,11 +144,6 @@ namespace SM.Media
             return seekCompletion.Task;
         }
 
-        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
-        {
-            _mediaElementManager.ValidateEvent(mediaEvent);
-        }
-
         #endregion
 
         #region ITsMediaManager Members
@@ -158,9 +154,9 @@ namespace SM.Media
             set { SetMediaState(value, null); }
         }
 
-        public void Play(ISegmentReaderManager segmentManager)
+        public void Play()
         {
-            _commandWorker.SendCommand(new WorkCommand(() => PlayAsync(segmentManager)));
+            _commandWorker.SendCommand(new WorkCommand(() => PlayAsync(_segmentReaderManager)));
         }
 
         public void Close()
@@ -217,8 +213,6 @@ namespace SM.Media
 
                 startReader.ContinueWith(t => Close(), TaskContinuationOptions.OnlyOnFaulted);
             }
-
-            State = MediaState.Playing;
         }
 
         public void Seek(TimeSpan timestamp)
@@ -228,7 +222,7 @@ namespace SM.Media
 
         async Task PlayAsync(ISegmentReaderManager segmentManager)
         {
-            await StopAsync();
+            await StopAsync().ConfigureAwait(false);
 
             _readerManager = segmentManager;
 
@@ -236,21 +230,20 @@ namespace SM.Media
 
             try
             {
-                _mediaStreamSource = _mediaStreamSourceFactory(this);
-
                 _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
-                                                              .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples)));
+                                                              .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples)))
+                                                              .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
                     reader.QueueWorker.IsEnabled = true;
 
                 State = MediaState.Opening;
 
-                await _readerManager.StartAsync(CancellationToken.None);
+                await _readerManager.StartAsync(CancellationToken.None).ConfigureAwait(false);
 
                 StartReaders();
 
-                await _mediaElementManager.SetSource(_mediaStreamSource);
+                await _mediaElementManager.SetSource(_mediaStreamSource).ConfigureAwait(false);
 
                 return;
             }
@@ -263,7 +256,7 @@ namespace SM.Media
                 exception = new AggregateException(ex);
             }
 
-            await StopAsync();
+            await StopAsync().ConfigureAwait(false);
 
             throw exception;
         }
@@ -295,9 +288,9 @@ namespace SM.Media
 
             reader.BufferingManager = new BufferingManager(reader.QueueWorker, bufferingChange);
 
-            await startReaderTask;
+            await startReaderTask.ConfigureAwait(false);
 
-            var firstSegment = await reader.SegmentReaders.Manager.Playlist.FirstOrDefaultAsync();
+            var firstSegment = await reader.SegmentReaders.Manager.Playlist.FirstOrDefaultAsync().ConfigureAwait(false);
 
             if (null == firstSegment)
                 throw new FileNotFoundException();
@@ -361,10 +354,12 @@ namespace SM.Media
 
         void CheckConfigurationCompleted()
         {
-            if (State != MediaState.OpenMedia)
+            var state = State;
+
+            if (MediaState.Opening != state && MediaState.OpenMedia != state)
                 return;
 
-            if (_readers.Any(r => r.ExpectedStreamCount != r.CompletedStreamCount))
+            if (null == _readers || _readers.Any(r => r.ExpectedStreamCount != r.CompletedStreamCount))
                 return;
 
             var configuration = new MediaConfiguration
@@ -396,6 +391,8 @@ namespace SM.Media
             }
 
             _mediaStreamSource.Configure(configuration);
+
+            State = MediaState.Playing;
         }
 
         async Task StopAsync()
@@ -405,12 +402,12 @@ namespace SM.Media
 
             foreach (var reader in _readers)
             {
-                await reader.CallbackReader.StopAsync();
+                await reader.CallbackReader.StopAsync().ConfigureAwait(false);
 
                 var queue = reader.QueueWorker;
 
                 if (null != queue)
-                    await queue.ClearAsync();
+                    await queue.ClearAsync().ConfigureAwait(false);
 
                 reader.MediaParser.FlushBuffers();
 
@@ -465,7 +462,7 @@ namespace SM.Media
                     {
                         try
                         {
-                            await TaskEx.WhenAll(tasks);
+                            await TaskEx.WhenAll(tasks).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -476,7 +473,7 @@ namespace SM.Media
                 }
 
                 if (null != drainTask)
-                    await TaskEx.WhenAny(drainTask, stopPlaylist, TaskEx.Delay(1500));
+                    await TaskEx.WhenAny(drainTask, stopPlaylist, TaskEx.Delay(1500)).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -485,7 +482,7 @@ namespace SM.Media
             }
 
             if (null != _mediaElementManager)
-                await _mediaElementManager.Close();
+                await _mediaElementManager.Close().ConfigureAwait(false);
 
             if (null != _readers)
             {
@@ -503,12 +500,6 @@ namespace SM.Media
                     using (reader)
                     { }
                 }
-            }
-
-            if (null != _mediaStreamSource)
-            {
-                _mediaStreamSource.Dispose();
-                _mediaStreamSource = null;
             }
 
             if (null == error)
@@ -538,13 +529,13 @@ namespace SM.Media
             var stopReaderTasks = _readers.Select(
                 async r =>
                 {
-                    await r.CallbackReader.StopAsync();
-                    await r.QueueWorker.ClearAsync();
+                    await r.CallbackReader.StopAsync().ConfigureAwait(false);
+                    await r.QueueWorker.ClearAsync().ConfigureAwait(false);
                 });
 
-            await TaskEx.WhenAll(stopReaderTasks);
+            await TaskEx.WhenAll(stopReaderTasks).ConfigureAwait(false);
 
-            await stopPlaylist;
+            await stopPlaylist.ConfigureAwait(false);
 
             foreach (var reader in _readers)
             {
@@ -555,11 +546,11 @@ namespace SM.Media
                 reader.QueueWorker.IsEnabled = true;
             }
 
-            await _readerManager.StartAsync();
+            await _readerManager.StartAsync().ConfigureAwait(false);
 
             State = MediaState.Seeking;
 
-            var actualPosition = await _readerManager.SeekAsync(position, CancellationToken.None);
+            var actualPosition = await _readerManager.SeekAsync(position, CancellationToken.None).ConfigureAwait(false);
 
             StartReaders();
 

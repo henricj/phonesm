@@ -92,7 +92,8 @@ namespace SM.Media.Utility
             if (null == _managerTask || _managerTask.IsCompleted || !_managerRunning)
             {
                 _managerRunning = true;
-                _managerTask = Task.Factory.StartNew((Func<Task>)ManageAsync, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default).Unwrap();
+                _managerTask = Task.Factory.StartNew((Func<Task>)ManageAsync, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default)
+                                   .Unwrap();
             }
         }
 
@@ -119,7 +120,7 @@ namespace SM.Media.Utility
                     }
                 }
 
-                await CommandWorkerBase.RunCommands(commands);
+                await CommandWorkerBase.RunCommands(commands).ConfigureAwait(false);
             }
         }
     }

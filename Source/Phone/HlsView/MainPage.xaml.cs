@@ -249,11 +249,11 @@ namespace HlsView
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, mm => new TsMediaStreamSource(mm));
+            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
 
             _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
 
-            _tsMediaManager.Play(segmentReaderManager);
+            _tsMediaManager.Play();
 
             _positionSampler.Start();
         }

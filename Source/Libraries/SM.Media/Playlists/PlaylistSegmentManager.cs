@@ -141,7 +141,7 @@ namespace SM.Media.Playlists
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
             if (_isDynamicPlaylist)
-                await CheckReload(-1);
+                await CheckReload(-1).ConfigureAwait(false);
 
             TimeSpan actualPosition;
 
@@ -170,7 +170,7 @@ namespace SM.Media.Playlists
                 {
                     Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken)
+                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
                                     .Unwrap();
                 }
             }
@@ -223,7 +223,7 @@ namespace SM.Media.Playlists
                 {
                     Debug.WriteLine("PlaylistSegmentManager.CheckReload is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken)
+                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
                                     .Unwrap();
                 }
 
@@ -261,7 +261,8 @@ namespace SM.Media.Playlists
                         }
 
                         return parser;
-                    });
+                    })
+                    .ConfigureAwait(false);
 
                 if (null != parsedPlaylist)
                     return parsedPlaylist;
@@ -280,7 +281,7 @@ namespace SM.Media.Playlists
 
             var start = DateTime.UtcNow;
 
-            var parser = await FetchPlaylist(programStream.Urls);
+            var parser = await FetchPlaylist(programStream.Urls).ConfigureAwait(false);
 
             var fetchElapsed = DateTime.UtcNow - start;
 
@@ -517,7 +518,7 @@ namespace SM.Media.Playlists
             {
                 for (; ; )
                 {
-                    await _segmentManager.CheckReload(_index);
+                    await _segmentManager.CheckReload(_index).ConfigureAwait(false);
 
                     bool isDynamicPlaylist;
                     SubStreamSegment[] segments;
@@ -566,7 +567,7 @@ namespace SM.Media.Playlists
                             delay = (int)(lastSegment.Duration.Value.TotalMilliseconds / 2);
                     }
 
-                    await TaskEx.Delay(delay, _segmentManager.CancellationToken);
+                    await TaskEx.Delay(delay, _segmentManager.CancellationToken).ConfigureAwait(false);
                 }
             }
 

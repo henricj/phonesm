@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.TsParser;
 
 namespace SM.Media
 {
@@ -42,14 +43,14 @@ namespace SM.Media
         void ReportEnqueue(int size, TimeSpan timestamp);
         void ReportDequeue(int size, TimeSpan timestamp);
         void ReportFlush();
-        void ReportExhastion();
+        void ReportExhaustion();
         void ReportDone();
     }
 
     public interface IManagedBuffer
     {
         TimeSpan TimestampOffset { get; }
-        void CheckBuffer();
         void Flush();
+        TsStreamType StreamType { get; }
     }
 }

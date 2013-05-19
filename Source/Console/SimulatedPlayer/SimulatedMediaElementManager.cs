@@ -70,11 +70,6 @@ namespace SimulatedPlayer
             return Dispatch(action);
         }
 
-        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
-        {
-            _mediaStreamFsm.ValidateEvent(mediaEvent);
-        }
-
         Task IMediaElementManager.SetSource(IMediaStreamSource source)
         {
             return SetSource(source);
@@ -178,7 +173,7 @@ namespace SimulatedPlayer
 
         public Task SetSource(IMediaStreamSource source)
         {
-            ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
+            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
 
             _mediaStreamSource = (ISimulatedMediaStreamSource)source;
 

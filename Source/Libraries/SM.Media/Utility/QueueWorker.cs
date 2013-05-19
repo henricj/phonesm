@@ -162,7 +162,8 @@ namespace SM.Media.Utility
             _workerRunning = true;
 
             //_queueWorker = Task.Run((Func<Task>)QueueWorker);
-            _queueWorker = Task.Factory.StartNew((Func<Task>)WorkerAsync).Unwrap();
+            _queueWorker = Task.Factory.StartNew((Func<Task>)WorkerAsync, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default)
+                .Unwrap();
         }
 
         void ThrowIfDisposed()
@@ -313,9 +314,9 @@ namespace SM.Media.Utility
                     }
 
 #if WINDOWS_PHONE8
-                    await Task.Delay(250, _abortTokenSource.Token);
+                    await Task.Delay(250, _abortTokenSource.Token).ConfigureAwait(false);
 #else
-                    await TaskEx.Delay(250, _abortTokenSource.Token);
+                    await TaskEx.Delay(250, _abortTokenSource.Token).ConfigureAwait(false);
 #endif
                 }
             }

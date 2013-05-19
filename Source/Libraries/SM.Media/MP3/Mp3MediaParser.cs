@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
@@ -43,6 +44,7 @@ namespace SM.Media.MP3
         bool _isConfigured;
         TimeSpan? _position;
         int _startIndex;
+        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(0x03);
 
         public Mp3MediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
         {
@@ -56,7 +58,7 @@ namespace SM.Media.MP3
 
             _packetPool = new TsPesPacketPool(_bufferPool.Free);
 
-            _streamBuffer = new StreamBuffer(_packetPool.FreePesPacket, bufferingManager, checkForSamples);
+            _streamBuffer = new StreamBuffer(StreamType, _packetPool.FreePesPacket, bufferingManager, checkForSamples);
 
             _configurator = new Mp3Configurator();
 

@@ -124,7 +124,7 @@ namespace SM.Media.Utility
                         commands.Add(_commandQueue.Dequeue());
                 }
 
-                await CommandWorkerBase.RunCommands(commands);
+                await CommandWorkerBase.RunCommands(commands).ConfigureAwait(false);
             }
         }
     }

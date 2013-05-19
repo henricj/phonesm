@@ -51,7 +51,7 @@ namespace SM.Media.Playlists
             {
                 actualPlaylist = playlist;
 
-                await parser.ParseAsync(actualPlaylist, cancellationToken);
+                await parser.ParseAsync(actualPlaylist, cancellationToken).ConfigureAwait(false);
             }
 
             if (null == actualPlaylist)

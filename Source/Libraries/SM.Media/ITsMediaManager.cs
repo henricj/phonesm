@@ -38,7 +38,7 @@ namespace SM.Media
 
         TsMediaManager.MediaState State { get; set; }
 
-        void Play(ISegmentReaderManager segmentManager);
+        void Play();
         void Close();
         void Pause();
         void Resume();

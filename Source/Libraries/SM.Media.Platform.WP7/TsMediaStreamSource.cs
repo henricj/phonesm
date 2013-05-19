@@ -38,11 +38,8 @@ namespace SM.Media
 {
     public sealed class TsMediaStreamSource : MediaStreamSource, IMediaStreamSource
     {
-        const int AudioStreamFlag = 1 << 0;
-        const int VideoStreamFlag = 1 << 1;
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
         readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
-        readonly IMediaManager _mediaManager;
         readonly List<Task> _pendingGets = new List<Task>();
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
@@ -53,6 +50,7 @@ namespace SM.Media
         double _bufferingProgress;
         bool _isClosed;
         int _isDisposed;
+        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         int _pendingOperations;
         TimeSpan _pendingSeekTarget;
         TimeSpan? _seekTarget;
@@ -62,13 +60,11 @@ namespace SM.Media
         MediaStreamDescription _videoStreamDescription;
         IStreamSource _videoStreamSource;
 
-        public TsMediaStreamSource(IMediaManager mediaManager)
+        public TsMediaStreamSource()
         {
-            if (null == mediaManager)
-                throw new ArgumentNullException("mediaManager");
-
             //AudioBufferLength = 150;     // 150ms of internal buffering, instead of 1s.
-            _mediaManager = mediaManager;
+
+            _mediaStreamFsm.Reset();
 
             _taskScheduler = new SingleThreadSignalTaskScheduler("TsMediaStreamSource", SignalHandler);
         }
@@ -92,6 +88,8 @@ namespace SM.Media
 
         #region IMediaStreamSource Members
 
+        public IMediaManager MediaManager { get; set; }
+
         public TimeSpan? SeekTarget
         {
             get { lock (_stateLock) return _seekTarget; }
@@ -107,7 +105,7 @@ namespace SM.Media
                 return;
 
             Debug.WriteLine("TsMediaStreamSource.Dispose()");
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
 
             _isClosed = true;
 
@@ -149,6 +147,21 @@ namespace SM.Media
             return _drainCompleted.WaitAsync();
         }
 
+        public void CheckForSamples()
+        {
+            if (0 == (_pendingOperations & (int)(Operation.Audio | Operation.Video)))
+                return;
+
+            _taskScheduler.Signal();
+        }
+
+        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
+        {
+#if DEBUG
+            _mediaStreamFsm.ValidateEvent(mediaEvent);
+#endif
+        }
+
         #endregion
 
         async Task SeekHandler()
@@ -157,6 +170,11 @@ namespace SM.Media
 
             _taskScheduler.ThrowIfNotOnThread();
 
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
+
             lock (_stateLock)
             {
                 seekTimestamp = _pendingSeekTarget;
@@ -164,14 +182,14 @@ namespace SM.Media
 
             try
             {
-                var position = await _mediaManager.SeekMediaAsync(seekTimestamp);
+                var position = await mediaManager.SeekMediaAsync(seekTimestamp);
 
                 _taskScheduler.ThrowIfNotOnThread();
 
                 if (_isClosed)
                     return;
 
-                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                 ReportSeekCompleted(position.Ticks);
 
                 Debug.WriteLine("TsMediaStreamSource.SeekHandler({0}) completed, actual: {1}", seekTimestamp, position);
@@ -196,12 +214,12 @@ namespace SM.Media
 
             var lastOperation = Operation.None;
 
-            for (;;)
+            for (; ; )
             {
-                if (HandleOperation(Operation.Seek))
+                if (0 != HandleOperation(Operation.Seek))
                 {
                     // Request the last operation again if we
-                    // detect a possible  seek/getsample race.
+                    // detect a possible Seek/GetSample race.
                     if (Operation.None != lastOperation)
                         RequestOperation(lastOperation);
 
@@ -213,31 +231,28 @@ namespace SM.Media
                 if (SourceState.Play != State)
                     return;
 
-                if (HandleOperation(Operation.Video))
+                lastOperation = HandleOperation(Operation.Video | Operation.Audio);
+
+                if (0 == lastOperation)
+                    return;
+
+                var reportBufferingMask = (Operation)_streamOpenFlags;
+
+                var canCallReportBufferingProgress = reportBufferingMask == (lastOperation & reportBufferingMask);
+
+                if (0 != (lastOperation & Operation.Video))
                 {
-                    if (_videoStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _videoStreamDescription, VideoStreamFlag)))
-                    {
-                        lastOperation = Operation.Video;
-
-                        continue;
-                    }
-
-                    RequestOperation(Operation.Video);
+                    if (null != _videoStreamSource
+                        && !_videoStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _videoStreamDescription, canCallReportBufferingProgress)))
+                        RequestOperation(Operation.Video);
                 }
 
-                if (HandleOperation(Operation.Audio))
+                if (0 != (lastOperation & Operation.Audio))
                 {
-                    if (_audioStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _audioStreamDescription, AudioStreamFlag)))
-                    {
-                        lastOperation = Operation.Audio;
-
-                        continue;
-                    }
-
-                    RequestOperation(Operation.Audio);
+                    if (null != _audioStreamSource
+                        && !_audioStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _audioStreamDescription, canCallReportBufferingProgress)))
+                        RequestOperation(Operation.Audio);
                 }
-
-                return;
             }
         }
 
@@ -282,13 +297,13 @@ namespace SM.Media
             throw new ObjectDisposedException(GetType().Name);
         }
 
-        bool StreamSampleHandler(IStreamSample streamSample, MediaStreamDescription mediaStreamDescription, int streamFlag)
+        bool StreamSampleHandler(IStreamSample streamSample, MediaStreamDescription mediaStreamDescription, bool canCallReportBufferingProgress)
         {
             _taskScheduler.ThrowIfNotOnThread();
 
             if (_isClosed || null == streamSample)
             {
-                SendLastStreamSample(mediaStreamDescription, streamFlag);
+                SendLastStreamSample(mediaStreamDescription);
                 return true;
             }
 
@@ -296,14 +311,14 @@ namespace SM.Media
 
             if (progress.HasValue)
             {
-                if (Math.Abs(_bufferingProgress - progress.Value) < 0.05)
+                if (!canCallReportBufferingProgress || Math.Abs(_bufferingProgress - progress.Value) < 0.05)
                     return false;
 
                 Debug.WriteLine("Sample {0} buffering {1:F2}%", mediaStreamDescription.Type, progress * 100);
 
                 _bufferingProgress = progress.Value;
 
-                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+                ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
                 ReportGetSampleProgress(progress.Value);
 
                 return false;
@@ -313,34 +328,26 @@ namespace SM.Media
 
             //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
 
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+            ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
             ReportGetSampleCompleted(sample);
 
             return true;
         }
 
-        void SendLastStreamSample(MediaStreamDescription mediaStreamDescription, int streamFlag)
+        void SendLastStreamSample(MediaStreamDescription mediaStreamDescription)
         {
             var sample = new MediaStreamSample(mediaStreamDescription, null, 0, 0, 0, NoMediaSampleAttributes);
 
             Debug.WriteLine("Sample {0} is null", mediaStreamDescription.Type);
 
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+            ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
             ReportGetSampleCompleted(sample);
 
-            if (0 != streamFlag && CloseStream(streamFlag))
+            if (CloseStream(mediaStreamDescription.Type))
             {
-                _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
+                ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
                 _drainCompleted.Set();
             }
-        }
-
-        public void CheckForSamples()
-        {
-            if (0 == (_pendingOperations & (int) (Operation.Audio | Operation.Video)))
-                return;
-
-            _taskScheduler.Signal();
         }
 
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
@@ -384,11 +391,15 @@ namespace SM.Media
             }
         }
 
-        void OpenStream(int flag)
+        void OpenStream(MediaStreamType type)
         {
+            var operation = GetOperationFromType(type);
+
+            var flag = (int)operation;
+
             var oldFlags = _streamOpenFlags;
 
-            for (;;)
+            for (; ; )
             {
                 var newFlags = oldFlags | flag;
 
@@ -401,19 +412,20 @@ namespace SM.Media
             }
         }
 
-        bool CloseStream(int flag)
+        bool CloseStream(MediaStreamType type)
         {
+            var operation = GetOperationFromType(type);
+
+            var flag = (int)operation;
+
             var oldFlags = _streamClosedFlags;
 
-            for (;;)
+            for (; ; )
             {
                 var newFlags = oldFlags & ~flag;
 
                 if (newFlags == oldFlags)
-                {
-                    Debug.Assert(false, "Attempting to close a closed stream");
                     return false;
-                }
 
                 var flags = Interlocked.CompareExchange(ref _streamClosedFlags, newFlags, oldFlags);
 
@@ -424,6 +436,19 @@ namespace SM.Media
             }
         }
 
+        static Operation GetOperationFromType(MediaStreamType type)
+        {
+            switch (type)
+            {
+                case MediaStreamType.Audio:
+                    return Operation.Audio;
+                case MediaStreamType.Video:
+                    return Operation.Video;
+                default:
+                    throw new ArgumentException("Only audio and video types are supported", "type");
+            }
+        }
+
         void CompleteConfigure(TimeSpan? duration)
         {
             var msd = new List<MediaStreamDescription>();
@@ -431,13 +456,13 @@ namespace SM.Media
             if (null != _videoStreamSource && null != _videoStreamDescription)
             {
                 msd.Add(_videoStreamDescription);
-                OpenStream(VideoStreamFlag);
+                OpenStream(_videoStreamDescription.Type);
             }
 
             if (null != _audioStreamSource && null != _audioStreamSource)
             {
                 msd.Add(_audioStreamDescription);
-                OpenStream(AudioStreamFlag);
+                OpenStream(_audioStreamDescription.Type);
             }
 
             var mediaSourceAttributes = new Dictionary<MediaSourceAttributesKeys, string>();
@@ -456,7 +481,7 @@ namespace SM.Media
                                       foreach (var kv in mediaSourceAttributes)
                                           Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
 
-                                      _mediaManager.ValidateEvent(canSeek
+                                      ValidateEvent(canSeek
                                           ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
                                           : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
                                       ReportOpenMediaCompleted(mediaSourceAttributes, msd);
@@ -476,11 +501,16 @@ namespace SM.Media
         protected override void OpenMediaAsync()
         {
             Debug.WriteLine("TsMediaStreamSource.OpenMediaAsync()");
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.OpenMediaAsyncCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.OpenMediaAsyncCalled);
 
             ThrowIfDisposed();
 
-            _mediaManager.OpenMedia();
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
+
+            mediaManager.OpenMedia();
         }
 
         /// <summary>
@@ -501,7 +531,7 @@ namespace SM.Media
             var seekTimestamp = TimeSpan.FromTicks(seekToTime);
 
             Debug.WriteLine("TsMediaStreamSource.SeekAsync({0})", seekTimestamp);
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.SeekAsyncCalled);
 
             StartSeek(seekTimestamp);
         }
@@ -587,7 +617,7 @@ namespace SM.Media
         protected override void CloseMedia()
         {
             Debug.WriteLine("TsMediaStreamSource.CloseMedia()");
-            _mediaManager.ValidateEvent(MediaStreamFsm.MediaEvent.CloseMediaCalled);
+            ValidateEvent(MediaStreamFsm.MediaEvent.CloseMediaCalled);
 
             lock (_stateLock)
             {
@@ -596,17 +626,22 @@ namespace SM.Media
                 _state = SourceState.Closed;
             }
 
-            _mediaManager.CloseMedia();
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
+
+            mediaManager.CloseMedia();
         }
 
         Operation LookupOperation(MediaStreamType mediaStreamType)
         {
             switch (mediaStreamType)
             {
-            case MediaStreamType.Audio:
-                return Operation.Audio;
-            case MediaStreamType.Video:
-                return Operation.Video;
+                case MediaStreamType.Audio:
+                    return Operation.Audio;
+                case MediaStreamType.Video:
+                    return Operation.Video;
             }
 
             Debug.Assert(false);
@@ -622,10 +657,10 @@ namespace SM.Media
 
         bool RequestOperation(Operation operation)
         {
-            var op = (int) operation;
+            var op = (int)operation;
             var current = _pendingOperations;
 
-            for (;;)
+            for (; ; )
             {
                 var value = current | op;
 
@@ -641,22 +676,22 @@ namespace SM.Media
             }
         }
 
-        bool HandleOperation(Operation operation)
+        Operation HandleOperation(Operation operation)
         {
-            var op = (int) operation;
+            var op = (int)operation;
             var current = _pendingOperations;
 
-            for (;;)
+            for (; ; )
             {
                 var value = current & ~op;
 
                 if (value == current)
-                    return false;
+                    return Operation.None;
 
                 var existing = Interlocked.CompareExchange(ref _pendingOperations, value, current);
 
                 if (existing == current)
-                    return true;
+                    return (Operation)(current & op);
 
                 current = existing;
             }

@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MediaElementWrapper.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -47,8 +47,13 @@ namespace SM.Media.MediaPlayer
     ///     Wraps the MediaElement to allow it to adhere to the IMediaElement interface.
     ///     IMediaElement is used to allow the SmoothStreamingMediaElement or other custom MediaElements to be used by MediaPlayer
     /// </summary>
+    /// <remarks>
+    ///     This code is based on
+    ///     https://playerframework.codeplex.com/SourceControl/latest#Phone.SL/Controls/MediaElementWrapper.cs
+    /// </remarks>
     public class MediaElementWrapper : ContentControl, IMediaElement
     {
+        // This class is 
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
 
         /// <summary>
@@ -64,7 +69,11 @@ namespace SM.Media.MediaPlayer
             HorizontalContentAlignment = HorizontalAlignment.Stretch;
             VerticalContentAlignment = VerticalAlignment.Stretch;
             MediaElement = new MediaElement();
+            MediaElement.MediaEnded += MediaElement_MediaEnded;
+            MediaElement.MediaFailed += MediaElement_MediaFailed;
+#if WINDOWS_PHONE
             MediaElement.MarkerReached += MediaElement_MarkerReached;
+#endif
             Content = MediaElement;
             _templateAppliedTaskSource = new TaskCompletionSource<object>();
         }
@@ -81,6 +90,9 @@ namespace SM.Media.MediaPlayer
                 {
                     _mediaElement.CurrentStateChanged -= mediaElement_CurrentStateChanged;
                     _mediaElement.LogReady -= mediaElement_LogReady;
+#if !WINDOWS_PHONE
+                    mediaElement.RateChanged -= mediaElement_RateChanged;
+#endif
                 }
 
                 _mediaElement = value;
@@ -89,6 +101,9 @@ namespace SM.Media.MediaPlayer
                 {
                     _mediaElement.CurrentStateChanged += mediaElement_CurrentStateChanged;
                     _mediaElement.LogReady += mediaElement_LogReady;
+#if !WINDOWS_PHONE
+                    mediaElement.RateChanged += mediaElement_RateChanged;
+#endif
                 }
             }
         }
@@ -121,10 +136,10 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public event LogReadyRoutedEventHandler LogReady;
 
-
+#if WINDOWS_PHONE
         /// <inheritdoc />
         public event TimelineMarkerRoutedEventHandler MarkerReached;
-
+#endif
 
         /// <inheritdoc />
         public event RoutedEventHandler MediaEnded
@@ -147,6 +162,35 @@ namespace SM.Media.MediaPlayer
             remove { MediaElement.MediaOpened -= value; }
         }
 
+#if !WINDOWS_PHONE
+        void mediaElement_RateChanged(object sender, System.Windows.Media.RateChangedRoutedEventArgs e)
+        {
+            if (RateChanged != null) RateChanged(this, new RateChangedRoutedEventArgs(e.NewRate));
+        }
+
+        /// <inheritdoc /> 
+        public event RateChangedRoutedEventHandler RateChanged;
+        
+        /// <inheritdoc /> 
+        public System.Collections.Generic.Dictionary<string, string> Attributes
+        {
+            get { return MediaElement.Attributes; }
+        }
+
+        /// <inheritdoc /> 
+        public bool IsDecodingOnGPU
+        {
+            get { return MediaElement.IsDecodingOnGPU; }
+        }
+
+        /// <inheritdoc /> 
+        public double PlaybackRate
+        {
+            get { return MediaElement.PlaybackRate; }
+            set { MediaElement.PlaybackRate = value; }
+        }
+#endif
+
         /// <inheritdoc />
         public void Pause()
         {
@@ -156,7 +200,9 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public void Play()
         {
-            MediaElement.Play();
+            var task = StartPlaybackWrapperAsync();
+
+            // We do not wait for the task to complete.
         }
 
         /// <inheritdoc />
@@ -313,16 +359,43 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public Uri Source
         {
-            get { return MediaElement.Source; }
+            get { return null == _programManager ? null : _programManager.Playlists.FirstOrDefault(); }
             set
             {
-                var task = SetMediaSource(value);
-
                 if (value == null) // hack: MediaElement doesn't raise CurrentStateChanged on its own
                 {
-                    if (CurrentStateChanged != null) CurrentStateChanged(this, new RoutedEventArgs());
+                    Cleanup();
+
+                    if (CurrentStateChanged != null)
+                        CurrentStateChanged(this, new RoutedEventArgs());
+                }
+                else
+                {
+                    var task = SetMediaSourceAsync(value);
+
+                    // Do not wait for the task to complete.
                 }
             }
+        }
+
+        async Task SetMediaSourceAsync(Uri value)
+        {
+            _programManager = new ProgramManager
+                              {
+                                  Playlists = new[] { value }
+                              };
+
+            if (null != _tsMediaStreamSource)
+            {
+                // Implement cleanup
+                Debug.Assert(true);
+            }
+
+            await OpenMediaAsync();
+
+            SetSource(_tsMediaStreamSource);
+
+            var task = StartPlaybackWrapperAsync();
         }
 
         /// <inheritdoc />
@@ -348,8 +421,10 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public static readonly DependencyProperty PositionProperty = DependencyProperty.Register("Position", typeof(TimeSpan), typeof(MediaElementWrapper), new PropertyMetadata(TimeSpan.Zero));
 
-        MediaElementManager _mediaElementManager;
+        IMediaElementManager _mediaElementManager;
+        ProgramManager _programManager;
         TsMediaManager _tsMediaManager;
+        TsMediaStreamSource _tsMediaStreamSource;
 
         #endregion
 
@@ -370,57 +445,148 @@ namespace SM.Media.MediaPlayer
             if (CurrentStateChanged != null) CurrentStateChanged(sender, e);
         }
 
+#if WINDOWS_PHONE
         void MediaElement_MarkerReached(object sender, TimelineMarkerRoutedEventArgs e)
         {
-            if (MarkerReached != null) MarkerReached(this, new Microsoft.PlayerFramework.TimelineMarkerRoutedEventArgs { Marker = e.Marker });
+            if (MarkerReached != null)
+            {
+                MarkerReached(this, new Microsoft.PlayerFramework.TimelineMarkerRoutedEventArgs
+                                    {
+                                        Marker = e.Marker
+                                    });
+            }
+        }
+#else
+    /// <inheritdoc /> 
+        public event TimelineMarkerRoutedEventHandler MarkerReached
+        {
+            add
+            {
+                MediaElement.MarkerReached += value;
+            }
+            remove
+            {
+                MediaElement.MarkerReached -= value;
+            }
+        }
+#endif
+
+        void MediaElement_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("MediaElementWrapper.MediaElement_MediaEnded");
+
+            Close();
         }
 
-        async Task SetMediaSource(Uri source)
+        void MediaElement_MediaFailed(object sender, RoutedEventArgs e)
         {
-            var programManager = new ProgramManager { Playlists = new[] { source } };
+            Debug.WriteLine("MediaElementWrapper.MediaElement_MediaFailed");
 
-            Program program;
-            ISubProgram subProgram;
+            Close();
+        }
 
+        async Task StartPlaybackWrapperAsync()
+        {
             try
             {
-                var programs = await programManager.LoadAsync();
-
-                program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource: program not found");
-                    return;
-                }
-
-                subProgram = program.SubPrograms.FirstOrDefault();
-
-                if (null == subProgram)
-                {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource: no sub programs found");
-                    return;
-                }
+                await StartPlaybackAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaElementWrapper.SetMediaSource: " + ex.Message);
+                // Send a "Failed" message here?
+                Debug.WriteLine("MediaElementWrapper.StartPlaybackWrapperAsync failed: " + ex.Message);
+            }
+        }
+
+        async Task StartPlaybackAsync()
+        {
+            Debug.WriteLine("MediaElementWrapper.StartPlaybackAsync");
+
+            if (null == _programManager)
                 return;
+
+            var state = MediaElement.CurrentState;
+
+            if (MediaElementState.Closed != state && MediaElementState.Opening != state)
+            {
+                if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(state))
+                    MediaElement.Play();
+
+                return;
+            }
+
+            await OpenMediaAsync();
+
+            _tsMediaManager.Play();
+        }
+
+        async Task OpenMediaAsync()
+        {
+            Program program;
+            ISubProgram subProgram;
+
+            var programs = await _programManager.LoadAsync().ConfigureAwait(false);
+
+            program = programs.Values.FirstOrDefault();
+
+            if (null == program)
+            {
+                Debug.WriteLine("MediaElementWrapper.SetMediaSource: program not found");
+                throw new FileNotFoundException("Unable to load program");
+            }
+
+            subProgram = program.SubPrograms.FirstOrDefault();
+
+            if (null == subProgram)
+            {
+                Debug.WriteLine("MediaElementWrapper.SetMediaSource: no sub programs found");
+                throw new FileNotFoundException("Unable to load program stream");
             }
 
             var webRequestFactory = new HttpWebRequestFactory(program.Url);
 
             var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, webRequestFactory.Create), subProgram);
 
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                                                           () => MediaElement,
-                                                           me => { });
+            _mediaElementManager = new NoOpMediaElementManager();
 
             var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, mm => new TsMediaStreamSource(mm));
+            if (null != _tsMediaManager)
+                _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
 
-            _tsMediaManager.Play(segmentReaderManager);
+            if (null == _tsMediaStreamSource)
+                _tsMediaStreamSource = new TsMediaStreamSource();
+
+            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
+
+            _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
+        }
+
+        void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs e)
+        {
+            Debug.WriteLine("MediaElementWrapper.TsMediaManagerOnOnStateChange to {0}: {1}", e.State, e.Message);
+        }
+
+        public void Close()
+        {
+            if (null == _tsMediaManager)
+                return;
+
+            _tsMediaManager.Close();
+        }
+
+        public void Cleanup()
+        {
+            Close();
+
+            if (null != _tsMediaManager)
+                _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
+
+            if (null != _mediaElementManager)
+            {
+                _mediaElementManager.Close()
+                                    .Wait();
+            }
         }
     }
 }

@@ -522,7 +522,7 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public void Play()
         {
-            MediaElement.IfNotNull(i => StartPlayback());
+            MediaElement.IfNotNull(i => { var task = StartPlayback(); });
         }
 
         /// <summary>
@@ -795,9 +795,9 @@ namespace SM.Media.MediaPlayer
 
             var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, webRequestFactory.CreateChildFactory(playlist.Url));
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, mm => new TsMediaStreamSource(mm));
+            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
 
-            _tsMediaManager.Play(segmentReaderManager);
+            _tsMediaManager.Play();
         }
     }
 }

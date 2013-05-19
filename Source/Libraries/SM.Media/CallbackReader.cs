@@ -104,7 +104,7 @@ namespace SM.Media
             {
                 using (var segmentReaderEnumerator = _segmentReaders.GetEnumerator())
                 {
-                    while (await segmentReaderEnumerator.MoveNextAsync())
+                    while (await segmentReaderEnumerator.MoveNextAsync().ConfigureAwait(false))
                     {
                         var segmentReader = segmentReaderEnumerator.Current;
 
@@ -112,7 +112,7 @@ namespace SM.Media
 
                         Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", segmentReader, start, GC.GetTotalMemory(false));
 
-                        await ReadSegment(segmentReader, cancellationToken);
+                        await ReadSegment(segmentReader, cancellationToken).ConfigureAwait(false);
 
                         var complete = DateTimeOffset.Now;
 
@@ -139,9 +139,9 @@ namespace SM.Media
             {
                 while (!segmentReader.IsEof)
                 {
-                    buffer = await _bufferPool.AllocateAsync(cancellationToken);
+                    buffer = await _bufferPool.AllocateAsync(cancellationToken).ConfigureAwait(false);
 
-                    var length = await segmentReader.ReadAsync(buffer.Buffer, 0, buffer.Buffer.Length, cancellationToken);
+                    var length = await segmentReader.ReadAsync(buffer.Buffer, 0, buffer.Buffer.Length, cancellationToken).ConfigureAwait(false);
 
                     buffer.Length = length;
 
@@ -203,7 +203,7 @@ namespace SM.Media
             try
             {
                 if (null != oldReader)
-                    await oldReader;
+                    await oldReader.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

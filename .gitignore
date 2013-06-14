@@ -152,3 +152,7 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+
+# smf directory
+Source/smf/*
+!Source/smf/readme.txt

@@ -382,7 +382,7 @@ namespace SM.Media
 
         void UpdateBuffering(TimeSpan timestampDifference, int bufferSize)
         {
-            if ((timestampDifference >= BufferDurationThreshold && bufferSize >= BufferSizeStopBuffering) || bufferSize >= BufferSizeMaximum)
+            if ((timestampDifference >= BufferDurationThreshold && bufferSize >= BufferSizeStopBuffering) || bufferSize >= BufferSizeMaximum || timestampDifference > BufferDurationDisableThreshold)
             {
 #pragma warning disable 0420
                 Interlocked.Exchange(ref _isBuffering, 0);
@@ -405,8 +405,9 @@ namespace SM.Media
                     var bufferingStatus1 = Math.Max(0, timestampDifference.Ticks / (double)BufferDurationThreshold.Ticks);
                     var bufferingStatus2 = bufferSize / (double)BufferSizeStopBuffering;
                     var bufferingStatus3 = bufferSize / (double)BufferSizeMaximum;
+                    var bufferingStatus4 = Math.Max(0, timestampDifference.Ticks / (double)BufferDurationDisableThreshold.Ticks);
 
-                    var bufferingStatus = Math.Max(Math.Min(bufferingStatus1, bufferingStatus2), bufferingStatus3);
+                    var bufferingStatus = Math.Max(Math.Max(Math.Min(bufferingStatus1, bufferingStatus2), bufferingStatus3), bufferingStatus4);
 
                     Debug.WriteLine("BufferingManager.UpdateBuffering: {0:F2}%, {1} duration, {2} size, {3} memory", bufferingStatus * 100, timestampDifference, bufferSize, GC.GetTotalMemory(false));
 

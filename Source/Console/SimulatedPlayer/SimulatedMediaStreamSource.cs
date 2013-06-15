@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
@@ -42,9 +43,9 @@ namespace SimulatedPlayer
         readonly List<WorkCommand> _pendingGets = new List<WorkCommand>();
         readonly object _stateLock = new object();
         bool _isClosed;
-        State _state;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
-
+        int _pendingRequests;
+        State _state;
 
         public SimulatedMediaStreamSource(ISimulatedMediaElement mediaElement)
         {
@@ -182,7 +183,27 @@ namespace SimulatedPlayer
                         return null;
                     }
 
-                    streamSource.GetNextSample(sample => StreamSampleHandler(streamType, sample));
+                    var completed = streamSource.GetNextSample(sample => StreamSampleHandler(streamType, sample));
+
+                    if (!completed)
+                    {
+                        var current = _pendingRequests;
+
+                        for (; ; )
+                        {
+                            var newFlags = current | (1 << streamType);
+
+                            if (newFlags == current)
+                                break;
+
+                            var existing = Interlocked.CompareExchange(ref _pendingRequests, newFlags, current);
+
+                            if (existing == current)
+                                break;
+
+                            current = existing;
+                        }
+                    }
 
                     return null;
                 });
@@ -225,15 +246,25 @@ namespace SimulatedPlayer
             mediaManager.CloseMedia();
         }
 
-        #endregion
-
         public void CheckForSamples()
-        { }
+        {
+            var requested = Interlocked.Exchange(ref _pendingRequests, 0);
+
+            for (var i = 0; 0 != requested; ++i, requested >>= 1)
+            {
+                if (0 == (requested & 1))
+                    continue;
+
+                GetSampleAsync(i);
+            }
+        }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
         {
             _mediaStreamFsm.ValidateEvent(mediaEvent);
         }
+
+        #endregion
 
         bool StreamSampleHandler(int streamType, IStreamSample sample)
         {

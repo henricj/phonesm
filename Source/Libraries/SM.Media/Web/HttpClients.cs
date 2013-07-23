@@ -77,14 +77,14 @@ namespace SM.Media.Web
 
         #region IHttpClients Members
 
-        public HttpClient RootPlaylistClient { get; private set; }
+        public virtual HttpClient RootPlaylistClient { get; private set; }
 
-        public HttpClient GetPlaylistClient(Uri referrer)
+        public virtual HttpClient GetPlaylistClient(Uri referrer)
         {
             return CreatePlaylistHttpClient(referrer);
         }
 
-        public HttpClient GetSegmentClient(Uri segmentPlaylist)
+        public virtual HttpClient GetSegmentClient(Uri segmentPlaylist)
         {
             var httpClient = new HttpClient(_httpClientHandler)
                              {
@@ -104,7 +104,7 @@ namespace SM.Media.Web
 
         #endregion
 
-        HttpClient CreatePlaylistHttpClient(Uri referrer)
+        protected virtual HttpClient CreatePlaylistHttpClient(Uri referrer)
         {
             var httpClient = new HttpClient(_httpClientHandler);
 

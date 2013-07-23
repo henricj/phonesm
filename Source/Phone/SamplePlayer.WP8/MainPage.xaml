@@ -18,11 +18,16 @@
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot"
           Background="Transparent">
-        <mmppf:MediaPlayer Source="https://devimages.apple.com.edgekey.net/resources/http-streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8">
+        <mmppf:MediaPlayer Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
             <mmppf:MediaPlayer.Plugins>
                 <smmedia:StreamingMediaPlugin />
             </mmppf:MediaPlayer.Plugins>
         </mmppf:MediaPlayer>
+        <!--<mmppf:MediaPlayer Source="https://devimages.apple.com.edgekey.net/resources/http-streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8">
+            <mmppf:MediaPlayer.Plugins>
+                <smmedia:StreamingMediaPlugin />
+            </mmppf:MediaPlayer.Plugins>
+        </mmppf:MediaPlayer>-->
     </Grid>
 
 </phone:PhoneApplicationPage>

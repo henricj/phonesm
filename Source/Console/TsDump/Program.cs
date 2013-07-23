@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="Program.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="Program.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,10 +26,69 @@
 
 using System;
 using System.Net;
+using SM.Media;
 using SM.TsParser;
 
 namespace TsDump
 {
+    class NullBufferingManager : IBufferingManager
+    {
+        static readonly IBufferingQueue Queue = new NullBufferingQueue();
+
+        #region IBufferingManager Members
+
+        public double BufferingProgress
+        {
+            get { return 1; }
+        }
+
+        public bool IsBuffering
+        {
+            get { return false; }
+        }
+
+        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
+        {
+            return Queue;
+        }
+
+        public void Flush()
+        { }
+
+        public bool IsSeekAlreadyBuffered(TimeSpan position)
+        {
+            return true;
+        }
+
+        #endregion
+
+        #region Nested type: NullBufferingQueue
+
+        class NullBufferingQueue : IBufferingQueue
+        {
+            #region IBufferingQueue Members
+
+            public void ReportEnqueue(int size, TimeSpan timestamp)
+            { }
+
+            public void ReportDequeue(int size, TimeSpan timestamp)
+            { }
+
+            public void ReportFlush()
+            { }
+
+            public void ReportExhaustion()
+            { }
+
+            public void ReportDone()
+            { }
+
+            #endregion
+        }
+
+        #endregion
+    }
+
     class Program
     {
         static Action<TsPesPacket> _freePesHandler;
@@ -51,7 +110,7 @@ namespace TsDump
 
             try
             {
-                using (var parser = new SM.Media.TsMediaParser(null, () => { }, _ => { },
+                using (var parser = new TsMediaParser(new NullBufferingManager(), () => { }, _ => { },
                     (pid, streamType) => new PesStreamCopyHandler(pid, streamType, FreePacket).PacketHandler))
                 {
                     _freePesHandler = parser.Decoder.FreePesPacket;

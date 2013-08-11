@@ -40,28 +40,25 @@ namespace SM.Media.Web
         public static readonly MediaTypeWithQualityHeaderValue AcceptAnyHeader = new MediaTypeWithQualityHeaderValue("*/*");
 
         readonly HttpClientHandler _httpClientHandler;
+        readonly Uri _referrer;
         readonly ProductInfoHeaderValue _userAgent;
         int _disposed;
+        HttpClient _rootPlaylistClient;
 
         public HttpClients(Uri referrer = null, ProductInfoHeaderValue userAgent = null, ICredentials credentials = null, CookieContainer cookieContainer = null)
         {
+            _referrer = referrer;
             _userAgent = userAgent;
 
-            _httpClientHandler = new HttpClientHandler
-                                 {
-                                     UseCookies = false
-                                 };
+            _httpClientHandler = new HttpClientHandler();
 
             if (null != credentials)
                 _httpClientHandler.Credentials = credentials;
 
             if (null != cookieContainer)
-            {
                 _httpClientHandler.CookieContainer = cookieContainer;
-                _httpClientHandler.UseCookies = true;
-            }
-
-            RootPlaylistClient = CreatePlaylistHttpClient(referrer);
+            else
+                _httpClientHandler.UseCookies = false;
         }
 
         #region IDisposable Members
@@ -77,7 +74,16 @@ namespace SM.Media.Web
 
         #region IHttpClients Members
 
-        public virtual HttpClient RootPlaylistClient { get; private set; }
+        public virtual HttpClient RootPlaylistClient
+        {
+            get
+            {
+                if (null == _rootPlaylistClient)
+                    _rootPlaylistClient = CreatePlaylistHttpClient(_referrer);
+
+                return _rootPlaylistClient;
+            }
+        }
 
         public virtual HttpClient GetPlaylistClient(Uri referrer)
         {
@@ -133,11 +139,11 @@ namespace SM.Media.Web
             if (0 != Interlocked.Exchange(ref _disposed, 1))
                 return;
 
-            var rootClient = RootPlaylistClient;
+            var rootClient = _rootPlaylistClient;
 
             if (null != rootClient)
             {
-                RootPlaylistClient = null;
+                _rootPlaylistClient = null;
 
                 rootClient.Dispose();
             }

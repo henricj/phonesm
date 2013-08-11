@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlaylistSegmentManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2013.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,7 +34,6 @@ using System.Threading.Tasks;
 using SM.Media.M3U8;
 using SM.Media.Segments;
 using SM.Media.Utility;
-using SM.TsParser;
 
 namespace SM.Media.Playlists
 {
@@ -43,6 +42,8 @@ namespace SM.Media.Playlists
         static readonly TimeSpan NotDue = new TimeSpan(0, 0, 0, 0, -1);
         static readonly TimeSpan NotPeriodic = new TimeSpan(0, 0, 0, 0, -1);
         static readonly TimeSpan MinimumReload = new TimeSpan(0, 0, 0, 5);
+        static readonly TimeSpan MaximumReload = TimeSpan.FromMinutes(2);
+        static readonly TimeSpan ExcessiveDuration = TimeSpan.FromMinutes(5);
         readonly CancellationToken _cancellationToken;
         readonly List<SubStreamSegment[]> _dynamicPlaylists = new List<SubStreamSegment[]>();
         readonly Timer _expirationTimer;
@@ -53,7 +54,6 @@ namespace SM.Media.Playlists
         CancellationTokenSource _abortTokenSource;
         bool _isDynamicPlaylist;
         bool _isRunning;
-        Task _reReader;
         Task _reader;
         SubStreamSegment[] _segments;
         int _segmentsExpiration;
@@ -129,7 +129,7 @@ namespace SM.Media.Playlists
 
                 _abortTokenSource.Cancel();
 
-                var reReader = _reReader;
+                var reReader = _reader;
 
                 if (null != reReader)
                     return reReader;
@@ -166,12 +166,12 @@ namespace SM.Media.Playlists
                 if (!_isDynamicPlaylist || !_isRunning)
                     return;
 
-                if (null == _reReader)
+                if (null == _reader)
                 {
                     Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
-                                    .Unwrap();
+                    _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
+                                  .Unwrap();
                 }
             }
         }
@@ -219,16 +219,16 @@ namespace SM.Media.Playlists
                 if (!_isDynamicPlaylist || !_isRunning || _segmentsExpiration - Environment.TickCount > 0)
                     return TplTaskExtensions.CompletedTask;
 
-                if (null == _reReader)
+                if (null == _reader)
                 {
                     Debug.WriteLine("PlaylistSegmentManager.CheckReload is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    _reReader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
-                                    .Unwrap();
+                    _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
+                                  .Unwrap();
                 }
 
                 if (null == _segments || index + 1 >= _segments.Length)
-                    return _reReader;
+                    return _reader;
             }
 
             return TplTaskExtensions.CompletedTask;
@@ -244,7 +244,7 @@ namespace SM.Media.Playlists
                 var localPlaylist = playlist;
 
                 CancellationToken.ThrowIfCancellationRequested();
-                
+
                 var parsedPlaylist = await _subPlaylistRequest.ReadAsync(
                     bytes =>
                     {
@@ -262,7 +262,7 @@ namespace SM.Media.Playlists
 
                         return parser;
                     }, CancellationToken)
-                    .ConfigureAwait(false);
+                                                              .ConfigureAwait(false);
 
                 if (null != parsedPlaylist)
                     return parsedPlaylist;
@@ -292,7 +292,7 @@ namespace SM.Media.Playlists
                     _segments = null;
                     _isDynamicPlaylist = false;
 
-                    _reReader = null;
+                    _reader = null;
                 }
 
                 return;
@@ -402,7 +402,7 @@ namespace SM.Media.Playlists
                         var segmentCount = segments0.Length - 1;
 
                         if (segmentCount > 0)
-                            reloadDelay = new TimeSpan(0, 0, 0, 5 * segmentCount);
+                            reloadDelay = new TimeSpan(0, 0, 0, 3 * segmentCount);
                         else
                             reloadDelay = TimeSpan.Zero;
                     }
@@ -411,6 +411,8 @@ namespace SM.Media.Playlists
 
                     if (expire < MinimumReload)
                         expire = MinimumReload;
+                    else if (expire > MaximumReload)
+                        expire = MaximumReload;
 
                     _expirationTimer.Change(expire, NotPeriodic);
 
@@ -429,8 +431,11 @@ namespace SM.Media.Playlists
                     isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                     DateTimeOffset.Now);
 
-                _reReader = null;
+                _reader = null;
             }
+
+            // Is a race is possible between our just-completed reload and the
+            // reader's CheckReload?  (The expiration timer handles this...?)
         }
 
         static TimeSpan? GetDuration(IEnumerable<SubStreamSegment> segments)
@@ -457,6 +462,9 @@ namespace SM.Media.Playlists
                 var segment = segments[i];
 
                 if (!segment.Duration.HasValue)
+                    return null;
+
+                if (segment.Duration <= TimeSpan.Zero || segment.Duration > ExcessiveDuration)
                     return null;
 
                 duration += segment.Duration.Value;

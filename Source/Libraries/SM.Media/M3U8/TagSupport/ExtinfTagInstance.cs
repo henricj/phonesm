@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace SM.Media.M3U8.TagSupport
@@ -46,9 +47,9 @@ namespace SM.Media.M3U8.TagSupport
             var index = value.IndexOf(',');
 
             if (index < 0)
-                return new ExtinfTagInstance(tag, decimal.Parse(value, CultureInfo.InvariantCulture));
+                return new ExtinfTagInstance(tag, ParseDuration(value));
 
-            var duration = decimal.Parse(value.Substring(0, index), CultureInfo.InvariantCulture);
+            var duration = ParseDuration(value.Substring(0, index));
 
             var title = string.Empty;
 
@@ -56,6 +57,18 @@ namespace SM.Media.M3U8.TagSupport
                 title = value.Substring(index);
 
             return new ExtinfTagInstance(tag, duration, title);
+        }
+
+        static decimal ParseDuration(string value)
+        {
+            var duration = decimal.Parse(value, CultureInfo.InvariantCulture);
+
+            if (duration <= 0)
+                Debug.WriteLine("*** Invalid #EXTINF duration: " + duration);
+            else if (duration > 4 * 60 * 60)
+                Debug.WriteLine("*** Excessive #EXTINF duration?: " + duration);
+
+            return duration;
         }
 
         public override string ToString()

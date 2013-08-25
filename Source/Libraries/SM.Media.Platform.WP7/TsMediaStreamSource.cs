@@ -40,7 +40,6 @@ namespace SM.Media
     {
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
         readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
-        readonly List<Task> _pendingGets = new List<Task>();
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
         readonly SingleThreadSignalTaskScheduler _taskScheduler;
@@ -51,7 +50,7 @@ namespace SM.Media
         bool _isClosed;
         int _isDisposed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
-        int _pendingOperations;
+        volatile int _pendingOperations;
         TimeSpan _pendingSeekTarget;
         TimeSpan? _seekTarget;
         SourceState _state;
@@ -81,8 +80,13 @@ namespace SM.Media
             {
                 lock (_stateLock)
                 {
-                    UnlockedSetState(value);
+                    if (_state == value)
+                        return;
+
+                    _state = value;
                 }
+
+                CheckPending();
             }
         }
 
@@ -155,6 +159,14 @@ namespace SM.Media
             _taskScheduler.Signal();
         }
 
+        public void CheckPending()
+        {
+            if (0 == _pendingOperations)
+                return;
+
+            _taskScheduler.Signal();
+        }
+
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
         {
 #if DEBUG
@@ -207,6 +219,8 @@ namespace SM.Media
 
         void SignalHandler()
         {
+            //Debug.WriteLine("TsMediaStreamSource.SignalHandler() pending {0}", _pendingOperations);
+
             _taskScheduler.ThrowIfNotOnThread();
 
             if (_isClosed)
@@ -254,39 +268,6 @@ namespace SM.Media
                         RequestOperation(Operation.Audio);
                 }
             }
-        }
-
-        void UnlockedSetState(SourceState state)
-        {
-            if (_state == state)
-                return;
-
-            _state = state;
-
-            if (SourceState.Play != state)
-                return;
-
-            SetPlayState();
-        }
-
-        /// <summary>
-        ///     Handle any pending events, now that we are in the "Play" state.
-        /// </summary>
-        void SetPlayState()
-        {
-            Task[] pendingGets;
-
-            lock (_stateLock)
-            {
-                pendingGets = _pendingGets.ToArray();
-
-                _pendingGets.Clear();
-
-                _state = SourceState.Play;
-            }
-
-            foreach (var getCmd in pendingGets)
-                getCmd.Start(_taskScheduler);
         }
 
         void ThrowIfDisposed()
@@ -657,6 +638,8 @@ namespace SM.Media
 
         bool RequestOperation(Operation operation)
         {
+            //Debug.WriteLine("TsMediaStreamSource.RequestOperation({0}) pending {1}", operation, _pendingOperations);
+
             var op = (int)operation;
             var current = _pendingOperations;
 
@@ -667,7 +650,9 @@ namespace SM.Media
                 if (value == current)
                     return false;
 
+#pragma warning disable 0420
                 var existing = Interlocked.CompareExchange(ref _pendingOperations, value, current);
+#pragma warning restore 0420
 
                 if (existing == current)
                     return true;
@@ -688,7 +673,9 @@ namespace SM.Media
                 if (value == current)
                     return Operation.None;
 
+#pragma warning disable 0420
                 var existing = Interlocked.CompareExchange(ref _pendingOperations, value, current);
+#pragma warning restore 0420
 
                 if (existing == current)
                     return (Operation)(current & op);

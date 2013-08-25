@@ -110,7 +110,7 @@ namespace SM.Media
 
         public bool GetNextSample(Func<IStreamSample, bool> streamSampleHandler)
         {
-            //Debug.WriteLine("StreamBuffer.GetNextSample()");
+            //Debug.WriteLine("StreamBuffer.GetNextSample() " + _streamType.Contents);
 
             ThrowIfDisposed();
 

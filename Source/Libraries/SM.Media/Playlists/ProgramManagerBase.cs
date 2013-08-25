@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ProgramManagerBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,10 +26,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using SM.Media.M3U8;
 using SM.Media.M3U8.AttributeSupport;
-using SM.Media.M3U8.TagSupport;
 
 namespace SM.Media.Playlists
 {
@@ -53,9 +51,7 @@ namespace SM.Media.Playlists
                         var audioAttribute = gt.Attribute(ExtMediaSupport.AttrType, "AUDIO");
 
                         if (null != audioAttribute)
-                        {
                             AddMedia(playlist, gt, audioStreams);
-                        }
                     }
                     catch (NullReferenceException)
                     {
@@ -67,12 +63,15 @@ namespace SM.Media.Playlists
             var programs = new Dictionary<long, Program>();
             SimpleSubProgram simpleSubProgram = null;
 
+            var mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
+            var index = 0;
+
             foreach (var p in parser.Playlist)
             {
                 if (null == p.Tags || p.Tags.Length < 1)
                     continue;
 
-                var streamInf = p.Tags.FirstOrDefault(t => M3U8Tags.ExtXStreamInf == t.Tag);
+                var streamInf = M3U8Tags.ExtXStreamInf.Find(p.Tags);
 
                 var programId = long.MinValue;
                 MediaGroup audioGroup = null;
@@ -93,7 +92,10 @@ namespace SM.Media.Playlists
 
                     var bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth);
 
-                    var subProgram = new PlaylistSubProgramBase(new ProgramStream { Urls = new[] { playlistUrl } })
+                    var subProgram = new PlaylistSubProgramBase(new ProgramStream
+                                                                {
+                                                                    Urls = new[] { playlistUrl }
+                                                                })
                                      {
                                          Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
                                          Playlist = playlistUrl,
@@ -117,7 +119,7 @@ namespace SM.Media.Playlists
                 }
                 else
                 {
-                    var extInf = (ExtinfTagInstance)p.Tags.FirstOrDefault(t => M3U8Tags.ExtXInf == t.Tag);
+                    var extInf = M3U8Tags.ExtXInf.Find(p.Tags);
 
                     if (null != extInf)
                     {
@@ -126,20 +128,25 @@ namespace SM.Media.Playlists
                             simpleSubProgram = new SimpleSubProgram(parser.BaseUrl);
 
                             var program = new Program
-                            {
-                                Url = parser.BaseUrl,
-                                ProgramId = long.MinValue
-                            };
+                                          {
+                                              Url = parser.BaseUrl,
+                                              ProgramId = long.MinValue
+                                          };
 
                             program.SubPrograms.Add(simpleSubProgram);
 
                             programs[program.ProgramId] = program;
                         }
 
-                        simpleSubProgram.Segments.Add(new SubStreamSegment(parser.ResolveUrl(p.Uri))
-                                                      {
-                                                          Duration = TimeSpan.FromSeconds((double)extInf.Duration)
-                                                      });
+                        var segment = new SubStreamSegment(parser.ResolveUrl(p.Uri))
+                                      {
+                                          Duration = TimeSpan.FromSeconds((double)extInf.Duration),
+                                      };
+
+                        if (mediaSequence.HasValue)
+                            segment.MediaSequence = mediaSequence + index++;
+
+                        simpleSubProgram.Segments.Add(segment);
                     }
                 }
             }
@@ -182,7 +189,10 @@ namespace SM.Media.Playlists
             MediaGroup mediaGroup;
             if (!audioStreams.TryGetValue(groupId, out mediaGroup))
             {
-                mediaGroup = new MediaGroup { Default = audioStream };
+                mediaGroup = new MediaGroup
+                             {
+                                 Default = audioStream
+                             };
 
                 audioStreams[groupId] = mediaGroup;
             }

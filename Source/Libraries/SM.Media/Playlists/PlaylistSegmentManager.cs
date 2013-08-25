@@ -326,8 +326,8 @@ namespace SM.Media.Playlists
 
             Url = parser.BaseUrl;
 
-            SubStreamSegment[] segments = PlaylistSubProgramBase.GetPlaylist(parser)
-                                                                .ToArray();
+            var segments = PlaylistSubProgramBase.GetPlaylist(parser)
+                                                 .ToArray();
             var segments0 = segments;
 
             var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);
@@ -347,7 +347,9 @@ namespace SM.Media.Playlists
 
                     if (segments.Length > 0)
                     {
-                        if (null != lastPlaylist && lastPlaylist[0].Url == segments[0].Url)
+                        if (null != lastPlaylist
+                            && lastPlaylist[0].MediaSequence == segments[0].MediaSequence
+                            && (segments[0].MediaSequence.HasValue || lastPlaylist[0].Url == segments[0].Url))
                         {
                             // We are running out of playlist, but the server just gave us the
                             // same list as last time.
@@ -382,7 +384,7 @@ namespace SM.Media.Playlists
                 isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                 DateTimeOffset.Now);
 
-            // Is a race is possible between our just-completed reload and the
+            // Is a race possible between our just-completed reload and the
             // reader's CheckReload?  (The expiration timer handles this...?)
         }
 
@@ -405,7 +407,8 @@ namespace SM.Media.Playlists
 
                 for (var i = 0; i < previousPlaylist.Length; ++i)
                 {
-                    if (previousPlaylist[i].Url == playlist[0].Url)
+                    if (previousPlaylist[i].MediaSequence.HasValue && previousPlaylist[i].MediaSequence == playlist[0].MediaSequence
+                        || !previousPlaylist[i].MediaSequence.HasValue && previousPlaylist[i].Url == playlist[0].Url)
                     {
                         _startSegmentIndex = _segmentList.Count - 1;
 

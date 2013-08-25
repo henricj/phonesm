@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlaylistSubProgramBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using SM.Media.M3U8;
-using SM.Media.M3U8.TagSupport;
 
 namespace SM.Media.Playlists
 {
@@ -92,11 +91,17 @@ namespace SM.Media.Playlists
         {
             var lastOffset = 0L;
 
+            var mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
+            var index = 0;
+
             foreach (var p in parser.Playlist)
             {
                 var url = parser.ResolveUrl(p.Uri);
 
                 var segment = new SubStreamSegment(url);
+
+                if (mediaSequence.HasValue)
+                    segment.MediaSequence = mediaSequence + index++;
 
                 if (null != p.Tags && 0 != p.Tags.Length)
                 {

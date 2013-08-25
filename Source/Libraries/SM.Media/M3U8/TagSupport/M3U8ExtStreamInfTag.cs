@@ -24,6 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Collections.Generic;
+
 namespace SM.Media.M3U8.TagSupport
 {
     public class M3U8ExtStreamInfTag : M3U8Tag
@@ -31,5 +33,13 @@ namespace SM.Media.M3U8.TagSupport
         public M3U8ExtStreamInfTag(string name, M3U8TagScope scope)
             : base(name, scope, ExtStreamInfTagInstance.Create)
         { }
+
+        public ExtStreamInfTagInstance Find(IEnumerable<M3U8TagInstance> tags)
+        {
+            if (null == tags)
+                return null;
+
+            return tags.Tag<M3U8ExtStreamInfTag, ExtStreamInfTagInstance>(this);
+        }
     }
 }

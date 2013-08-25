@@ -56,6 +56,7 @@
     <Compile Include="M3U8\TagSupport\ExtStreamInfTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ExtKeyTag.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ExtStreamInfTag.cs" />
+    <Compile Include="M3U8\TagSupport\M3U8ValueTag.cs" />
     <Compile Include="MP3\Mp3FrameHeader.cs" />
     <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="Playlists\IProgramManager.cs" />

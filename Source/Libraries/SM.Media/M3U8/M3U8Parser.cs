@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8Parser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -48,13 +48,13 @@ namespace SM.Media.M3U8
             get { return _playlist; }
         }
 
-        public Uri BaseUrl 
+        public Uri BaseUrl
         {
             get { return _baseUrl; }
         }
 
         /// <summary>
-        /// Resolve a possibly relative Url.
+        ///     Resolve a possibly relative Url.
         /// </summary>
         /// <param name="url">Absolute Uri or Url relative to this playlist.</param>
         /// <returns>An absolute Uri</returns>
@@ -67,7 +67,7 @@ namespace SM.Media.M3U8
         }
 
         /// <summary>
-        ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-10
+        ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-11
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="lines"> </param>
@@ -98,7 +98,10 @@ namespace SM.Media.M3U8
                     HandleExt(line);
                 else if (!line.StartsWith("#"))
                 {
-                    var uri = new M3U8Uri { Uri = line };
+                    var uri = new M3U8Uri
+                              {
+                                  Uri = line
+                              };
 
                     if (_tags.Count > 0 || _sharedTags.Count > 0)
                     {

@@ -38,12 +38,12 @@ namespace SM.Media.M3U8
 
         public static readonly M3U8ExtInfTag ExtXInf = new M3U8ExtInfTag("#EXTINF", M3U8TagScope.Segment);
         public static readonly M3U8ByterangeTag ExtXByteRange = new M3U8ByterangeTag("#EXT-X-BYTERANGE", M3U8TagScope.Segment);
-        public static readonly M3U8Tag ExtXTargetDuration = new M3U8Tag("#EXT-X-TARGETDURATION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
-        public static readonly M3U8Tag ExtXMediaSequence = new M3U8Tag("#EXT-X-MEDIA-SEQUENCE", M3U8TagScope.Global, ValueTagInstance.CreateLong);
+        public static readonly M3U8ValueTag ExtXTargetDuration = new M3U8ValueTag("#EXT-X-TARGETDURATION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
+        public static readonly M3U8ValueTag ExtXMediaSequence = new M3U8ValueTag("#EXT-X-MEDIA-SEQUENCE", M3U8TagScope.Global, ValueTagInstance.CreateLong);
         public static readonly M3U8ExtKeyTag ExtXKey = new M3U8ExtKeyTag("#EXT-X-KEY", M3U8TagScope.Shared);
         public static readonly M3U8Tag ExtXProgramDateTime = new M3U8Tag("#EXT-X-PROGRAM-DATE-TIME", M3U8TagScope.Segment, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXAllowCache = new M3U8Tag("#EXT-X-ALLOW-CACHE", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
-        public static readonly M3U8Tag ExtXPlaylistType = new M3U8Tag("#EXT-X-PLAYLIST-TYPE", M3U8TagScope.Global, (tag, value) => ValueTagInstance.Create(tag, value, v => v));
+        public static readonly M3U8ValueTag ExtXPlaylistType = new M3U8ValueTag("#EXT-X-PLAYLIST-TYPE", M3U8TagScope.Global, (tag, value) => ValueTagInstance.Create(tag, value, v => v));
         public static readonly M3U8Tag ExtXEndList = new M3U8Tag("#EXT-X-ENDLIST", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXMedia = new M3U8AttributeTag("#EXT-X-MEDIA", M3U8TagScope.Global, ExtMediaSupport.Attributes, (tag, value) => AttributesTagInstance.Create(tag, value, ExtMediaSupport.Attributes));
         public static readonly M3U8ExtStreamInfTag ExtXStreamInf = new M3U8ExtStreamInfTag("#EXT-X-STREAM-INF", M3U8TagScope.Segment);
@@ -51,7 +51,7 @@ namespace SM.Media.M3U8
         public static readonly M3U8Tag ExtXIFramesOnly = new M3U8Tag("#EXT-X-I-FRAMES-ONLY", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8Tag ExtXMap = new M3U8Tag("#EXT-X-MAP", M3U8TagScope.Shared, MapTagInstance.Create);
         public static readonly M3U8Tag ExtXIFrameStreamInf = new M3U8AttributeTag("#EXT-X-I-FRAME-STREAM-INF", M3U8TagScope.Global, ExtIFrameStreamInfSupport.Attributes, (tag, value) => AttributesTagInstance.Create(tag, value, ExtIFrameStreamInfSupport.Attributes));
-        public static readonly M3U8Tag ExtXVersion = new M3U8Tag("#EXT-X-VERSION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
+        public static readonly M3U8ValueTag ExtXVersion = new M3U8ValueTag("#EXT-X-VERSION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
 
         #endregion
 

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SubStreamSegment.cs" company="Henric Jungheim">
+//  <copyright file="M3U8ValueTag.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,34 +25,44 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Segments;
+using System.Collections.Generic;
 
-namespace SM.Media.Playlists
+namespace SM.Media.M3U8.TagSupport
 {
-    public class SubStreamSegment : ISegment
+    public class M3U8ValueTag : M3U8Tag
     {
-        readonly Uri _url;
+        public M3U8ValueTag(string name, M3U8TagScope scope, Func<M3U8Tag, string, ValueTagInstance> createInstance)
+            : base(name, scope, (tag, value) => createInstance(tag, value))
+        { }
 
-        public SubStreamSegment(Uri url)
+        public ValueTagInstance Find(IEnumerable<M3U8TagInstance> tags)
         {
-            _url = url;
+            if (null == tags)
+                return null;
+
+            return tags.Tag<M3U8ValueTag, ValueTagInstance>(this);
         }
 
-        #region ISegment Members
-
-        public TimeSpan? Duration { get; set; }
-
-        public long? MediaSequence { get; set; }
-
-        public long Offset { get; set; }
-
-        public long Length { get; set; }
-
-        public Uri Url
+        public T? GetValue<T>(IEnumerable<M3U8TagInstance> tags)
+            where T : struct
         {
-            get { return _url; }
+            var tag = Find(tags);
+
+            if (null == tag)
+                return null;
+
+            return (T)tag.Value;
         }
 
-        #endregion
+        public T GetObject<T>(IEnumerable<M3U8TagInstance> tags)
+            where T : class
+        {
+            var tag = Find(tags);
+
+            if (null == tag)
+                return null;
+
+            return (T)tag.Value;
+        }
     }
 }

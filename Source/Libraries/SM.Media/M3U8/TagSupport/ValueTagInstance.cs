@@ -29,7 +29,7 @@ using System.Globalization;
 
 namespace SM.Media.M3U8.TagSupport
 {
-    sealed class ValueTagInstance : M3U8TagInstance
+    public sealed class ValueTagInstance : M3U8TagInstance
     {
         ValueTagInstance(M3U8Tag tag, object value)
             : base(tag)
@@ -39,12 +39,12 @@ namespace SM.Media.M3U8.TagSupport
 
         public object Value { get; private set; }
 
-        internal static M3U8TagInstance Create(M3U8Tag tag, string value, Func<string, object> valueParser)
+        internal static ValueTagInstance Create(M3U8Tag tag, string value, Func<string, object> valueParser)
         {
             return new ValueTagInstance(tag, valueParser(value));
         }
 
-        internal static M3U8TagInstance CreateLong(M3U8Tag tag, string value)
+        internal static ValueTagInstance CreateLong(M3U8Tag tag, string value)
         {
             return Create(tag, value, v => long.Parse(v, CultureInfo.InvariantCulture));
         }

@@ -41,7 +41,7 @@ namespace SM.Media
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
         readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
 #if DEBUG
-        readonly MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
+        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();

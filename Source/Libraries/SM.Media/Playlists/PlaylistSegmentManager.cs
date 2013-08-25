@@ -121,6 +121,8 @@ namespace SM.Media.Playlists
 
         public Task StopAsync()
         {
+            Task reader;
+
             lock (_segmentLock)
             {
                 _isRunning = false;
@@ -129,13 +131,10 @@ namespace SM.Media.Playlists
 
                 _abortTokenSource.Cancel();
 
-                var reReader = _reader;
-
-                if (null != reReader)
-                    return reReader;
+                reader = _reader;
             }
 
-            return TplTaskExtensions.CompletedTask;
+            return reader ?? TplTaskExtensions.CompletedTask;
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
@@ -275,8 +274,37 @@ namespace SM.Media.Playlists
         {
             Debug.WriteLine("PlaylistSegmentManager.ReadSubList ({0})", DateTimeOffset.Now);
 
-            _expirationTimer.Change(NotDue, NotPeriodic);
+            try
+            {
+                _expirationTimer.Change(NotDue, NotPeriodic);
 
+                await UpdatePlaylist();
+
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal, ignore it.
+                return;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
+            }
+            finally
+            {
+                lock (_segmentLock)
+                {
+                    _reader = null;
+                }
+            }
+
+            // Retry in a little while
+            _expirationTimer.Change(TimeSpan.FromSeconds(1), NotPeriodic);
+        }
+
+        async Task UpdatePlaylist()
+        {
             var programStream = _subProgram.Video;
 
             var start = DateTime.UtcNow;
@@ -291,8 +319,6 @@ namespace SM.Media.Playlists
                 {
                     _segments = null;
                     _isDynamicPlaylist = false;
-
-                    _reader = null;
                 }
 
                 return;
@@ -300,8 +326,8 @@ namespace SM.Media.Playlists
 
             Url = parser.BaseUrl;
 
-            var segments = PlaylistSubProgramBase.GetPlaylist(parser)
-                                                 .ToArray();
+            SubStreamSegment[] segments = PlaylistSubProgramBase.GetPlaylist(parser)
+                                                                .ToArray();
             var segments0 = segments;
 
             var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);
@@ -339,53 +365,7 @@ namespace SM.Media.Playlists
                     }
 
                     if (!needReload)
-                    {
-                        var previousPlaylist = null as SubStreamSegment[];
-
-                        foreach (var playlist in _dynamicPlaylists)
-                        {
-                            if (null == previousPlaylist)
-                            {
-                                _startSegmentIndex = -1;
-                                _segmentList.AddRange(playlist);
-
-                                previousPlaylist = playlist;
-                                continue;
-                            }
-
-                            var found = false;
-
-                            for (var i = 0; i < previousPlaylist.Length; ++i)
-                            {
-                                if (previousPlaylist[i].Url == playlist[0].Url)
-                                {
-                                    _startSegmentIndex = _segmentList.Count - 1;
-
-                                    for (var j = 0; j < playlist.Length; ++j)
-                                    {
-                                        if (i + j < previousPlaylist.Length && previousPlaylist[i + j].Url == playlist[j].Url)
-                                            continue;
-
-                                        _segmentList.Add(playlist[j]);
-                                    }
-
-                                    found = true;
-                                    break;
-                                }
-                            }
-
-                            if (!found)
-                            {
-                                _startSegmentIndex = _segmentList.Count - 1;
-                                _segmentList.AddRange(playlist);
-                            }
-
-                            previousPlaylist = playlist;
-                        }
-
-                        segments = _segmentList.ToArray();
-                        _segmentList.Clear();
-                    }
+                        segments = ResyncSegments();
                 }
 
                 if (!needReload)
@@ -394,48 +374,100 @@ namespace SM.Media.Playlists
                 _isDynamicPlaylist = isDynamicPlayist;
 
                 if (isDynamicPlayist)
-                {
-                    var reloadDelay = GetDuration(segments0, Math.Max(1, segments0.Length - 4), segments0.Length);
-
-                    if (!reloadDelay.HasValue)
-                    {
-                        var segmentCount = segments0.Length - 1;
-
-                        if (segmentCount > 0)
-                            reloadDelay = new TimeSpan(0, 0, 0, 3 * segmentCount);
-                        else
-                            reloadDelay = TimeSpan.Zero;
-                    }
-
-                    var expire = reloadDelay.Value;
-
-                    if (expire < MinimumReload)
-                        expire = MinimumReload;
-                    else if (expire > MaximumReload)
-                        expire = MaximumReload;
-
-                    _expirationTimer.Change(expire, NotPeriodic);
-
-                    // We use the system uptime rather than DateTime.UtcNow to
-                    // avoid grief if there is a step in the system time.
-                    // TODO: Make sure the TickCount doesn't get confused by steps in the system time.
-                    var segmentsExpiration = Environment.TickCount;
-
-                    segmentsExpiration += (int)expire.TotalMilliseconds;
-
-                    _segmentsExpiration = segmentsExpiration;
-                }
-
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
-                    parser.BaseUrl, _segments.Length, fetchElapsed, _startSegmentIndex, isDynamicPlayist,
-                    isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
-                    DateTimeOffset.Now);
-
-                _reader = null;
+                    UpdateDynamicPlaylist(segments0);
             }
+
+            Debug.WriteLine("PlaylistSegmentManager.ReadSubList: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
+                parser.BaseUrl, _segments.Length, fetchElapsed, _startSegmentIndex, isDynamicPlayist,
+                isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
+                DateTimeOffset.Now);
 
             // Is a race is possible between our just-completed reload and the
             // reader's CheckReload?  (The expiration timer handles this...?)
+        }
+
+        SubStreamSegment[] ResyncSegments()
+        {
+            var previousPlaylist = null as SubStreamSegment[];
+
+            foreach (var playlist in _dynamicPlaylists)
+            {
+                if (null == previousPlaylist)
+                {
+                    _startSegmentIndex = -1;
+                    _segmentList.AddRange(playlist);
+
+                    previousPlaylist = playlist;
+                    continue;
+                }
+
+                var found = false;
+
+                for (var i = 0; i < previousPlaylist.Length; ++i)
+                {
+                    if (previousPlaylist[i].Url == playlist[0].Url)
+                    {
+                        _startSegmentIndex = _segmentList.Count - 1;
+
+                        for (var j = 0; j < playlist.Length; ++j)
+                        {
+                            if (i + j < previousPlaylist.Length && previousPlaylist[i + j].Url == playlist[j].Url)
+                                continue;
+
+                            _segmentList.Add(playlist[j]);
+                        }
+
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    _startSegmentIndex = _segmentList.Count - 1;
+                    _segmentList.AddRange(playlist);
+                }
+
+                previousPlaylist = playlist;
+            }
+
+            var segments = _segmentList.ToArray();
+            _segmentList.Clear();
+
+            return segments;
+        }
+
+        void UpdateDynamicPlaylist(SubStreamSegment[] segments)
+        {
+            var reloadDelay = GetDuration(segments, Math.Max(1, segments.Length - 4), segments.Length);
+
+            if (!reloadDelay.HasValue)
+            {
+                var segmentCount = segments.Length - 1;
+
+                if (segmentCount > 0)
+                    reloadDelay = new TimeSpan(0, 0, 0, 3 * segmentCount);
+                else
+                    reloadDelay = TimeSpan.Zero;
+            }
+
+            var expire = reloadDelay.Value;
+
+            if (expire < MinimumReload)
+                expire = MinimumReload;
+            else if (expire > MaximumReload)
+                expire = MaximumReload;
+
+            _expirationTimer.Change(expire, NotPeriodic);
+
+            // We use the system uptime rather than DateTime.UtcNow to
+            // avoid grief if there is a step in the system time.
+            // TODO: Make sure the TickCount doesn't get confused by steps in the system time.
+            var segmentsExpiration = Environment.TickCount;
+
+            segmentsExpiration += (int)expire.TotalMilliseconds;
+
+            _segmentsExpiration = segmentsExpiration;
         }
 
         static TimeSpan? GetDuration(IEnumerable<SubStreamSegment> segments)

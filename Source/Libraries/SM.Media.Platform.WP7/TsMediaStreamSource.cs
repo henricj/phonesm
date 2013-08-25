@@ -40,6 +40,9 @@ namespace SM.Media
     {
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
         readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
+#if DEBUG
+        readonly MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
+#endif
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
         readonly SingleThreadSignalTaskScheduler _taskScheduler;
@@ -49,7 +52,6 @@ namespace SM.Media
         double _bufferingProgress;
         bool _isClosed;
         int _isDisposed;
-        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         volatile int _pendingOperations;
         TimeSpan _pendingSeekTarget;
         TimeSpan? _seekTarget;
@@ -63,7 +65,9 @@ namespace SM.Media
         {
             //AudioBufferLength = 150;     // 150ms of internal buffering, instead of 1s.
 
+#if DEBUG
             _mediaStreamFsm.Reset();
+#endif
 
             _taskScheduler = new SingleThreadSignalTaskScheduler("TsMediaStreamSource", SignalHandler);
         }
@@ -151,6 +155,13 @@ namespace SM.Media
             return _drainCompleted.WaitAsync();
         }
 
+        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
+        {
+#if DEBUG
+            _mediaStreamFsm.ValidateEvent(mediaEvent);
+#endif
+        }
+
         public void CheckForSamples()
         {
             if (0 == (_pendingOperations & (int)(Operation.Audio | Operation.Video)))
@@ -159,22 +170,15 @@ namespace SM.Media
             _taskScheduler.Signal();
         }
 
-        public void CheckPending()
+        #endregion
+
+        void CheckPending()
         {
             if (0 == _pendingOperations)
                 return;
 
             _taskScheduler.Signal();
         }
-
-        public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
-        {
-#if DEBUG
-            _mediaStreamFsm.ValidateEvent(mediaEvent);
-#endif
-        }
-
-        #endregion
 
         async Task SeekHandler()
         {
@@ -498,7 +502,8 @@ namespace SM.Media
         ///     The <see cref="T:System.Windows.Controls.MediaElement" /> calls this method to ask the
         ///     <see
         ///         cref="T:System.Windows.Media.MediaStreamSource" />
-        ///     to seek to the nearest randomly accessible point before the specified time. Developers respond to this method by calling
+        ///     to seek to the nearest randomly accessible point before the specified time. Developers respond to this method by
+        ///     calling
         ///     <see
         ///         cref="M:System.Windows.Media.MediaStreamSource.ReportSeekCompleted(System.Int64)" />
         ///     and by ensuring future calls to
@@ -506,7 +511,10 @@ namespace SM.Media
         ///         cref="M:System.Windows.Media.MediaStreamSource.ReportGetSampleCompleted(System.Windows.Media.MediaStreamSample)" />
         ///     will return samples from that point in the media.
         /// </summary>
-        /// <param name="seekToTime"> The time as represented by 100 nanosecond increments to seek to. This is typically measured from the beginning of the media file. </param>
+        /// <param name="seekToTime">
+        ///     The time as represented by 100 nanosecond increments to seek to. This is typically measured
+        ///     from the beginning of the media file.
+        /// </param>
         protected override void SeekAsync(long seekToTime)
         {
             var seekTimestamp = TimeSpan.FromTicks(seekToTime);
@@ -580,7 +588,8 @@ namespace SM.Media
         ///     .
         /// </summary>
         /// <param name="diagnosticKind">
-        ///     A member of the <see cref="T:System.Windows.Media.MediaStreamSourceDiagnosticKind" /> enumeration describing what type of information is desired.
+        ///     A member of the <see cref="T:System.Windows.Media.MediaStreamSourceDiagnosticKind" /> enumeration describing what
+        ///     type of information is desired.
         /// </param>
         protected override void GetDiagnosticAsync(MediaStreamSourceDiagnosticKind diagnosticKind)
         {
@@ -590,7 +599,8 @@ namespace SM.Media
         }
 
         /// <summary>
-        ///     The <see cref="T:System.Windows.Controls.MediaElement" /> can call this method when going through normal shutdown or as a result of an error. This lets the developer perform any needed cleanup of the
+        ///     The <see cref="T:System.Windows.Controls.MediaElement" /> can call this method when going through normal shutdown
+        ///     or as a result of an error. This lets the developer perform any needed cleanup of the
         ///     <see
         ///         cref="T:System.Windows.Media.MediaStreamSource" />
         ///     .

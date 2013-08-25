@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8ExtKeyTag.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Collections.Generic;
+
 namespace SM.Media.M3U8.TagSupport
 {
     public class M3U8ExtKeyTag : M3U8Tag
@@ -31,5 +33,13 @@ namespace SM.Media.M3U8.TagSupport
         public M3U8ExtKeyTag(string name, M3U8TagScope scope)
             : base(name, scope, ExtKeyTagInstance.Create)
         { }
+
+        public ExtKeyTagInstance Find(IEnumerable<M3U8TagInstance> tags)
+        {
+            if (null == tags)
+                return null;
+
+            return tags.Tag<M3U8ExtKeyTag, ExtKeyTagInstance>(this);
+        }
     }
 }

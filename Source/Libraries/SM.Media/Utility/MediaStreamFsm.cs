@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaStreamFsm.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -74,7 +74,7 @@ namespace SM.Media.Utility
 
         static readonly Dictionary<MediaState, Dictionary<MediaEvent, MediaState>> ValidTransitions;
         static bool NoisyLogging = false;
-        int _mediaState;
+        volatile int _mediaState;
 
         static MediaStreamFsm()
         {
@@ -188,6 +188,8 @@ namespace SM.Media.Utility
         {
             var expectedState = (MediaState)_mediaState;
 
+            //Debug.WriteLine("MediaStreamFsm.ValidateEvent({0}) state {1}", mediaEvent, expectedState);
+
             for (; ; )
             {
                 var newState = Find(expectedState, mediaEvent);
@@ -197,11 +199,14 @@ namespace SM.Media.Utility
                     var message = string.Format("ValidateEvent Invalid state transition: state {0} event {1}", expectedState, mediaEvent);
 
                     Debug.WriteLine(message);
+
                     return;
                     //throw new InvalidOperationException(message);
                 }
 
+#pragma warning disable 0420
                 var oldState = (MediaState)Interlocked.CompareExchange(ref _mediaState, (int)newState.Value, (int)expectedState);
+#pragma warning restore 0420
 
                 if (oldState == expectedState)
                 {
@@ -217,7 +222,14 @@ namespace SM.Media.Utility
 
         public void Reset()
         {
+            //Debug.WriteLine("MediaStreamFsm.Reset()");
+
             _mediaState = (int)MediaState.Idle;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("[Media {0}]", (MediaState)_mediaState);
         }
     }
 }

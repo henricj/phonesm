@@ -35,7 +35,7 @@ namespace SM.Media
     class BufferingManager : IBufferingManager
     {
         const int BufferSizeMaximum = 8192 * 1024;
-        const int BufferSizeStopBuffering = 275 * 1024;
+        const int BufferSizeStopBuffering = 350 * 1024;
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromMilliseconds(256);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
         static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(7);

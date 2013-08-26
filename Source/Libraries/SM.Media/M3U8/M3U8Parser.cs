@@ -131,6 +131,9 @@ namespace SM.Media.M3U8
 
             var tagInstance = M3U8Tags.Default.Create(tag, value);
 
+            if (null == tagInstance)
+                return;
+
             switch (tagInstance.Tag.Scope)
             {
                 case M3U8TagScope.Global:

@@ -20,7 +20,7 @@
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot"
           Background="Transparent">
-        <Core:SMFPlayer>
+        <Core:SMFPlayer VolumeLevel="1">
             <Core:SMFPlayer.Playlist>
                 <Media:PlaylistItem DeliveryMethod="Streaming"
                                     MediaType="application/vnd.apple.mpegurl"

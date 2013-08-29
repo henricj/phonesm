@@ -752,7 +752,7 @@ namespace SM.Media.MediaPlayer
 
         void SetMediaSource(Uri source)
         {
-            _programManager = new ProgramManager(_httpClients.RootPlaylistClient)
+            _programManager = new ProgramManager(_httpClients)
                               {
                                   Playlists = new[] { source }
                               };

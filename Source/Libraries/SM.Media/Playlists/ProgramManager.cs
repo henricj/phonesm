@@ -32,21 +32,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
 using SM.Media.Utility;
+using SM.Media.Web;
+using RetryPolicy = SM.Media.Utility.RetryPolicy;
 
 namespace SM.Media.Playlists
 {
     public class ProgramManager : ProgramManagerBase, IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
-        readonly HttpClient _httpClient;
 
-        public ProgramManager(HttpClient httpClient)
-        {
-            if (httpClient == null)
-                throw new ArgumentNullException("httpClient");
-
-            _httpClient = httpClient;
-        }
+        public ProgramManager(IHttpClients httpClients)
+            : base(httpClients)
+        { }
 
         #region IProgramManager Members
 
@@ -65,11 +62,13 @@ namespace SM.Media.Playlists
 
                 var localPlaylist = playlist;
 
+                var httpClient = HttpClients.RootPlaylistClient;
+
                 var playlistString = await new Retry(4, 100, RetryPolicy.IsWebExceptionRetryable)
                     .CallAsync(async () =>
                                      {
-                                         var response = await _httpClient.GetAsync(localPlaylist, HttpCompletionOption.ResponseContentRead, cancellationToken)
-                                                                         .ConfigureAwait(false);
+                                         var response = await httpClient.GetAsync(localPlaylist, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                                                                        .ConfigureAwait(false);
 
                                          response.EnsureSuccessStatusCode();
 

@@ -28,11 +28,22 @@ using System;
 using System.Collections.Generic;
 using SM.Media.M3U8;
 using SM.Media.M3U8.AttributeSupport;
+using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
     public class ProgramManagerBase
     {
+        protected readonly IHttpClients HttpClients;
+
+        protected ProgramManagerBase(IHttpClients httpClients)
+        {
+            if (httpClients == null)
+                throw new ArgumentNullException("httpClients");
+
+            HttpClients = httpClients;
+        }
+
         public IEnumerable<Program> Programs
         {
             get { return null; }

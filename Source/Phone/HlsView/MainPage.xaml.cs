@@ -160,12 +160,12 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            var programManager = new ProgramManager(_httpClients.RootPlaylistClient)
+            var programManager = new ProgramManager(_httpClients)
                                  {
                                      Playlists = new[]
                                                  {
                                                      new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
-                                                     //new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                                                     //new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
                                                  }
                                  };
 

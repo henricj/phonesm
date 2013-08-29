@@ -61,7 +61,7 @@ namespace SimulatedPlayer
 
         public async Task Run()
         {
-            _programManager = new ProgramManager(_httpClients.RootPlaylistClient)
+            _programManager = new ProgramManager(_httpClients)
                               {
                                   Playlists = new[]
                                               {

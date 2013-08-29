@@ -53,8 +53,6 @@ namespace SM.Media.Playlists
 
         public Uri Playlist { get; set; }
 
-        //protected abstract M3U8Parser Parse(Uri playlist);
-
         public override IProgramStream Audio
         {
             get { throw new NotImplementedException(); }

@@ -390,7 +390,7 @@ namespace SM.Media.MediaPlayer
 
         async Task SetMediaSourceAsync(Uri value)
         {
-            _programManager = new ProgramManager(_httpClients.RootPlaylistClient)
+            _programManager = new ProgramManager(_httpClients)
                               {
                                   Playlists = new[] { value }
                               };

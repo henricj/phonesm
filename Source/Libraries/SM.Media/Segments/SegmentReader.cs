@@ -42,7 +42,6 @@ namespace SM.Media.Segments
         readonly HttpClient _httpClient;
         readonly ISegment _segment;
         readonly Func<Stream, Stream> _streamFilter;
-        readonly Uri _url;
         long _endOffset;
         HttpResponseMessage _response;
         Stream _responseStream;
@@ -62,14 +61,13 @@ namespace SM.Media.Segments
             _httpClient = httpClient;
             _startOffset = segment.Offset;
             _endOffset = _startOffset + segment.Length - 1;
-            _url = segment.Url;
         }
 
         #region ISegmentReader Members
 
         public Uri Url
         {
-            get { return _url; }
+            get { return _segment.Url; }
         }
 
         public bool IsEof { get; private set; }
@@ -119,7 +117,7 @@ namespace SM.Media.Segments
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Read of {0} failed at {1}: {2}", _url, _startOffset, ex.Message);
+                    Debug.WriteLine("Read of {0} failed at {1}: {2}", _segment.Url, _startOffset, ex.Message);
 
                     if (--retryCount <= 0)
                         throw;
@@ -166,7 +164,7 @@ namespace SM.Media.Segments
                     _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
                         .CallAsync(() =>
                                    {
-                                       var msg = new HttpRequestMessage(HttpMethod.Get, _url);
+                                       var msg = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
 
                                        if (_startOffset >= 0 && _endOffset > 0)
                                            msg.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
@@ -208,7 +206,7 @@ namespace SM.Media.Segments
                 if (duration.HasValue)
                     delay = TimeSpan.FromTicks(duration.Value.Ticks / 2);
 
-                Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _url, delay);
+                Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _segment.Url, delay);
 
                 await TaskEx.Delay(delay, cancellationToken).ConfigureAwait(false);
             }

@@ -38,7 +38,7 @@ namespace SM.Media.Playlists
             get { return null; }
         }
 
-        public IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
+        protected IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
         {
             var audioStreams = new Dictionary<string, MediaGroup>();
 
@@ -138,10 +138,7 @@ namespace SM.Media.Playlists
                             programs[program.ProgramId] = program;
                         }
 
-                        var segment = new SubStreamSegment(parser.ResolveUrl(p.Uri))
-                                      {
-                                          Duration = TimeSpan.FromSeconds((double)extInf.Duration),
-                                      };
+                        var segment = StreamSegments.CreateStreamSegment(parser, p);
 
                         if (mediaSequence.HasValue)
                             segment.MediaSequence = mediaSequence + index++;

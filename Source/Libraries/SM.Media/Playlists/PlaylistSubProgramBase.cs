@@ -96,20 +96,13 @@ namespace SM.Media.Playlists
 
             foreach (var p in parser.Playlist)
             {
-                var url = parser.ResolveUrl(p.Uri);
-
-                var segment = new SubStreamSegment(url);
+                var segment = StreamSegments.CreateStreamSegment(parser, p);
 
                 if (mediaSequence.HasValue)
                     segment.MediaSequence = mediaSequence + index++;
 
                 if (null != p.Tags && 0 != p.Tags.Length)
                 {
-                    var info = M3U8Tags.ExtXInf.Find(p.Tags);
-
-                    if (null != info)
-                        segment.Duration = TimeSpan.FromSeconds((double)info.Duration);
-
                     var byteRange = M3U8Tags.ExtXByteRange.Find(p.Tags);
 
                     if (null != byteRange)

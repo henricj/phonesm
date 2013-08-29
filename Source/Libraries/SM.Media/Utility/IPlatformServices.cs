@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.IO;
 using System.Threading;
 
 namespace SM.Media.Utility
@@ -57,5 +58,14 @@ namespace SM.Media.Utility
         /// <param name="thread"></param>
         /// <returns></returns>
         void JoinThread(Thread thread);
+
+        /// <summary>
+        /// Decrypt the given stream with AES-128 CBC and PKCS #7 padding.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="key"></param>
+        /// <param name="iv"></param>
+        /// <returns></returns>
+        Stream Aes128DecryptionFilter(Stream stream, byte[] key, byte[] iv);
     }
 }

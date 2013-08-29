@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using SM.Media.Utility;
@@ -97,6 +98,19 @@ namespace SM.Media
             {
                 _generators.Push(random);
             }
+        }
+
+        public Stream Aes128DecryptionFilter(Stream stream, byte[] key, byte[] iv)
+        {
+            // CBC with PCKS #7 padding.  (Default for desktop and only supported values
+            // for Silverlight/Phone.)
+            var aes = new AesManaged
+            {
+                Key = key,
+                IV = iv
+            };
+
+            return new CryptoStream(stream, aes.CreateDecryptor(), CryptoStreamMode.Read);
         }
     }
 }

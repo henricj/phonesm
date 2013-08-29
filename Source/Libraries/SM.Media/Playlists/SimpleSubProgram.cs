@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
@@ -34,14 +35,14 @@ namespace SM.Media.Playlists
     {
         static readonly IProgramStream[] NoStreams = new IProgramStream[0];
         readonly Uri[] _playlistUrl;
-        readonly ICollection<SubStreamSegment> _segments = new List<SubStreamSegment>();
+        readonly ICollection<ISegment> _segments = new List<ISegment>();
 
         public SimpleSubProgram(Uri playlistUrl)
         {
             _playlistUrl = new[] { playlistUrl };
         }
 
-        public ICollection<SubStreamSegment> Segments
+        public ICollection<ISegment> Segments
         {
             get { return _segments; }
         }
@@ -84,10 +85,5 @@ namespace SM.Media.Playlists
         }
 
         #endregion
-
-        public override IEnumerable<SubStreamSegment> GetPlaylist(SubStream video = null, SubStream audio = null)
-        {
-            return _segments;
-        }
     }
 }

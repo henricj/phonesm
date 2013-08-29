@@ -45,9 +45,9 @@ namespace SM.Media.Playlists
         static readonly TimeSpan MaximumReload = TimeSpan.FromMinutes(2);
         static readonly TimeSpan ExcessiveDuration = TimeSpan.FromMinutes(5);
         readonly CancellationToken _cancellationToken;
-        readonly List<SubStreamSegment[]> _dynamicPlaylists = new List<SubStreamSegment[]>();
+        readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
         readonly Timer _expirationTimer;
-        readonly List<SubStreamSegment> _segmentList = new List<SubStreamSegment>();
+        readonly List<ISegment> _segmentList = new List<ISegment>();
         readonly object _segmentLock = new object();
         readonly ISubProgram _subProgram;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
@@ -55,7 +55,7 @@ namespace SM.Media.Playlists
         bool _isDynamicPlaylist;
         bool _isRunning;
         Task _reader;
-        SubStreamSegment[] _segments;
+        ISegment[] _segments;
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
         ICachedWebRequest _subPlaylistRequest;
@@ -388,9 +388,9 @@ namespace SM.Media.Playlists
             // reader's CheckReload?  (The expiration timer handles this...?)
         }
 
-        SubStreamSegment[] ResyncSegments()
+        ISegment[] ResyncSegments()
         {
-            var previousPlaylist = null as SubStreamSegment[];
+            var previousPlaylist = null as ISegment[];
 
             foreach (var playlist in _dynamicPlaylists)
             {
@@ -440,7 +440,7 @@ namespace SM.Media.Playlists
             return segments;
         }
 
-        void UpdateDynamicPlaylist(SubStreamSegment[] segments)
+        void UpdateDynamicPlaylist(ISegment[] segments)
         {
             var reloadDelay = GetDuration(segments, Math.Max(1, segments.Length - 4), segments.Length);
 
@@ -473,7 +473,7 @@ namespace SM.Media.Playlists
             _segmentsExpiration = segmentsExpiration;
         }
 
-        static TimeSpan? GetDuration(IEnumerable<SubStreamSegment> segments)
+        static TimeSpan? GetDuration(IEnumerable<ISegment> segments)
         {
             var duration = TimeSpan.Zero;
 
@@ -488,7 +488,7 @@ namespace SM.Media.Playlists
             return duration;
         }
 
-        static TimeSpan? GetDuration(SubStreamSegment[] segments, int start, int end)
+        static TimeSpan? GetDuration(ISegment[] segments, int start, int end)
         {
             var duration = TimeSpan.Zero;
 
@@ -540,7 +540,7 @@ namespace SM.Media.Playlists
         {
             readonly PlaylistSegmentManager _segmentManager;
             int _index = -1;
-            SubStreamSegment[] _segments;
+            ISegment[] _segments;
 
             public PlaylistEnumerator(PlaylistSegmentManager segmentManager)
             {
@@ -564,7 +564,7 @@ namespace SM.Media.Playlists
                     await _segmentManager.CheckReload(_index).ConfigureAwait(false);
 
                     bool isDynamicPlaylist;
-                    SubStreamSegment[] segments;
+                    ISegment[] segments;
                     int startIndex;
 
                     lock (_segmentManager._segmentLock)

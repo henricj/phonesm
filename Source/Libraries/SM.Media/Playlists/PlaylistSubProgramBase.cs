@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using SM.Media.M3U8;
+using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
@@ -43,7 +44,6 @@ namespace SM.Media.Playlists
 
     public class PlaylistSubProgramBase : SubProgram
     {
-        static readonly IEnumerable<SubStreamSegment> NoEntries = new SubStreamSegment[0];
         readonly IProgramStream _video;
 
         public PlaylistSubProgramBase(IProgramStream video)
@@ -75,19 +75,7 @@ namespace SM.Media.Playlists
             get { throw new NotImplementedException(); }
         }
 
-        public override IEnumerable<SubStreamSegment> GetPlaylist(SubStream video = null, SubStream audio = null)
-        {
-            var playlist = Playlist;
-
-            //if (null == playlist)
-            return NoEntries;
-
-            M3U8Parser parser = null; // Parse(playlist);
-
-            return GetPlaylist(parser);
-        }
-
-        public static IEnumerable<SubStreamSegment> GetPlaylist(M3U8Parser parser)
+        public static IEnumerable<ISegment> GetPlaylist(M3U8Parser parser)
         {
             var lastOffset = 0L;
 

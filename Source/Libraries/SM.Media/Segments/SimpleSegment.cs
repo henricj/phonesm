@@ -25,6 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace SM.Media.Segments
 {
@@ -51,6 +53,11 @@ namespace SM.Media.Segments
         public TimeSpan? Duration { get; set; }
 
         public long? MediaSequence { get; set; }
+
+        public Task<Stream> CreateFilterAsync(Stream stream)
+        {
+            return null;
+        }
 
         #endregion
     }

@@ -41,21 +41,18 @@ namespace SM.Media.Segments
         static readonly TimeSpan DefaultNotFoundDelay = TimeSpan.FromSeconds(5);
         readonly HttpClient _httpClient;
         readonly ISegment _segment;
-        readonly Func<Stream, Stream> _streamFilter;
         long _endOffset;
         HttpResponseMessage _response;
         Stream _responseStream;
         long _startOffset;
 
-        public SegmentReader(ISegment segment, HttpClient httpClient, Func<Stream, Stream> streamFilter = null)
+        public SegmentReader(ISegment segment, HttpClient httpClient)
         {
             if (null == segment)
                 throw new ArgumentNullException("segment");
 
             if (httpClient == null)
                 throw new ArgumentNullException("httpClient");
-
-            _streamFilter = streamFilter;
 
             _segment = segment;
             _httpClient = httpClient;
@@ -214,10 +211,12 @@ namespace SM.Media.Segments
             if (_endOffset <= 0)
                 _endOffset = _response.Content.Headers.ContentLength ?? 0;
 
-            var stream = await _response.Content.ReadAsStreamAsync();
+            var stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-            if (null != _streamFilter)
-                stream = _streamFilter(stream);
+            var filterStreamTask = _segment.CreateFilterAsync(stream);
+
+            if (null != filterStreamTask)
+                return await filterStreamTask.ConfigureAwait(false);
 
             return stream;
         }

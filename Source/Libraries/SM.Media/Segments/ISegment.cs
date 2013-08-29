@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ISegment.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace SM.Media.Segments
 {
@@ -39,5 +41,13 @@ namespace SM.Media.Segments
         TimeSpan? Duration { get; }
 
         long? MediaSequence { get; }
+
+        /// <summary>
+        ///     Create a new stream to modify the data returned from the web server (e.g.,
+        ///     stripping headers from .mp3 or decrypting #EXT-X-KEY AES-128 segments).
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns>null if no filter is required</returns>
+        Task<Stream> CreateFilterAsync(Stream stream);
     }
 }

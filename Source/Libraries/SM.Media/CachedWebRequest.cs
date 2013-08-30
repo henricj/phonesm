@@ -87,8 +87,7 @@ namespace SM.Media
         async Task Fetch<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
             where TCached : class
         {
-            var request = CreateRequest();
-
+            using (var request = CreateRequest())
             using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
                                                    .ConfigureAwait(false))
             {

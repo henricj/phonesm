@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8ParserExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using SM.Media.Utility;
 
 namespace SM.Media.M3U8
 {
@@ -64,6 +68,33 @@ namespace SM.Media.M3U8
             {
                 parser.Parse(baseUrl, sr);
             }
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <param name="parser"></param>
+        /// <param name="httpClient"></param>
+        /// <param name="playlist"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public static async Task ParseAsync(this M3U8Parser parser, HttpClient httpClient, Uri playlist, CancellationToken cancellationToken)
+        {
+            await new Retry(4, 100, RetryPolicy.IsWebExceptionRetryable)
+                .CallAsync(async () =>
+                                 {
+                                     using (var response = await httpClient.GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                                                                           .ConfigureAwait(false))
+                                     {
+                                         response.EnsureSuccessStatusCode();
+
+                                         using (var stream = await response.Content.ReadAsStreamAsync()
+                                                                           .ConfigureAwait(false))
+                                         {
+                                             parser.Parse(playlist, stream);
+                                         }
+                                     }
+                                 })
+                .ConfigureAwait(false);
         }
 
         /// <summary>

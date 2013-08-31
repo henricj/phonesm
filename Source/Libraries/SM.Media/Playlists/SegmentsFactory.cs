@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IHttpClients.cs" company="Henric Jungheim">
+//  <copyright file="SegmentsFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,16 +24,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Net.Http;
+using SM.Media.M3U8;
+using SM.Media.Web;
 
-namespace SM.Media.Web
+namespace SM.Media.Playlists
 {
-    public interface IHttpClients
+    public class SegmentsFactory
     {
-        HttpClient RootPlaylistClient { get; }
-        HttpClient CreatePlaylistClient(Uri rootPlaylist);
-        HttpClient CreateSegmentClient(Uri segmentPlaylist /*, MediaTypeWithQualityHeaderValue mediaType = null*/);
-        HttpClient CreateBinaryClient(Uri referrer);
+        readonly IHttpClients _httpClients;
+
+        public SegmentsFactory(IHttpClients httpClients)
+        {
+            _httpClients = httpClients;
+        }
+
+        public IStreamSegments CreateStreamSegments(M3U8Parser parser)
+        {
+            return new StreamSegments(parser, _httpClients);
+        }
     }
 }

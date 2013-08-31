@@ -160,7 +160,9 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            var programManager = new ProgramManager(_httpClients)
+            var segmentsFactory = new SegmentsFactory(_httpClients);
+
+            var programManager = new ProgramManager(_httpClients, segmentsFactory.CreateStreamSegments)
                                  {
                                      Playlists = new[]
                                                  {
@@ -207,7 +209,9 @@ namespace HlsView
                 return;
             }
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(program.Url)), subProgram);
+            var programClient = _httpClients.CreatePlaylistClient(program.Url);
+
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
                 () =>
@@ -248,7 +252,7 @@ namespace HlsView
                     UpdateState(MediaElementState.Closed);
                 });
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;

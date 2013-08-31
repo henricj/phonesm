@@ -40,6 +40,8 @@ namespace SM.Media.Playlists
             _url = url;
         }
 
+        public Func<Stream, Task<Stream>> AsyncStreamFilter { get; set; }
+
         #region ISegment Members
 
         public TimeSpan? Duration { get; set; }
@@ -48,7 +50,10 @@ namespace SM.Media.Playlists
 
         public Task<Stream> CreateFilterAsync(Stream stream)
         {
-            return null;
+            if (null == AsyncStreamFilter)
+                return null;
+
+            return AsyncStreamFilter(stream);
         }
 
         public long Offset { get; set; }

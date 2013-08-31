@@ -49,6 +49,7 @@ namespace SM.Media.Playlists
         readonly Timer _expirationTimer;
         readonly List<ISegment> _segmentList = new List<ISegment>();
         readonly object _segmentLock = new object();
+        readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
         readonly ISubProgram _subProgram;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         CancellationTokenSource _abortTokenSource;
@@ -60,11 +61,11 @@ namespace SM.Media.Playlists
         int _startSegmentIndex = -1;
         ICachedWebRequest _subPlaylistRequest;
 
-        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program)
-            : this(webRequestFactory, program, CancellationToken.None)
+        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, Func<M3U8Parser, IStreamSegments> segmentsFactory)
+            : this(webRequestFactory, program, segmentsFactory, CancellationToken.None)
         { }
 
-        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, CancellationToken cancellationToken)
+        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, Func<M3U8Parser, IStreamSegments> segmentsFactory, CancellationToken cancellationToken)
         {
             if (null == webRequestFactory)
                 throw new ArgumentNullException("webRequestFactory");
@@ -72,8 +73,12 @@ namespace SM.Media.Playlists
             if (null == program)
                 throw new ArgumentNullException("program");
 
+            if (segmentsFactory == null)
+                throw new ArgumentNullException("segmentsFactory");
+
             _webRequestFactory = webRequestFactory;
             _subProgram = program;
+            _segmentsFactory = segmentsFactory;
             _cancellationToken = cancellationToken;
 
             _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
@@ -326,8 +331,10 @@ namespace SM.Media.Playlists
 
             Url = parser.BaseUrl;
 
-            var segments = PlaylistSubProgramBase.GetPlaylist(parser)
-                                                 .ToArray();
+            var segments = _segmentsFactory(parser)
+                .GetPlaylist()
+                .ToArray();
+
             var segments0 = segments;
 
             var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);

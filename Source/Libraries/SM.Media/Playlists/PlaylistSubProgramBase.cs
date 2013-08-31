@@ -26,8 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using SM.Media.M3U8;
-using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
@@ -71,43 +69,6 @@ namespace SM.Media.Playlists
         public override ICollection<IProgramStream> AlternateVideo
         {
             get { throw new NotImplementedException(); }
-        }
-
-        public static IEnumerable<ISegment> GetPlaylist(M3U8Parser parser)
-        {
-            var lastOffset = 0L;
-
-            var mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
-            var index = 0;
-
-            foreach (var p in parser.Playlist)
-            {
-                var segment = StreamSegments.CreateStreamSegment(parser, p);
-
-                if (mediaSequence.HasValue)
-                    segment.MediaSequence = mediaSequence + index++;
-
-                if (null != p.Tags && 0 != p.Tags.Length)
-                {
-                    var byteRange = M3U8Tags.ExtXByteRange.Find(p.Tags);
-
-                    if (null != byteRange)
-                    {
-                        if (byteRange.Offset.HasValue)
-                        {
-                            segment.Offset = byteRange.Offset.Value;
-                            lastOffset = byteRange.Offset.Value;
-                        }
-                        else
-                            segment.Offset = lastOffset;
-
-                        segment.Length = byteRange.Length;
-                        lastOffset += byteRange.Length;
-                    }
-                }
-
-                yield return segment;
-            }
         }
     }
 }

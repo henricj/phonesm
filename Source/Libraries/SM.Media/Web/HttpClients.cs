@@ -37,9 +37,11 @@ namespace SM.Media.Web
         public static readonly MediaTypeWithQualityHeaderValue AcceptMpegurlHeader = new MediaTypeWithQualityHeaderValue("application/vnd.apple.mpegurl");
         public static readonly MediaTypeWithQualityHeaderValue AcceptMp2tHeader = new MediaTypeWithQualityHeaderValue("video/MP2T");
         public static readonly MediaTypeWithQualityHeaderValue AcceptMp3Header = new MediaTypeWithQualityHeaderValue("audio/mpeg");
+        public static readonly MediaTypeWithQualityHeaderValue AcceptOctetHeader = new MediaTypeWithQualityHeaderValue("application/octet-stream");
         public static readonly MediaTypeWithQualityHeaderValue AcceptAnyHeader = new MediaTypeWithQualityHeaderValue("*/*");
+        readonly CookieContainer _cookieContainer;
+        readonly ICredentials _credentials;
 
-        readonly HttpClientHandler _httpClientHandler;
         readonly Uri _referrer;
         readonly ProductInfoHeaderValue _userAgent;
         int _disposed;
@@ -49,22 +51,17 @@ namespace SM.Media.Web
         {
             _referrer = referrer;
             _userAgent = userAgent;
-
-            _httpClientHandler = new HttpClientHandler();
-
-            if (null != credentials)
-                _httpClientHandler.Credentials = credentials;
-
-            if (null != cookieContainer)
-                _httpClientHandler.CookieContainer = cookieContainer;
-            else
-                _httpClientHandler.UseCookies = false;
+            _credentials = credentials;
+            _cookieContainer = cookieContainer;
         }
 
         #region IDisposable Members
 
         public void Dispose()
         {
+            if (0 != Interlocked.Exchange(ref _disposed, 1))
+                return;
+
             Dispose(true);
 
             GC.SuppressFinalize(this);
@@ -85,34 +82,69 @@ namespace SM.Media.Web
             }
         }
 
-        public virtual HttpClient GetPlaylistClient(Uri referrer)
+        public virtual HttpClient CreatePlaylistClient(Uri referrer)
         {
             return CreatePlaylistHttpClient(referrer);
         }
 
-        public virtual HttpClient GetSegmentClient(Uri segmentPlaylist)
+        public virtual HttpClient CreateSegmentClient(Uri segmentPlaylist /*, MediaTypeWithQualityHeaderValue mediaType = null*/)
         {
-            var httpClient = new HttpClient(_httpClientHandler)
-                             {
-                                 BaseAddress = segmentPlaylist
-                             };
+            var httpClient = CreateHttpClient(segmentPlaylist);
+
+            //if (null == mediaType)
+            //    return httpClient;
+
+            //var headers = httpClient.DefaultRequestHeaders;
+
+            //headers.Accept.Add(mediaType);
+            //headers.Accept.Add(AcceptAnyHeader);
+
+            return httpClient;
+        }
+
+        public virtual HttpClient CreateBinaryClient(Uri referrer)
+        {
+            var httpClient = CreateHttpClient(referrer);
 
             var headers = httpClient.DefaultRequestHeaders;
 
-            if (null != segmentPlaylist)
-                headers.Referrer = segmentPlaylist;
-
-            if (null != _userAgent)
-                headers.UserAgent.Add(_userAgent);
+            headers.Accept.Add(AcceptOctetHeader);
 
             return httpClient;
         }
 
         #endregion
 
+        protected virtual HttpClientHandler CreateClientHandler()
+        {
+            var httpClientHandler = new HttpClientHandler();
+
+            if (null != _credentials)
+                httpClientHandler.Credentials = _credentials;
+
+            if (null != _cookieContainer)
+                httpClientHandler.CookieContainer = _cookieContainer;
+            else
+                httpClientHandler.UseCookies = false;
+
+            return httpClientHandler;
+        }
+
         protected virtual HttpClient CreatePlaylistHttpClient(Uri referrer)
         {
-            var httpClient = new HttpClient(_httpClientHandler);
+            var httpClient = CreateHttpClient(referrer);
+
+            var headers = httpClient.DefaultRequestHeaders;
+
+            headers.Accept.Add(AcceptMpegurlHeader);
+            headers.Accept.Add(AcceptAnyHeader);
+
+            return httpClient;
+        }
+
+        protected virtual HttpClient CreateHttpClient(Uri referrer)
+        {
+            var httpClient = new HttpClient(CreateClientHandler());
 
             var headers = httpClient.DefaultRequestHeaders;
 
@@ -125,18 +157,12 @@ namespace SM.Media.Web
             if (null != _userAgent)
                 headers.UserAgent.Add(_userAgent);
 
-            headers.Accept.Add(AcceptMpegurlHeader);
-            headers.Accept.Add(AcceptAnyHeader);
-
             return httpClient;
         }
 
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing)
-                return;
-
-            if (0 != Interlocked.Exchange(ref _disposed, 1))
                 return;
 
             var rootClient = _rootPlaylistClient;

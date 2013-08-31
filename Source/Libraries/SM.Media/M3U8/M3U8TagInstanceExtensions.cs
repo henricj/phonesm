@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8TagInstanceExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -107,6 +107,19 @@ namespace SM.Media.M3U8
         {
             return tags.OfType<TTagInstance>()
                        .FirstOrDefault(t => t.Tag == tag);
+        }
+
+        public static IEnumerable<M3U8TagInstance> Tags(this IEnumerable<M3U8TagInstance> tags, M3U8Tag tag)
+        {
+            return tags.Where(t => t.Tag == tag);
+        }
+
+        public static IEnumerable<TTagInstance> Tags<TTag, TTagInstance>(this IEnumerable<M3U8TagInstance> tags, TTag tag)
+            where TTag : M3U8Tag
+            where TTagInstance : M3U8TagInstance
+        {
+            return tags.OfType<TTagInstance>()
+                       .Where(t => t.Tag == tag);
         }
     }
 }

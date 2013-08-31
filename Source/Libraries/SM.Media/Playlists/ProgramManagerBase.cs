@@ -35,18 +35,17 @@ namespace SM.Media.Playlists
     public class ProgramManagerBase
     {
         protected readonly IHttpClients HttpClients;
+        readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
 
-        protected ProgramManagerBase(IHttpClients httpClients)
+        protected ProgramManagerBase(IHttpClients httpClients, Func<M3U8Parser, IStreamSegments> segmentsFactory)
         {
             if (httpClients == null)
                 throw new ArgumentNullException("httpClients");
+            if (segmentsFactory == null)
+                throw new ArgumentNullException("segmentsFactory");
 
             HttpClients = httpClients;
-        }
-
-        public IEnumerable<Program> Programs
-        {
-            get { return null; }
+            _segmentsFactory = segmentsFactory;
         }
 
         protected IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
@@ -74,8 +73,7 @@ namespace SM.Media.Playlists
             var programs = new Dictionary<long, Program>();
             SimpleSubProgram simpleSubProgram = null;
 
-            var mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
-            var index = 0;
+            var streamSegments = _segmentsFactory(parser);
 
             foreach (var p in parser.Playlist)
             {
@@ -149,10 +147,7 @@ namespace SM.Media.Playlists
                             programs[program.ProgramId] = program;
                         }
 
-                        var segment = StreamSegments.CreateStreamSegment(parser, p);
-
-                        if (mediaSequence.HasValue)
-                            segment.MediaSequence = mediaSequence + index++;
+                        var segment = streamSegments.CreateStreamSegment(p);
 
                         simpleSubProgram.Segments.Add(segment);
                     }

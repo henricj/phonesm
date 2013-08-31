@@ -34,12 +34,12 @@ namespace SM.Media.M3U8.TagSupport
             : base(name, scope, ExtKeyTagInstance.Create)
         { }
 
-        public ExtKeyTagInstance Find(IEnumerable<M3U8TagInstance> tags)
+        public IEnumerable<ExtKeyTagInstance> FindAll(IEnumerable<M3U8TagInstance> tags)
         {
             if (null == tags)
                 return null;
 
-            return tags.Tag<M3U8ExtKeyTag, ExtKeyTagInstance>(this);
+            return tags.Tags<M3U8ExtKeyTag, ExtKeyTagInstance>(this);
         }
     }
 }

@@ -30,8 +30,6 @@ using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Windows;
@@ -197,8 +195,10 @@ namespace SM.Media.MediaPlayer
         ///     Gets or sets the ratio of the volume level across stereo speakers.
         /// </summary>
         /// <remarks>
-        ///     The value is in the range between -1 and 1. The default value of 0 signifies an equal volume between left and right stereo speakers.
-        ///     A value of -1 represents 100 percent volume in the speakers on the left, and a value of 1 represents 100 percent volume in the speakers on the right.
+        ///     The value is in the range between -1 and 1. The default value of 0 signifies an equal volume between left and right
+        ///     stereo speakers.
+        ///     A value of -1 represents 100 percent volume in the speakers on the left, and a value of 1 represents 100 percent
+        ///     volume in the speakers on the right.
         /// </remarks>
         public double Balance
         {
@@ -506,6 +506,7 @@ namespace SM.Media.MediaPlayer
         ProgramManager _programManager;
         HttpClients _httpClients;
         readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
+        SegmentsFactory _segmentsFactory;
 
         public Stream StreamSource
         {
@@ -559,6 +560,8 @@ namespace SM.Media.MediaPlayer
 
                 _httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue(_applicationInformation.Title ?? "Unknown", _applicationInformation.Version ?? "0.0"));
 
+                _segmentsFactory = new SegmentsFactory(_httpClients);
+
                 InitializeStreamingMediaElement();
                 IsLoaded = true;
                 PluginLoaded.IfNotNull(i => i(this));
@@ -608,11 +611,23 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         /// <param name="adSource">The source of the ad content.</param>
         /// <param name="deliveryMethod">The delivery method of the ad content.</param>
-        /// <param name="duration">The duration of the ad content that should be played.  If omitted the plugin will play the full duration of the ad content.</param>
-        /// <param name="startTime">The position within the media where this ad should be played.  If omitted ad will begin playing immediately.</param>
+        /// <param name="duration">
+        ///     The duration of the ad content that should be played.  If omitted the plugin will play the full
+        ///     duration of the ad content.
+        /// </param>
+        /// <param name="startTime">
+        ///     The position within the media where this ad should be played.  If omitted ad will begin playing
+        ///     immediately.
+        /// </param>
         /// <param name="clickThrough">The URL where the user should be directed when they click the ad.</param>
-        /// <param name="pauseTimeline">Indicates if the timeline of the currently playing media should be paused while the ad is playing.</param>
-        /// <param name="appendToAd">Another scheduled ad that this ad should be appended to.  If omitted this ad will be scheduled independently.</param>
+        /// <param name="pauseTimeline">
+        ///     Indicates if the timeline of the currently playing media should be paused while the ad is
+        ///     playing.
+        /// </param>
+        /// <param name="appendToAd">
+        ///     Another scheduled ad that this ad should be appended to.  If omitted this ad will be scheduled
+        ///     independently.
+        /// </param>
         /// <param name="data">User data.</param>
         /// <returns>A reference to the IAdContext that contains information about the scheduled ad.</returns>
         public IAdContext ScheduleAd(Uri adSource, DeliveryMethods deliveryMethod, TimeSpan? duration = null,
@@ -752,7 +767,7 @@ namespace SM.Media.MediaPlayer
 
         void SetMediaSource(Uri source)
         {
-            _programManager = new ProgramManager(_httpClients)
+            _programManager = new ProgramManager(_httpClients, _segmentsFactory.CreateStreamSegments)
                               {
                                   Playlists = new[] { source }
                               };
@@ -774,14 +789,13 @@ namespace SM.Media.MediaPlayer
                 return;
             }
 
-            Program program;
             ISubProgram subProgram;
 
             try
             {
                 var programs = await _programManager.LoadAsync();
 
-                program = programs.Values.FirstOrDefault();
+                var program = programs.Values.FirstOrDefault();
 
                 if (null == program)
                 {
@@ -803,11 +817,11 @@ namespace SM.Media.MediaPlayer
                 throw;
             }
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(uri)), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
 
             _mediaElementManager = new MediaElementManager(MediaElement.Dispatcher, () => MediaElement, me => { });
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
 
             _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
 

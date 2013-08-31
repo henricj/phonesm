@@ -76,6 +76,8 @@ namespace SM.Media.MediaPlayer
 
             _httpClients = httpClients;
 
+            _segmentsFactory = new SegmentsFactory(_httpClients);
+
             HorizontalContentAlignment = HorizontalAlignment.Stretch;
             VerticalContentAlignment = VerticalAlignment.Stretch;
             MediaElement = new MediaElement();
@@ -390,7 +392,7 @@ namespace SM.Media.MediaPlayer
 
         async Task SetMediaSourceAsync(Uri value)
         {
-            _programManager = new ProgramManager(_httpClients)
+            _programManager = new ProgramManager(_httpClients, _segmentsFactory.CreateStreamSegments)
                               {
                                   Playlists = new[] { value }
                               };
@@ -435,6 +437,7 @@ namespace SM.Media.MediaPlayer
         ProgramManager _programManager;
         TsMediaManager _tsMediaManager;
         TsMediaStreamSource _tsMediaStreamSource;
+        readonly SegmentsFactory _segmentsFactory;
 
         #endregion
 
@@ -553,11 +556,11 @@ namespace SM.Media.MediaPlayer
                 throw new FileNotFoundException("Unable to load program stream");
             }
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(uri)), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
 
             _mediaElementManager = new NoOpMediaElementManager();
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
+            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;

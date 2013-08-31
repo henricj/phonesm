@@ -37,6 +37,7 @@ namespace SimulatedPlayer
     sealed class Simulator : IDisposable
     {
         readonly IHttpClients _httpClients;
+        readonly SegmentsFactory _segmentsFactory;
         ProgramManager _programManager;
         SegmentReaderManager _segmentReaderManager;
         TsMediaManager _tsMediaManager;
@@ -47,6 +48,8 @@ namespace SimulatedPlayer
                 throw new ArgumentNullException("httpClients");
 
             _httpClients = httpClients;
+
+            _segmentsFactory = new SegmentsFactory(_httpClients);
         }
 
         #region IDisposable Members
@@ -61,7 +64,7 @@ namespace SimulatedPlayer
 
         public async Task Run()
         {
-            _programManager = new ProgramManager(_httpClients)
+            _programManager = new ProgramManager(_httpClients, _segmentsFactory.CreateStreamSegments)
                               {
                                   Playlists = new[]
                                               {
@@ -70,14 +73,13 @@ namespace SimulatedPlayer
                                               }
                               };
 
-            SM.Media.Playlists.Program program;
             ISubProgram subProgram;
 
             try
             {
                 var programs = await _programManager.LoadAsync();
 
-                program = programs.Values.FirstOrDefault();
+                var program = programs.Values.FirstOrDefault();
 
                 if (null == program)
                     return;
@@ -93,11 +95,11 @@ namespace SimulatedPlayer
                 return;
             }
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.GetPlaylistClient(uri)), subProgram);
+            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
 
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.GetSegmentClient);
+            _segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
 
             _tsMediaManager = new TsMediaManager(_segmentReaderManager, mediaElementManager, new SimulatedMediaStreamSource(mediaElementManager));
 

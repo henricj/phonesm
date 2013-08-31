@@ -26,14 +26,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
+using System.Diagnostics;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
-using SM.Media.Utility;
 using SM.Media.Web;
-using RetryPolicy = SM.Media.Utility.RetryPolicy;
 
 namespace SM.Media.Playlists
 {
@@ -41,8 +39,8 @@ namespace SM.Media.Playlists
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
 
-        public ProgramManager(IHttpClients httpClients)
-            : base(httpClients)
+        public ProgramManager(IHttpClients httpClients, Func<M3U8Parser, IStreamSegments> segmentsFactory)
+            : base(httpClients, segmentsFactory)
         { }
 
         #region IProgramManager Members
@@ -51,44 +49,29 @@ namespace SM.Media.Playlists
 
         public async Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken)
         {
-            var parser = new M3U8Parser();
-            Uri actualPlaylist = null;
-
             var playlists = Playlists;
+
+            var httpClient = HttpClients.RootPlaylistClient;
 
             foreach (var playlist in playlists)
             {
-                actualPlaylist = playlist;
-
-                var localPlaylist = playlist;
-
-                var httpClient = HttpClients.RootPlaylistClient;
-
-                var playlistString = await new Retry(4, 100, RetryPolicy.IsWebExceptionRetryable)
-                    .CallAsync(async () =>
-                                     {
-                                         var response = await httpClient.GetAsync(localPlaylist, HttpCompletionOption.ResponseContentRead, cancellationToken)
-                                                                        .ConfigureAwait(false);
-
-                                         response.EnsureSuccessStatusCode();
-
-                                         return await response.Content.ReadAsStringAsync()
-                                                              .ConfigureAwait(false);
-                                     })
-                    .ConfigureAwait(false);
-
-                using (var sr = new StringReader(playlistString))
+                try
                 {
-                    parser.Parse(actualPlaylist, sr);
-                }
+                    var parser = new M3U8Parser();
 
-                break;
+                    await parser.ParseAsync(httpClient, playlist, cancellationToken)
+                                .ConfigureAwait(false);
+
+                    return Load(playlist, parser);
+                }
+                catch (WebException e)
+                {
+                    // This one didn't work, so try the next playlist url.
+                    Debug.WriteLine("ProgramManager.LoadAsync: " + e.Message);
+                }
             }
 
-            if (null == actualPlaylist)
-                return NoPrograms;
-
-            return Load(actualPlaylist, parser);
+            return NoPrograms;
         }
 
         #endregion

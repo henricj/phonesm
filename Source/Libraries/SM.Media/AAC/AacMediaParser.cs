@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Mp3MediaParser.cs" company="Henric Jungheim">
+//  <copyright file="AacMediaParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -29,14 +29,14 @@ using System.Diagnostics;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
-namespace SM.Media.MP3
+namespace SM.Media.AAC
 {
-    public sealed class Mp3MediaParser : IMediaParser
+    public sealed class AacMediaParser : IMediaParser
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(0x03);
+        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(0x0F);
         readonly IBufferPool _bufferPool;
-        readonly Mp3Configurator _configurator;
-        readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
+        readonly AacConfigurator _configurator = new AacConfigurator();
+        readonly AacFrameHeader _frameHeader = new AacFrameHeader();
         readonly MediaStream _mediaStream;
         readonly TsPesPacketPool _packetPool;
         readonly StreamBuffer _streamBuffer;
@@ -46,7 +46,7 @@ namespace SM.Media.MP3
         TimeSpan? _position;
         int _startIndex;
 
-        public Mp3MediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
+        public AacMediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
@@ -59,8 +59,6 @@ namespace SM.Media.MP3
             _packetPool = new TsPesPacketPool(_bufferPool.Free);
 
             _streamBuffer = new StreamBuffer(StreamType, _packetPool.FreePesPacket, bufferingManager, checkForSamples);
-
-            _configurator = new Mp3Configurator();
 
             _mediaStream = new MediaStream(_configurator, _streamBuffer, null);
         }
@@ -140,7 +138,7 @@ namespace SM.Media.MP3
                     {
                         _bufferEntry.Buffer[_index++] = data;
 
-                        // We now have an MP3 header.
+                        // We now have an AAC header.
 
                         if (!_frameHeader.Parse(_bufferEntry.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
                         {

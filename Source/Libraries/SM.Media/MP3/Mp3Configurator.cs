@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
 {
-    class Mp3Configurator : IAudioConfigurationSource, IConfigurationSink
+    class Mp3Configurator : IAudioConfigurationSource, IFrameParser
     {
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly MpegLayer3WaveFormat _waveFormat = new MpegLayer3WaveFormat();
@@ -42,7 +42,12 @@ namespace SM.Media.MP3
 
         #endregion
 
-        #region IConfigurationSink Members
+        #region IFrameParser Members
+
+        public int FrameLength
+        {
+            get { return _frameHeader.FrameLength; }
+        }
 
         public bool Parse(byte[] buffer, int index, int length)
         {

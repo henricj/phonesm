@@ -41,6 +41,8 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="AAC\AacFrameHeader.cs" />
+    <Compile Include="AAC\AacMediaParser.cs" />
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
     <Compile Include="CachedWebRequest.cs" />
@@ -69,7 +71,7 @@
     <Compile Include="BufferingManager.cs" />
     <Compile Include="Configuration\ConfigurationEventArgs.cs" />
     <Compile Include="Configuration\IAudioConfigurationSource.cs" />
-    <Compile Include="Configuration\IConfigurationSink.cs" />
+    <Compile Include="Configuration\IFrameParser.cs" />
     <Compile Include="Configuration\IConfigurationSource.cs" />
     <Compile Include="Configuration\IVideoConfigurationSource.cs" />
     <Compile Include="IBufferingManager.cs" />

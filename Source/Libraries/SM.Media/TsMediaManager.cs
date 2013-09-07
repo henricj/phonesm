@@ -139,7 +139,13 @@ namespace SM.Media
 
             _commandWorker.SendCommand(new WorkCommand(
                 () => SeekAsync(position)
-                    .ContinueWith(t => seekCompletion.SetResult(t.Result)),
+                    .ContinueWith(t =>
+                                  {
+                                      if (t.IsFaulted)
+                                          seekCompletion.SetException(t.Exception);
+                                      else
+                                          seekCompletion.SetResult(t.Result);
+                                  }),
                 b => { if (!b) localSeekCompletion.SetCanceled(); }));
 
             return seekCompletion.Task;

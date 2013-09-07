@@ -51,7 +51,7 @@ namespace SM.Media.AAC
 
         public bool Parse(byte[] buffer, int index, int length)
         {
-            if (!_frameHeader.Parse(buffer, index, length))
+            if (!_frameHeader.Parse(buffer, index, length, true))
                 return false;
 
             Configure(_frameHeader);

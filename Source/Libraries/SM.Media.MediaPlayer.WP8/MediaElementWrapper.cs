@@ -28,8 +28,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -37,7 +35,6 @@ using System.Windows.Media;
 using Microsoft.PlayerFramework;
 using SM.Media.Playlists;
 using SM.Media.Segments;
-using SM.Media.Utility;
 using SM.Media.Web;
 using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
@@ -48,7 +45,8 @@ namespace SM.Media.MediaPlayer
 {
     /// <summary>
     ///     Wraps the MediaElement to allow it to adhere to the IMediaElement interface.
-    ///     IMediaElement is used to allow the SmoothStreamingMediaElement or other custom MediaElements to be used by MediaPlayer
+    ///     IMediaElement is used to allow the SmoothStreamingMediaElement or other custom MediaElements to be used by
+    ///     MediaPlayer
     /// </summary>
     /// <remarks>
     ///     This code is based on
@@ -535,25 +533,32 @@ namespace SM.Media.MediaPlayer
 
         async Task OpenMediaAsync()
         {
-            Program program;
             ISubProgram subProgram;
 
-            var programs = await _programManager.LoadAsync().ConfigureAwait(false);
-
-            program = programs.Values.FirstOrDefault();
-
-            if (null == program)
+            try
             {
-                Debug.WriteLine("MediaElementWrapper.SetMediaSource: program not found");
-                throw new FileNotFoundException("Unable to load program");
+                var programs = await _programManager.LoadAsync().ConfigureAwait(false);
+
+                var program = programs.Values.FirstOrDefault();
+
+                if (null == program)
+                {
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource: program not found");
+                    throw new FileNotFoundException("Unable to load program");
+                }
+
+                subProgram = program.SubPrograms.FirstOrDefault();
+
+                if (null == subProgram)
+                {
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource: no sub programs found");
+                    throw new FileNotFoundException("Unable to load program stream");
+                }
             }
-
-            subProgram = program.SubPrograms.FirstOrDefault();
-
-            if (null == subProgram)
+            catch (Exception ex)
             {
-                Debug.WriteLine("MediaElementWrapper.SetMediaSource: no sub programs found");
-                throw new FileNotFoundException("Unable to load program stream");
+                Debug.WriteLine("MediaElementWrapper.SetMediaSource: unable to load playlist: " + ex.Message);
+                throw;
             }
 
             var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);

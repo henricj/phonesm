@@ -97,6 +97,8 @@ namespace SM.Media.AAC
                 { 44, "USAC" },
             };
 
+        int _frames;
+
         public int Profile { get; private set; }
         public int SamplingFrequency { get; private set; }
         public int Layer { get; private set; }
@@ -108,7 +110,7 @@ namespace SM.Media.AAC
 
         public TimeSpan Duration
         {
-            get { return TimeSpan.FromSeconds(1024.0 / SamplingFrequency); }
+            get { return TimeSpan.FromSeconds(_frames * 1024.0 / SamplingFrequency); }
         }
 
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
@@ -163,6 +165,9 @@ namespace SM.Media.AAC
 
             SamplingFrequency = GetSamplingFrequency(FrequencyIndex);
 
+            if (SamplingFrequency <= 0)
+                return false;
+
             var privateStream = (h2 >> 1) & 1;
 
             var h3 = buffer[index++];
@@ -183,18 +188,20 @@ namespace SM.Media.AAC
 
             FrameLength = ((h3 & 3) << 11) | (h4 << 3) | ((h5 >> 5) & 7);
 
+            if (FrameLength < 1)
+                return false;
+
             FrameLength += CrcFlag ? 9 : 7;
 
             var h6 = buffer[index++];
 
             var fullness = ((h5 & 0x1f) << 6) | ((h6 >> 2) & 0x3f);
 
-            var frames = 1 + (h6 & 3);
+            _frames = 1 + (h6 & 3);
 
-#if DEBUG
-            if (1 != frames)
-                Debug.WriteLine("***** AAC multi-frame ADTS: " + frames);
-#endif
+            if (_frames < 1)
+                return false;
+
             if (CrcFlag)
             {
                 if (index + 2 > lastIndex)

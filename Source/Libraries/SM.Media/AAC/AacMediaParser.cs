@@ -108,7 +108,7 @@ namespace SM.Media.AAC
 
             var endOffset = offset + length;
 
-            // Make sure there is enough room for the frame header.  We really only need 4 bytes
+            // Make sure there is enough room for the frame header.  We really only need 9 bytes
             // for the header.
             EnsureBufferSpace(128);
 
@@ -116,7 +116,7 @@ namespace SM.Media.AAC
             {
                 var storedLength = _index - _startIndex;
 
-                if (storedLength < 4)
+                if (storedLength <= 9)
                 {
                     var data = buffer[i++];
 
@@ -127,14 +127,14 @@ namespace SM.Media.AAC
                     }
                     else if (1 == storedLength)
                     {
-                        if (0xe0 == (0xe0 & data))
+                        if (0xf0 == (0xf0 & data))
                             _bufferEntry.Buffer[_index++] = data;
                         else
                             _index = _startIndex;
                     }
-                    else if (2 == storedLength)
+                    else if (storedLength < 9)
                         _bufferEntry.Buffer[_index++] = data;
-                    else if (3 == storedLength)
+                    else
                     {
                         _bufferEntry.Buffer[_index++] = data;
 
@@ -147,7 +147,7 @@ namespace SM.Media.AAC
                             continue;
                         }
 
-                        Debug.Assert(_frameHeader.FrameLength > 4);
+                        Debug.Assert(_frameHeader.FrameLength > 7);
 
                         if (!_isConfigured)
                         {
@@ -157,7 +157,7 @@ namespace SM.Media.AAC
 
                         // Even better: the frame header is valid.  Now we need some data...
 
-                        EnsureBufferSpace(_frameHeader.FrameLength - 4);
+                        EnsureBufferSpace(_frameHeader.FrameLength);
                     }
                 }
                 else
@@ -179,7 +179,7 @@ namespace SM.Media.AAC
 
                     if (_index - _startIndex == _frameHeader.FrameLength)
                     {
-                        // We have a completed MP3 frame.
+                        // We have a completed AAC frame.
                         SubmitFrame();
                     }
                 }
@@ -199,6 +199,8 @@ namespace SM.Media.AAC
             packet.Timestamp = _position.Value;
 
             _position += _frameHeader.Duration;
+
+            //Debug.WriteLine("AacMediaParser.SubmitFrame: position {0} duration {1}", _position, _frameHeader.Duration);
 
             _streamBuffer.Enqueue(packet);
 
@@ -224,31 +226,17 @@ namespace SM.Media.AAC
 
         void SkipInvalidFrameHeader()
         {
-            if (0xff == _bufferEntry.Buffer[_startIndex + 1] &&
-                0xe0 == (0xe0 & _bufferEntry.Buffer[_startIndex + 2]))
+            for (var i = _startIndex + 1; i < _index; ++i)
             {
-                // _bufferEntry.Buffer[_startIndex] is already 0xff
-                _bufferEntry.Buffer[_startIndex + 1] = _bufferEntry.Buffer[_startIndex + 2];
-                _bufferEntry.Buffer[_startIndex + 2] = _bufferEntry.Buffer[_startIndex + 3];
-
-                _index = _startIndex + 3;
+                if (0xff == _bufferEntry.Buffer[i])
+                {
+                    Array.Copy(_bufferEntry.Buffer, i, _bufferEntry.Buffer, _startIndex, _index - i);
+                    _index = i;
+                    return;
+                }
             }
-            else if (0xff == _bufferEntry.Buffer[_startIndex + 2] &&
-                     0xe0 == (0xe0 & _bufferEntry.Buffer[_startIndex + 3]))
-            {
-                // _bufferEntry.Buffer[_startIndex] is already 0xff
-                _bufferEntry.Buffer[_startIndex + 1] = _bufferEntry.Buffer[_startIndex + 3];
 
-                _index = _startIndex + 2;
-            }
-            else if (0xff == _bufferEntry.Buffer[_startIndex + 3])
-            {
-                // _bufferEntry.Buffer[_startIndex] is already 0xff
-
-                _index = _startIndex + 1;
-            }
-            else
-                _index = 0;
+            _index = 0;
         }
 
         void EnsureBufferSpace(int length)

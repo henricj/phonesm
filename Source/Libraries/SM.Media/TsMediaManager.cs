@@ -31,6 +31,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.AAC;
 using SM.Media.Configuration;
 using SM.Media.MP3;
 using SM.Media.Segments;
@@ -232,7 +233,7 @@ namespace SM.Media
             {
                 _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
                                                               .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples)))
-                                                              .ConfigureAwait(false);
+                                       .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
                     reader.QueueWorker.IsEnabled = true;
@@ -306,6 +307,16 @@ namespace SM.Media
                 if (string.Equals(ext, ".mp3", StringComparison.CurrentCultureIgnoreCase))
                 {
                     var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+
+                    mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
+
+                    reader.MediaParser = mediaParser;
+
+                    reader.ExpectedStreamCount = 1;
+                }
+                else if (string.Equals(ext, ".aac", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    var mediaParser = new AacMediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
 
                     mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 

@@ -48,6 +48,14 @@ namespace SM.Media.H264
             _resolveHandler = resolveHandler;
         }
 
+        void CompleteNalUnit(byte[] buffer, int offset, int length)
+        {
+            //Debug.WriteLine("NAL Unit ({0}): {1}", length, BitConverter.ToString(buffer, offset, length));
+
+            if (null != _currentParser)
+                _currentParser(buffer, offset, length);
+        }
+
         public void Parse(byte[] buffer, int offset, int length)
         {
             if (0 == length)
@@ -55,7 +63,7 @@ namespace SM.Media.H264
                 if (null != _currentParser)
                 {
                     if (_zeroCount > 0 && !_expectingNalUnitType)
-                        _currentParser(ZeroBuffer, 0, Math.Min(_zeroCount, 3));
+                        CompleteNalUnit(ZeroBuffer, 0, Math.Min(_zeroCount, 3));
 
                     _currentParser(null, 0, 0); // Propagate end-of-stream
 
@@ -74,7 +82,10 @@ namespace SM.Media.H264
                 var v = buffer[i];
 
                 if (0 == v)
+                {
                     ++_zeroCount;
+                    _expectingNalUnitType = false;
+                }
                 else
                 {
                     var previousZeroCount = _zeroCount;
@@ -92,41 +103,20 @@ namespace SM.Media.H264
                     {
                         if (v == 0x01)
                         {
-                            if (null != _currentParser)
-                            {
-                                if (nalOffset >= offset && i - 2 > nalOffset)
-                                    _currentParser(buffer, nalOffset, i - 2 - nalOffset);
-                            }
+                            previousZeroCount = Math.Min(previousZeroCount, 3);
+
+                            if (nalOffset >= offset && i - previousZeroCount > nalOffset)
+                                CompleteNalUnit(buffer, nalOffset, i - previousZeroCount - nalOffset);
 
                             // We have found a "start_code_prefix_one_3bytes"
                             _expectingNalUnitType = true;
-                        }
-                        else
-                        {
-                            if (null != _currentParser)
-                            {
-                                if (nalOffset >= offset && i - nalOffset > 0)
-                                    _currentParser(buffer, nalOffset, i - nalOffset);
-                                else
-                                    _currentParser(ZeroBuffer, 0, Math.Min(previousZeroCount, 3));
-
-                                _currentParser = null;
-                            }
-                        }
-                    }
-                    else if (previousZeroCount > 0)
-                    {
-                        if (null != _currentParser)
-                        {
-                            if (nalOffset < offset || i - nalOffset < previousZeroCount)
-                                _currentParser(ZeroBuffer, 0, Math.Min(previousZeroCount, ZeroBuffer.Length));
                         }
                     }
                 }
             }
 
-            if (null != _currentParser && nalOffset < length + offset)
-                _currentParser(buffer, nalOffset, length + offset - nalOffset);
+            if (nalOffset < length + offset && !_expectingNalUnitType)
+                CompleteNalUnit(buffer, nalOffset, length + offset - nalOffset);
         }
     }
 }

@@ -25,7 +25,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using SM.Media.H264;
 
@@ -52,7 +54,11 @@ namespace NalDump
             {
                 var localOutput = output;
 
-                var parser = new NalUnitParser(n => (b, o, l) => PrintNalUnit(localOutput, b, o, l));
+                var rbspDecoder = new RbspDecoder();
+
+                rbspDecoder.CompletionHandler += b => PrintNalUnit(localOutput, b);
+
+                var parser = new NalUnitParser(n => (b, o, l, e) => rbspDecoder.Parse(b, o, l, e));
 
                 using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 16384, FileOptions.Asynchronous | FileOptions.SequentialScan))
                 {
@@ -110,9 +116,11 @@ namespace NalDump
             }
         }
 
-        static bool PrintNalUnit(TextWriter writer, byte[] buffer, int offset, int length)
+        static bool PrintNalUnit(TextWriter writer, IList<byte> buffer)
         {
-            writer.WriteLine("NALU({0}): {1}", length, BitConverter.ToString(buffer, offset, length));
+            var data = buffer.ToArray();
+
+            writer.WriteLine("NALU({0}): {1}", buffer.Count, BitConverter.ToString(data, 0, data.Length));
 
             return true;
         }

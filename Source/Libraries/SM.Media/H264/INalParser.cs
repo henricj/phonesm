@@ -26,7 +26,7 @@
 
 namespace SM.Media.H264
 {
-    interface INalParser
+    public interface INalParser
     {
         bool Parse(byte[] buffer, int offset, int length, bool hasEscape);
     }

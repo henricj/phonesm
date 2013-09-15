@@ -30,7 +30,7 @@ using System.Diagnostics;
 
 namespace SM.Media.H264
 {
-    class RbspDecoder : INalParser
+    public class RbspDecoder : INalParser
     {
         readonly List<byte> _outputBuffer = new List<byte>();
         public Action<IList<byte>> CompletionHandler { get; set; }

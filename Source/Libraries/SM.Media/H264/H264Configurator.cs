@@ -105,12 +105,12 @@ namespace SM.Media.H264
 
                 _codecPrivateData.Append("00000001");
 
-                foreach (var b in SpsBytes)
+                foreach (var b in RbspEscape(SpsBytes))
                     _codecPrivateData.Append(b.ToString("X2"));
 
                 _codecPrivateData.Append("00000001");
 
-                foreach (var b in PpsBytes)
+                foreach (var b in RbspEscape(PpsBytes))
                     _codecPrivateData.Append(b.ToString("X2"));
 
                 return _codecPrivateData.ToString();
@@ -119,20 +119,39 @@ namespace SM.Media.H264
 
         #endregion
 
+        IEnumerable<byte> RbspEscape(IEnumerable<byte> sequence)
+        {
+            var zeroCount = 0;
+
+            foreach (var v in sequence)
+            {
+                var previousZeroCount = zeroCount;
+
+                if (0 == v)
+                    ++zeroCount;
+                else
+                    zeroCount = 0;
+
+                if (0 == (v & ~0x03) && previousZeroCount == 2)
+                {
+                    zeroCount = 0;
+
+                    yield return 0x03;
+                }
+
+                yield return v;
+            }
+        }
+
         bool SequencesAreEquivalent(IEnumerable<byte> a, IEnumerable<byte> b)
         {
-            var x = b;
-
-            if (ReferenceEquals(x, a))
+            if (ReferenceEquals(a, b))
                 return true;
 
-            if (a != null && x != null)
-            {
-                if (a.SequenceEqual(x))
-                    return true;
-            }
+            if (null == a || null == b)
+                return false;
 
-            return false;
+            return a.SequenceEqual(b);
         }
 
         void CheckConfigure()

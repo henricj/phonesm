@@ -34,8 +34,8 @@ namespace SM.Media.H264
     {
         readonly IH264ConfiguratorSink _configuratorSink;
         readonly Action<TsPesPacket> _nextHandler;
-        readonly H256MetadataParser _parser;
-        readonly RbspDecoder _rbspDecoder;
+        readonly NalUnitParser _parser;
+        readonly RbspDecoder _rbspDecoder = new RbspDecoder();
         INalParser _currentParser;
 
         public H264StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IH264ConfiguratorSink configuratorSink)
@@ -44,20 +44,12 @@ namespace SM.Media.H264
             _nextHandler = nextHandler;
             _configuratorSink = configuratorSink;
 
-            _parser = new H256MetadataParser(ResolveHandler);
-
-            _rbspDecoder = new RbspDecoder();
+            _parser = new NalUnitParser(ResolveHandler);
         }
 
-        H256MetadataParser.ParserStateHandler ResolveHandler(byte arg)
+        NalUnitParser.ParserStateHandler ResolveHandler(byte arg)
         {
             var nal_unit_type = arg & 0x1f;
-
-            if (null != _currentParser)
-            {
-                _currentParser.Finish();
-                _currentParser = null;
-            }
 
             switch (nal_unit_type)
             {
@@ -69,12 +61,13 @@ namespace SM.Media.H264
                     _rbspDecoder.CompletionHandler = buffer => { _configuratorSink.PpsBytes = buffer; };
                     _currentParser = _rbspDecoder;
                     break;
+                default:
+                    _currentParser = null;
+                    return null;
             }
 
             if (null == _currentParser)
                 return null;
-
-            _currentParser.Start();
 
             return _currentParser.Parse;
         }
@@ -82,6 +75,8 @@ namespace SM.Media.H264
         public override void PacketHandler(TsPesPacket packet)
         {
             base.PacketHandler(packet);
+
+            _parser.Reset();
 
             if (null == packet)
                 _parser.Parse(null, 0, 0); // Propagate end-of-stream

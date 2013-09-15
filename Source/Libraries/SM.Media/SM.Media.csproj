@@ -110,7 +110,7 @@
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="TsMediaParser.cs" />
-    <Compile Include="H264\H256MetadataParser.cs" />
+    <Compile Include="H264\NalUnitParser.cs" />
     <Compile Include="H264\H264Bitstream.cs" />
     <Compile Include="H264\H264BitstreamExtensions.cs" />
     <Compile Include="H264\H264Configurator.cs" />

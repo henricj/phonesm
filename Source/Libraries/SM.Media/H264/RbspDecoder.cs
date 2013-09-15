@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="RbspDecoder.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="RbspDecoder.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,52 +26,118 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SM.Media.H264
 {
     class RbspDecoder : INalParser
     {
-        readonly List<byte> _buffer = new List<byte>(1024);
-        int _zeroCount;
+        readonly List<byte> _outputBuffer = new List<byte>();
         public Action<IList<byte>> CompletionHandler { get; set; }
 
         #region INalParser Members
 
-        public void Start()
+        public bool Parse(byte[] buffer, int offset, int length, bool hasEscape)
         {
-            _zeroCount = 0;
-            _buffer.Clear();
-        }
-
-        public bool Parse(byte[] buffer, int offset, int length)
-        {
-            for (var i = offset; i < offset + length; ++i)
+            if (hasEscape)
             {
-                var v = buffer[i];
+                buffer = RemoveEscapes(buffer, offset, length);
+                offset = 0;
+                length = buffer.Length;
+            }
 
-                // RBSP Decode
-                var previousZeroCount = _zeroCount;
+            var count = length;
 
-                if (0 == v)
-                    ++_zeroCount;
-                else
-                    _zeroCount = 0;
+            // Find and strip zeros after "rbsp_stop_one_bit".  We are still stuck
+            // with full bytes, but this should help deal with NAL decoding issues.
+            for (var i = length - 1; i > 0; --i)
+            {
+                if (0 != buffer[offset + i])
+                    break;
 
-                if (2 == previousZeroCount && v == 3)
-                    continue; // Skip the 0x03 in a 0x000003 pattern
+                Debug.WriteLine("RBSP with trailing zero");
 
-                _buffer.Add(v);
+                count = i + 1;
+            }
+
+            if (count <= 0)
+                return false;
+
+            if (null != CompletionHandler)
+            {
+                if (!hasEscape || count != length)
+                {
+                    var data = new byte[count];
+
+                    Array.Copy(buffer, offset, data, 0, count);
+
+                    buffer = data;
+                    length = count;
+                    offset = 0;
+                }
+
+                CompletionHandler(buffer);
             }
 
             return true;
         }
 
-        public void Finish()
+        #endregion
+
+        byte[] RemoveEscapes(byte[] buffer, int offset, int length)
         {
-            if (null != CompletionHandler)
-                CompletionHandler(_buffer);
+            PrepareOutputBuffer(length);
+
+            var count = 0;
+
+            for (var i = 0; i < length; ++i)
+            {
+                var v = buffer[offset + i];
+
+                if (2 == count)
+                {
+                    if (v < 0x03)
+                        throw new FormatException("Invalid escape sequence");
+
+                    if (0x03 == v)
+                    {
+                        if (i + 1 < length && buffer[offset + i + 1] > 0x03)
+                            throw new FormatException("Invalid escape sequence");
+
+                        count = 0;
+                        continue;
+                    }
+                }
+
+                if (0 == v)
+                    ++count;
+                else
+                    count = 0;
+
+                _outputBuffer.Add(v);
+            }
+
+            return _outputBuffer.ToArray();
         }
 
-        #endregion
+        void PrepareOutputBuffer(int length)
+        {
+            _outputBuffer.Clear();
+
+            if (_outputBuffer.Capacity < length)
+            {
+                var newLength = _outputBuffer.Capacity;
+
+                if (newLength < 8)
+                    newLength = 8;
+                else if (length > int.MaxValue / 4)
+                    newLength = length;
+
+                while (newLength < length)
+                    newLength *= 2;
+
+                _outputBuffer.Capacity = newLength;
+            }
+        }
     }
 }

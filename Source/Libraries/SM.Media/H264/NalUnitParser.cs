@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="H256MetadataParser.cs" company="Henric Jungheim">
+//  <copyright file="NalUnitParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -28,11 +28,11 @@ using System;
 
 namespace SM.Media.H264
 {
-    public class H256MetadataParser
+    public class NalUnitParser
     {
         #region Delegates
 
-        public delegate bool ParserStateHandler(byte[] buffer, int offset, int length);
+        public delegate bool ParserStateHandler(byte[] buffer, int offset, int length, bool hasEscape);
 
         #endregion
 
@@ -41,9 +41,12 @@ namespace SM.Media.H264
         readonly Func<byte, ParserStateHandler> _resolveHandler;
         ParserStateHandler _currentParser;
         bool _expectingNalUnitType;
+        bool _hasEscape;
+        int _lastCompletedOffset;
+        int _nalOffset;
         int _zeroCount;
 
-        public H256MetadataParser(Func<byte, ParserStateHandler> resolveHandler)
+        public NalUnitParser(Func<byte, ParserStateHandler> resolveHandler)
         {
             _resolveHandler = resolveHandler;
         }
@@ -52,12 +55,24 @@ namespace SM.Media.H264
         {
             //Debug.WriteLine("NAL Unit ({0}): {1}", length, BitConverter.ToString(buffer, offset, length));
 
+            _lastCompletedOffset = offset + length;
+
             if (null != _currentParser)
-                _currentParser(buffer, offset, length);
+                _currentParser(buffer, offset, length, _hasEscape);
         }
 
-        public void Parse(byte[] buffer, int offset, int length)
+        public void Reset()
         {
+            _zeroCount = 0;
+            _expectingNalUnitType = false;
+            _nalOffset = -1;
+            _hasEscape = false;
+        }
+
+        public int Parse(byte[] buffer, int offset, int length, bool isLast = true)
+        {
+            _lastCompletedOffset = 0;
+
             if (0 == length)
             {
                 if (null != _currentParser)
@@ -65,58 +80,89 @@ namespace SM.Media.H264
                     if (_zeroCount > 0 && !_expectingNalUnitType)
                         CompleteNalUnit(ZeroBuffer, 0, Math.Min(_zeroCount, 3));
 
-                    _currentParser(null, 0, 0); // Propagate end-of-stream
+                    _currentParser(null, 0, 0, false); // Propagate end-of-stream
 
                     _currentParser = null;
                 }
 
                 _zeroCount = 0;
 
-                return;
+                return 0;
             }
 
-            var nalOffset = offset;
-
-            for (var i = offset; i < length + offset; ++i)
+            for (var i = 0; i < length; ++i)
             {
-                var v = buffer[i];
+                var v = buffer[i + offset];
 
                 if (0 == v)
                 {
-                    ++_zeroCount;
+                    if (++_zeroCount >= 3)
+                    {
+                        if (_nalOffset >= 0)
+                        {
+                            var nalLength = i + 1 - _zeroCount - _nalOffset;
+
+                            if (nalLength > 0)
+                                CompleteNalUnit(buffer, offset + _nalOffset, nalLength);
+                        }
+
+                        _nalOffset = -1;
+                    }
+
                     _expectingNalUnitType = false;
                 }
                 else
                 {
                     var previousZeroCount = _zeroCount;
 
-                    // Do something with those zeros... the _currentParser may need them.
                     _zeroCount = 0;
 
                     if (_expectingNalUnitType)
                     {
                         _expectingNalUnitType = false;
                         _currentParser = _resolveHandler(v);
-                        nalOffset = i;
+                        _nalOffset = i;
+                        _hasEscape = false;
                     }
                     else if (previousZeroCount >= 2)
                     {
                         if (v == 0x01)
                         {
-                            previousZeroCount = Math.Min(previousZeroCount, 3);
+                            if (_nalOffset >= 0)
+                            {
+                                var nalLength = i - _nalOffset - Math.Min(previousZeroCount, 3);
 
-                            if (nalOffset >= offset && i - previousZeroCount > nalOffset)
-                                CompleteNalUnit(buffer, nalOffset, i - previousZeroCount - nalOffset);
+                                if (nalLength > 0)
+                                    CompleteNalUnit(buffer, offset + _nalOffset, nalLength);
+                            }
 
                             // We have found a "start_code_prefix_one_3bytes"
                             _expectingNalUnitType = true;
+                            _nalOffset = -1;
                         }
+                        else if (v == 0x03)
+                            _hasEscape = true;
                     }
                 }
             }
 
-            if (nalOffset < length + offset && !_expectingNalUnitType)
-                CompleteNalUnit(buffer, nalOffset, length + offset - nalOffset);
+            if (isLast && !_expectingNalUnitType && _nalOffset >= 0)
+            {
+                var nalLength = length - _nalOffset;
+
+                if (nalLength > 0)
+                    CompleteNalUnit(buffer, offset + _nalOffset, nalLength);
+            }
+
+            var completed = _lastCompletedOffset - offset;
+
+            if (isLast)
+                Reset();
+
+            if (completed > 0)
+                return completed;
+
+            return 0;
         }
     }
 }

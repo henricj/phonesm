@@ -96,7 +96,7 @@ namespace SM.Media.AAC
         public bool EnableProcessing { get; set; }
         public TimeSpan StartPosition { get; set; }
 
-        public void Initialize()
+        public void Initialize(Action<IProgramStreams> programstreamsHandler)
         { }
 
         #endregion

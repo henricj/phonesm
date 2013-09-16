@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IMediaParser.cs" company="Henric Jungheim">
+//  <copyright file="IProgramStream.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,18 +24,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.TsParser;
-
-namespace SM.Media
+namespace SM.TsParser
 {
-    public interface IMediaParser : IDisposable
+    public interface IProgramStream
     {
-        bool EnableProcessing { get; set; }
-        TimeSpan StartPosition { get; set; }
-        void ProcessEndOfData();
-        void ProcessData(byte[] buffer, int length);
-        void FlushBuffers();
-        void Initialize(Action<IProgramStreams> programStreamsHandler = null);
+        uint Pid { get; }
+        TsStreamType StreamType { get; }
+        bool BlockStream { get; set; }
     }
 }

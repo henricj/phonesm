@@ -36,6 +36,7 @@ using SM.Media.Configuration;
 using SM.Media.MP3;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.TsParser;
 
 namespace SM.Media
 {
@@ -222,11 +223,6 @@ namespace SM.Media
             }
         }
 
-        public void Seek(TimeSpan timestamp)
-        {
-            _commandWorker.SendCommand(new WorkCommand(() => SeekAsync(timestamp)));
-        }
-
         async Task PlayAsync(ISegmentReaderManager segmentManager)
         {
             await StopAsync().ConfigureAwait(false);
@@ -295,6 +291,8 @@ namespace SM.Media
 
             reader.BufferingManager = new BufferingManager(reader.QueueWorker, bufferingChange);
 
+            Action<IProgramStreams> programStreamsHandler = null;
+
             await startReaderTask.ConfigureAwait(false);
 
             var firstSegment = await reader.SegmentReaders.Manager.Playlist.FirstOrDefaultAsync().ConfigureAwait(false);
@@ -338,13 +336,50 @@ namespace SM.Media
                     mediaStream =>
                     {
                         mediaStream.ConfigurationComplete +=
-                            (sender, args) => SendConfigurationComplete(args, reader);
+                            (sender, args) => SendConfigurationComplete(args, localReader);
                     });
 
                 reader.ExpectedStreamCount = 2;
+
+                programStreamsHandler = pss =>
+                                        {
+                                            var hasAudio = false;
+                                            var hasVideo = false;
+                                            var count = 0;
+
+                                            foreach (var stream in pss.Streams)
+                                            {
+                                                switch (stream.StreamType.Contents)
+                                                {
+                                                    case TsStreamType.StreamContents.Audio:
+                                                        if (hasAudio)
+                                                            stream.BlockStream = true;
+                                                        else
+                                                        {
+                                                            hasAudio = true;
+                                                            ++count;
+                                                        }
+                                                        break;
+                                                    case TsStreamType.StreamContents.Video:
+                                                        if (hasVideo)
+                                                            stream.BlockStream = true;
+                                                        else
+                                                        {
+                                                            hasVideo = true;
+                                                            ++count;
+                                                        }
+                                                        break;
+                                                    default:
+                                                        stream.BlockStream = true;
+                                                        break;
+                                                }
+                                            }
+
+                                            localReader.ExpectedStreamCount = count;
+                                        };
             }
 
-            reader.MediaParser.Initialize();
+            reader.MediaParser.Initialize(programStreamsHandler);
 
             return reader;
         }

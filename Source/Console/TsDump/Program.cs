@@ -25,7 +25,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Net;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 using SM.Media;
 using SM.TsParser;
 
@@ -119,41 +121,7 @@ namespace TsDump
                     {
                         Console.WriteLine("Reading {0}", arg);
 
-                        var buffer = new byte[188 * 1024]; // new byte[16 * 1024];
-
-                        using (var f = new WebClient().OpenRead(arg))
-                        {
-                            parser.Initialize();
-
-                            var decoder = parser.Decoder;
-
-                            var index = 0;
-                            var eof = false;
-                            var thresholdSize = buffer.Length - buffer.Length / 4;
-
-                            while (!eof)
-                            {
-                                do
-                                {
-                                    var length = f.Read(buffer, index, buffer.Length - index);
-
-                                    if (length < 1)
-                                    {
-                                        eof = true;
-                                        break;
-                                    }
-
-                                    index += length;
-                                } while (index < thresholdSize);
-
-                                if (index > 0)
-                                    decoder.Parse(buffer, 0, index);
-
-                                index = 0;
-                            }
-
-                            decoder.ParseEnd();
-                        }
+                        ReadAsync(arg, parser).Wait();
                     }
                 }
             }
@@ -161,6 +129,65 @@ namespace TsDump
             {
                 Console.WriteLine(ex);
             }
+        }
+
+        static Task<Stream> OpenAsync(string path)
+        {
+            var uri = new Uri(path, UriKind.RelativeOrAbsolute);
+
+            if (uri.IsAbsoluteUri)
+                return new HttpClient().GetStreamAsync(uri);
+
+            Stream s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 16384, true);
+
+            return Task.FromResult(s);
+        }
+
+        static async Task ReadAsync(string arg, TsMediaParser parser)
+        {
+            var buffer = new byte[188 * 1024]; // new byte[16 * 1024];
+
+            using (var f = await OpenAsync(arg).ConfigureAwait(false))
+            {
+                parser.Initialize(ProgramStreamsHandler);
+
+                var decoder = parser.Decoder;
+
+                var index = 0;
+                var eof = false;
+                var thresholdSize = buffer.Length - buffer.Length / 4;
+
+                while (!eof)
+                {
+                    do
+                    {
+                        var length = await f.ReadAsync(buffer, index, buffer.Length - index).ConfigureAwait(false);
+
+                        if (length < 1)
+                        {
+                            eof = true;
+                            break;
+                        }
+
+                        index += length;
+                    } while (index < thresholdSize);
+
+                    if (index > 0)
+                        decoder.Parse(buffer, 0, index);
+
+                    index = 0;
+                }
+
+                decoder.ParseEnd();
+            }
+        }
+
+        static void ProgramStreamsHandler(IProgramStreams programStreams)
+        {
+            Console.WriteLine("Program: " + programStreams.ProgramNumber);
+
+            foreach (var s in programStreams.Streams)
+                Console.WriteLine("   {0}({1}): {2}", s.StreamType.Contents, s.Pid, s.StreamType.Description);
         }
     }
 }

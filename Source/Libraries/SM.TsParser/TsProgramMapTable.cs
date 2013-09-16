@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsProgramMapTable.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,18 +36,18 @@ namespace SM.TsParser
     {
         const int MinimumProgramMapSize = 16;
         readonly TsDecoder _decoder;
-        readonly Dictionary<uint, ProgramMap> _newPrograms = new Dictionary<uint, ProgramMap>();
+        readonly Dictionary<uint, ProgramMap> _newProgramStreams = new Dictionary<uint, ProgramMap>();
         readonly uint _pid;
-        readonly List<ProgramMap> _programList = new List<ProgramMap>();
-        readonly Dictionary<uint, ProgramMap> _programMap = new Dictionary<uint, ProgramMap>();
         readonly int _programNumber;
-        readonly Func<int, TsStreamType, bool> _streamFilter;
+        readonly Dictionary<uint, ProgramMap> _programStreamMap = new Dictionary<uint, ProgramMap>();
+        readonly Action<IProgramStreams> _streamFilter;
+        readonly List<ProgramMap> _streamList = new List<ProgramMap>();
         bool _foundPcrPid;
         ulong? _pcr;
         int? _pcrIndex;
         uint _pcrPid;
 
-        public TsProgramMapTable(TsDecoder decoder, int programNumber, uint pid, Func<int, TsStreamType, bool> streamFilter)
+        public TsProgramMapTable(TsDecoder decoder, int programNumber, uint pid, Action<IProgramStreams> streamFilter)
         {
             _decoder = decoder;
             _programNumber = programNumber;
@@ -159,13 +159,17 @@ namespace SM.TsParser
 
                 var streamType = TsStreamType.FindStreamType(stream_type);
 
-                var programMap = new ProgramMap { Pid = elementary_PID, StreamType = streamType };
+                var programMap = new ProgramMap
+                                 {
+                                     Pid = elementary_PID,
+                                     StreamType = streamType
+                                 };
 
-                _newPrograms[elementary_PID] = programMap;
+                _newProgramStreams[elementary_PID] = programMap;
             }
 
             if (section_number == last_section_number)
-                MapPrograms();
+                MapProgramStreams();
 
             //var crc32 = (buffer[i] << 24) | (buffer[i + 1] << 16) | (buffer[i + 2] << 8) | buffer[i + 3];
             //i += 4;
@@ -189,90 +193,107 @@ namespace SM.TsParser
             if (null != pes)
                 pes.Clear();
 
-            var remove = _programMap.Remove(program.Pid);
+            var remove = _programStreamMap.Remove(program.Pid);
 
             Debug.Assert(remove);
         }
 
         public void Clear()
         {
-            foreach (var program in _programMap.Values.ToArray())
+            foreach (var program in _programStreamMap.Values.ToArray())
                 ClearProgram(program);
 
-            Debug.Assert(0 == _programMap.Count);
-            _newPrograms.Clear();
+            Debug.Assert(0 == _programStreamMap.Count);
+            _newProgramStreams.Clear();
         }
 
         public void FlushBuffers()
         {
-            foreach (var program in _programMap.Values)
-            {
+            foreach (var program in _programStreamMap.Values)
                 program.Stream.FlushBuffers();
-            }
 
-            _newPrograms.Clear();
+            _newProgramStreams.Clear();
         }
 
-        void MapPrograms()
+        void MapProgramStreams()
         {
-            _programList.Clear();
+            _streamList.Clear();
 
-            foreach (var program in _programMap.Values)
+            foreach (var program in _programStreamMap.Values)
             {
                 ProgramMap newProgramMap;
-                if (_newPrograms.TryGetValue(program.Pid, out newProgramMap))
+                if (_newProgramStreams.TryGetValue(program.Pid, out newProgramMap))
                 {
                     if (newProgramMap.StreamType != program.StreamType)
-                        _programList.Add(program);
+                        _streamList.Add(program);
                 }
                 else
-                {
-                    _programList.Add(program);
-                }
+                    _streamList.Add(program);
             }
 
-            if (_programList.Count > 0)
+            if (_streamList.Count > 0)
             {
-                foreach (var program in _programList)
+                foreach (var program in _streamList)
                     ClearProgram(program);
 
-                _programList.Clear();
+                _streamList.Clear();
             }
 
-            foreach (var program in _newPrograms.Values)
+            var programStreams = new ProgramStreams
+                                 {
+                                     ProgramNumber = _programNumber,
+                                     Streams = _newProgramStreams.Values
+                                                                 .Select(s => new ProgramStreams.ProgramStream
+                                                                              {
+                                                                                  Pid = s.Pid,
+                                                                                  StreamType = s.StreamType
+                                                                              })
+                                                                 .ToArray()
+                                 };
+
+            if (null != _streamFilter)
+                _streamFilter(programStreams);
+
+            foreach (var programStream in from ps in programStreams.Streams
+                                          join pm in _newProgramStreams.Values on ps.Pid equals pm.Pid
+                                          select new
+                                                 {
+                                                     ps.BlockStream,
+                                                     ProgramStream = pm
+                                                 })
             {
-                var streamRequested = _streamFilter(_programNumber, program.StreamType);
+                var streamRequested = !programStream.BlockStream;
+
+                var pid = programStream.ProgramStream.Pid;
+                var streamType = programStream.ProgramStream.StreamType;
 
                 ProgramMap mappedProgram;
-                if (_programMap.TryGetValue(program.Pid, out mappedProgram))
+                if (_programStreamMap.TryGetValue(pid, out mappedProgram))
                 {
-                    if (mappedProgram.StreamType == program.StreamType && streamRequested)
+                    if (mappedProgram.StreamType == streamType && streamRequested)
                         continue;
 
                     ClearProgram(mappedProgram);
                 }
 
-                var pid = program.Pid;
-
                 if (streamRequested)
                 {
-                    var pes = new TsPacketizedElementaryStream(_decoder, program.StreamType, pid);
+                    var pes = new TsPacketizedElementaryStream(_decoder, streamType, pid);
 
-                    program.Stream = pes;
+                    programStream.ProgramStream.Stream = pes;
 
-                    _programMap[pid] = program;
+                    _programStreamMap[pid] = programStream.ProgramStream;
 
                     if (pid == _pcrPid)
                     {
                         _foundPcrPid = true;
 
                         _decoder.RegisterHandler(pid,
-                                                 p =>
-                                                 {
-                                                     AddPcr(p);
-                                                     pes.Add(p);
-                                                 }
-                            );
+                            p =>
+                            {
+                                AddPcr(p);
+                                pes.Add(p);
+                            });
                     }
                     else
                         _decoder.RegisterHandler(pid, pes.Add);
@@ -288,7 +309,7 @@ namespace SM.TsParser
                 }
             }
 
-            _newPrograms.Clear();
+            _newProgramStreams.Clear();
 
             if (!_foundPcrPid)
             {

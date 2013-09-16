@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsDecoder.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using SM.TsParser.Utility;
 
 namespace SM.TsParser
@@ -114,13 +113,12 @@ namespace SM.TsParser
             _tsPesPacketPool.FreePesPacket(packet);
         }
 
-        public void Initialize()
+        public void Initialize(Action<IProgramStreams> programStreamsHandler = null)
         {
             Clear();
 
             // Bootstrap with the program association handler
-            //_programAssociationTable = new TsProgramAssociationTable(this, program => true, (program, stream) => stream.Contents == TsStreamType.StreamContents.Audio);
-            _programAssociationTable = new TsProgramAssociationTable(this, program => true, (program, stream) => true);
+            _programAssociationTable = new TsProgramAssociationTable(this, program => true, programStreamsHandler);
 
             _packetHandlers[0x0000] = _programAssociationTable.Add;
 
@@ -169,9 +167,7 @@ namespace SM.TsParser
             Parse(null, 0, 0);
 
             foreach (var handler in _packetHandlers.Values)
-            {
                 handler(null);
-            }
         }
 
         public void Parse(byte[] buffer, int offset, int length)
@@ -219,32 +215,6 @@ namespace SM.TsParser
             // Store any remainder
             if (_destinationLength > 0)
                 Array.Copy(buffer, i, _destinationArray, 0, _destinationLength);
-        }
-
-        public void Parse(Stream stream)
-        {
-            var offset = 0;
-
-            for (; ; )
-            {
-                var length = stream.Read(_destinationArray, offset, _destinationArray.Length - offset);
-
-                if (length < _packetSize)
-                    return;
-
-                length += offset;
-                var i = 0;
-
-                for (; i <= length - _packetSize; i += _packetSize)
-                {
-                    ParsePacket(_destinationArray, i);
-                }
-
-                offset = length - i;
-
-                if (offset > 0)
-                    Array.Copy(_destinationArray, i, _destinationArray, 0, offset);
-            }
         }
 
         void ParsePacket(byte[] buffer, int offset)

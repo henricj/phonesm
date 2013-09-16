@@ -76,10 +76,7 @@ namespace SM.Media
 
             //var packetCount = 0;
 
-            _tsDecoder = new TsDecoder(new BufferPool(5 * 64 * 1024, 2), _pesHandlers.GetPesHandler)
-                         {
-                             //PacketMonitor = p => Debug.WriteLine("{0}: {1}", ++packetCount, p)
-                         };
+            _tsDecoder = new TsDecoder(new BufferPool(5 * 64 * 1024, 2), _pesHandlers.GetPesHandler);
         }
 
         public IMediaParserMediaStream[] MediaStreams
@@ -123,10 +120,10 @@ namespace SM.Media
             { }
         }
 
-        public void Initialize()
+        public void Initialize(Action<IProgramStreams> programStreamsHandler = null)
         {
             //Clear(Decoder.Initialize);
-            Decoder.Initialize();
+            Decoder.Initialize(programStreamsHandler);
         }
 
         public void FlushBuffers()

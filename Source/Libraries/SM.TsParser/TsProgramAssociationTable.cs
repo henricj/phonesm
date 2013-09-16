@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsProgramAssociationTable.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,7 @@ namespace SM.TsParser
         readonly List<ProgramAssociation> _oldPrograms = new List<ProgramAssociation>();
         readonly Func<int, bool> _programFilter;
         readonly List<ProgramAssociation> _programs = new List<ProgramAssociation>();
-        readonly Func<int, TsStreamType, bool> _streamFilter;
+        readonly Action<IProgramStreams> _streamFilter;
         bool _currentNextIndicator;
         bool _hasData;
         byte _lastSectionNumber;
@@ -49,7 +49,7 @@ namespace SM.TsParser
         int _transportStreamId;
         uint _versionNumber;
 
-        public TsProgramAssociationTable(TsDecoder decoder, Func<int, bool> programFilter, Func<int, TsStreamType, bool> streamFilter)
+        public TsProgramAssociationTable(TsDecoder decoder, Func<int, bool> programFilter, Action<IProgramStreams> streamFilter)
         {
             _decoder = decoder;
             _programFilter = programFilter;
@@ -170,7 +170,13 @@ namespace SM.TsParser
                 if (!_newPrograms.Any(p => p.Pid == pid && p.ProgramNumber == program_number))
                 {
                     if (_programFilter(program_number))
-                        _newPrograms.Add(new ProgramAssociation { ProgramNumber = program_number, Pid = pid });
+                    {
+                        _newPrograms.Add(new ProgramAssociation
+                                         {
+                                             ProgramNumber = program_number,
+                                             Pid = pid
+                                         });
+                    }
                 }
             }
 
@@ -194,9 +200,7 @@ namespace SM.TsParser
             }
 
             foreach (var program in _oldPrograms)
-            {
                 CloseProgram(program);
-            }
 
             _oldPrograms.Clear();
 
@@ -236,9 +240,7 @@ namespace SM.TsParser
         public void Clear()
         {
             foreach (var program in _programs.ToArray())
-            {
                 CloseProgram(program);
-            }
 
             Debug.Assert(0 == _programs.Count);
 
@@ -249,9 +251,7 @@ namespace SM.TsParser
         public void FlushBuffers()
         {
             foreach (var program in _programs)
-            {
                 program.FlushBuffers();
-            }
 
             _newPrograms.Clear();
         }

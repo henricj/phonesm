@@ -283,7 +283,7 @@ namespace SM.Media.Playlists
             {
                 _expirationTimer.Change(NotDue, NotPeriodic);
 
-                await UpdatePlaylist();
+                await UpdatePlaylist().ConfigureAwait(false);
 
                 return;
             }

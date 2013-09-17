@@ -509,7 +509,8 @@ namespace SM.Media
 
             public void ReportExhaustion()
             {
-                Debug.WriteLine("BufferingQueue.ReportExhaustion(): " + _streamType.Contents);
+                if (!IsExhausted)
+                    Debug.WriteLine("BufferingQueue.ReportExhaustion(): " + _streamType.Contents);
 
                 IsExhausted = true;
                 _bufferingManager.ReportExhaustion(Exhausted);

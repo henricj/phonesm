@@ -27,5 +27,8 @@
 namespace SM.Media.Configuration
 {
     public interface IAudioConfigurationSource : IConfigurationSource
-    {}
+    {
+        int SamplingFrequency { get; }
+        int Channels { get; }
+    }
 }

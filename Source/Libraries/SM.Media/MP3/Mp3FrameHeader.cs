@@ -29,7 +29,7 @@ using System.Diagnostics;
 
 namespace SM.Media.MP3
 {
-    class Mp3FrameHeader
+    sealed class Mp3FrameHeader
     {
         static readonly short[] V1L1 =
         {
@@ -96,11 +96,15 @@ namespace SM.Media.MP3
             "Layer I"
         };
 
-        public int ChannelMode { get; set; }
-        public int FrameLength { get; set; }
-        public int SampleRate { get; set; }
-        public int Bitrate { get; set; }
-        public TimeSpan Duration { get; set; }
+        public int ChannelMode { get; private set; }
+        public int FrameLength { get; private set; }
+        public int SampleRate { get; private set; }
+        public int Bitrate { get; private set; }
+        public TimeSpan Duration { get; private set; }
+
+        public string Name { get; private set; }
+
+        public int Channels { get; private set; }
 
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
         {
@@ -179,15 +183,18 @@ namespace SM.Media.MP3
             var emphasis = h3 & 3;
 
             ChannelMode = channelMode;
+            Channels = channelMode == 3 ? 1 : 2;
             Bitrate = bitrate;
             SampleRate = sampleRate;
             FrameLength = GetFrameSize(layer, bitrate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
+            Name = string.Format("MP3 {0}, {1} sample {2}kHz bitrate {3}kHz {4} channels",
+                VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitrate / 1000.0, Channels);
 
 #if DEBUG
             if (verbose)
             {
-                Debug.WriteLine("Configuration MP3 Frame:  {0}, {1} sample {2}kHz bitrate {3}kHz channel mode {4}",
+                Debug.WriteLine("Configuration MP3 Frame: {0}, {1} sample {2}kHz bitrate {3}kHz channel mode {4}",
                     VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitrate / 1000.0, channelMode);
             }
 #endif

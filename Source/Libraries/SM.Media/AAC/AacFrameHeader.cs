@@ -30,7 +30,7 @@ using System.Diagnostics;
 
 namespace SM.Media.AAC
 {
-    class AacFrameHeader
+    sealed class AacFrameHeader
     {
         static readonly int[] SamplingFrequencyTable =
         {
@@ -106,7 +106,9 @@ namespace SM.Media.AAC
         public ushort ChannelConfig { get; private set; }
 
         public bool CrcFlag { get; set; }
-        public int FrameLength { get; protected set; }
+        public int FrameLength { get; private set; }
+
+        public string Name { get; private set; }
 
         public TimeSpan Duration
         {
@@ -211,11 +213,13 @@ namespace SM.Media.AAC
                 var crcLo = buffer[index++];
             }
 
+            Name = string.Format("{0}, {1}kHz {2} channels", GetProfileName(), SamplingFrequency / 1000.0, ChannelConfig);
+
 #if DEBUG
             if (verbose)
             {
                 Debug.WriteLine("Configuration AAC layer {0} profile \"{1}\" channels {2} sampling {3}kHz length {4} CRC {5}",
-                    Layer, GetProfileName(), ChannelConfig, SamplingFrequency / 1000.0, FrameLength, CrcFlag);
+                    Layer, Name, ChannelConfig, SamplingFrequency / 1000.0, FrameLength, CrcFlag);
             }
 #endif
             return true;

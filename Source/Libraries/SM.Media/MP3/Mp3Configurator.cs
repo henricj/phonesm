@@ -30,14 +30,25 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
 {
-    class Mp3Configurator : IAudioConfigurationSource, IFrameParser
+    sealed class Mp3Configurator : IAudioConfigurationSource, IFrameParser
     {
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly MpegLayer3WaveFormat _waveFormat = new MpegLayer3WaveFormat();
 
+        public Mp3Configurator(string streamDescription = null)
+        {
+            StreamDescription = streamDescription;
+        }
+
         #region IAudioConfigurationSource Members
 
-        public string CodecPrivateData { get; protected set; }
+        public string CodecPrivateData { get; private set; }
+        public string Name { get; private set; }
+        public string StreamDescription { get; private set; }
+        public int? Bitrate { get; private set; }
+        public int SamplingFrequency { get; private set; }
+        public int Channels { get; private set; }
+
         public event EventHandler ConfigurationComplete;
 
         #endregion
@@ -66,7 +77,7 @@ namespace SM.Media.MP3
 
         public void Configure(Mp3FrameHeader frameHeader)
         {
-            _waveFormat.nChannels = frameHeader.ChannelMode == 3 ? (ushort)1 : (ushort)2;
+            _waveFormat.nChannels = (ushort)frameHeader.Channels;
             _waveFormat.nSamplesPerSec = (uint)frameHeader.SampleRate;
             _waveFormat.nAvgBytesPerSec = (uint)frameHeader.Bitrate / 8;
             _waveFormat.nBlockSize = (ushort)frameHeader.FrameLength;
@@ -74,6 +85,11 @@ namespace SM.Media.MP3
             var cpd = _waveFormat.ToCodecPrivateData();
 
             CodecPrivateData = cpd;
+
+            Channels = _waveFormat.nChannels;
+            SamplingFrequency = frameHeader.SampleRate;
+            Bitrate = frameHeader.Bitrate;
+            Name = frameHeader.Name;
 
             var h = ConfigurationComplete;
 

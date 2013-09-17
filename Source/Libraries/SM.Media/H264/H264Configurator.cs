@@ -32,7 +32,7 @@ using System.Text;
 
 namespace SM.Media.H264
 {
-    class H264Configurator : IH264Configuration
+    sealed class H264Configurator : IH264Configuration
     {
         static readonly uint[] ProfileIdcHasChromaFormat
             = new[]
@@ -52,6 +52,11 @@ namespace SM.Media.H264
         readonly StringBuilder _codecPrivateData = new StringBuilder();
         IEnumerable<byte> _ppsBytes;
         IEnumerable<byte> _spsBytes;
+
+        public H264Configurator(string streamDescription = null)
+        {
+            StreamDescription = streamDescription;
+        }
 
         #region IH264Configuration Members
 
@@ -93,6 +98,10 @@ namespace SM.Media.H264
 
         public int? Height { get; private set; }
         public int? Width { get; private set; }
+
+        public int? Bitrate { get; private set; }
+        public string Name { get; private set; }
+        public string StreamDescription { get; private set; }
 
         public event EventHandler ConfigurationComplete;
 
@@ -287,9 +296,12 @@ namespace SM.Media.H264
             Height = (int)height;
             Width = (int)width;
 
+            var profileName = ProfileName(profile_idc, constraint_sets);
+
+            Name = string.Format("H.264 \"{0}\" profile, level {1} {2}x{3}",
+                profileName, level_idc / 10.0, width, height);
 #if DEBUG
-            Debug.WriteLine("Configuration H.264 profile \"{0}\" level {1} {2}x{3}",
-                ProfileName(profile_idc, constraint_sets), level_idc / 10.0, width, height);
+            Debug.WriteLine("Configuration " + Name);
 #endif
         }
 

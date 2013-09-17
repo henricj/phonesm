@@ -30,13 +30,23 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.AAC
 {
-    class AacConfigurator : IAudioConfigurationSource, IFrameParser
+    sealed class AacConfigurator : IAudioConfigurationSource, IFrameParser
     {
         readonly AacFrameHeader _frameHeader = new AacFrameHeader();
 
+        public AacConfigurator(string streamDescription = null)
+        {
+            StreamDescription = streamDescription;
+        }
+
         #region IAudioConfigurationSource Members
 
-        public string CodecPrivateData { get; protected set; }
+        public string CodecPrivateData { get; private set; }
+        public string Name { get; private set; }
+        public string StreamDescription { get; private set; }
+        public int? Bitrate { get; private set; }
+        public int SamplingFrequency { get; private set; }
+        public int Channels { get; private set; }
 
         public event EventHandler ConfigurationComplete;
 
@@ -85,6 +95,9 @@ namespace SM.Media.AAC
             var cpd = w.ToCodecPrivateData();
 
             CodecPrivateData = cpd;
+            Name = _frameHeader.Name;
+            Channels = frameHeader.ChannelConfig;
+            SamplingFrequency = frameHeader.SamplingFrequency;
 
             var h = ConfigurationComplete;
 

@@ -507,6 +507,7 @@ namespace SM.Media.MediaPlayer
         HttpClients _httpClients;
         readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
         SegmentsFactory _segmentsFactory;
+        PlaylistSegmentManager _playlist;
 
         public Stream StreamSource
         {
@@ -724,6 +725,11 @@ namespace SM.Media.MediaPlayer
         {
             if (null != _tsMediaManager)
                 _tsMediaManager.Close();
+
+            if (null != _playlist)
+            {
+                var t = _playlist.StopAsync();
+            }
         }
 
         void MediaElement_LogReady(object sender, LogReadyRoutedEventArgs e)
@@ -789,6 +795,12 @@ namespace SM.Media.MediaPlayer
                 return;
             }
 
+            if (null != _playlist)
+            {
+                _playlist.Dispose();
+                _playlist = null;
+            }
+
             ISubProgram subProgram;
 
             try
@@ -817,11 +829,11 @@ namespace SM.Media.MediaPlayer
                 throw;
             }
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
+            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
 
             _mediaElementManager = new MediaElementManager(MediaElement.Dispatcher, () => MediaElement, me => { });
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
+            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
             _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
 

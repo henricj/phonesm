@@ -436,6 +436,7 @@ namespace SM.Media.MediaPlayer
         TsMediaManager _tsMediaManager;
         TsMediaStreamSource _tsMediaStreamSource;
         readonly SegmentsFactory _segmentsFactory;
+        PlaylistSegmentManager _playlist;
 
         #endregion
 
@@ -533,6 +534,12 @@ namespace SM.Media.MediaPlayer
 
         async Task OpenMediaAsync()
         {
+            if (null != _playlist)
+            {
+                _playlist.Dispose();
+                _playlist = null;
+            }
+
             ISubProgram subProgram;
 
             try
@@ -561,11 +568,11 @@ namespace SM.Media.MediaPlayer
                 throw;
             }
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
+            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
 
             _mediaElementManager = new NoOpMediaElementManager();
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
+            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
@@ -597,6 +604,11 @@ namespace SM.Media.MediaPlayer
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
+
+            if (null != _playlist)
+            {
+                var t = _playlist.StopAsync();
+            }
 
             if (null != _mediaElementManager)
             {

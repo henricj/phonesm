@@ -50,6 +50,7 @@ namespace HlsView
         readonly IHttpClients _httpClients;
         readonly DispatcherTimer _positionSampler;
         IMediaElementManager _mediaElementManager;
+        PlaylistSegmentManager _playlist;
         TimeSpan _previousPosition;
         ITsMediaManager _tsMediaManager;
 
@@ -160,6 +161,12 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
+            if (null != _playlist)
+            {
+                _playlist.Dispose();
+                _playlist = null;
+            }
+
             var segmentsFactory = new SegmentsFactory(_httpClients);
 
             var programManager = new ProgramManager(_httpClients, segmentsFactory.CreateStreamSegments)
@@ -211,7 +218,7 @@ namespace HlsView
 
             var programClient = _httpClients.CreatePlaylistClient(program.Url);
 
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
+            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
                 () =>
@@ -252,7 +259,7 @@ namespace HlsView
                     UpdateState(MediaElementState.Closed);
                 });
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
+            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
@@ -298,6 +305,11 @@ namespace HlsView
 
             if (null != _tsMediaManager)
                 _tsMediaManager.Close();
+
+            if (null != _playlist)
+            {
+                var t = _playlist.StopAsync();
+            }
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)

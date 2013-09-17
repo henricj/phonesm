@@ -166,6 +166,9 @@ namespace SM.Media.MP3
 
             var sampleRate = GetSampleRate(version, sampleRateIndex);
 
+            if (sampleRate <= 0)
+                return false;
+
             var paddingFlag = 0 != ((h2 >> 1) & 1);
 
             var privateFlag = 0 != (h2 & 1);
@@ -232,7 +235,7 @@ namespace SM.Media.MP3
         static int GetSampleRate(int version, int sampleIndex)
         {
             if (sampleIndex >= Rates.Length)
-                return 0;
+                return -1;
 
             var multiplier = VersionRateMultiplier[version];
 

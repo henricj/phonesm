@@ -139,13 +139,27 @@ namespace SM.Media.Segments
 
         public void Close()
         {
-            using (_responseStream)
-            { }
-            _responseStream = null;
+            try
+            {
+                using (_responseStream)
+                { }
+                _responseStream = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SegmentReader.Close() responseStream cleanup failed: " + ex.Message);
+            }
 
-            using (_response)
-            { }
-            _response = null;
+            try
+            {
+                using (_response)
+                { }
+                _response = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SegmentReader.Close() response cleanup failed: " + ex.Message);
+            }
         }
 
         #endregion

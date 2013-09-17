@@ -42,6 +42,8 @@ namespace SM.Media.Segments
         readonly HttpClient _httpClient;
         readonly ISegment _segment;
         long _endOffset;
+        long? _expectedBytes;
+        Stream _readStream;
         HttpResponseMessage _response;
         Stream _responseStream;
         long _startOffset;
@@ -83,26 +85,30 @@ namespace SM.Media.Segments
 
             do
             {
-                if (null == _responseStream)
+                if (null == _readStream)
                     await OpenStream(cancellationToken).ConfigureAwait(false);
 
-                Debug.Assert(null != _responseStream);
+                Debug.Assert(null != _readStream);
 
                 var retry = false;
 
                 try
                 {
-                    var count = await _responseStream.ReadAsync(buffer, offset + index, length - index, cancellationToken).ConfigureAwait(false);
+                    var count = await _readStream.ReadAsync(buffer, offset + index, length - index, cancellationToken).ConfigureAwait(false);
 
                     if (count < 1)
                     {
                         IsEof = true;
 
-                        _responseStream.Dispose();
-                        _responseStream = null;
+                        var actualBytesRead = _responseStream.Position;
 
-                        if (_endOffset > 0 && _endOffset != _startOffset)
-                            throw new HttpRequestException(string.Format("End position mismatch ({0} != {1})", _startOffset, _endOffset));
+                        var badLength = _expectedBytes.HasValue && _expectedBytes != actualBytesRead;
+
+                        _readStream.Dispose();
+                        _readStream = null;
+
+                        if (badLength)
+                            throw new HttpRequestException(string.Format("File length mismatch mismatch ({0} != {1})", _expectedBytes, actualBytesRead));
 
                         return index;
                     }
@@ -144,9 +150,9 @@ namespace SM.Media.Segments
         {
             try
             {
-                using (_responseStream)
+                using (_readStream)
                 { }
-                _responseStream = null;
+                _readStream = null;
             }
             catch (Exception ex)
             {
@@ -179,24 +185,34 @@ namespace SM.Media.Segments
                         var msg = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
 
                         if (_startOffset >= 0 && _endOffset > 0)
+                        {
                             msg.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
+                            _expectedBytes = _endOffset - _startOffset;
+                        }
+                        else
+                            _expectedBytes = null;
 
                         _response = await _httpClient.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                                                      .ConfigureAwait(false);
 
                         if (_response.IsSuccessStatusCode)
                         {
+                            var contentLength = _response.Content.Headers.ContentLength;
+
                             if (_endOffset <= 0)
-                                _endOffset = _response.Content.Headers.ContentLength ?? 0;
+                                _endOffset = contentLength ?? 0;
 
-                            var stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                            if (!_expectedBytes.HasValue)
+                                _expectedBytes = contentLength;
 
-                            var filterStreamTask = _segment.CreateFilterAsync(stream);
+                            _responseStream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                            var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
 
                             if (null != filterStreamTask)
-                                _responseStream = await filterStreamTask.ConfigureAwait(false);
+                                _readStream = await filterStreamTask.ConfigureAwait(false);
                             else
-                                _responseStream = stream;
+                                _readStream = _responseStream;
 
                             return;
                         }

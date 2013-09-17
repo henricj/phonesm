@@ -106,7 +106,7 @@ namespace SM.Media
 
             _cacheControl = response.Headers.CacheControl;
 
-            return await response.Content.ReadAsByteArrayAsync();
+            return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
         }
 
         HttpRequestMessage CreateRequest()

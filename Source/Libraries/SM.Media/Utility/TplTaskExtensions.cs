@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TplTaskExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -56,10 +56,10 @@ namespace SM.Media.Utility
 
             using (cancellationToken.Register(
                 s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
-                if (task != await Task.WhenAny(task, tcs.Task))
+                if (task != await Task.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
-            return await task;
+            return await task.ConfigureAwait(false);
         }
 
         public static async Task WithCancellation(
@@ -69,10 +69,10 @@ namespace SM.Media.Utility
 
             using (cancellationToken.Register(
                 s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
-                if (task != await Task.WhenAny(task, tcs.Task))
+                if (task != await Task.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
-            await task;
+            await task.ConfigureAwait(false);
         }
 #else
         /// <summary>
@@ -90,10 +90,10 @@ namespace SM.Media.Utility
             // The only difference is the TaskEx.WhenAny (instead of Task.WhenAny).
             using (cancellationToken.Register(
                 s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
-                if (task != await TaskEx.WhenAny(task, tcs.Task))
+                if (task != await TaskEx.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
-            return await task;
+            return await task.ConfigureAwait(false);
         }
 
         public static async Task WithCancellation(
@@ -103,10 +103,10 @@ namespace SM.Media.Utility
 
             using (cancellationToken.Register(
                 s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
-                if (task != await TaskEx.WhenAny(task, tcs.Task))
+                if (task != await TaskEx.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
-            await task;
+            await task.ConfigureAwait(false);
         }
 #endif
     }

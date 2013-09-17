@@ -147,7 +147,7 @@ namespace SimulatedPlayer
             {
                 Task.Run(async () =>
                                {
-                                   await Task.Delay((int)(10 * (1 + _random.GetRandomNumber())));
+                                   await Task.Delay((int)(10 * (1 + _random.GetRandomNumber()))).ConfigureAwait(false);
 
                                    var mediaStreamSource = _mediaStreamSource;
 
@@ -196,7 +196,7 @@ namespace SimulatedPlayer
 
         async Task OpenMedia()
         {
-            await Task.Delay(100);
+            await Task.Delay(100).ConfigureAwait(false);
 
             _mediaStreamSource.OpenMediaAsync();
         }
@@ -205,14 +205,14 @@ namespace SimulatedPlayer
         {
             var random = _random.GetRandomNumbers(4);
 
-            await Task.Delay((int)(50 * (1 + random[3])));
+            await Task.Delay((int)(50 * (1 + random[3]))).ConfigureAwait(false);
 
             var taskActions = new List<Func<Task>>();
 
             Func<Task> t =
                 async () =>
                 {
-                    await Task.Delay((int)(30 * (1 + random[0])));
+                    await Task.Delay((int)(30 * (1 + random[0]))).ConfigureAwait(false);
 
                     _mediaStreamSource.SeekAsync(0);
                 };
@@ -221,7 +221,7 @@ namespace SimulatedPlayer
 
             t = async () =>
                       {
-                          await Task.Delay((int)(30 * (1 + random[0])));
+                          await Task.Delay((int)(30 * (1 + random[0]))).ConfigureAwait(false);
 
                           _mediaStreamSource.GetSampleAsync(0);
                       };
@@ -230,7 +230,7 @@ namespace SimulatedPlayer
 
             t = async () =>
                       {
-                          await Task.Delay((int)(30 * (1 + random[0])));
+                          await Task.Delay((int)(30 * (1 + random[0]))).ConfigureAwait(false);
 
                           _mediaStreamSource.GetSampleAsync(1);
                       };
@@ -239,7 +239,7 @@ namespace SimulatedPlayer
 
             _random.Shuffle(taskActions);
 
-            await Task.WhenAll(taskActions.Select(Task.Run));
+            await Task.WhenAll(taskActions.Select(Task.Run)).ConfigureAwait(false);
         }
 
         #region Nested type: SampleState

@@ -401,7 +401,7 @@ namespace SM.Media.MediaPlayer
                 Debug.Assert(true);
             }
 
-            await OpenMediaAsync();
+            await OpenMediaAsync().ConfigureAwait(false);
 
             SetSource(_tsMediaStreamSource);
 
@@ -500,7 +500,7 @@ namespace SM.Media.MediaPlayer
         {
             try
             {
-                await StartPlaybackAsync();
+                await StartPlaybackAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -526,7 +526,7 @@ namespace SM.Media.MediaPlayer
                 return;
             }
 
-            await OpenMediaAsync();
+            await OpenMediaAsync().ConfigureAwait(false);
 
             _tsMediaManager.Play();
         }

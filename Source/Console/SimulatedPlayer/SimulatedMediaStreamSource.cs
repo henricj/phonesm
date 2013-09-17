@@ -135,7 +135,7 @@ namespace SimulatedPlayer
                     if (_isClosed)
                         return;
 
-                    var position = await mediaManager.SeekMediaAsync(seekTimestamp);
+                    var position = await mediaManager.SeekMediaAsync(seekTimestamp).ConfigureAwait(false);
 
                     if (_isClosed)
                         return;

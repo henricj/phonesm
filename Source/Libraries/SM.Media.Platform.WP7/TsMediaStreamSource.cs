@@ -198,7 +198,7 @@ namespace SM.Media
 
             try
             {
-                var position = await mediaManager.SeekMediaAsync(seekTimestamp);
+                var position = await mediaManager.SeekMediaAsync(seekTimestamp).ConfigureAwait(false);
 
                 _taskScheduler.ThrowIfNotOnThread();
 

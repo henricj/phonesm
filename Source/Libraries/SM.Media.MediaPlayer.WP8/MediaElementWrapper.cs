@@ -401,7 +401,7 @@ namespace SM.Media.MediaPlayer
                 Debug.Assert(true);
             }
 
-            await OpenMediaAsync().ConfigureAwait(false);
+            await OpenMediaAsync().ConfigureAwait(true);
 
             SetSource(_tsMediaStreamSource);
 

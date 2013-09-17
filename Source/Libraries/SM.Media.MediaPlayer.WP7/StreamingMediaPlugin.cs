@@ -793,7 +793,7 @@ namespace SM.Media.MediaPlayer
 
             try
             {
-                var programs = await _programManager.LoadAsync().ConfigureAwait(false);
+                var programs = await _programManager.LoadAsync().ConfigureAwait(true);
 
                 var program = programs.Values.FirstOrDefault();
 

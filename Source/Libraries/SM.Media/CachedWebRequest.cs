@@ -75,8 +75,10 @@ namespace SM.Media
             if (null == _cachedObject as TCached)
                 _cachedObject = null;
 
-            await new Retry(4, 250, RetryPolicy.IsWebExceptionRetryable)
-                .CallAsync(() => Fetch(factory, cancellationToken))
+            var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
+
+            await retry
+                .CallAsync(() => Fetch(retry, factory, cancellationToken), cancellationToken)
                 .ConfigureAwait(false);
 
             return _cachedObject as TCached;
@@ -84,17 +86,35 @@ namespace SM.Media
 
         #endregion
 
-        async Task Fetch<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
+        async Task Fetch<TCached>(Retry retry, Func<byte[], TCached> factory, CancellationToken cancellationToken)
             where TCached : class
         {
-            using (var request = CreateRequest())
-            using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
-                                                   .ConfigureAwait(false))
+            for (; ; )
             {
-                if (response.IsSuccessStatusCode)
-                    _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
-                else if (response.StatusCode != HttpStatusCode.NotModified)
+                using (var request = CreateRequest())
+                using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                                                       .ConfigureAwait(false))
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
+                        return;
+                    }
+
+                    if (HttpStatusCode.NotModified == response.StatusCode)
+                        return;
+
+                    if (!RetryPolicy.IsRetryable(response.StatusCode))
+                        goto fail;
+
+                    if (await retry.CanRetryAfterDelay(cancellationToken).ConfigureAwait(false))
+                        continue;
+
+                fail:
                     _cachedObject = null;
+                    response.EnsureSuccessStatusCode();
+                }
+
             }
         }
 

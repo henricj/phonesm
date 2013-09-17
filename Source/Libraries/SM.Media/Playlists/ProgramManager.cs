@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
@@ -63,6 +64,11 @@ namespace SM.Media.Playlists
                                 .ConfigureAwait(false);
 
                     return Load(playlist, parser);
+                }
+                catch (HttpRequestException e)
+                {
+                    // This one didn't work, so try the next playlist url.
+                    Debug.WriteLine("ProgramManager.LoadAsync: " + e.Message);
                 }
                 catch (WebException e)
                 {

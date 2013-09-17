@@ -95,50 +95,59 @@ namespace SM.Media.Utility
 
         void Run()
         {
-            for (; ; )
+            try
             {
-                Task task;
-                var wasSignaled = false;
-
-                lock (_lock)
+                for (;;)
                 {
-                    for (; ; )
+                    Task task;
+                    var wasSignaled = false;
+
+                    lock (_lock)
                     {
-                        if (_isDone)
-                            return;
-
-                        var haveWork = false;
-                        task = null;
-
-                        if (_tasks.Count > 0)
+                        for (;;)
                         {
-                            task = _tasks.Dequeue();
-                            haveWork = true;
+                            if (_isDone)
+                                return;
+
+                            var haveWork = false;
+                            task = null;
+
+                            if (_tasks.Count > 0)
+                            {
+                                task = _tasks.Dequeue();
+                                haveWork = true;
+                            }
+
+                            if (_isSignaled)
+                            {
+                                _isSignaled = false;
+                                wasSignaled = true;
+                                haveWork = true;
+                            }
+
+                            if (haveWork)
+                                break;
+
+                            Monitor.Wait(_lock);
                         }
-
-                        if (_isSignaled)
-                        {
-                            _isSignaled = false;
-                            wasSignaled = true;
-                            haveWork = true;
-                        }
-
-                        if (haveWork)
-                            break;
-
-                        Monitor.Wait(_lock);
                     }
+
+                    if (wasSignaled)
+                    {
+                        var signalTask = new Task(_signalHandler);
+
+                        signalTask.RunSynchronously(this);
+                    }
+
+                    if (null != task)
+                        TryExecuteTask(task);
                 }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SingleThreadSignalTaskScheduler.Run() failed: " + ex.Message);
 
-                if (wasSignaled)
-                {
-                    var signalTask = new Task(_signalHandler);
-
-                    signalTask.RunSynchronously(this);
-                }
-
-                if (null != task)
-                    TryExecuteTask(task);
+                // Kill the app...?
             }
         }
 

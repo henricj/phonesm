@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 
 namespace SM.Media.Utility
@@ -41,7 +42,7 @@ namespace SM.Media.Utility
                                                  HttpStatusCode.InternalServerError
                                              }.OrderBy(v => v).ToArray();
 
-        static bool IsRetryable(HttpStatusCode code)
+        public static bool IsRetryable(HttpStatusCode code)
         {
             return Array.BinarySearch(RetryCodes, code) >= 0;
         }

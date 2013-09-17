@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Retry.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,11 +26,12 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public struct Retry
+    public class Retry
     {
         readonly int _delayMilliseconds;
         readonly int _maxRetries;
@@ -47,7 +48,7 @@ namespace SM.Media.Utility
             _delay = 0;
         }
 
-        public async Task<TResult> CallAsync<TResult>(Func<Task<TResult>> operation)
+        public async Task<TResult> CallAsync<TResult>(Func<Task<TResult>> operation, CancellationToken cancellationToken)
         {
             _retry = 0;
             _delay = _delayMilliseconds;
@@ -60,74 +61,53 @@ namespace SM.Media.Utility
                 }
                 catch (Exception ex)
                 {
-                    if (++_retry > _maxRetries || !_retryableException(ex))
+                    if (_retry >= _maxRetries || !_retryableException(ex))
                         throw;
+
+                    ++_retry;
 
                     Debug.WriteLine("Retry {0} after: {1}", _retry, ex.Message);
                 }
 
-                var actualDelay = (int)(_delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
-
-                _delay += _delay;
-
-#if WINDOWS_PHONE8
-                await Task.Delay(actualDelay).ConfigureAwait(false);
-#else
-                await TaskEx.Delay(actualDelay).ConfigureAwait(false);
-#endif
+                await Delay(cancellationToken).ConfigureAwait(false);
             }
         }
 
-        public async Task<TResult> Call<TResult>(Func<TResult> operation)
+        async Task Delay(CancellationToken cancellationToken)
         {
-            _retry = 0;
-            _delay = _delayMilliseconds;
+            var actualDelay = (int)(_delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
 
-            for (; ; )
-            {
-                try
-                {
-                    return operation();
-                }
-                catch (Exception ex)
-                {
-                    if (++_retry > _maxRetries || !_retryableException(ex))
-                        throw;
-
-                    Debug.WriteLine("Retry {0} after: {1}", _retry, ex.Message);
-                }
-
-                var actualDelay = (int)(_delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
-
-                _delay += _delay;
+            _delay += _delay;
 
 #if WINDOWS_PHONE8
-                await Task.Delay(actualDelay).ConfigureAwait(false);
+                await Task.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
 #else
-                await TaskEx.Delay(actualDelay).ConfigureAwait(false);
+            await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
 #endif
-            }
+        }
+
+        public async Task<bool> CanRetryAfterDelay(CancellationToken cancellationToken)
+        {
+            if (_retry >= _maxRetries)
+                return false;
+
+            ++_retry;
+
+            await Delay(cancellationToken).ConfigureAwait(false);
+
+            return true;
         }
     }
 
     public static class RetryExtensions
     {
-        public static Task CallAsync(this Retry retry, Func<Task> operation)
+        public static Task CallAsync(this Retry retry, Func<Task> operation, CancellationToken cancellationToken)
         {
             return retry.CallAsync(async () =>
-                                    {
-                                        await operation().ConfigureAwait(false);
-                                        return 0;
-                                    });
-        }
-
-        public static Task Call(this Retry retry, Action operation)
-        {
-            return retry.Call(() =>
-                              {
-                                  operation();
-                                  return 0;
-                              });
+                                         {
+                                             await operation().ConfigureAwait(false);
+                                             return 0;
+                                         }, cancellationToken);
         }
     }
 }

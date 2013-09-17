@@ -75,6 +75,7 @@ namespace SM.Media
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaStreamSource _mediaStreamSource;
         readonly ISegmentReaderManager _segmentReaderManager;
+        CancellationTokenSource _cancellationTokenSource;
         MediaState _mediaState;
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
@@ -95,6 +96,10 @@ namespace SM.Media
             _mediaStreamSource = mediaStreamSource;
 
             _mediaStreamSource.MediaManager = this;
+
+            // Start with a cancelled token (i.e., we are not playing)
+            _cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource.Cancel();
         }
 
         #region IDisposable Members
@@ -229,12 +234,19 @@ namespace SM.Media
 
             _readerManager = segmentManager;
 
+            _cancellationTokenSource = new CancellationTokenSource();
+
             Exception exception;
+
+            Task<ReaderPipeline>[] readerTasks = null;
 
             try
             {
-                _readers = await TaskEx.WhenAll(_readerManager.SegmentManagerReaders
-                                                              .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples)))
+                readerTasks = _readerManager.SegmentManagerReaders
+                                            .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples))
+                                            .ToArray();
+
+                _readers = await TaskEx.WhenAll(readerTasks)
                                        .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
@@ -242,7 +254,7 @@ namespace SM.Media
 
                 State = MediaState.Opening;
 
-                await _readerManager.StartAsync(CancellationToken.None).ConfigureAwait(false);
+                await _readerManager.StartAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
 
                 StartReaders();
 
@@ -260,6 +272,34 @@ namespace SM.Media
             }
 
             await StopAsync().ConfigureAwait(false);
+
+            if (null == _readers && null != readerTasks)
+            {
+                // Clean up any stragglers.
+                var cleanupReaderTasks = readerTasks.Where(r => null != r);
+
+                foreach (var readerTask in cleanupReaderTasks)
+                {
+                    var readerException = readerTask.Exception;
+
+                    if (null != readerException)
+                    {
+                        Debug.WriteLine("TsMediaManager.PlayAsync(): reader create failed: " + readerException.Message);
+                        continue;
+                    }
+
+                    var reader = readerTask.Result;
+
+                    try
+                    {
+                        await StopReaderAsync(reader).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("TsMediaManager.PlayAsync(): reader cleanup failed: " + ex.Message);
+                    }
+                }
+            }
 
             throw exception;
         }
@@ -449,22 +489,43 @@ namespace SM.Media
 
         async Task StopAsync()
         {
+            _cancellationTokenSource.Cancel();
+
             if (null == _readers)
                 return;
 
             foreach (var reader in _readers)
+                await StopReaderAsync(reader).ConfigureAwait(false);
+        }
+
+        static async Task StopReaderAsync(ReaderPipeline reader)
+        {
+            try
             {
                 await reader.CallbackReader.StopAsync().ConfigureAwait(false);
-
-                var queue = reader.QueueWorker;
-
-                if (null != queue)
-                    await queue.ClearAsync().ConfigureAwait(false);
-
-                reader.MediaParser.FlushBuffers();
-
-                reader.BufferingManager.Flush();
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TsMediaManage.StopAsync(): callback reader stop failed: " + ex.Message);
+            }
+
+            var queue = reader.QueueWorker;
+
+            if (null != queue)
+            {
+                try
+                {
+                    await queue.ClearAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("TsMediaManage.StopAsync(): queue clear failed: " + ex.Message);
+                }
+            }
+
+            reader.MediaParser.FlushBuffers();
+
+            reader.BufferingManager.Flush();
         }
 
         async Task CloseAsync()
@@ -602,7 +663,7 @@ namespace SM.Media
 
             State = MediaState.Seeking;
 
-            var actualPosition = await _readerManager.SeekAsync(position, CancellationToken.None).ConfigureAwait(false);
+            var actualPosition = await _readerManager.SeekAsync(position, _cancellationTokenSource.Token).ConfigureAwait(false);
 
             StartReaders();
 

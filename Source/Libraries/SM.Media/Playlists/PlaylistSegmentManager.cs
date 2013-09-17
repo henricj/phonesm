@@ -55,6 +55,7 @@ namespace SM.Media.Playlists
         CancellationTokenSource _abortTokenSource;
         bool _isDynamicPlaylist;
         bool _isRunning;
+        int _readSubListFailureCount;
         Task _reader;
         ISegment[] _segments;
         int _segmentsExpiration;
@@ -285,6 +286,8 @@ namespace SM.Media.Playlists
 
                 await UpdatePlaylist().ConfigureAwait(false);
 
+                _readSubListFailureCount = 0;
+
                 return;
             }
             catch (OperationCanceledException)
@@ -295,6 +298,7 @@ namespace SM.Media.Playlists
             catch (Exception ex)
             {
                 Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
+                ++_readSubListFailureCount;
             }
             finally
             {
@@ -304,8 +308,23 @@ namespace SM.Media.Playlists
                 }
             }
 
+            if (_readSubListFailureCount > 3)
+            {
+                lock (_segmentLock)
+                {
+                    _segments = null;
+                    _isDynamicPlaylist = false;
+                }
+
+                return;
+            }
+
+            var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
+
+            delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
+
             // Retry in a little while
-            _expirationTimer.Change(TimeSpan.FromSeconds(1), NotPeriodic);
+            _expirationTimer.Change(TimeSpan.FromSeconds(delay), NotPeriodic);
         }
 
         async Task UpdatePlaylist()

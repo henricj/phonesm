@@ -84,7 +84,7 @@ namespace SM.Media.Segments
             do
             {
                 if (null == _responseStream)
-                    _responseStream = await OpenStream(cancellationToken).ConfigureAwait(false);
+                    await OpenStream(cancellationToken).ConfigureAwait(false);
 
                 Debug.Assert(null != _responseStream);
 
@@ -100,6 +100,9 @@ namespace SM.Media.Segments
 
                         _responseStream.Dispose();
                         _responseStream = null;
+
+                        if (_endOffset > 0 && _endOffset != _startOffset)
+                            throw new HttpRequestException(string.Format("End position mismatch ({0} != {1})", _startOffset, _endOffset));
 
                         return index;
                     }
@@ -164,75 +167,55 @@ namespace SM.Media.Segments
 
         #endregion
 
-        async Task<Stream> OpenStream(CancellationToken cancellationToken)
+        Task OpenStream(CancellationToken cancellationToken)
         {
-            var notFoundRetry = 2;
+            var retry = new Retry(2, 200, RetryPolicy.IsWebExceptionRetryable);
 
-            for (; ; )
-            {
-                try
+            return retry.CallAsync(
+                async () =>
                 {
-                    _response = await new Retry(3, 150, RetryPolicy.IsWebExceptionRetryable)
-                        .CallAsync(() =>
-                                   {
-                                       var msg = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
+                    for (; ; )
+                    {
+                        var msg = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
 
-                                       if (_startOffset >= 0 && _endOffset > 0)
-                                           msg.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
+                        if (_startOffset >= 0 && _endOffset > 0)
+                            msg.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
 
-                                       return _httpClient.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                                   })
-                        .ConfigureAwait(false);
+                        _response = await _httpClient.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                                                     .ConfigureAwait(false);
 
-                    _response.EnsureSuccessStatusCode();
+                        if (_response.IsSuccessStatusCode)
+                        {
+                            if (_endOffset <= 0)
+                                _endOffset = _response.Content.Headers.ContentLength ?? 0;
 
-                    break;
-                }
-                catch (AggregateException aggregateException)
-                {
-                    aggregateException.Handle(ex =>
-                                              {
-                                                  var webException = ex as WebException;
+                            var stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                                                  if (null == webException)
-                                                      return false;
+                            var filterStreamTask = _segment.CreateFilterAsync(stream);
 
-                                                  var response = webException.Response as HttpWebResponse;
+                            if (null != filterStreamTask)
+                                _responseStream = await filterStreamTask.ConfigureAwait(false);
+                            else
+                                _responseStream = stream;
 
-                                                  return null != response && response.StatusCode == HttpStatusCode.NotFound && 0 > notFoundRetry--;
-                                              });
-                }
-                catch (WebException webException)
-                {
-                    var response = webException.Response as HttpWebResponse;
+                            return;
+                        }
 
-                    if (null == response || response.StatusCode != HttpStatusCode.NotFound || 0 > notFoundRetry--)
-                        throw;
-                }
+                        msg.Dispose();
 
-                var delay = DefaultNotFoundDelay;
+                        // Special-case 404s.
+                        if (HttpStatusCode.NotFound != _response.StatusCode && !RetryPolicy.IsRetryable(_response.StatusCode))
+                            _response.EnsureSuccessStatusCode();
 
-                var duration = _segment.Duration;
+                        var canRetry = await retry.CanRetryAfterDelay(cancellationToken)
+                                                  .ConfigureAwait(false);
 
-                if (duration.HasValue)
-                    delay = TimeSpan.FromTicks(duration.Value.Ticks / 2);
+                        if (!canRetry)
+                            _response.EnsureSuccessStatusCode();
 
-                Debug.WriteLine("SegmentReader.OpenStream: not found delay for {0} of {1}", _segment.Url, delay);
-
-                await TaskEx.Delay(delay, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (_endOffset <= 0)
-                _endOffset = _response.Content.Headers.ContentLength ?? 0;
-
-            var stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-            var filterStreamTask = _segment.CreateFilterAsync(stream);
-
-            if (null != filterStreamTask)
-                return await filterStreamTask.ConfigureAwait(false);
-
-            return stream;
+                        _response.Dispose();
+                    }
+                }, cancellationToken);
         }
 
         public override string ToString()

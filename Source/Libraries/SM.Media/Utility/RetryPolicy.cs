@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="RetryPolicy.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,19 +25,21 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 
 namespace SM.Media.Utility
 {
     public static class RetryPolicy
     {
-        static readonly HttpStatusCode[] RetryCodes = new[]
-                                                      {
-                                                          HttpStatusCode.GatewayTimeout,
-                                                          HttpStatusCode.RequestTimeout,
-                                                          HttpStatusCode.InternalServerError
-                                                      }.OrderBy(v => v).ToArray();
+        static HttpStatusCode[] RetryCodes = new[]
+                                             {
+                                                 HttpStatusCode.GatewayTimeout,
+                                                 HttpStatusCode.RequestTimeout,
+                                                 HttpStatusCode.InternalServerError
+                                             }.OrderBy(v => v).ToArray();
 
         static bool IsRetryable(HttpStatusCode code)
         {
@@ -55,6 +57,39 @@ namespace SM.Media.Utility
                 return false;
 
             return IsRetryable(httpResponse.StatusCode);
+        }
+
+        public static void ChangeRetryableStatusCodes(IEnumerable<HttpStatusCode> addCodes, IEnumerable<HttpStatusCode> removeCodes)
+        {
+            // No HashSet<> in PCLs...
+            var hs = new Dictionary<HttpStatusCode, bool>();
+
+            for (; ; )
+            {
+                var retryCodes = RetryCodes;
+
+                foreach (var code in retryCodes)
+                    hs[code] = true;
+
+                if (null != addCodes)
+                {
+                    foreach (var code in addCodes)
+                        hs[code] = true;
+                }
+
+                if (null != removeCodes)
+                {
+                    foreach (var code in removeCodes)
+                        hs.Remove(code);
+                }
+
+                var newRetryCodes = hs.Keys.OrderBy(v => v).ToArray();
+
+                if (retryCodes == Interlocked.CompareExchange(ref RetryCodes, newRetryCodes, retryCodes))
+                    return;
+
+                hs.Clear();
+            }
         }
     }
 }

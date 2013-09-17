@@ -24,7 +24,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -64,6 +66,8 @@ namespace SM.Media.Utility
 
                         _freeNodes.Push(node);
 
+                        Debug.Assert(!EqualityComparer<TItem>.Default.Equals(default(TItem), item));
+
                         return item;
                     }
 
@@ -96,6 +100,9 @@ namespace SM.Media.Utility
 
         public void Free(TItem value)
         {
+            if (EqualityComparer<TItem>.Default.Equals(default(TItem), value))
+                throw new ArgumentNullException("value");
+
             lock (_pool)
             {
                 if (_freeNodes.Count > 0)

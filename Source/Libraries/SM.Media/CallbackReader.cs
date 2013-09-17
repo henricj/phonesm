@@ -141,6 +141,8 @@ namespace SM.Media
                 {
                     buffer = await _bufferPool.AllocateAsync(cancellationToken).ConfigureAwait(false);
 
+                    Debug.Assert(null != buffer);
+
                     var length = await segmentReader.ReadAsync(buffer.Buffer, 0, buffer.Buffer.Length, cancellationToken).ConfigureAwait(false);
 
                     buffer.Length = length;

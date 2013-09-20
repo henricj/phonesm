@@ -284,11 +284,12 @@ namespace SM.Media.Playlists
             {
                 _expirationTimer.Change(NotDue, NotPeriodic);
 
-                await UpdatePlaylist().ConfigureAwait(false);
+                if (await UpdatePlaylist().ConfigureAwait(false))
+                {
+                    _readSubListFailureCount = 0;
 
-                _readSubListFailureCount = 0;
-
-                return;
+                    return;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -298,7 +299,6 @@ namespace SM.Media.Playlists
             catch (Exception ex)
             {
                 Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
-                ++_readSubListFailureCount;
             }
             finally
             {
@@ -308,7 +308,7 @@ namespace SM.Media.Playlists
                 }
             }
 
-            if (_readSubListFailureCount > 3)
+            if (++_readSubListFailureCount > 3)
             {
                 lock (_segmentLock)
                 {
@@ -319,15 +319,19 @@ namespace SM.Media.Playlists
                 return;
             }
 
+            // Retry in a little while
             var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
 
             delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
 
-            // Retry in a little while
-            _expirationTimer.Change(TimeSpan.FromSeconds(delay), NotPeriodic);
+            var timeSpan = TimeSpan.FromSeconds(delay);
+
+            Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
+
+            _expirationTimer.Change(timeSpan, NotPeriodic);
         }
 
-        async Task UpdatePlaylist()
+        async Task<bool> UpdatePlaylist()
         {
             var programStream = _subProgram.Video;
 
@@ -339,13 +343,9 @@ namespace SM.Media.Playlists
 
             if (null == parser)
             {
-                lock (_segmentLock)
-                {
-                    _segments = null;
-                    _isDynamicPlaylist = false;
-                }
+                Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): unable to fetch playlist");
 
-                return;
+                return false;
             }
 
             Url = parser.BaseUrl;
@@ -363,7 +363,7 @@ namespace SM.Media.Playlists
             lock (_segmentLock)
             {
                 if (!_isRunning)
-                    return;
+                    return true;
 
                 var needReload = false;
 
@@ -412,6 +412,8 @@ namespace SM.Media.Playlists
 
             // Is a race possible between our just-completed reload and the
             // reader's CheckReload?  (The expiration timer handles this...?)
+
+            return true;
         }
 
         ISegment[] ResyncSegments()

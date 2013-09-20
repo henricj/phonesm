@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IPlatformServices.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,9 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.IO;
-using System.Threading;
 
 namespace SM.Media.Utility
 {
@@ -43,24 +41,7 @@ namespace SM.Media.Utility
         double GetRandomNumber();
 
         /// <summary>
-        /// Create and start a thread.
-        /// </summary>
-        /// <remarks>Use the TPL when possible.</remarks>
-        /// <param name="name"></param>
-        /// <param name="run"></param>
-        /// <returns></returns>
-        Thread RunThread(string name, Action run);
-
-        /// <summary>
-        /// Join a thread.
-        /// </summary>
-        /// <remarks>Use the TPL when possible.</remarks>
-        /// <param name="thread"></param>
-        /// <returns></returns>
-        void JoinThread(Thread thread);
-
-        /// <summary>
-        /// Decrypt the given stream with AES-128 CBC and PKCS #7 padding.
+        ///     Decrypt the given stream with AES-128 CBC and PKCS #7 padding.
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="key"></param>

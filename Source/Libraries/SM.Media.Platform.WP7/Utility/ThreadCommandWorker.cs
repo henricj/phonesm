@@ -41,7 +41,12 @@ namespace SM.Media.Utility
 
         public ThreadCommandWorker()
         {
-            _managerThread = GlobalPlatformServices.Default.RunThread("Thread Command Worker", Run);
+            _managerThread = new Thread(Run)
+                             {
+                                 Name = "Thread Command Worker"
+                             };
+
+            _managerThread.Start();
         }
 
         #region ICommandWorker Members
@@ -50,7 +55,8 @@ namespace SM.Media.Utility
         {
             CloseAsync().Wait();
 
-            GlobalPlatformServices.Default.JoinThread(_managerThread);
+            if (null != _managerThread)
+                _managerThread.Join();
         }
 
         public void SendCommand(WorkCommand command)

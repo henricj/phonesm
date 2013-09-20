@@ -50,7 +50,12 @@ namespace SM.Media.Utility
 
             _signalHandler = signalHandler;
 
-            _thread = GlobalPlatformServices.Default.RunThread(name, Run);
+            _thread = new Thread(Run)
+            {
+                Name = name
+            };
+
+            _thread.Start();
         }
 
         public override int MaximumConcurrencyLevel
@@ -69,7 +74,7 @@ namespace SM.Media.Utility
             }
 
             if (null != _thread)
-                GlobalPlatformServices.Default.JoinThread(_thread);
+                _thread.Join();
 
             if (null != _tasks)
             {
@@ -97,14 +102,14 @@ namespace SM.Media.Utility
         {
             try
             {
-                for (;;)
+                for (; ; )
                 {
                     Task task;
                     var wasSignaled = false;
 
                     lock (_lock)
                     {
-                        for (;;)
+                        for (; ; )
                         {
                             if (_isDone)
                                 return;

@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using System.Threading;
 using SM.Media.Utility;
 
 namespace SM.Media
@@ -50,21 +49,17 @@ namespace SM.Media
             return ret;
         }
 
-        public void JoinThread(Thread thread)
+        public Stream Aes128DecryptionFilter(Stream stream, byte[] key, byte[] iv)
         {
-            thread.Join();
-        }
+            // CBC with PCKS #7 padding.  (Default for desktop and only supported values
+            // for Silverlight/Phone.)
+            var aes = new AesManaged
+                      {
+                          Key = key,
+                          IV = iv
+                      };
 
-        public Thread RunThread(string name, Action run)
-        {
-            var t = new Thread(() => run())
-                    {
-                        Name = name
-                    };
-
-            t.Start();
-
-            return t;
+            return new CryptoStream(stream, aes.CreateDecryptor(), CryptoStreamMode.Read);
         }
 
         #endregion
@@ -98,19 +93,6 @@ namespace SM.Media
             {
                 _generators.Push(random);
             }
-        }
-
-        public Stream Aes128DecryptionFilter(Stream stream, byte[] key, byte[] iv)
-        {
-            // CBC with PCKS #7 padding.  (Default for desktop and only supported values
-            // for Silverlight/Phone.)
-            var aes = new AesManaged
-            {
-                Key = key,
-                IV = iv
-            };
-
-            return new CryptoStream(stream, aes.CreateDecryptor(), CryptoStreamMode.Read);
         }
     }
 }

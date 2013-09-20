@@ -155,7 +155,6 @@
     <Compile Include="Utility\CommandWorkerBase.cs" />
     <Compile Include="Utility\IApplicationInformation.cs" />
     <Compile Include="Utility\ICommandWorker.cs" />
-    <Compile Include="Utility\SingleThreadSignalTaskScheduler.cs" />
     <Compile Include="Utility\TaskCommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\HttpWebRequestFactory.cs" />
@@ -169,7 +168,6 @@
     <Compile Include="Utility\QueueWorker.cs" />
     <Compile Include="Utility\Retry.cs" />
     <Compile Include="Utility\RetryPolicy.cs" />
-    <Compile Include="Utility\ThreadCommandWorker.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Utility\WorkCommand.cs" />

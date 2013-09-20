@@ -508,6 +508,7 @@ namespace SM.Media.MediaPlayer
         readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
         SegmentsFactory _segmentsFactory;
         PlaylistSegmentManager _playlist;
+        TsMediaStreamSource _tsMediaStreamSource;
 
         public Stream StreamSource
         {
@@ -801,6 +802,12 @@ namespace SM.Media.MediaPlayer
                 _playlist = null;
             }
 
+            if (null != _tsMediaStreamSource)
+            {
+                _tsMediaStreamSource.Dispose();
+                _tsMediaStreamSource = null;
+            }
+
             ISubProgram subProgram;
 
             try
@@ -835,7 +842,9 @@ namespace SM.Media.MediaPlayer
 
             var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
+            _tsMediaStreamSource = new TsMediaStreamSource();
+
+            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
 
             _tsMediaManager.Play();
         }

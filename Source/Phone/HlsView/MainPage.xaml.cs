@@ -53,6 +53,7 @@ namespace HlsView
         PlaylistSegmentManager _playlist;
         TimeSpan _previousPosition;
         ITsMediaManager _tsMediaManager;
+        TsMediaStreamSource _tsMediaStreamSource;
 
         // Constructor
         public MainPage()
@@ -167,6 +168,12 @@ namespace HlsView
                 _playlist = null;
             }
 
+            if (null != _tsMediaStreamSource)
+            {
+                _tsMediaStreamSource.Dispose();
+                _tsMediaStreamSource = null;
+            }
+
             var segmentsFactory = new SegmentsFactory(_httpClients);
 
             var programManager = new ProgramManager(_httpClients, segmentsFactory.CreateStreamSegments)
@@ -264,7 +271,9 @@ namespace HlsView
             if (null != _tsMediaManager)
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, new TsMediaStreamSource());
+            _tsMediaStreamSource = new TsMediaStreamSource();
+
+            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
 
             _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
 

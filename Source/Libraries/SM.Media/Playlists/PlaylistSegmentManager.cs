@@ -54,6 +54,7 @@ namespace SM.Media.Playlists
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         CancellationTokenSource _abortTokenSource;
         bool _isDynamicPlaylist;
+        bool _isInitialized;
         bool _isRunning;
         int _readSubListFailureCount;
         Task _reader;
@@ -86,6 +87,8 @@ namespace SM.Media.Playlists
 
             _isDynamicPlaylist = true;
             _expirationTimer = new Timer(PlaylistExpiration, null, NotDue, NotPeriodic);
+
+            _segmentsExpiration = Environment.TickCount;
 
             Playlist = new PlaylistEnumerable(this);
         }
@@ -175,8 +178,7 @@ namespace SM.Media.Playlists
                 {
                     Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
-                                  .Unwrap();
+                    StartReaderLocked();
                 }
             }
         }
@@ -221,15 +223,14 @@ namespace SM.Media.Playlists
 
             lock (_segmentLock)
             {
-                if (!_isDynamicPlaylist || !_isRunning || _segmentsExpiration - Environment.TickCount > 0)
+                if (_isInitialized && (!_isDynamicPlaylist || !_isRunning || _segmentsExpiration - Environment.TickCount > 0))
                     return TplTaskExtensions.CompletedTask;
 
                 if (null == _reader)
                 {
                     Debug.WriteLine("PlaylistSegmentManager.CheckReload is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
-                                  .Unwrap();
+                    StartReaderLocked();
                 }
 
                 if (null == _segments || index + 1 >= _segments.Length)
@@ -237,6 +238,14 @@ namespace SM.Media.Playlists
             }
 
             return TplTaskExtensions.CompletedTask;
+        }
+
+        void StartReaderLocked()
+        {
+            Debug.Assert(null == _reader);
+
+            _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
+                          .Unwrap();
         }
 
         async Task<M3U8Parser> FetchPlaylist(IEnumerable<Uri> urls)
@@ -282,53 +291,57 @@ namespace SM.Media.Playlists
 
             try
             {
-                _expirationTimer.Change(NotDue, NotPeriodic);
-
-                if (await UpdatePlaylist().ConfigureAwait(false))
+                try
                 {
-                    _readSubListFailureCount = 0;
+                    _expirationTimer.Change(NotDue, NotPeriodic);
+
+                    if (await UpdatePlaylist().ConfigureAwait(false))
+                    {
+                        _readSubListFailureCount = 0;
+
+                        return;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal, ignore it.
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
+                }
+
+                if (++_readSubListFailureCount > 3)
+                {
+                    lock (_segmentLock)
+                    {
+                        _segments = null;
+                        _isDynamicPlaylist = false;
+                    }
 
                     return;
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Normal, ignore it.
-                return;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
+
+                // Retry in a little while
+                var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
+
+                delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
+
+                var timeSpan = TimeSpan.FromSeconds(delay);
+
+                Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
+
+                _expirationTimer.Change(timeSpan, NotPeriodic);
             }
             finally
             {
                 lock (_segmentLock)
                 {
+                    _isInitialized = true;
                     _reader = null;
                 }
             }
-
-            if (++_readSubListFailureCount > 3)
-            {
-                lock (_segmentLock)
-                {
-                    _segments = null;
-                    _isDynamicPlaylist = false;
-                }
-
-                return;
-            }
-
-            // Retry in a little while
-            var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
-
-            delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
-
-            var timeSpan = TimeSpan.FromSeconds(delay);
-
-            Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
-
-            _expirationTimer.Change(timeSpan, NotPeriodic);
         }
 
         async Task<bool> UpdatePlaylist()
@@ -379,7 +392,7 @@ namespace SM.Media.Playlists
                         {
                             // We are running out of playlist, but the server just gave us the
                             // same list as last time.
-                            Debug.WriteLine("PlaylistSegmentManager.ReadSubList: need reload ({0})", DateTimeOffset.Now);
+                            Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
 
                             needReload = true;
                         }
@@ -405,7 +418,7 @@ namespace SM.Media.Playlists
                     UpdateDynamicPlaylist(segments0);
             }
 
-            Debug.WriteLine("PlaylistSegmentManager.ReadSubList: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
+            Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
                 parser.BaseUrl, _segments.Length, fetchElapsed, _startSegmentIndex, isDynamicPlayist,
                 isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                 DateTimeOffset.Now);
@@ -656,7 +669,7 @@ namespace SM.Media.Playlists
                 if (index >= 0)
                     return index;
 
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList: playlist discontinuity, does not contain {0}", url);
+                Debug.WriteLine("PlaylistSegmentManager.FindNewIndex(): playlist discontinuity, does not contain {0}", url);
 
                 return -1;
             }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IAudioConfigurationSource.cs" company="Henric Jungheim">
+//  <copyright file="AudioFormat.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,10 +26,10 @@
 
 namespace SM.Media.Configuration
 {
-    public interface IAudioConfigurationSource : IConfigurationSource
+    public enum AudioFormat
     {
-        AudioFormat Format { get; }
-        int SamplingFrequency { get; }
-        int Channels { get; }
+        Unknown = 0,
+        Mp3,
+        AacAdts
     }
 }

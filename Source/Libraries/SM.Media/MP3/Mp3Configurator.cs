@@ -46,6 +46,12 @@ namespace SM.Media.MP3
         public string Name { get; private set; }
         public string StreamDescription { get; private set; }
         public int? Bitrate { get; private set; }
+
+        public AudioFormat Format
+        {
+            get { return AudioFormat.Mp3; }
+        }
+
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
 

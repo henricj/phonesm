@@ -45,6 +45,12 @@ namespace SM.Media.AAC
         public string Name { get; private set; }
         public string StreamDescription { get; private set; }
         public int? Bitrate { get; private set; }
+
+        public AudioFormat Format
+        {
+            get { return AudioFormat.AacAdts; }
+        }
+
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
 

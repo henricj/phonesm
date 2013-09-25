@@ -47,6 +47,7 @@
     <Compile Include="AAC\AacConfigurator.cs" />
     <Compile Include="CachedWebRequest.cs" />
     <Compile Include="CallbackReader.cs" />
+    <Compile Include="Configuration\AudioFormat.cs" />
     <Compile Include="IMediaElementManager.cs" />
     <Compile Include="IMediaManager.cs" />
     <Compile Include="IMediaParser.cs" />

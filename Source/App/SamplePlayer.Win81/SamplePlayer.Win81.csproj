@@ -137,11 +137,11 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="SM.Media">
-      <HintPath>..\..\Libraries\SM.Media\bin\Debug\SM.Media.dll</HintPath>
+      <HintPath>..\..\Libraries\SM.Media\bin\$(Configuration)\SM.Media.dll</HintPath>
     </Reference>
     <Reference Include="SM.TsParser, Version=1.1.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Libraries\SM.Media\bin\Debug\SM.TsParser.dll</HintPath>
+      <HintPath>..\..\Libraries\SM.Media\bin\$(Configuration)\SM.TsParser.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http.Extensions">
       <HintPath>..\..\packages\Microsoft.Net.Http.2.2.15\lib\win8\System.Net.Http.Extensions.dll</HintPath>

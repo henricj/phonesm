@@ -117,7 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="SM.Media">
-      <HintPath>..\SM.Media\bin\Debug\SM.Media.dll</HintPath>
+      <HintPath>..\SM.Media\bin\$(Configuration)\SM.Media.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http.Extensions">
       <HintPath>..\..\packages\Microsoft.Net.Http.2.2.15\lib\win8\System.Net.Http.Extensions.dll</HintPath>

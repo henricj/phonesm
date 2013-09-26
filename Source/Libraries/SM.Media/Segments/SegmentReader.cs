@@ -38,7 +38,6 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
-        static readonly TimeSpan DefaultNotFoundDelay = TimeSpan.FromSeconds(5);
         readonly HttpClient _httpClient;
         readonly ISegment _segment;
         long _endOffset;
@@ -100,15 +99,13 @@ namespace SM.Media.Segments
                     {
                         IsEof = true;
 
-                        var actualBytesRead = _responseStream.Position;
-
-                        var badLength = _expectedBytes.HasValue && _expectedBytes != actualBytesRead;
+                        var validLength = IsLengthValid();
 
                         _readStream.Dispose();
                         _readStream = null;
 
-                        if (badLength)
-                            throw new HttpRequestException(string.Format("File length mismatch mismatch ({0} != {1})", _expectedBytes, actualBytesRead));
+                        if (!validLength)
+                            throw new HttpRequestException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
 
                         return index;
                     }
@@ -172,6 +169,22 @@ namespace SM.Media.Segments
         }
 
         #endregion
+
+        bool IsLengthValid()
+        {
+            try
+            {
+                var actualBytesRead = _responseStream.Position;
+
+                var badLength = _expectedBytes.HasValue && _expectedBytes != actualBytesRead;
+
+                return badLength;
+            }
+            catch (NotSupportedException)
+            {
+                return true;
+            }
+        }
 
         Task OpenStream(CancellationToken cancellationToken)
         {

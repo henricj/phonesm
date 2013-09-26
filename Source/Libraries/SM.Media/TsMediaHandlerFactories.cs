@@ -26,6 +26,8 @@
 
 using System.Collections.Generic;
 using SM.Media.AAC;
+using SM.Media.Ac3;
+using SM.Media.H262;
 using SM.Media.H264;
 using SM.Media.MP3;
 using SM.TsParser;
@@ -34,6 +36,15 @@ namespace SM.Media
 {
     public static class TsMediaHandlerFactories
     {
+        static readonly TsMediaParser.PacketHandlerFactory H262StreamHandlerFactory =
+            (pid, streamType, streamBuffer, nextHandler) =>
+            {
+                var configurator = new H262Configurator(streamType.Description);
+                var streamHandler = new H262StreamHandler(pid, streamType, nextHandler, configurator);
+
+                return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
+            };
+
         static readonly TsMediaParser.PacketHandlerFactory Mp3StreamHandlerFactory =
             (pid, streamType, streamBuffer, nextHandler) =>
             {
@@ -61,16 +72,27 @@ namespace SM.Media
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };
 
+        static readonly TsMediaParser.PacketHandlerFactory Ac3StreamHandlerFactory =
+            (pid, streamType, streamBuffer, nextHandler) =>
+            {
+                var configurator = new Ac3Configurator(streamType.Description);
+                var streamHandler = new Ac3StreamHandler(pid, streamType, nextHandler, configurator);
+
+                return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
+            };
+
         //    Table 2-34 Stream type assignments
         //    ISO/IEC 13818-1:2007/Amd.3:2009 (E)
         //    Rec. ITU-T H.222.0 (2006)/Amd.3 (03/2009)
         public static readonly IDictionary<byte, TsMediaParser.PacketHandlerFactory> DefaultFactories =
             new Dictionary<byte, TsMediaParser.PacketHandlerFactory>
             {
+                { TsStreamType.H262StreamType, H262StreamHandlerFactory },
                 { TsStreamType.Mp3Iso11172, Mp3StreamHandlerFactory },
                 { TsStreamType.Mp3Iso13818, Mp3StreamHandlerFactory },
                 { TsStreamType.H264StreamType, H264StreamHandlerFactory },
-                { TsStreamType.AacStreamType, AacStreamHandlerFactory }
+                { TsStreamType.AacStreamType, AacStreamHandlerFactory },
+                { TsStreamType.Ac3StreamType, Ac3StreamHandlerFactory }
             };
     }
 }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AudioFormat.cs" company="Henric Jungheim">
+//  <copyright file="H262StreamHandler.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,13 +24,49 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-namespace SM.Media.Configuration
+using System;
+using SM.Media.Pes;
+using SM.TsParser;
+
+namespace SM.Media.H262
 {
-    public enum AudioFormat
+    class H262StreamHandler : PesStreamHandler
     {
-        Unknown = 0,
-        Mp3,
-        AacAdts,
-        Ac3
+        readonly Action<TsPesPacket> _nextHandler;
+        readonly H262Configurator _configurator;
+        bool _foundframe;
+
+        public H262StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, H262Configurator configurator)
+            : base(pid, streamType)
+        {
+            _nextHandler = nextHandler;
+            _configurator = configurator;
+        }
+
+        public override void PacketHandler(TsPesPacket packet)
+        {
+            base.PacketHandler(packet);
+
+            if (null == packet)
+            {
+                if (null != _nextHandler)
+                    _nextHandler(null);
+
+                return;
+            }
+
+            // Reject garbage packet
+            if (packet.Length < 7)
+                return;
+
+            if (!_foundframe)
+            {
+                _configurator.Configure();
+                _foundframe = true;
+            }
+
+            if (null != _nextHandler)
+                _nextHandler(packet);
+        }
     }
 }

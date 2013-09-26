@@ -25,14 +25,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media.Core;
 using Windows.Media.MediaProperties;
-using Windows.UI.Core;
 using SM.Media.Configuration;
 using SM.Media.Utility;
 
@@ -47,34 +45,20 @@ namespace SM.Media
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
 
-        IMediaStreamDescriptor _audioStreamDescriptor;
-        IStreamSource _audioStreamSource;
-        uint? _videoBufferingProgress;
-        uint? _audioBufferingProgress;
         bool _isClosed;
         int _isDisposed;
         TimeSpan? _seekTarget;
-        IMediaStreamDescriptor _videoStreamDescriptor;
-        IStreamSource _videoStreamSource;
         TimeSpan? _duration;
         Action<MediaStreamSource> _mssHandler;
-        MediaStreamSourceSampleRequestDeferral _videoDeferral;
-        MediaStreamSourceSampleRequestDeferral _audioDeferral;
-        MediaStreamSourceSampleRequest _videoRequest;
-        MediaStreamSourceSampleRequest _audioRequest;
-        SpinLock _sampleLock = new SpinLock();
-        uint? _videoReportedBufferingProgress;
-        uint? _audioReportedBufferingProgress;
+
+        StreamState _videoStreamState;
+        StreamState _audioStreamState;
 
         public WinRtMediaStreamSource()
         {
-            //AudioBufferLength = 150;     // 150ms of internal buffering, instead of 1s.
-
 #if DEBUG
             _mediaStreamFsm.Reset();
 #endif
-
-            //_taskScheduler = new SingleThreadSignalTaskScheduler("WinRtMediaStreamSource", SignalHandler);
         }
 
         bool IsDisposed
@@ -148,141 +132,11 @@ namespace SM.Media
         {
             //Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
 
-            MediaStreamSourceSampleRequestDeferral videoDeferral;
-            MediaStreamSourceSampleRequest videoRequest;
+            if (null != _videoStreamState)
+                _videoStreamState.CheckForSamples();
 
-            MediaStreamSourceSampleRequestDeferral audioDeferral;
-            MediaStreamSourceSampleRequest audioRequest;
-
-            var dispatches = new List<DispatchedHandler>();
-
-            var lockTaken = false;
-
-            try
-            {
-                _sampleLock.Enter(ref lockTaken);
-
-                videoDeferral = _videoDeferral;
-                _videoDeferral = null;
-
-                videoRequest = _videoRequest;
-                _videoRequest = null;
-
-                audioDeferral = _audioDeferral;
-                _audioDeferral = null;
-
-                audioRequest = _audioRequest;
-                _audioRequest = null;
-            }
-            finally
-            {
-                if (lockTaken)
-                    _sampleLock.Exit();
-            }
-
-            try
-            {
-                if (null != videoDeferral)
-                {
-                    var sample = GetSample(_videoStreamSource, ref _videoBufferingProgress);
-
-                    if (null != sample)
-                    {
-                        var localRequest = videoRequest;
-                        var localDeferral = videoDeferral;
-
-                        dispatches.Add(() =>
-                                       {
-                                           localRequest.Sample = sample;
-                                           localDeferral.Complete();
-                                       });
-
-                        videoRequest = null;
-                        videoDeferral = null;
-                    }
-                    else
-                    {
-                        if (_videoReportedBufferingProgress != _videoBufferingProgress)
-                        {
-                            var progress = _videoBufferingProgress ?? 0;
-
-                            var localRequest = videoRequest;
-
-                            dispatches.Add(() => localRequest.ReportSampleProgress(progress));
-
-                            _videoReportedBufferingProgress = _videoBufferingProgress;
-                        }
-                    }
-                }
-
-                if (null != audioDeferral)
-                {
-                    var sample = GetSample(_audioStreamSource, ref _audioBufferingProgress);
-
-                    if (null != sample)
-                    {
-                        var localRequest = audioRequest;
-                        var localDeferral = audioDeferral;
-
-                        dispatches.Add(() =>
-                                       {
-                                           localRequest.Sample = sample;
-                                           localDeferral.Complete();
-                                       });
-
-                        audioRequest = null;
-                        audioDeferral = null;
-                    }
-                    else
-                    {
-                        if (_audioReportedBufferingProgress != _audioBufferingProgress)
-                        {
-                            var progress = _audioBufferingProgress ?? 0;
-                            var localRequest = audioRequest;
-
-                            dispatches.Add(() => localRequest.ReportSampleProgress(progress));
-
-                            _audioReportedBufferingProgress = _audioBufferingProgress;
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                if (null != videoDeferral || null != audioDeferral)
-                {
-                    lockTaken = false;
-
-                    try
-                    {
-                        _sampleLock.Enter(ref lockTaken);
-
-                        if (null != videoDeferral)
-                        {
-                            _videoDeferral = videoDeferral;
-                            _videoRequest = videoRequest;
-                        }
-
-                        if (null != audioDeferral)
-                        {
-                            _audioDeferral = audioDeferral;
-                            _audioRequest = audioRequest;
-                        }
-                    }
-                    finally
-                    {
-                        if (lockTaken)
-                            _sampleLock.Exit();
-                    }
-                }
-
-                // We make sure this work happens *after* the spinlock protected members have been updated.
-                if (dispatches.Count > 0)
-                {
-                    foreach (var dispatch in dispatches)
-                        dispatch();
-                }
-            }
+            if (null != _audioStreamState)
+                _audioStreamState.CheckForSamples();
         }
 
         #endregion
@@ -295,25 +149,36 @@ namespace SM.Media
             throw new ObjectDisposedException(GetType().Name);
         }
 
+        VideoEncodingProperties GetVideoEncodingProperties(IVideoConfigurationSource configurationSource)
+        {
+            switch (configurationSource.VideoFourCc)
+            {
+                case "H264":
+                    return VideoEncodingProperties.CreateH264();
+                    break;
+                case "MP2V":
+                    return VideoEncodingProperties.CreateMpeg2();
+                    break;
+                default:
+                    break;
+            }
+
+            return null;
+        }
+
         IMediaStreamDescriptor CreateVideoDescriptor(IVideoConfigurationSource configurationSource)
         {
-            if ("H264" != configurationSource.VideoFourCc)
-                throw new ArgumentOutOfRangeException();
+            var encodingProperties = GetVideoEncodingProperties(configurationSource);
 
-            var encodingProperties = VideoEncodingProperties.CreateH264();
+            if (null == encodingProperties)
+                throw new ArgumentOutOfRangeException();
 
             return new VideoStreamDescriptor(encodingProperties);
         }
 
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
         {
-            var descriptor = CreateVideoDescriptor(configurationSource);
-
-            lock (_streamConfigurationLock)
-            {
-                _videoStreamSource = videoSource;
-                _videoStreamDescriptor = descriptor;
-            }
+            _videoStreamState = new StreamState(videoSource, CreateVideoDescriptor(configurationSource));
         }
 
         IMediaStreamDescriptor CreateAudioDescriptor(IAudioConfigurationSource configurationSource)
@@ -328,6 +193,17 @@ namespace SM.Media
                 case AudioFormat.AacAdts:
                     propertyFactory = AudioEncodingProperties.CreateAacAdts;
                     break;
+                case AudioFormat.Ac3:
+                    var encodingProperties = new AudioEncodingProperties
+                                             {
+                                                 Subtype = "Ac3",
+                                                 SampleRate = (uint)configurationSource.SamplingFrequency
+                                             };
+
+                    if (configurationSource.Bitrate.HasValue)
+                        encodingProperties.Bitrate = (uint)configurationSource.Bitrate.Value;
+
+                    return new AudioStreamDescriptor(encodingProperties);
                 case AudioFormat.Unknown:
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -341,13 +217,7 @@ namespace SM.Media
 
         void ConfigureAudioStream(IAudioConfigurationSource configurationSource, IStreamSource audioSource)
         {
-            var audioStreamDescriptor = CreateAudioDescriptor(configurationSource);
-
-            lock (_streamConfigurationLock)
-            {
-                _audioStreamSource = audioSource;
-                _audioStreamDescriptor = audioStreamDescriptor;
-            }
+            _audioStreamState = new StreamState(audioSource, CreateAudioDescriptor(configurationSource));
         }
 
         void CompleteConfigure()
@@ -377,14 +247,14 @@ namespace SM.Media
         {
             MediaStreamSource mediaStreamSource = null;
 
-            if (null != _videoStreamDescriptor && null != _audioStreamDescriptor)
-                mediaStreamSource = new MediaStreamSource(_videoStreamDescriptor, _audioStreamDescriptor);
+            if (null != _videoStreamState && null != _audioStreamState)
+                mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor, _audioStreamState.Descriptor);
 
-            else if (null != _videoStreamDescriptor)
-                mediaStreamSource = new MediaStreamSource(_videoStreamDescriptor);
+            else if (null != _videoStreamState)
+                mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor);
 
-            else if (null != _audioStreamDescriptor)
-                mediaStreamSource = new MediaStreamSource(_audioStreamDescriptor);
+            else if (null != _audioStreamState)
+                mediaStreamSource = new MediaStreamSource(_audioStreamState.Descriptor);
             else
                 throw new InvalidOperationException("No streams configured");
 
@@ -395,33 +265,8 @@ namespace SM.Media
 
             mediaStreamSource.Starting += MediaStreamSourceOnStarting;
             mediaStreamSource.SampleRequested += MediaStreamSourceOnSampleRequested;
+
             return mediaStreamSource;
-        }
-
-        MediaStreamSample GetSample(IStreamSource source, ref uint? bufferingProgress)
-        {
-            MediaStreamSample mss = null;
-            double? localBufferingProgress = null;
-
-            if (source.GetNextSample(sample =>
-                                     {
-                                         localBufferingProgress = sample.BufferingProgress;
-
-                                         if (!localBufferingProgress.HasValue)
-                                             // There is no point in doing an await since the source stream is in memory.
-                                             mss = MediaStreamSample.CreateFromStreamAsync(sample.Stream.AsInputStream(), (uint)sample.Stream.Length, sample.Timestamp).AsTask().Result;
-
-                                         return true;
-                                     }))
-            {
-                bufferingProgress = null;
-                return mss;
-            }
-
-            if (localBufferingProgress.HasValue)
-                bufferingProgress = (uint)Math.Round(100 * localBufferingProgress.Value);
-
-            return null;
         }
 
         void MediaStreamSourceOnSampleRequested(MediaStreamSource sender, MediaStreamSourceSampleRequestedEventArgs args)
@@ -430,72 +275,10 @@ namespace SM.Media
 
             var request = args.Request;
 
-            if (request.StreamDescriptor == _videoStreamDescriptor)
-            {
-                var mss = GetSample(_videoStreamSource, ref _videoBufferingProgress);
-
-                if (null != mss)
-                {
-                    request.Sample = mss;
-                    return;
-                }
-
-                request.ReportSampleProgress(_videoBufferingProgress ?? 0);
-
-                _videoReportedBufferingProgress = _videoBufferingProgress ?? 0;
-
-                var deferral = request.GetDeferral();
-
-                var lockTaken = false;
-
-                try
-                {
-                    _sampleLock.Enter(ref lockTaken);
-
-                    Debug.Assert(null == _videoDeferral);
-
-                    _videoDeferral = deferral;
-                    _videoRequest = request;
-                }
-                finally
-                {
-                    if (lockTaken)
-                        _sampleLock.Exit();
-                }
-            }
-            else if (request.StreamDescriptor == _audioStreamDescriptor)
-            {
-                var mss = GetSample(_audioStreamSource, ref _audioBufferingProgress);
-
-                if (null != mss)
-                {
-                    request.Sample = mss;
-                    return;
-                }
-
-                request.ReportSampleProgress(_audioBufferingProgress ?? 0);
-
-                _audioReportedBufferingProgress = _audioBufferingProgress ?? 0;
-
-                var deferral = request.GetDeferral();
-
-                var lockTaken = false;
-
-                try
-                {
-                    _sampleLock.Enter(ref lockTaken);
-
-                    Debug.Assert(null == _audioDeferral);
-
-                    _audioDeferral = deferral;
-                    _audioRequest = request;
-                }
-                finally
-                {
-                    if (lockTaken)
-                        _sampleLock.Exit();
-                }
-            }
+            if (null != _videoStreamState && request.StreamDescriptor == _videoStreamState.Descriptor)
+                _videoStreamState.SampleRequested(request);
+            else if (null != _audioStreamState && request.StreamDescriptor == _audioStreamState.Descriptor)
+                _audioStreamState.SampleRequested(request);
         }
 
         void MediaStreamSourceOnStarting(MediaStreamSource sender, MediaStreamSourceStartingEventArgs args)
@@ -503,6 +286,167 @@ namespace SM.Media
             Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting()");
 
             args.Request.SetActualStartPosition(TimeSpan.Zero);
+        }
+
+        class StreamState
+        {
+            public readonly IMediaStreamDescriptor Descriptor;
+
+            readonly IStreamSource _streamSource;
+            uint _bufferingProgress;
+            MediaStreamSourceSampleRequestDeferral _deferral;
+            uint _reportedBufferingProgress;
+            MediaStreamSourceSampleRequest _request;
+            SpinLock _sampleLock = new SpinLock();
+
+            public StreamState(IStreamSource streamSource, IMediaStreamDescriptor descriptor)
+            {
+                if (streamSource == null)
+                    throw new ArgumentNullException("streamSource");
+                if (descriptor == null)
+                    throw new ArgumentNullException("descriptor");
+
+                _streamSource = streamSource;
+                Descriptor = descriptor;
+            }
+
+            public void CheckForSamples()
+            {
+                MediaStreamSourceSampleRequestDeferral deferral = null;
+                MediaStreamSourceSampleRequest request = null;
+
+                try
+                {
+                    var lockTaken = false;
+
+                    try
+                    {
+                        _sampleLock.Enter(ref lockTaken);
+
+                        deferral = _deferral;
+
+                        if (null == deferral)
+                            return;
+
+                        _deferral = null;
+
+                        request = _request;
+
+                        if (null != request)
+                            _request = null;
+                    }
+                    finally
+                    {
+                        if (lockTaken)
+                            _sampleLock.Exit();
+                    }
+
+                    if (!TryCompleteRequest(request, deferral))
+                        return;
+
+                    var localDeferral = deferral;
+
+                    request = null;
+                    deferral = null;
+
+                    localDeferral.Complete();
+                }
+                finally
+                {
+                    if (null != deferral || null != request)
+                    {
+                        var lockTaken = false;
+
+                        try
+                        {
+                            _sampleLock.Enter(ref lockTaken);
+
+                            Debug.Assert(null == _deferral);
+                            Debug.Assert(null == _request);
+
+                            _deferral = deferral;
+                            _request = request;
+                        }
+                        finally
+                        {
+                            if (lockTaken)
+                                _sampleLock.Exit();
+                        }
+                    }
+                }
+            }
+
+            bool TryCompleteRequest(MediaStreamSourceSampleRequest request, MediaStreamSourceSampleRequestDeferral deferral)
+            {
+                double? localBufferingProgress = null;
+
+                if (_streamSource.GetNextSample(sample =>
+                                                {
+                                                    if (null == sample)
+                                                    {
+                                                        localBufferingProgress = 1;
+
+                                                        return true;
+                                                    }
+
+                                                    localBufferingProgress = sample.BufferingProgress;
+
+                                                    if (!localBufferingProgress.HasValue)
+                                                    {
+                                                        // There is no point in doing an await since the source stream is in memory.
+                                                        request.Sample = MediaStreamSample.CreateFromStreamAsync(sample.Stream.AsInputStream(),
+                                                            (uint)sample.Stream.Length, sample.Timestamp).AsTask().Result;
+                                                    }
+
+                                                    return true;
+                                                }))
+                {
+                    _bufferingProgress = 100;
+                    _reportedBufferingProgress = 100;
+
+                    if (null != deferral)
+                        deferral.Complete();
+
+                    return true;
+                }
+
+                if (localBufferingProgress.HasValue)
+                {
+                    _bufferingProgress = (uint)Math.Round(100 * localBufferingProgress.Value);
+
+                    if (_bufferingProgress != _reportedBufferingProgress)
+                    {
+                        request.ReportSampleProgress(_bufferingProgress);
+
+                        _reportedBufferingProgress = _bufferingProgress;
+                    }
+                }
+
+                return false;
+            }
+
+            public void SampleRequested(MediaStreamSourceSampleRequest request)
+            {
+                if (TryCompleteRequest(request, null))
+                    return;
+
+                var deferral = request.GetDeferral();
+
+                var lockTaken = false;
+
+                try
+                {
+                    _sampleLock.Enter(ref lockTaken);
+
+                    _request = request;
+                    _deferral = deferral;
+                }
+                finally
+                {
+                    if (lockTaken)
+                        _sampleLock.Exit();
+                }
+            }
         }
     }
 }

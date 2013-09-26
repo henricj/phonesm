@@ -48,6 +48,12 @@
     <Compile Include="CachedWebRequest.cs" />
     <Compile Include="CallbackReader.cs" />
     <Compile Include="Configuration\AudioFormat.cs" />
+    <Compile Include="Ac3\Ac3Configurator.cs" />
+    <Compile Include="Ac3\Ac3FrameHeader.cs" />
+    <Compile Include="Ac3\Ac3MediaParser.cs" />
+    <Compile Include="Ac3\Ac3StreamHandler.cs" />
+    <Compile Include="H262\H262Configurator.cs" />
+    <Compile Include="H262\H262StreamHandler.cs" />
     <Compile Include="IMediaElementManager.cs" />
     <Compile Include="IMediaManager.cs" />
     <Compile Include="IMediaParser.cs" />

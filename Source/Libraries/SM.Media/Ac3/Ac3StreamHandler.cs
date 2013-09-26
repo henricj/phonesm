@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AudioFormat.cs" company="Henric Jungheim">
+//  <copyright file="AacStreamHandler.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,13 +24,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-namespace SM.Media.Configuration
+using System;
+using SM.Media.Configuration;
+using SM.Media.Pes;
+using SM.TsParser;
+
+namespace SM.Media.Ac3
 {
-    public enum AudioFormat
+    public class Ac3StreamHandler : PesStreamHandler
     {
-        Unknown = 0,
-        Mp3,
-        AacAdts,
-        Ac3
+        readonly IFrameParser _configurator;
+        readonly Action<TsPesPacket> _nextHandler;
+        bool _foundframe;
+
+        public Ac3StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IFrameParser configurator)
+            : base(pid, streamType)
+        {
+            _nextHandler = nextHandler;
+            _configurator = configurator;
+        }
+
+        public override void PacketHandler(TsPesPacket packet)
+        {
+            base.PacketHandler(packet);
+
+            if (null == packet)
+            {
+                if (null != _nextHandler)
+                    _nextHandler(null);
+
+                return;
+            }
+
+            // Reject garbage packet
+            if (packet.Length < 7)
+                return;
+
+            if (!_foundframe)
+                _foundframe = _configurator.Parse(packet.Buffer, packet.Index, packet.Length);
+
+            if (null != _nextHandler)
+                _nextHandler(packet);
+        }
     }
 }

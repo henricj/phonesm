@@ -94,9 +94,9 @@ namespace SimulatedPlayer
                 return;
             }
 
-            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1}", streamType, sample.Timestamp);
+            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1}", streamType, sample.PresentationTimestamp);
 
-            var timestamp = sample.Timestamp;
+            var timestamp = sample.PresentationTimestamp;
             var oldestTimestamp = TimeSpan.MaxValue;
             var oldestIndex = -1;
 

@@ -31,7 +31,7 @@ namespace SM.Media
 {
     public interface IStreamSample
     {
-        TimeSpan Timestamp { get; }
+        TimeSpan PresentationTimestamp { get; }
         Stream Stream { get; }
         double? BufferingProgress { get; }
     }

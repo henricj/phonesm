@@ -309,7 +309,7 @@ namespace SM.Media
                 return false;
             }
 
-            var sample = new MediaStreamSample(mediaStreamDescription, streamSample.Stream, 0, streamSample.Stream.Length, streamSample.Timestamp.Ticks, NoMediaSampleAttributes);
+            var sample = new MediaStreamSample(mediaStreamDescription, streamSample.Stream, 0, streamSample.Stream.Length, streamSample.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
 
             //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
 

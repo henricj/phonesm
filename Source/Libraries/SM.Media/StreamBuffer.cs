@@ -166,7 +166,7 @@ namespace SM.Media
 
                     ReportDequeue(packet.Length, packet.Timestamp);
 
-                    _streamSample.Timestamp = packet.Timestamp - TimestampOffset;
+                    _streamSample.PresentationTimestamp = packet.Timestamp - TimestampOffset;
 
 #if DEBUG
                     //Debug.WriteLine("StreamBuffer {0} forwarding sample {1}", _streamBufferId, _streamSample.Timestamp);
@@ -299,7 +299,7 @@ namespace SM.Media
         {
             #region IStreamSample Members
 
-            public TimeSpan Timestamp { get; set; }
+            public TimeSpan PresentationTimestamp { get; set; }
             public Stream Stream { get; set; }
             public double? BufferingProgress { get; set; }
 

@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="TsStreamType.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="TsStreamType.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -45,6 +45,13 @@ namespace SM.TsParser
 
         #endregion
 
+        public static readonly byte H262StreamType = 0x02;
+        public static readonly byte Mp3Iso11172 = 0x03;
+        public static readonly byte Mp3Iso13818 = 0x04;
+        public static readonly byte AacStreamType = 0x0f;
+        public static readonly byte H264StreamType = 0x1b;
+        public static readonly byte Ac3StreamType = 0x81;
+
         // Table 2-34 Stream type assignments
         // ISO/IEC 13818-1:2007/Amd.3:2009 (E)
         // Rec. ITU-T H.222.0 (2006)/Amd.3 (03/2009)
@@ -53,9 +60,19 @@ namespace SM.TsParser
             {
                 new TsStreamType(0x00, StreamContents.Reserved, "ITU-T|ISO/IEC Reserved"),
                 new TsStreamType(0x01, StreamContents.Video, "ISO/IEC 11172-2 Video"),
-                new TsStreamType(0x02, StreamContents.Video, "ITU-T Rec. H.262 | ISO/IEC 13818-2 Video or ISO/IEC 11172-2 constrained parameter video stream"),
-                new TsStreamType(0x03, StreamContents.Audio, "ISO/IEC 11172-3 Audio") { FileExtension = ".mp3" },
-                new TsStreamType(0x04, StreamContents.Audio, "ISO/IEC 13818-3 Audio") { FileExtension = ".mp3" },
+                new TsStreamType(H262StreamType, StreamContents.Video,
+                    "ITU-T Rec. H.262 | ISO/IEC 13818-2 Video or ISO/IEC 11172-2 constrained parameter video stream")
+                {
+                    FileExtension = ".h262"
+                },
+                new TsStreamType(Mp3Iso11172, StreamContents.Audio, "ISO/IEC 11172-3 Audio")
+                {
+                    FileExtension = ".mp3"
+                },
+                new TsStreamType(Mp3Iso13818, StreamContents.Audio, "ISO/IEC 13818-3 Audio")
+                {
+                    FileExtension = ".mp3"
+                },
                 new TsStreamType(0x05, StreamContents.Other, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 private_sections"),
                 new TsStreamType(0x06, StreamContents.Other, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 PES packets containing private data"),
                 new TsStreamType(0x07, StreamContents.Other, "ISO/IEC 13522 MHEG"),
@@ -66,7 +83,10 @@ namespace SM.TsParser
                 new TsStreamType(0x0C, StreamContents.Other, "ISO/IEC 13818-6 type C"),
                 new TsStreamType(0x0D, StreamContents.Other, "ISO/IEC 13818-6 type D"),
                 new TsStreamType(0x0E, StreamContents.Other, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary"),
-                new TsStreamType(0x0F, StreamContents.Audio, "ISO/IEC 13818-7 Audio with ADTS transport syntax") { FileExtension = ".aac" },
+                new TsStreamType(AacStreamType, StreamContents.Audio, "ISO/IEC 13818-7 Audio with ADTS transport syntax")
+                {
+                    FileExtension = ".aac"
+                },
                 new TsStreamType(0x10, StreamContents.Other, "ISO/IEC 14496-2 Visual"),
                 new TsStreamType(0x11, StreamContents.Audio, "ISO/IEC 14496-3 Audio with the LATM transport syntax as defined in ISO/IEC 14496-3"),
                 new TsStreamType(0x12, StreamContents.Other, "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets"),
@@ -78,15 +98,23 @@ namespace SM.TsParser
                 new TsStreamType(0x18, StreamContents.Other, "Metadata carried in ISO/IEC 13818-6 Object Carousel"),
                 new TsStreamType(0x19, StreamContents.Other, "Metadata carried in ISO/IEC 13818-6 Synchronized Download Protocol"),
                 new TsStreamType(0x1A, StreamContents.Other, "IPMP stream (defined in ISO/IEC 13818-11, MPEG-2 IPMP)"),
-                new TsStreamType(0x1B, StreamContents.Video, "AVC video stream conforming to one or more profiles defined in Annex A of ITU-T Rec. H.264 | ISO/IEC 14496-10 or AVC video sub-bitstream as defined in 2.1.78") { FileExtension = ".264" },
+                new TsStreamType(H264StreamType, StreamContents.Video,
+                    "AVC video stream conforming to one or more profiles defined in Annex A of ITU-T Rec. H.264 | ISO/IEC 14496-10 or AVC video sub-bitstream as defined in 2.1.78")
+                {
+                    FileExtension = ".h264"
+                },
                 new TsStreamType(0x1C, StreamContents.Audio, "ISO/IEC 14496-3 Audio, without using any additional transport syntax, such as DST, ALS and SLS"),
                 new TsStreamType(0x1D, StreamContents.Other, "ISO/IEC 14496-17 Text"),
                 new TsStreamType(0x1E, StreamContents.Video, "Auxiliary video stream as defined in ISO/IEC 23002-3"),
-                new TsStreamType(0x1F, StreamContents.Video, "SVC video sub-bitstream of an AVC video stream conforming to one or more profiles defined in Annex G of ITU-T Rec. H.264 | ISO/IEC 14496-10"),
+                new TsStreamType(0x1F, StreamContents.Video,
+                    "SVC video sub-bitstream of an AVC video stream conforming to one or more profiles defined in Annex G of ITU-T Rec. H.264 | ISO/IEC 14496-10"),
                 new TsStreamType(0x7F, StreamContents.Other, "IPMP stream"),
                 
                 // ATSC (this should be configurable, but we hard-code it for now)
-                new TsStreamType(0x81, StreamContents.Audio, "Dolby AC-3")
+                new TsStreamType(Ac3StreamType, StreamContents.Audio, "Dolby AC-3")
+                {
+                    FileExtension = ".ac3"
+                }
             }.ToDictionary(v => v.StreamType);
 
         static readonly Dictionary<byte, TsStreamType> UnknownTypes = new Dictionary<byte, TsStreamType>();

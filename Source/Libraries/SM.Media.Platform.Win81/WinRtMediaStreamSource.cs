@@ -26,7 +26,7 @@
 
 using System;
 using System.Diagnostics;
-using System.IO;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media.Core;
@@ -393,9 +393,15 @@ namespace SM.Media
 
                                                     if (!localBufferingProgress.HasValue)
                                                     {
-                                                        // There is no point in doing an await since the source stream is in memory.
-                                                        request.Sample = MediaStreamSample.CreateFromStreamAsync(sample.Stream.AsInputStream(),
-                                                            (uint)sample.Stream.Length, sample.Timestamp).AsTask().Result;
+                                                        // We should change IStreamSource to let us manage the lifetime of
+                                                        // the buffer backing sample.Stream.  For now, just make a copy.
+                                                        var buffer = new byte[sample.Stream.Length];
+
+                                                        var length = sample.Stream.Read(buffer, 0, buffer.Length);
+
+                                                        Debug.Assert(length == buffer.Length);
+
+                                                        request.Sample = MediaStreamSample.CreateFromBuffer(buffer.AsBuffer(), sample.Timestamp);
                                                     }
 
                                                     return true;

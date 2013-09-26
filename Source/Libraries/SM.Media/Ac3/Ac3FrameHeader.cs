@@ -147,7 +147,7 @@ namespace SM.Media.Ac3
             var frameCode = GetFrameCode(frmsizcod);
 
             if (null != frameCode)
-                Bitrate = frameCode.Bitrate;
+                Bitrate = 1000 * frameCode.Bitrate;
 
             Name = string.Format("AC-3 {0}kHz", SamplingFrequency / 1000.0);
 
@@ -155,7 +155,7 @@ namespace SM.Media.Ac3
             if (verbose)
             {
                 Debug.WriteLine("Configuration AC-3 sampling {0}kHz bitrate {1}kHz",
-                    SamplingFrequency / 1000.0, Bitrate);
+                    SamplingFrequency / 1000.0, Bitrate / 1000.0);
             }
 #endif
             return true;

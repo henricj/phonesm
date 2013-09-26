@@ -179,12 +179,13 @@ namespace SamplePlayer.Win81
                                  {
                                      Playlists = new[]
                                                  {
-                                                     //new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
-                                                     new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
+                                                     new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+                                                     //new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
+                                                     //new Uri("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8")
                                                  }
                                  };
 
-            Program program;
+            SM.Media.Playlists.Program program;
             ISubProgram subProgram;
 
             try
@@ -202,7 +203,7 @@ namespace SamplePlayer.Win81
                     return;
                 }
 
-                subProgram = program.SubPrograms.FirstOrDefault();
+                subProgram = program.SubPrograms.OrderByDescending(sp => sp.Bandwidth).FirstOrDefault();
 
                 if (null == subProgram)
                 {

@@ -178,7 +178,7 @@ namespace SM.Media.Segments
 
                 var badLength = _expectedBytes.HasValue && _expectedBytes != actualBytesRead;
 
-                return badLength;
+                return !badLength;
             }
             catch (NotSupportedException)
             {

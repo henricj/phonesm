@@ -74,13 +74,14 @@ namespace SM.Media
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaStreamSource _mediaStreamSource;
+        readonly Action<IProgramStreams> _programStreamsHandler;
         readonly ISegmentReaderManager _segmentReaderManager;
         CancellationTokenSource _cancellationTokenSource;
         MediaState _mediaState;
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(ISegmentReaderManager segmentReaderManager, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource)
+        public TsMediaManager(ISegmentReaderManager segmentReaderManager, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource, Action<IProgramStreams> programStreamsHandler = null)
         {
             if (null == segmentReaderManager)
                 throw new ArgumentNullException("segmentReaderManager");
@@ -94,6 +95,7 @@ namespace SM.Media
             _segmentReaderManager = segmentReaderManager;
             _mediaElementManager = mediaElementManager;
             _mediaStreamSource = mediaStreamSource;
+            _programStreamsHandler = programStreamsHandler;
 
             _mediaStreamSource.MediaManager = this;
 
@@ -381,47 +383,67 @@ namespace SM.Media
 
                 reader.ExpectedStreamCount = 2;
 
-                programStreamsHandler = pss =>
-                                        {
-                                            var hasAudio = false;
-                                            var hasVideo = false;
-                                            var count = 0;
-
-                                            foreach (var stream in pss.Streams)
+                if (null == _programStreamsHandler)
+                {
+                    programStreamsHandler = pss =>
                                             {
-                                                switch (stream.StreamType.Contents)
-                                                {
-                                                    case TsStreamType.StreamContents.Audio:
-                                                        if (hasAudio)
-                                                            stream.BlockStream = true;
-                                                        else
-                                                        {
-                                                            hasAudio = true;
-                                                            ++count;
-                                                        }
-                                                        break;
-                                                    case TsStreamType.StreamContents.Video:
-                                                        if (hasVideo)
-                                                            stream.BlockStream = true;
-                                                        else
-                                                        {
-                                                            hasVideo = true;
-                                                            ++count;
-                                                        }
-                                                        break;
-                                                    default:
-                                                        stream.BlockStream = true;
-                                                        break;
-                                                }
-                                            }
+                                                var count = DefaultProgramStreamsHandler(pss);
 
-                                            localReader.ExpectedStreamCount = count;
-                                        };
+                                                localReader.ExpectedStreamCount = count;
+                                            };
+                }
+                else
+                {
+                    var localHandler = _programStreamsHandler;
+
+                    programStreamsHandler = pss =>
+                                            {
+                                                localHandler(pss);
+
+                                                localReader.ExpectedStreamCount = pss.Streams.Count(s => !s.BlockStream);
+                                            };
+                }
             }
 
             reader.MediaParser.Initialize(programStreamsHandler);
 
             return reader;
+        }
+
+        static int DefaultProgramStreamsHandler(IProgramStreams pss)
+        {
+            var hasAudio = false;
+            var hasVideo = false;
+            var count = 0;
+
+            foreach (var stream in pss.Streams)
+            {
+                switch (stream.StreamType.Contents)
+                {
+                    case TsStreamType.StreamContents.Audio:
+                        if (hasAudio)
+                            stream.BlockStream = true;
+                        else
+                        {
+                            hasAudio = true;
+                            ++count;
+                        }
+                        break;
+                    case TsStreamType.StreamContents.Video:
+                        if (hasVideo)
+                            stream.BlockStream = true;
+                        else
+                        {
+                            hasVideo = true;
+                            ++count;
+                        }
+                        break;
+                    default:
+                        stream.BlockStream = true;
+                        break;
+                }
+            }
+            return count;
         }
 
         void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)

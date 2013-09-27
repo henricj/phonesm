@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using SM.TsParser;
 
 namespace SM.Media
 {
@@ -33,20 +34,21 @@ namespace SM.Media
     {
         TimeSpan PresentationTimestamp { get; }
         Stream Stream { get; }
-        double? BufferingProgress { get; }
-    }
-
-    public interface IStreamSink
-    {
-        void NextSample(IStreamSample sample);
-
-        void StreamDone();
+        float? BufferingProgress { get; }
     }
 
     public interface IStreamSource
     {
         bool HasSample { get; }
 
-        bool GetNextSample(Func<IStreamSample, bool> streamSampleHandler);
+        float? BufferingProgress { get; }
+
+        TimeSpan PresentationTimestamp { get; }
+
+        bool IsEof { get; }
+
+        TsPesPacket GetNextSample();
+
+        void FreeSample(TsPesPacket packet);
     }
 }

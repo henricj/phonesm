@@ -60,6 +60,8 @@ namespace SM.Media
         int _streamOpenFlags;
         MediaStreamDescription _videoStreamDescription;
         IStreamSource _videoStreamSource;
+        PacketStreamWrapper _videoStreamWrapper;
+        PacketStreamWrapper _audioStreamWrapper;
 
         public TsMediaStreamSource()
         {
@@ -261,14 +263,14 @@ namespace SM.Media
                 if (0 != (lastOperation & Operation.Video))
                 {
                     if (null != _videoStreamSource
-                        && !_videoStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _videoStreamDescription, canCallReportBufferingProgress)))
+                        && !_videoStreamWrapper.GetNextSample(sample => StreamSampleHandler(sample, _videoStreamDescription, canCallReportBufferingProgress)))
                         RequestOperation(Operation.Video);
                 }
 
                 if (0 != (lastOperation & Operation.Audio))
                 {
                     if (null != _audioStreamSource
-                        && !_audioStreamSource.GetNextSample(sample => StreamSampleHandler(sample, _audioStreamDescription, canCallReportBufferingProgress)))
+                        && !_audioStreamWrapper.GetNextSample(sample => StreamSampleHandler(sample, _audioStreamDescription, canCallReportBufferingProgress)))
                         RequestOperation(Operation.Audio);
                 }
             }
@@ -351,10 +353,13 @@ namespace SM.Media
 
             var videoStreamDescription = new MediaStreamDescription(MediaStreamType.Video, msa);
 
+            var packetStreamWrapper = new PacketStreamWrapper(videoSource);
+
             lock (_streamConfigurationLock)
             {
                 _videoStreamSource = videoSource;
                 _videoStreamDescription = videoStreamDescription;
+                _videoStreamWrapper = packetStreamWrapper;
             }
         }
 
@@ -369,10 +374,13 @@ namespace SM.Media
 
             var audioStreamDescription = new MediaStreamDescription(MediaStreamType.Audio, msa);
 
+            var packetStreamWrapper = new PacketStreamWrapper(audioSource);
+
             lock (_streamConfigurationLock)
             {
                 _audioStreamSource = audioSource;
                 _audioStreamDescription = audioStreamDescription;
+                _audioStreamWrapper = packetStreamWrapper;
             }
         }
 

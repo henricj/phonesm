@@ -142,6 +142,10 @@
       <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
       <Name>SM.Media.Platform.WP8</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
+      <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
+      <Name>SM.TsParser</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">

@@ -183,7 +183,9 @@ namespace SimulatedPlayer
                         return null;
                     }
 
-                    var completed = streamSource.GetNextSample(sample => StreamSampleHandler(streamType, sample));
+                    var wrapper = new PacketStreamWrapper(streamSource);
+
+                    var completed = wrapper.GetNextSample(sample => StreamSampleHandler(streamType, sample));
 
                     if (!completed)
                     {

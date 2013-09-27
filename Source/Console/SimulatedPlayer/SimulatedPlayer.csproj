@@ -87,6 +87,10 @@
       <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
       <Name>SM.Media</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
+      <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+      <Name>SM.TsParser</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

@@ -33,6 +33,7 @@ using Windows.Media.Core;
 using Windows.Media.MediaProperties;
 using SM.Media.Configuration;
 using SM.Media.Utility;
+using SM.TsParser;
 
 namespace SM.Media
 {
@@ -378,57 +379,66 @@ namespace SM.Media
 
             bool TryCompleteRequest(MediaStreamSourceSampleRequest request, MediaStreamSourceSampleRequestDeferral deferral)
             {
-                double? localBufferingProgress = null;
+                TsPesPacket packet = null;
 
-                if (_streamSource.GetNextSample(sample =>
-                                                {
-                                                    if (null == sample)
-                                                    {
-                                                        localBufferingProgress = 1;
-
-                                                        return true;
-                                                    }
-
-                                                    localBufferingProgress = sample.BufferingProgress;
-
-                                                    if (!localBufferingProgress.HasValue)
-                                                    {
-                                                        // We should change IStreamSource to let us manage the lifetime of
-                                                        // the buffer backing sample.Stream.  For now, just make a copy.
-                                                        var buffer = new byte[sample.Stream.Length];
-
-                                                        var length = sample.Stream.Read(buffer, 0, buffer.Length);
-
-                                                        Debug.Assert(length == buffer.Length);
-
-                                                        request.Sample = MediaStreamSample.CreateFromBuffer(buffer.AsBuffer(), sample.Timestamp);
-                                                    }
-
-                                                    return true;
-                                                }))
+                try
                 {
-                    _bufferingProgress = 100;
-                    _reportedBufferingProgress = 100;
+                    packet = _streamSource.GetNextSample();
+
+                    if (null == packet)
+                    {
+                        if (_streamSource.IsEof)
+                        {
+                            if (null != deferral)
+                                deferral.Complete();
+
+                            return true;
+                        }
+
+                        if (_streamSource.BufferingProgress.HasValue)
+                            _bufferingProgress = (uint)(Math.Round(100 * _streamSource.BufferingProgress.Value));
+                        else
+                            _bufferingProgress = 0;
+
+                        if (_bufferingProgress != _reportedBufferingProgress)
+                        {
+                            request.ReportSampleProgress(_bufferingProgress);
+                            _reportedBufferingProgress = _bufferingProgress;
+                        }
+
+                        return false;
+                    }
+
+                    _bufferingProgress = _reportedBufferingProgress = 100;
+
+                    var presentationTimestamp = _streamSource.PresentationTimestamp;
+
+                    var packetBuffer = packet.Buffer.AsBuffer(packet.Index, packet.Length);
+
+                    var mediaStreamSample = MediaStreamSample.CreateFromBuffer(packetBuffer, presentationTimestamp);
+
+                    if (null == mediaStreamSample)
+                        throw new InvalidOperationException("MediaStreamSamples cannot be null");
+
+                    request.Sample = mediaStreamSample;
+
+                    var localPacket = packet;
+
+                    request.Sample.Processed += (sender, args) => _streamSource.FreeSample(localPacket);
+
+                    // Prevent the .FreeSample() below from freeing this packet.
+                    packet = null;
 
                     if (null != deferral)
                         deferral.Complete();
 
                     return true;
                 }
-
-                if (localBufferingProgress.HasValue)
+                finally
                 {
-                    _bufferingProgress = (uint)Math.Round(100 * localBufferingProgress.Value);
-
-                    if (_bufferingProgress != _reportedBufferingProgress)
-                    {
-                        request.ReportSampleProgress(_bufferingProgress);
-
-                        _reportedBufferingProgress = _bufferingProgress;
-                    }
+                    if (null != packet)
+                        _streamSource.FreeSample(packet);
                 }
-
-                return false;
             }
 
             public void SampleRequested(MediaStreamSourceSampleRequest request)

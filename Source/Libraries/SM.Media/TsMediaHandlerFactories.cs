@@ -37,7 +37,7 @@ namespace SM.Media
     public static class TsMediaHandlerFactories
     {
         static readonly TsMediaParser.PacketHandlerFactory H262StreamHandlerFactory =
-            (pid, streamType, streamBuffer, nextHandler) =>
+            (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new H262Configurator(streamType.Description);
                 var streamHandler = new H262StreamHandler(pid, streamType, nextHandler, configurator);
@@ -46,7 +46,7 @@ namespace SM.Media
             };
 
         static readonly TsMediaParser.PacketHandlerFactory Mp3StreamHandlerFactory =
-            (pid, streamType, streamBuffer, nextHandler) =>
+            (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new Mp3Configurator(streamType.Description);
                 var streamHandler = new Mp3StreamHandler(pid, streamType, nextHandler, configurator);
@@ -55,7 +55,7 @@ namespace SM.Media
             };
 
         static readonly TsMediaParser.PacketHandlerFactory AacStreamHandlerFactory =
-            (pid, streamType, streamBuffer, nextHandler) =>
+            (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new AacConfigurator(streamType.Description);
                 var streamHandler = new AacStreamHandler(pid, streamType, nextHandler, configurator);
@@ -64,7 +64,7 @@ namespace SM.Media
             };
 
         static readonly TsMediaParser.PacketHandlerFactory H264StreamHandlerFactory =
-            (pid, streamType, streamBuffer, nextHandler) =>
+            (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new H264Configurator(streamType.Description);
                 var streamHandler = new H264StreamHandler(pid, streamType, nextHandler, configurator);
@@ -73,7 +73,7 @@ namespace SM.Media
             };
 
         static readonly TsMediaParser.PacketHandlerFactory Ac3StreamHandlerFactory =
-            (pid, streamType, streamBuffer, nextHandler) =>
+            (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new Ac3Configurator(streamType.Description);
                 var streamHandler = new Ac3StreamHandler(pid, streamType, nextHandler, configurator);

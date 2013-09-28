@@ -37,7 +37,7 @@ namespace SM.Media
     {
         #region Delegates
 
-        public delegate MediaStream PacketHandlerFactory(uint pid, TsStreamType streamType, IStreamSource streamBuffer, Action<TsPesPacket> nextHandler);
+        public delegate MediaStream PacketHandlerFactory(TsDecoder tsDecoder, uint pid, TsStreamType streamType, IStreamSource streamBuffer, Action<TsPesPacket> nextHandler);
 
         #endregion
 
@@ -200,7 +200,7 @@ namespace SM.Media
 
             var gotFirstPacket = false;
 
-            var ms = streamHandlerFactory(pid, streamType, streamBuffer,
+            var ms = streamHandlerFactory(_tsDecoder, pid, streamType, streamBuffer,
                 packet =>
                 {
                     if (null != packet)

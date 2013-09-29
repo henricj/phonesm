@@ -203,7 +203,7 @@ namespace SM.Media
 
         void Report(Action<int, TimeSpan> update, int size, TimeSpan timestamp)
         {
-            var wasBlock = _blockReads;
+            //var wasBlock = _blockReads;
 
             lock (_lock)
             {
@@ -340,7 +340,7 @@ namespace SM.Media
 
                     ReportBuffering(1);
                 }
-                else
+                else if (validData)
                     UpdateBuffering(timestampDifference, Math.Max(0, totalBuffered - _totalBufferedStart));
 
                 if (0 != _isBuffering)
@@ -442,13 +442,13 @@ namespace SM.Media
         {
             readonly BufferingManager _bufferingManager;
             readonly IManagedBuffer _managedBuffer;
+            readonly TsStreamType _streamType;
             int _bufferSize;
             bool _firstPacket;
             bool _isDone;
             TimeSpan _newestPacket;
             TimeSpan _oldestPacket;
             int _packetCount;
-            TsStreamType _streamType;
 
             public BufferingQueue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
             {

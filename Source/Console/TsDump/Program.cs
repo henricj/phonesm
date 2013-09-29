@@ -115,7 +115,7 @@ namespace TsDump
                 using (var parser = new TsMediaParser(new NullBufferingManager(), () => { }, _ => { },
                     (pid, streamType) => new PesStreamCopyHandler(pid, streamType, FreePacket).PacketHandler))
                 {
-                    _freePesHandler = parser.Decoder.FreePesPacket;
+                    _freePesHandler = parser.Decoder.PesPacketPool.FreePesPacket;
 
                     foreach (var arg in args)
                     {

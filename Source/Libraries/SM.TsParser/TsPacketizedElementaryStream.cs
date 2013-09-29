@@ -342,7 +342,7 @@ namespace SM.TsParser
             Debug.Assert(index >= 0);
             Debug.Assert(index + length <= _bufferEntry.Buffer.Length);
 
-            var pes = _decoder.AllocatePesPacket(_bufferEntry);
+            var pes = _decoder.PesPacketPool.AllocatePesPacket(_bufferEntry);
 
             pes.Index = index;
             pes.Length = length;

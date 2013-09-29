@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsPesPacketPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,10 +25,11 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 
 namespace SM.TsParser.Utility
 {
-    public sealed class TsPesPacketPool : IDisposable
+    public sealed class TsPesPacketPool : IDisposable, ITsPesPacketPool
     {
         readonly Action<BufferInstance> _freeBuffer;
         readonly ObjectPool<TsPesPacket> _packetPool = new ObjectPool<TsPesPacket>();
@@ -50,6 +51,8 @@ namespace SM.TsParser.Utility
 
         #endregion
 
+        #region ITsPesPacketPool Members
+
         public TsPesPacket AllocatePesPacket(BufferInstance bufferEntry)
         {
             var packet = _packetPool.Allocate();
@@ -59,6 +62,32 @@ namespace SM.TsParser.Utility
             packet.BufferEntry = bufferEntry;
 
             return packet;
+        }
+
+        public TsPesPacket CopyPesPacket(TsPesPacket packet, int index, int length)
+        {
+            if (packet == null)
+                throw new ArgumentNullException("packet");
+
+            if (index < 0 || index < packet.Index)
+                throw new ArgumentOutOfRangeException("index");
+
+            if (length < 0 || index + length > packet.Index + packet.Length)
+                throw new ArgumentOutOfRangeException("length");
+
+            Debug.Assert(packet.Index >= 0);
+            Debug.Assert(packet.Index + packet.Length < packet.Buffer.Length);
+
+            var clone = _packetPool.Allocate();
+
+            clone.BufferEntry = packet.BufferEntry;
+
+            clone.BufferEntry.Reference();
+
+            clone.Index = index;
+            clone.Length = length;
+
+            return clone;
         }
 
         public void FreePesPacket(TsPesPacket packet)
@@ -88,6 +117,8 @@ namespace SM.TsParser.Utility
 
             _packetPool.Free(packet);
         }
+
+        #endregion
 
         public void Clear()
         {

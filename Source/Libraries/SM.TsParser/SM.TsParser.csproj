@@ -62,6 +62,7 @@
     <Compile Include="Utility\BufferInstance.cs" />
     <Compile Include="Utility\Crc32Msb.cs" />
     <Compile Include="Utility\IBufferPool.cs" />
+    <Compile Include="Utility\ITsPesPacketPool.cs" />
     <Compile Include="Utility\ObjectPool.cs" />
     <Compile Include="Utility\RegisterExtender.cs" />
     <Compile Include="Utility\TsPesPacketPool.cs" />

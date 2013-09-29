@@ -66,6 +66,8 @@ namespace SM.TsParser
 
         public Action<TsPacket> PacketMonitor { get; set; }
 
+        public ITsPesPacketPool PesPacketPool { get { return _tsPesPacketPool; } }
+
         #region IDisposable Members
 
         public void Dispose()
@@ -93,11 +95,6 @@ namespace SM.TsParser
             return _pesHandlerFactory(pid, streamType);
         }
 
-        internal TsPesPacket AllocatePesPacket(BufferInstance bufferInstance)
-        {
-            return _tsPesPacketPool.AllocatePesPacket(bufferInstance);
-        }
-
         internal BufferInstance AllocateBuffer(int bufferSize)
         {
             return _bufferPool.Allocate(bufferSize);
@@ -106,11 +103,6 @@ namespace SM.TsParser
         internal void FreeBuffer(BufferInstance buffer)
         {
             _bufferPool.Free(buffer);
-        }
-
-        public void FreePesPacket(TsPesPacket packet)
-        {
-            _tsPesPacketPool.FreePesPacket(packet);
         }
 
         public void Initialize(Action<IProgramStreams> programStreamsHandler = null)

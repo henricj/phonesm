@@ -189,7 +189,7 @@ namespace SM.Media
 
         Action<TsPesPacket> CreatePacketHandler(PacketHandlerFactory streamHandlerFactory, uint pid, TsStreamType streamType)
         {
-            var streamBuffer = new StreamBuffer(streamType, _tsDecoder.FreePesPacket, _bufferingManager, _checkForSamples);
+            var streamBuffer = new StreamBuffer(streamType, _tsDecoder.PesPacketPool.FreePesPacket, _bufferingManager, _checkForSamples);
 
             var localStreamBuffer = streamBuffer;
 

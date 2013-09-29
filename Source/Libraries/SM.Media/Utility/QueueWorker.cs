@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="QueueWorker.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -163,7 +163,7 @@ namespace SM.Media.Utility
 
             //_queueWorker = Task.Run((Func<Task>)QueueWorker);
             _queueWorker = Task.Factory.StartNew((Func<Task>)WorkerAsync, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default)
-                .Unwrap();
+                               .Unwrap();
         }
 
         void ThrowIfDisposed()
@@ -211,7 +211,10 @@ namespace SM.Media.Utility
             if (null != workItems)
             {
                 foreach (var workItem in workItems)
-                    _cleanup(workItem);
+                {
+                    if (null != workItem)
+                        _cleanup(workItem);
+                }
             }
         }
 
@@ -329,7 +332,7 @@ namespace SM.Media.Utility
             {
                 lock (_processLock)
                 {
-                    Debug.Assert(!_workerRunning);
+                    Debug.Assert(!_workerRunning, "QueueWorker.WorkerAsync() exited unexpectedly");
                     _workerRunning = false;
                 }
 

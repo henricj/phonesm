@@ -256,6 +256,7 @@ namespace SM.Media.Utility
         async Task WorkerAsync()
         {
             var closeTask = false;
+            var normalExit = false;
 
             try
             {
@@ -274,6 +275,7 @@ namespace SM.Media.Utility
 
                             if (isDisposed || !isEnabled || isClosed || isPaused)
                             {
+                                normalExit = true;
                                 _workerRunning = false;
 
                                 if (isClosed && !_closeTaskCompletionSource.Task.IsCompleted)
@@ -284,7 +286,9 @@ namespace SM.Media.Utility
 
                             if (0 == _processBuffers.Count)
                             {
+                                normalExit = true;
                                 _workerRunning = false;
+
                                 return;
                             }
 
@@ -332,7 +336,8 @@ namespace SM.Media.Utility
             {
                 lock (_processLock)
                 {
-                    Debug.Assert(!_workerRunning, "QueueWorker.WorkerAsync() exited unexpectedly");
+                    Debug.Assert(normalExit, "QueueWorker.WorkerAsync() exited unexpectedly");
+
                     _workerRunning = false;
                 }
 

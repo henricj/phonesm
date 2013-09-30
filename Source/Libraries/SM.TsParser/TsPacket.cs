@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="TsPacket.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="TsPacket.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -34,23 +34,27 @@ namespace SM.TsParser
     {
         const double Pcr27MHzTicksScale = TimeSpan.TicksPerSecond / 27000000.0;
         public const int PacketSize = 188;
+        public const int SyncByte = 0x47;
 
-        static readonly Dictionary<uint, string> PacketTypes = new Dictionary<uint, string>
+        static readonly Dictionary<uint, string> PacketTypes =
+            new Dictionary<uint, string>
+            {
+                { 0x0000, "Program Association Table" },
+                { 0x0001, "Conditional Access Table" },
+                { 0x0002, "Transport Stream Description Table" },
+                { 0x0003, "IPMP Control Information Table" },
+                { 0x1fff, "Null packet" }
+            };
+
+        static readonly string[] AdaptationValues =
         {
-            { 0x0000, "Program Association Table" },
-            { 0x0001, "Conditional Access Table" },
-            { 0x0002, "Transport Stream Description Table" },
-            { 0x0003, "IPMP Control Information Table" },
-            { 0x1fff, "Null packet" }
-        };
-
-        static readonly string[] AdaptationValues = {
             "Reserved",
             "Payload Only",
             "Adaptation Only", "Adaptation and Payload"
         };
 
-        static readonly string[] ScramblingControlValues = {
+        static readonly string[] ScramblingControlValues =
+        {
             "Not scrambled",
             "User defined 1",
             "User defined 2",
@@ -87,22 +91,31 @@ namespace SM.TsParser
 
         public ulong? Pcr { get; private set; }
 
+        /// <summary>
+        ///     The byte count from the start of the transport stream where this packet starts.
+        ///     ISO/IEC 13818-1 calls this "i".
+        /// </summary>
+        public int TsIndex { get; private set; }
+
+        internal byte[] Buffer
+        {
+            get { return _buffer; }
+        }
+
+        internal int BufferOffset
+        {
+            get { return _payloadIndex; }
+        }
+
+        internal int BufferLength
+        {
+            get { return _payloadLength; }
+        }
+
         public void CopyTo(byte[] buffer, int index)
         {
             Array.Copy(_buffer, _payloadIndex, buffer, index, _payloadLength);
         }
-
-        /// <summary>
-        /// The byte count from the start of the transport stream where this packet starts.
-        /// ISO/IEC 13818-1 calls this "i".
-        /// </summary>
-        public int TsIndex { get; private set; }
-
-        internal byte[] Buffer { get { return _buffer; } }
-
-        internal int BufferOffset { get { return _payloadIndex; } }
-
-        internal int BufferLength { get { return _payloadLength; } }
 
         ulong ReadTime(byte[] buffer, int index)
         {
@@ -115,9 +128,9 @@ namespace SM.TsParser
 
             // Get the first 32 bits
             ulong time = ((uint)buffer[index] << 24)
-                       | ((uint)buffer[index + 1] << 16)
-                       | ((uint)buffer[index + 2] << 8)
-                       | buffer[index + 3];
+                         | ((uint)buffer[index + 1] << 16)
+                         | ((uint)buffer[index + 2] << 8)
+                         | buffer[index + 3];
 
             time <<= 1;
 
@@ -142,8 +155,7 @@ namespace SM.TsParser
 
             IsSkip = false;
 
-            // sync_byte
-            if (0x47 != buffer[i++])
+            if (SyncByte != buffer[i++])
             {
                 IsSkip = true;
                 return false;
@@ -260,8 +272,8 @@ namespace SM.TsParser
             var sb = new StringBuilder();
 
             sb.AppendFormat("'{0}'{1}{2} Count={3} ({4}, {5})",
-                            packetType, IsStart ? " Start" : null, _transportPriority ? " Priority" : null,
-                            ContinuityCount, AdaptationValues[_adaptationFieldControl], ScramblingControlValues[_transportScramblingControl]);
+                packetType, IsStart ? " Start" : null, _transportPriority ? " Priority" : null,
+                ContinuityCount, AdaptationValues[_adaptationFieldControl], ScramblingControlValues[_transportScramblingControl]);
 
             if (0 != (_adaptationFieldControl & 0x2) && _adaptationLength > 0)
             {

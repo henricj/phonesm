@@ -106,16 +106,33 @@ namespace SM.Media.MP3
 
         public int Channels { get; private set; }
 
+        public int? MarkerIndex { get; private set; }
+
+        public int? EndIndex
+        {
+            get
+            {
+                if (!MarkerIndex.HasValue)
+                    return null;
+
+                return MarkerIndex.Value + FrameLength;
+            }
+        }
+
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
         {
-            var lastIndex = index + length;
+            MarkerIndex = null;
 
             if (length < 4)
                 return false;
 
+            var lastIndex = index + length;
+
             // http://www.mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm
 
             byte h1;
+
+            var markerIndex = -1;
 
             for (; ; )
             {
@@ -123,6 +140,8 @@ namespace SM.Media.MP3
                 {
                     if (index + 4 > lastIndex)
                         return false;
+
+                    markerIndex = index;
 
                     var frameSync = buffer[index++];
 
@@ -141,6 +160,8 @@ namespace SM.Media.MP3
                     break;
             }
 
+            MarkerIndex = markerIndex;
+
             var versionCode = (h1 >> 3) & 3;
 
             var version = 1;
@@ -157,9 +178,9 @@ namespace SM.Media.MP3
 
             var bitrateIndex = (h2 >> 4) & 0x0f;
 
-            var bitrate = GetBitrate(version, layer, bitrateIndex);
+            var bitRate = GetBitrate(version, layer, bitrateIndex);
 
-            if (bitrate < 1)
+            if (bitRate < 1)
                 return false;
 
             var sampleRateIndex = (h2 >> 2) & 3;
@@ -187,18 +208,18 @@ namespace SM.Media.MP3
 
             ChannelMode = channelMode;
             Channels = channelMode == 3 ? 1 : 2;
-            Bitrate = bitrate;
+            Bitrate = bitRate;
             SampleRate = sampleRate;
-            FrameLength = GetFrameSize(layer, bitrate, sampleRate, paddingFlag);
+            FrameLength = GetFrameSize(layer, bitRate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
             Name = string.Format("MP3 {0}, {1} sample {2}kHz bitrate {3}kHz {4} channels",
-                VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitrate / 1000.0, Channels);
+                VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitRate / 1000.0, Channels);
 
 #if DEBUG
             if (verbose)
             {
                 Debug.WriteLine("Configuration MP3 Frame: {0}, {1} sample {2}kHz bitrate {3}kHz channel mode {4}",
-                    VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitrate / 1000.0, channelMode);
+                    VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitRate / 1000.0, channelMode);
             }
 #endif
             return true;

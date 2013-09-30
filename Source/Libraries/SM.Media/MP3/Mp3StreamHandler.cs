@@ -25,34 +25,132 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Configuration;
+using System.Diagnostics;
 using SM.Media.Pes;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
-    public class Mp3StreamHandler : PesStreamHandler
+    class Mp3StreamHandler : PesStreamHandler
     {
-        readonly IFrameParser _configurator;
+        readonly Action<Mp3FrameHeader> _configurator;
+        readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly Action<TsPesPacket> _nextHandler;
-        bool _foundframe;
+        readonly Mp3Parser _parser;
+        readonly ITsPesPacketPool _pesPacketPool;
+        bool _foundFrame;
 
-        public Mp3StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IFrameParser configurator)
+        public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, Action<Mp3FrameHeader> configurator)
             : base(pid, streamType)
         {
+            if (pesPacketPool == null)
+                throw new ArgumentNullException("pesPacketPool");
+            if (nextHandler == null)
+                throw new ArgumentNullException("nextHandler");
+
+            _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
             _configurator = configurator;
+
+            _parser = new Mp3Parser(pesPacketPool, _configurator, _nextHandler);
         }
 
         public override void PacketHandler(TsPesPacket packet)
         {
             base.PacketHandler(packet);
 
-            if (!_foundframe && null != packet)
-                _foundframe = _configurator.Parse(packet.Buffer, packet.Index, packet.Length);
+            if (null == packet)
+            {
+                _nextHandler(null);
 
-            if (null != _nextHandler)
-                _nextHandler(packet);
+                return;
+            }
+
+            if (!_foundFrame)
+            {
+                if (_frameHeader.Parse(packet.Buffer, packet.Index, packet.Length, true))
+                {
+                    _configurator(_frameHeader);
+                    _foundFrame = true;
+                }
+            }
+
+            _nextHandler(packet);
+
+            //_parser.Position = packet.PresentationTimestamp;
+            //_parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
+
+            //FrameSplittingHandler(packet);
+        }
+
+        void FrameSplittingHandler(TsPesPacket packet)
+        {
+            var index = packet.Index;
+            var length = packet.Length;
+            var timestamp = packet.PresentationTimestamp;
+
+            for (; ; )
+            {
+                if (!_frameHeader.Parse(packet.Buffer, index, length))
+                {
+                    if (_frameHeader.MarkerIndex.HasValue && _frameHeader.MarkerIndex.Value + 7 < packet.Index + packet.Length)
+                    {
+                        // We saw a bad header, but we did find a marker.  Skip the marker and try
+                        // to find another packet.
+                        var newIndex = _frameHeader.MarkerIndex.Value + 1;
+                        var newLength = length - (newIndex - index);
+
+                        length = newLength;
+                        index = newIndex;
+
+                        continue;
+                    }
+
+                    _pesPacketPool.FreePesPacket(packet);
+
+                    return;
+                }
+
+                if (!_foundFrame)
+                {
+                    _foundFrame = true;
+
+                    _configurator(_frameHeader);
+                }
+
+                Debug.Assert(_frameHeader.MarkerIndex.HasValue);
+
+                index = _frameHeader.MarkerIndex.Value;
+                var endIndex = _frameHeader.EndIndex.Value;
+                var frameLength = endIndex - index;
+
+                Debug.Assert(frameLength <= length);
+                Debug.Assert(index >= 0 && index >= packet.Index);
+                Debug.Assert(endIndex >= index && endIndex <= packet.Index + packet.Length);
+                Debug.Assert(frameLength <= packet.Length);
+
+                if (endIndex + 4 >= packet.Index + packet.Length)
+                {
+                    packet.Index = index;
+                    packet.Length = length;
+                    packet.PresentationTimestamp = timestamp;
+
+                    _nextHandler(packet);
+
+                    return;
+                }
+
+                var copyPacket = _pesPacketPool.CopyPesPacket(packet, index, frameLength);
+
+                copyPacket.PresentationTimestamp = timestamp;
+
+                _nextHandler(copyPacket);
+
+                index += frameLength;
+                length -= frameLength;
+                timestamp += _frameHeader.Duration;
+            }
         }
     }
 }

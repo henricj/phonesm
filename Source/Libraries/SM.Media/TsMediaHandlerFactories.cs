@@ -49,7 +49,7 @@ namespace SM.Media
             (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new Mp3Configurator(streamType.Description);
-                var streamHandler = new Mp3StreamHandler(pid, streamType, nextHandler, configurator);
+                var streamHandler = new Mp3StreamHandler(tsDecoder.PesPacketPool, pid, streamType, nextHandler, configurator.Configure);
 
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };

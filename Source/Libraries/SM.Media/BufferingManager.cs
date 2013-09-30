@@ -76,7 +76,7 @@ namespace SM.Media
                         if (!queue.IsValid)
                             continue;
 
-                        var position = queue.Oldest;
+                        var position = queue.Oldest.Value;
 
                         if (position < latestPosition)
                             latestPosition = position;
@@ -106,12 +106,12 @@ namespace SM.Media
                         if (!queue.IsValid)
                             continue;
 
-                        var position = queue.Oldest;
+                        var position = queue.Oldest.Value;
 
                         if (position < oldest)
                             oldest = position;
 
-                        position = queue.Newest;
+                        position = queue.Newest.Value;
 
                         if (position > newest)
                             newest = position;
@@ -310,12 +310,12 @@ namespace SM.Media
                 var newTime = queue.Newest;
 
                 if (newTime > newest)
-                    newest = newTime;
+                    newest = newTime.Value;
 
                 var oldTime = queue.Oldest;
 
                 if (oldTime < oldest)
-                    oldest = oldTime;
+                    oldest = oldTime.Value;
             }
 
             var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;
@@ -336,7 +336,8 @@ namespace SM.Media
                     Interlocked.Exchange(ref _isBuffering, 0);
 #pragma warning restore 0420
 
-                    Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
+                    Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): {0} duration, {1} size, {2} memory",
+                        validData ? timestampDifference.ToString() : "none", validData ? totalBuffered.ToString() : "none", GC.GetTotalMemory(false));
 
                     ReportBuffering(1);
                 }
@@ -444,10 +445,9 @@ namespace SM.Media
             readonly IManagedBuffer _managedBuffer;
             readonly TsStreamType _streamType;
             int _bufferSize;
-            bool _firstPacket;
             bool _isDone;
-            TimeSpan _newestPacket;
-            TimeSpan _oldestPacket;
+            TimeSpan? _newestPacket;
+            TimeSpan? _oldestPacket;
             int _packetCount;
 
             public BufferingQueue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
@@ -469,15 +469,15 @@ namespace SM.Media
 
             public bool IsValid
             {
-                get { return _firstPacket && !_isDone; }
+                get { return _packetCount > 0 && _newestPacket.HasValue && _oldestPacket.HasValue; }
             }
 
-            public TimeSpan Newest
+            public TimeSpan? Newest
             {
                 get { return _newestPacket - _managedBuffer.TimestampOffset; }
             }
 
-            public TimeSpan Oldest
+            public TimeSpan? Oldest
             {
                 get { return _oldestPacket - _managedBuffer.TimestampOffset; }
             }
@@ -546,7 +546,7 @@ namespace SM.Media
             {
                 _packetCount = 0;
                 _bufferSize = 0;
-                _firstPacket = false;
+                _newestPacket = _oldestPacket = null;
             }
 
             void Enqueue(int size, TimeSpan timestamp)
@@ -556,11 +556,8 @@ namespace SM.Media
 
                 _newestPacket = timestamp;
 
-                if (!_firstPacket)
-                {
+                if (!_oldestPacket.HasValue)
                     _oldestPacket = timestamp;
-                    _firstPacket = true;
-                }
             }
 
             void Dequeue(int size, TimeSpan timestamp)
@@ -570,11 +567,8 @@ namespace SM.Media
 
                 _oldestPacket = timestamp;
 
-                if (!_firstPacket)
-                {
+                if (!_newestPacket.HasValue)
                     _newestPacket = timestamp;
-                    _firstPacket = true;
-                }
             }
         }
 

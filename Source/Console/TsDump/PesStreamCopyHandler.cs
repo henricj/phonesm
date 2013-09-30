@@ -1,21 +1,21 @@
-//-----------------------------------------------------------------------
-// <copyright file="PesStreamCopyHandler.cs" company="Henric Jungheim">
-// Copyright (c) 2012.
-// <author>Henric Jungheim</author>
-// </copyright>
-//-----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org> 
-//
+// -----------------------------------------------------------------------
+//  <copyright file="PesStreamCopyHandler.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
 // Software is furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -36,10 +36,12 @@ namespace TsDump
 {
     sealed class PesStreamCopyHandler : PesStreamHandler, IDisposable
     {
+        static readonly byte[] FakeBuffer = new byte[0];
         readonly HashAlgorithm _hash = SHA256.Create();
+        readonly Action<TsPesPacket> _nextHandler;
         readonly Stream _stream;
-        TimeSpan _timestamp;
         byte[] StreamHash;
+        TimeSpan _timestamp;
 
         public PesStreamCopyHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
@@ -53,7 +55,7 @@ namespace TsDump
         #region IDisposable Members
 
         /// <summary>
-        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
         public void Dispose()
@@ -66,9 +68,6 @@ namespace TsDump
         }
 
         #endregion
-
-        static readonly byte[] FakeBuffer = new byte[0];
-        readonly Action<TsPesPacket> _nextHandler;
 
         public override void PacketHandler(TsPesPacket packet)
         {
@@ -108,10 +107,10 @@ namespace TsDump
 
                 _hash.TransformBlock(packet.Buffer, packet.Index, packet.Length, null, 0);
 
-                if (packet.Timestamp < _timestamp)
-                    Debug.WriteLine("Timestamp did not increase {0} -> {1}", _timestamp, packet.Timestamp);
+                if (packet.PresentationTimestamp < _timestamp)
+                    Debug.WriteLine("Timestamp did not increase {0} -> {1}", _timestamp, packet.PresentationTimestamp);
 
-                _timestamp = packet.Timestamp;
+                _timestamp = packet.PresentationTimestamp;
 
                 if (null != t)
                     t.Wait();

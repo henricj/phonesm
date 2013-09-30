@@ -68,6 +68,7 @@
     <Compile Include="M3U8\TagSupport\M3U8ValueTag.cs" />
     <Compile Include="MP3\Mp3FrameHeader.cs" />
     <Compile Include="MP3\Mp3MediaParser.cs" />
+    <Compile Include="MP3\Mp3Parser.cs" />
     <Compile Include="PacketStreamWrapper.cs" />
     <Compile Include="Playlists\IProgramManager.cs" />
     <Compile Include="Playlists\IStreamSegments.cs" />

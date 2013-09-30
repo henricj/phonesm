@@ -146,9 +146,9 @@ namespace SM.Media
                     return null;
                 }
 
-                ReportDequeue(packet.Length, packet.Timestamp);
+                ReportDequeue(packet.Length, packet.PresentationTimestamp);
 
-                PresentationTimestamp = packet.Timestamp - TimestampOffset;
+                PresentationTimestamp = packet.PresentationTimestamp - TimestampOffset;
 
 #if DEBUG
                 //Debug.WriteLine("StreamBuffer {0}/{1} forwarding sample {2}", _streamBufferId, _streamType.Contents, PresentationTimestamp);
@@ -264,7 +264,7 @@ namespace SM.Media
                 _packets.Enqueue(packet);
 
                 if (null != packet)
-                    ReportEnqueue(packet.Length, packet.Timestamp);
+                    ReportEnqueue(packet.Length, packet.PresentationTimestamp);
                 else
                 {
                     _isDone = true;

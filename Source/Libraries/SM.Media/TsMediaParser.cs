@@ -211,9 +211,9 @@ namespace SM.Media
 
                             var startPosition = StartPosition;
 
-                            Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.Timestamp);
+                            Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.PresentationTimestamp);
 
-                            var timestampOffset = packet.Timestamp - startPosition;
+                            var timestampOffset = packet.PresentationTimestamp - startPosition;
 
                             if (!_timestampOffset.HasValue || timestampOffset < _timestampOffset)
                             {
@@ -227,7 +227,7 @@ namespace SM.Media
                             }
                         }
 
-                        Debug.Assert(packet.Timestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.Timestamp, StartPosition, packet.Timestamp >= StartPosition));
+                        Debug.Assert(packet.PresentationTimestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.PresentationTimestamp, StartPosition, packet.PresentationTimestamp >= StartPosition));
                     }
 
                     streamBuffer.Enqueue(packet);

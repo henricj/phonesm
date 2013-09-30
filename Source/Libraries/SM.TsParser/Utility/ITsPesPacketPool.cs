@@ -28,6 +28,7 @@ namespace SM.TsParser.Utility
 {
     public interface ITsPesPacketPool
     {
+        TsPesPacket AllocatePesPacket(int minSize);
         TsPesPacket AllocatePesPacket(BufferInstance bufferEntry);
         TsPesPacket CopyPesPacket(TsPesPacket packet, int index, int length);
         void FreePesPacket(TsPesPacket packet);

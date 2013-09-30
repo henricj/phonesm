@@ -31,15 +31,15 @@ namespace SM.TsParser.Utility
 {
     public sealed class TsPesPacketPool : IDisposable, ITsPesPacketPool
     {
-        readonly Action<BufferInstance> _freeBuffer;
+        readonly IBufferPool _bufferPool;
         readonly ObjectPool<TsPesPacket> _packetPool = new ObjectPool<TsPesPacket>();
 
-        public TsPesPacketPool(Action<BufferInstance> freeBuffer)
+        public TsPesPacketPool(IBufferPool bufferPool)
         {
-            if (null == freeBuffer)
-                throw new ArgumentNullException("freeBuffer");
+            if (null == bufferPool)
+                throw new ArgumentNullException("bufferPool");
 
-            _freeBuffer = freeBuffer;
+            _bufferPool = bufferPool;
         }
 
         #region IDisposable Members
@@ -53,6 +53,13 @@ namespace SM.TsParser.Utility
 
         #region ITsPesPacketPool Members
 
+        public TsPesPacket AllocatePesPacket(int minSize)
+        {
+            var bufferEntry = _bufferPool.Allocate(minSize);
+
+            return AllocatePesPacket(bufferEntry);
+        }
+
         public TsPesPacket AllocatePesPacket(BufferInstance bufferEntry)
         {
             var packet = _packetPool.Allocate();
@@ -60,6 +67,8 @@ namespace SM.TsParser.Utility
             bufferEntry.Reference();
 
             packet.BufferEntry = bufferEntry;
+
+            packet.Clear();
 
             return packet;
         }
@@ -76,7 +85,7 @@ namespace SM.TsParser.Utility
                 throw new ArgumentOutOfRangeException("length");
 
             Debug.Assert(packet.Index >= 0);
-            Debug.Assert(packet.Index + packet.Length < packet.Buffer.Length);
+            Debug.Assert(packet.Index + packet.Length <= packet.Buffer.Length);
 
             var clone = _packetPool.Allocate();
 
@@ -106,13 +115,14 @@ namespace SM.TsParser.Utility
 #endif
                 packet.BufferEntry = null;
 
-                _freeBuffer(buffer);
+                _bufferPool.Free(buffer);
             }
 
 #if DEBUG
             packet.Index = int.MinValue;
             packet.Length = int.MinValue;
-            packet.Timestamp = TimeSpan.MaxValue;
+            packet.PresentationTimestamp = TimeSpan.MaxValue;
+            packet.DecodeTimestamp = TimeSpan.MaxValue;
 #endif
 
             _packetPool.Free(packet);

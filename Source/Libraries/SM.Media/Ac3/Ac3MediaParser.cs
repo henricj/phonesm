@@ -56,7 +56,7 @@ namespace SM.Media.Ac3
 
             _bufferPool = bufferPool;
 
-            _packetPool = new TsPesPacketPool(_bufferPool.Free);
+            _packetPool = new TsPesPacketPool(_bufferPool);
 
             _streamBuffer = new StreamBuffer(StreamType, _packetPool.FreePesPacket, bufferingManager, checkForSamples);
 
@@ -196,7 +196,7 @@ namespace SM.Media.Ac3
             if (!_position.HasValue)
                 _position = StartPosition;
 
-            packet.Timestamp = _position.Value;
+            packet.PresentationTimestamp = _position.Value;
 
             _position += _frameHeader.Duration;
 

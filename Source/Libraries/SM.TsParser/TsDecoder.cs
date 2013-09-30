@@ -49,7 +49,7 @@ namespace SM.TsParser
         {
             _bufferPool = bufferPool;
 
-            _tsPesPacketPool = new TsPesPacketPool(_bufferPool.Free);
+            _tsPesPacketPool = new TsPesPacketPool(_bufferPool);
 
             _pesHandlerFactory = pesHandlerFactory;
 
@@ -66,7 +66,10 @@ namespace SM.TsParser
 
         public Action<TsPacket> PacketMonitor { get; set; }
 
-        public ITsPesPacketPool PesPacketPool { get { return _tsPesPacketPool; } }
+        public ITsPesPacketPool PesPacketPool
+        {
+            get { return _tsPesPacketPool; }
+        }
 
         #region IDisposable Members
 
@@ -199,8 +202,20 @@ namespace SM.TsParser
             // Run through as much as we can of the provided buffer
 
             var i = offset;
-            for (; EnableProcessing && i <= offset + length - _packetSize; i += _packetSize)
-                ParsePacket(buffer, i);
+
+            while (EnableProcessing && i <= offset + length - _packetSize)
+            {
+                if (TsPacket.SyncByte != buffer[i] || !ParsePacket(buffer, i))
+                {
+                    ++i;
+                    continue;
+                }
+
+                i += _packetSize;
+            }
+
+            for (; i < offset + length && TsPacket.SyncByte != buffer[i]; ++i)
+                ;
 
             _destinationLength = length - (i - offset);
 
@@ -209,15 +224,15 @@ namespace SM.TsParser
                 Array.Copy(buffer, i, _destinationArray, 0, _destinationLength);
         }
 
-        void ParsePacket(byte[] buffer, int offset)
+        bool ParsePacket(byte[] buffer, int offset)
         {
             if (!_tsPacket.Parse(_tsIndex, buffer, offset))
-                throw new Exception("Invalid packet");
+                return false;
 
             _tsIndex += _packetSize;
 
             if (_tsPacket.IsSkip)
-                return;
+                return true;
 
             Action<TsPacket> handler;
             if (_packetHandlers.TryGetValue(_tsPacket.Pid, out handler))
@@ -227,6 +242,8 @@ namespace SM.TsParser
 
             if (null != pm)
                 pm(_tsPacket);
+
+            return true;
         }
     }
 }

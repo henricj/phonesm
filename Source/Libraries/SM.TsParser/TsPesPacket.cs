@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsPesPacket.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,18 @@ namespace SM.TsParser
 
         public int Index;
         public int Length;
-        public TimeSpan Timestamp;
+        public TimeSpan PresentationTimestamp;
+        public TimeSpan? DecodeTimestamp;
+        public TimeSpan? Duration;
+
+        public void Clear()
+        {
+            Index = Length = 0;
+            PresentationTimestamp = TimeSpan.Zero;
+            DecodeTimestamp = null;
+            Duration = null;
+        }
+
 #if DEBUG
         static int _packetCount;
         public readonly int PacketId = Interlocked.Increment(ref _packetCount);

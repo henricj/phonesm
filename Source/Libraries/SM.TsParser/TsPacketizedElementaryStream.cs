@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsPacketizedElementaryStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -346,9 +346,9 @@ namespace SM.TsParser
 
             pes.Index = index;
             pes.Length = length;
-            pes.Timestamp = PtsToTimestamp(pts);
+            pes.PresentationTimestamp = PtsToTimestamp(pts);
 
-            Debug.Assert(pes.Timestamp >= TimeSpan.Zero);
+            Debug.Assert(pes.PresentationTimestamp >= TimeSpan.Zero);
 
 #if DEBUG
             //Debug.WriteLine("Create PES Packet({0}) Index {1} Length {2} Time {3} {4}", pes.PacketId, pes.Index, pes.Length, pes.Timestamp, pes.BufferEntry);

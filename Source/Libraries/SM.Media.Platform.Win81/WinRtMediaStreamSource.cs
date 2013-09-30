@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -174,7 +175,12 @@ namespace SM.Media
             if (null == encodingProperties)
                 throw new ArgumentOutOfRangeException();
 
-            return new VideoStreamDescriptor(encodingProperties);
+            var descriptor = new VideoStreamDescriptor(encodingProperties);
+
+            if (string.IsNullOrEmpty(descriptor.Name))
+                descriptor.Name = configurationSource.Name;
+
+            return descriptor;
         }
 
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
@@ -213,7 +219,14 @@ namespace SM.Media
             var audioEncodingProperties = propertyFactory((uint)configurationSource.SamplingFrequency,
                 (uint)configurationSource.Channels, (uint?)configurationSource.Bitrate ?? 0u);
 
-            return new AudioStreamDescriptor(audioEncodingProperties);
+            audioEncodingProperties.BitsPerSample = 16;
+
+            var descriptor = new AudioStreamDescriptor(audioEncodingProperties);
+
+            if (string.IsNullOrEmpty(descriptor.Name))
+                descriptor.Name = configurationSource.Name;
+
+            return descriptor;
         }
 
         void ConfigureAudioStream(IAudioConfigurationSource configurationSource, IStreamSource audioSource)
@@ -402,6 +415,8 @@ namespace SM.Media
 
                         if (_bufferingProgress != _reportedBufferingProgress)
                         {
+                            Debug.WriteLine("Sample {0} buffering {1}%", request.StreamDescriptor.Name, _bufferingProgress);
+
                             request.ReportSampleProgress(_bufferingProgress);
                             _reportedBufferingProgress = _bufferingProgress;
                         }
@@ -419,6 +434,15 @@ namespace SM.Media
 
                     if (null == mediaStreamSample)
                         throw new InvalidOperationException("MediaStreamSamples cannot be null");
+
+                    if (packet.DecodeTimestamp.HasValue)
+                        mediaStreamSample.DecodeTimestamp = packet.DecodeTimestamp.Value;
+
+                    if (packet.Duration.HasValue)
+                        mediaStreamSample.Duration = packet.Duration.Value;
+
+                    //Debug.WriteLine("Sample {0} at {1}. duration {2} length {3}",
+                    //    request.StreamDescriptor.Name, mediaStreamSample.Timestamp, mediaStreamSample.Duration, packet.Length);
 
                     request.Sample = mediaStreamSample;
 

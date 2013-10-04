@@ -325,8 +325,11 @@ namespace SM.Media
 
             Debug.Assert(timestampDifference == TimeSpan.MaxValue || timestampDifference + TimeSpan.FromMilliseconds(500) >= TimeSpan.Zero);
 
-            if (timestampDifference < TimeSpan.Zero)
+            if (timestampDifference <= TimeSpan.Zero)
+            {
                 timestampDifference = TimeSpan.Zero;
+                validData = false;
+            }
 
             if (0 != _isBuffering)
             {

@@ -53,6 +53,7 @@ namespace SM.Media.Playlists
         readonly ISubProgram _subProgram;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         CancellationTokenSource _abortTokenSource;
+        int _dynamicStartIndex;
         bool _isDynamicPlaylist;
         bool _isInitialized;
         bool _isRunning;
@@ -186,7 +187,8 @@ namespace SM.Media.Playlists
         void Seek(TimeSpan timestamp)
         {
             StartPosition = TimeSpan.Zero;
-            _startSegmentIndex = -1;
+
+            _startSegmentIndex = _isDynamicPlaylist ? _dynamicStartIndex : -1;
 
             if (null == _segments || _segments.Length < 1)
                 return;
@@ -407,15 +409,15 @@ namespace SM.Media.Playlists
 
                     if (!needReload)
                         segments = ResyncSegments();
+
+                    if (isDynamicPlayist)
+                        UpdateDynamicPlaylistExpiration(segments0);
                 }
 
                 if (!needReload)
                     _segments = segments;
 
                 _isDynamicPlaylist = isDynamicPlayist;
-
-                if (isDynamicPlayist)
-                    UpdateDynamicPlaylist(segments0);
             }
 
             Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
@@ -433,11 +435,14 @@ namespace SM.Media.Playlists
         {
             var previousPlaylist = null as ISegment[];
 
+            var lastLength = -1;
+
             foreach (var playlist in _dynamicPlaylists)
             {
+                lastLength = playlist.Length;
+
                 if (null == previousPlaylist)
                 {
-                    _startSegmentIndex = -1;
                     _segmentList.AddRange(playlist);
 
                     previousPlaylist = playlist;
@@ -451,8 +456,6 @@ namespace SM.Media.Playlists
                     if (previousPlaylist[i].MediaSequence.HasValue && previousPlaylist[i].MediaSequence == playlist[0].MediaSequence
                         || !previousPlaylist[i].MediaSequence.HasValue && previousPlaylist[i].Url == playlist[0].Url)
                     {
-                        _startSegmentIndex = _segmentList.Count - 1;
-
                         for (var j = 0; j < playlist.Length; ++j)
                         {
                             if (i + j < previousPlaylist.Length && previousPlaylist[i + j].Url == playlist[j].Url)
@@ -467,10 +470,7 @@ namespace SM.Media.Playlists
                 }
 
                 if (!found)
-                {
-                    _startSegmentIndex = _segmentList.Count - 1;
                     _segmentList.AddRange(playlist);
-                }
 
                 previousPlaylist = playlist;
             }
@@ -478,16 +478,47 @@ namespace SM.Media.Playlists
             var segments = _segmentList.ToArray();
             _segmentList.Clear();
 
+            // lastLength is the length of the most recent playlist.  We must
+            // start inside this playlist.
+
+            SetDynamicStartIndex(segments, segments.Length - lastLength + 1);
+
             return segments;
         }
 
-        void UpdateDynamicPlaylist(ISegment[] segments)
+        void SetDynamicStartIndex(IList<ISegment> segments, int notBefore)
         {
-            var reloadDelay = GetDuration(segments, Math.Max(1, segments.Length - 4), segments.Length);
+            _dynamicStartIndex = notBefore;
+
+            // Don't start more than 60 seconds in the past.
+
+            var duration = TimeSpan.FromSeconds(60);
+
+            for (var i = segments.Count - 1; i > notBefore; --i)
+            {
+                if (!segments[i].Duration.HasValue)
+                    break;
+
+                duration -= segments[i].Duration.Value;
+
+                if (duration <= TimeSpan.Zero)
+                {
+                    _dynamicStartIndex = i;
+
+                    break;
+                }
+            }
+
+            _startSegmentIndex = _dynamicStartIndex;
+        }
+
+        void UpdateDynamicPlaylistExpiration(IList<ISegment> segments)
+        {
+            var reloadDelay = GetDuration(segments, Math.Max(1, segments.Count - 4), segments.Count);
 
             if (!reloadDelay.HasValue)
             {
-                var segmentCount = segments.Length - 1;
+                var segmentCount = segments.Count - 1;
 
                 if (segmentCount > 0)
                     reloadDelay = new TimeSpan(0, 0, 0, 3 * segmentCount);
@@ -501,8 +532,6 @@ namespace SM.Media.Playlists
                 expire = MinimumReload;
             else if (expire > MaximumReload)
                 expire = MaximumReload;
-
-            _expirationTimer.Change(expire, NotPeriodic);
 
             // We use the system uptime rather than DateTime.UtcNow to
             // avoid grief if there is a step in the system time.
@@ -523,13 +552,16 @@ namespace SM.Media.Playlists
                 if (!segment.Duration.HasValue)
                     return null;
 
+                if (segment.Duration <= TimeSpan.Zero || segment.Duration > ExcessiveDuration)
+                    return null;
+
                 duration += segment.Duration.Value;
             }
 
             return duration;
         }
 
-        static TimeSpan? GetDuration(ISegment[] segments, int start, int end)
+        static TimeSpan? GetDuration(IList<ISegment> segments, int start, int end)
         {
             var duration = TimeSpan.Zero;
 

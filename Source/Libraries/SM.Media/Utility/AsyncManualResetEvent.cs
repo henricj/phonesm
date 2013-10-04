@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AsyncManualResetEvent.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,23 +58,40 @@ namespace SM.Media.Utility
             if (tcs.Task.IsCompleted)
                 return;
 
-            Task.Factory.StartNew(s => ((TaskCompletionSource<bool>)s).TrySetResult(true),
-                                  tcs, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
+            var t = Task.Factory.StartNew(s => ((TaskCompletionSource<bool>)s).TrySetResult(true),
+                tcs, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
 
             //tcs.Task.Wait();
         }
 
         public void Reset()
         {
+            var tcs = _tcs;
+
+            if (!tcs.Task.IsCompleted)
+                return;
+
             var newTcs = new TaskCompletionSource<bool>();
 
             while (true)
             {
-                var tcs = _tcs;
-                if (!tcs.Task.IsCompleted ||
 #pragma warning disable 0420
-                    Interlocked.CompareExchange(ref _tcs, newTcs, tcs) == tcs)
+                var currentTcs = Interlocked.CompareExchange(ref _tcs, newTcs, tcs);
 #pragma warning restore 0420
+
+                if (tcs == currentTcs)
+                {
+                    if (!tcs.Task.IsCompleted)
+                    {
+                        Debug.WriteLine("*** AsyncManualResetEvent.Reset(): task completion source was not completed");
+
+                        tcs.TrySetResult(true);
+                    }
+                }
+
+                tcs = currentTcs;
+
+                if (!tcs.Task.IsCompleted)
                     return;
             }
         }

@@ -42,6 +42,7 @@ namespace SimulatedPlayer
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
         readonly List<WorkCommand> _pendingGets = new List<WorkCommand>();
         readonly object _stateLock = new object();
+        readonly List<PacketStreamWrapper> _streamWrappers = new List<PacketStreamWrapper>();
         bool _isClosed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         int _pendingRequests;
@@ -60,6 +61,9 @@ namespace SimulatedPlayer
         {
             using (_commandWorker)
             { }
+
+            foreach (var wrapper in _streamWrappers)
+                wrapper.Dispose();
         }
 
         public IMediaManager MediaManager { get; set; }
@@ -76,6 +80,7 @@ namespace SimulatedPlayer
                 if (null != configuration.VideoConfiguration)
                 {
                     _mediaStreams.Add(configuration.VideoStream);
+                    _streamWrappers.Add(new PacketStreamWrapper(configuration.VideoStream));
 
                     var streamType = _mediaStreams.Count - 1;
                 }
@@ -83,6 +88,7 @@ namespace SimulatedPlayer
                 if (null != configuration.AudioConfiguration)
                 {
                     _mediaStreams.Add(configuration.AudioStream);
+                    _streamWrappers.Add(new PacketStreamWrapper(configuration.AudioStream));
 
                     var streamType = _mediaStreams.Count - 1;
                 }
@@ -164,10 +170,11 @@ namespace SimulatedPlayer
             var command = new WorkCommand(
                 () =>
                 {
-                    IStreamSource streamSource = null;
-
                     if (streamType < 0)
                         return null;
+
+                    IStreamSource streamSource = null;
+                    PacketStreamWrapper wrapper = null;
 
                     lock (_lock)
                     {
@@ -175,6 +182,7 @@ namespace SimulatedPlayer
                             return null;
 
                         streamSource = _mediaStreams[streamType];
+                        wrapper = _streamWrappers[streamType];
                     }
 
                     if (null == streamSource)
@@ -182,8 +190,6 @@ namespace SimulatedPlayer
                         _mediaElement.ReportGetSampleProgress(0);
                         return null;
                     }
-
-                    var wrapper = new PacketStreamWrapper(streamSource);
 
                     var completed = wrapper.GetNextSample(sample => StreamSampleHandler(streamType, sample));
 

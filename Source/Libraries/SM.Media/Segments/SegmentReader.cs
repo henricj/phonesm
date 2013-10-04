@@ -46,6 +46,7 @@ namespace SM.Media.Segments
         HttpResponseMessage _response;
         Stream _responseStream;
         long _startOffset;
+        HttpRequestMessage _request;
 
         public SegmentReader(ISegment segment, HttpClient httpClient)
         {
@@ -183,6 +184,17 @@ namespace SM.Media.Segments
             {
                 Debug.WriteLine("SegmentReader.Close() response cleanup failed: " + ex.Message);
             }
+
+            try
+            {
+                using (_request)
+                { }
+                _request = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SegmentReader.Close() request cleanup failed: " + ex.Message);
+            }
         }
 
         #endregion
@@ -212,17 +224,17 @@ namespace SM.Media.Segments
                 {
                     for (; ; )
                     {
-                        var msg = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
+                        _request = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
 
                         if (_startOffset >= 0 && _endOffset > 0)
                         {
-                            msg.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
+                            _request.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
                             _expectedBytes = _endOffset - _startOffset;
                         }
                         else
                             _expectedBytes = null;
 
-                        _response = await _httpClient.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                        _response = await _httpClient.SendAsync(_request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                                                      .ConfigureAwait(false);
 
                         if (_response.IsSuccessStatusCode)
@@ -247,7 +259,8 @@ namespace SM.Media.Segments
                             return;
                         }
 
-                        msg.Dispose();
+                        _request.Dispose();
+                        _request = null;
 
                         // Special-case 404s.
                         if (HttpStatusCode.NotFound != _response.StatusCode && !RetryPolicy.IsRetryable(_response.StatusCode))
@@ -260,6 +273,7 @@ namespace SM.Media.Segments
                             _response.EnsureSuccessStatusCode();
 
                         _response.Dispose();
+                        _response = null;
                     }
                 }, cancellationToken);
         }

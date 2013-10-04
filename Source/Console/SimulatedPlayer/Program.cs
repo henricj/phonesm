@@ -27,6 +27,7 @@
 using System;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -38,6 +39,7 @@ namespace SimulatedPlayer
         static void Main(string[] args)
         {
             GlobalPlatformServices.Default = new PlatformServices();
+            TaskScheduler.UnobservedTaskException += (sender, eventArgs) => Console.WriteLine("*** Unobserved task exception {0}", eventArgs.Exception.Message);
 
             try
             {

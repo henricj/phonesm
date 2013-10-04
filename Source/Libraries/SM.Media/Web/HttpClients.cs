@@ -117,7 +117,10 @@ namespace SM.Media.Web
 
         protected virtual HttpClientHandler CreateClientHandler()
         {
-            var httpClientHandler = new HttpClientHandler();
+            var httpClientHandler = new HttpClientHandler
+                                    {
+                                        AutomaticDecompression = DecompressionMethods.GZip
+                                    };
 
             if (null != _credentials)
                 httpClientHandler.Credentials = _credentials;

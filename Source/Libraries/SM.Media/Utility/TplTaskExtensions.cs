@@ -55,7 +55,7 @@ namespace SM.Media.Utility
             var tcs = new TaskCompletionSource<bool>();
 
             using (cancellationToken.Register(
-                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
+                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs, false))
                 if (task != await Task.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
@@ -68,7 +68,7 @@ namespace SM.Media.Utility
             var tcs = new TaskCompletionSource<bool>();
 
             using (cancellationToken.Register(
-                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
+                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs, false))
                 if (task != await Task.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
@@ -89,7 +89,7 @@ namespace SM.Media.Utility
 
             // The only difference is the TaskEx.WhenAny (instead of Task.WhenAny).
             using (cancellationToken.Register(
-                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
+                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs, false))
                 if (task != await TaskEx.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 
@@ -102,7 +102,7 @@ namespace SM.Media.Utility
             var tcs = new TaskCompletionSource<bool>();
 
             using (cancellationToken.Register(
-                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs))
+                s => ((TaskCompletionSource<bool>)s).TrySetResult(true), tcs, false))
                 if (task != await TaskEx.WhenAny(task, tcs.Task).ConfigureAwait(false))
                     throw new OperationCanceledException(cancellationToken);
 

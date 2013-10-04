@@ -66,14 +66,21 @@ namespace SM.Media
                 return false;
             }
 
-            _pesStream.Packet = packet;
+            try
+            {
+                _pesStream.Packet = packet;
 
-            _streamSample.PresentationTimestamp = _source.PresentationTimestamp;
-            _streamSample.BufferingProgress = null;
+                _streamSample.PresentationTimestamp = _source.PresentationTimestamp;
+                _streamSample.BufferingProgress = null;
 
-            streamSampleHandler(_streamSample);
+                streamSampleHandler(_streamSample);
 
-            _pesStream.Packet = null;
+                _pesStream.Packet = null;
+            }
+            finally
+            {
+                _source.FreeSample(packet);
+            }
 
             return true;
         }

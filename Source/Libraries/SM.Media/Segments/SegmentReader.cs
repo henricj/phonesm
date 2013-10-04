@@ -101,8 +101,7 @@ namespace SM.Media.Segments
 
                         var validLength = IsLengthValid();
 
-                        _readStream.Dispose();
-                        _readStream = null;
+                        Close();
 
                         if (!validLength)
                             throw new HttpRequestException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
@@ -116,11 +115,15 @@ namespace SM.Media.Segments
                 }
                 catch (OperationCanceledException)
                 {
+                    Close();
+
                     throw;
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine("Read of {0} failed at {1}: {2}", _segment.Url, _startOffset, ex.Message);
+
+                    Close();
 
                     if (--retryCount <= 0)
                         throw;
@@ -130,8 +133,6 @@ namespace SM.Media.Segments
 
                 if (retry)
                 {
-                    Close();
-
                     var actualDelay = (int)(delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
 
                     delay += delay;
@@ -145,6 +146,8 @@ namespace SM.Media.Segments
 
         public void Close()
         {
+            var oneStream = ReferenceEquals(_readStream, _responseStream);
+
             try
             {
                 using (_readStream)
@@ -153,7 +156,21 @@ namespace SM.Media.Segments
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("SegmentReader.Close() responseStream cleanup failed: " + ex.Message);
+                Debug.WriteLine("SegmentReader.Close() readStream cleanup failed: " + ex.Message);
+            }
+
+            if (!oneStream)
+            {
+                try
+                {
+                    using (_responseStream)
+                    { }
+                    _responseStream = null;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("SegmentReader.Close() responseStream cleanup failed: " + ex.Message);
+                }
             }
 
             try

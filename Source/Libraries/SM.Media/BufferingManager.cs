@@ -83,7 +83,7 @@ namespace SM.Media
                     }
                 }
 
-                Debug.Assert(latestPosition >= TimeSpan.Zero);
+                Debug.Assert(latestPosition >= TimeSpan.Zero, "latestPosition: " + latestPosition);
 
                 if (TimeSpan.MaxValue == latestPosition)
                     return TimeSpan.Zero;
@@ -120,7 +120,7 @@ namespace SM.Media
 
                 if (newest > TimeSpan.MinValue && oldest < TimeSpan.MaxValue)
                 {
-                    Debug.Assert(newest >= oldest);
+                    Debug.Assert(newest >= oldest, string.Format("newest {0} >= oldest {1}", newest, oldest));
 
                     return newest - oldest;
                 }
@@ -323,7 +323,9 @@ namespace SM.Media
             // The presentation order is not always the same as the decoding order.  Fudge things
             // in the assert so we can still catch grievous errors.
 
-            Debug.Assert(timestampDifference == TimeSpan.MaxValue || timestampDifference + TimeSpan.FromMilliseconds(500) >= TimeSpan.Zero);
+            Debug.Assert(timestampDifference == TimeSpan.MaxValue || timestampDifference + TimeSpan.FromMilliseconds(500) >= TimeSpan.Zero,
+                string.Format("Invalid timestamp difference: {0} (newest {1} oldest {2} low count {3} high count {4} valid data {5})",
+                    timestampDifference, newest, oldest, lowestCount, highestCount, validData));
 
             if (timestampDifference <= TimeSpan.Zero)
             {

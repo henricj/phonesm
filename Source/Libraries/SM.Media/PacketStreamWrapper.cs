@@ -30,7 +30,7 @@ using SM.Media.Pes;
 
 namespace SM.Media
 {
-    public sealed class PacketStreamWrapper
+    public sealed class PacketStreamWrapper : IDisposable
     {
         readonly PesStream _pesStream = new PesStream();
         readonly IStreamSource _source;
@@ -99,5 +99,11 @@ namespace SM.Media
         }
 
         #endregion
+
+        public void Dispose()
+        {
+            if (null != _pesStream)
+                _pesStream.Dispose();
+        }
     }
 }

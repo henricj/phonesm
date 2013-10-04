@@ -121,6 +121,12 @@ namespace SM.Media
 
             if (null != _taskScheduler)
                 _taskScheduler.Dispose();
+
+            if (null != _videoStreamWrapper)
+                _videoStreamWrapper.Dispose();
+
+            if (null != _audioStreamWrapper)
+                _audioStreamWrapper.Dispose();
         }
 
         public void Configure(MediaConfiguration configuration)

@@ -31,6 +31,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
+using SM.TsParser;
 
 namespace SimulatedPlayer
 {
@@ -38,9 +39,11 @@ namespace SimulatedPlayer
     {
         readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
         readonly object _lock = new object();
+        // _mediaStreamFsm must not be readonly.  Member functions would then operate on *copies* of the value
+        // rather than this field (since it is a value type).
+        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         readonly RandomNumbers _random = new RandomNumbers();
         readonly Dictionary<int, SampleState> _streams = new Dictionary<int, SampleState>();
-        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         ISimulatedMediaStreamSource _mediaStreamSource;
 
         public SimulatedMediaElementManager()
@@ -82,21 +85,21 @@ namespace SimulatedPlayer
         public void ReportSeekCompleted(long ticks)
         { }
 
-        public void ReportGetSampleProgress(double progress)
+        public void ReportGetSampleProgress(float progress)
         { }
 
-        public void ReportGetSampleCompleted(int streamType, IStreamSample sample)
+        public void ReportGetSampleCompleted(int streamType, IStreamSource streamSource, TsPesPacket packet)
         {
-            if (null == sample)
+            if (null == packet)
             {
-                Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) null sample", streamType);
+                Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) null packet", streamType);
 
                 return;
             }
 
-            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1}", streamType, sample.PresentationTimestamp);
+            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1} ({2}/{3})", streamType, streamSource.PresentationTimestamp, packet.PresentationTimestamp, packet.DecodeTimestamp);
 
-            var timestamp = sample.PresentationTimestamp;
+            var timestamp = packet.PresentationTimestamp;
             var oldestTimestamp = TimeSpan.MaxValue;
             var oldestIndex = -1;
 

@@ -31,6 +31,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
+using SM.TsParser;
 
 namespace SimulatedPlayer
 {
@@ -42,7 +43,6 @@ namespace SimulatedPlayer
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
         readonly List<WorkCommand> _pendingGets = new List<WorkCommand>();
         readonly object _stateLock = new object();
-        readonly List<PacketStreamWrapper> _streamWrappers = new List<PacketStreamWrapper>();
         bool _isClosed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         int _pendingRequests;
@@ -61,9 +61,6 @@ namespace SimulatedPlayer
         {
             using (_commandWorker)
             { }
-
-            foreach (var wrapper in _streamWrappers)
-                wrapper.Dispose();
         }
 
         public IMediaManager MediaManager { get; set; }
@@ -80,7 +77,6 @@ namespace SimulatedPlayer
                 if (null != configuration.VideoConfiguration)
                 {
                     _mediaStreams.Add(configuration.VideoStream);
-                    _streamWrappers.Add(new PacketStreamWrapper(configuration.VideoStream));
 
                     var streamType = _mediaStreams.Count - 1;
                 }
@@ -88,7 +84,6 @@ namespace SimulatedPlayer
                 if (null != configuration.AudioConfiguration)
                 {
                     _mediaStreams.Add(configuration.AudioStream);
-                    _streamWrappers.Add(new PacketStreamWrapper(configuration.AudioStream));
 
                     var streamType = _mediaStreams.Count - 1;
                 }
@@ -174,7 +169,6 @@ namespace SimulatedPlayer
                         return null;
 
                     IStreamSource streamSource = null;
-                    PacketStreamWrapper wrapper = null;
 
                     lock (_lock)
                     {
@@ -182,7 +176,6 @@ namespace SimulatedPlayer
                             return null;
 
                         streamSource = _mediaStreams[streamType];
-                        wrapper = _streamWrappers[streamType];
                     }
 
                     if (null == streamSource)
@@ -191,7 +184,20 @@ namespace SimulatedPlayer
                         return null;
                     }
 
-                    var completed = wrapper.GetNextSample(sample => StreamSampleHandler(streamType, sample));
+                    var packet = streamSource.GetNextSample();
+
+                    try
+                    {
+                        if (null != packet || streamSource.IsEof)
+                            StreamSampleHandler(streamType, streamSource, packet);
+                    }
+                    finally
+                    {
+                        if (null != packet)
+                            streamSource.FreeSample(packet);
+                    }
+
+                    var completed = null != packet;
 
                     if (!completed)
                     {
@@ -274,10 +280,10 @@ namespace SimulatedPlayer
 
         #endregion
 
-        bool StreamSampleHandler(int streamType, IStreamSample sample)
+        bool StreamSampleHandler(int streamType, IStreamSource streamSource, TsPesPacket packet)
         {
             ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
-            _mediaElement.ReportGetSampleCompleted(streamType, sample);
+            _mediaElement.ReportGetSampleCompleted(streamType, streamSource, packet);
 
             return true;
         }

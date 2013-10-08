@@ -374,7 +374,9 @@ namespace SM.Media
 
             if (null == reader.MediaParser)
             {
-                reader.MediaParser = new TsMediaParser(reader.BufferingManager, _mediaStreamSource.CheckForSamples,
+                var tsTimestamp = new TsTimestamp();
+
+                reader.MediaParser = new TsMediaParser(reader.BufferingManager, tsTimestamp, _mediaStreamSource.CheckForSamples,
                     mediaStream =>
                     {
                         mediaStream.ConfigurationComplete +=
@@ -443,6 +445,7 @@ namespace SM.Media
                         break;
                 }
             }
+
             return count;
         }
 

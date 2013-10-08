@@ -58,6 +58,7 @@
     <Compile Include="IMediaManager.cs" />
     <Compile Include="IMediaParser.cs" />
     <Compile Include="IMediaStreamSource.cs" />
+    <Compile Include="ITsTimestamp.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ByterangeTag.cs" />
@@ -158,12 +159,14 @@
     <Compile Include="StreamBuffer.cs" />
     <Compile Include="TsMediaHandlerFactories.cs" />
     <Compile Include="TsMediaManager.cs" />
+    <Compile Include="TsTimestamp.cs" />
     <Compile Include="Utility\AsyncManualResetEvent.cs" />
     <Compile Include="Utility\BlockingPool.cs" />
     <Compile Include="Utility\BufferPool.cs" />
     <Compile Include="Utility\CommandWorkerBase.cs" />
     <Compile Include="Utility\IApplicationInformation.cs" />
     <Compile Include="Utility\ICommandWorker.cs" />
+    <Compile Include="Utility\PositionStream.cs" />
     <Compile Include="Utility\TaskCommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\HttpWebRequestFactory.cs" />

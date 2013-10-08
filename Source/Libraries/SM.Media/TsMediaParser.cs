@@ -49,17 +49,20 @@ namespace SM.Media
         readonly PesHandlers _pesHandlers;
         readonly List<Action<TimeSpan>> _timestampOffsetHandlers = new List<Action<TimeSpan>>();
         readonly TsDecoder _tsDecoder;
-        TimeSpan? _timestampOffset;
+        readonly ITsTimestamp _tsTimemestamp;
 
-        public TsMediaParser(IBufferingManager bufferingManager, Action checkForSamples, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
+        public TsMediaParser(IBufferingManager bufferingManager, ITsTimestamp tsTimemestamp, Action checkForSamples, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
             if (checkForSamples == null)
                 throw new ArgumentNullException("checkForSamples");
+            if (tsTimemestamp == null)
+                throw new ArgumentNullException("tsTimemestamp");
 
             _bufferingManager = bufferingManager;
             _checkForSamples = checkForSamples;
+            _tsTimemestamp = tsTimemestamp;
 
             if (null == handlerFactory)
             {
@@ -73,8 +76,6 @@ namespace SM.Media
             _pesHandlers = new PesHandlers(handlerFactory);
 
             _mediaParserStreamHandler = mediaParserStreamHandler;
-
-            //var packetCount = 0;
 
             _tsDecoder = new TsDecoder(new BufferPool(5 * 64 * 1024, 2), _pesHandlers.GetPesHandler);
         }
@@ -97,7 +98,11 @@ namespace SM.Media
 
         #region IMediaParser Members
 
-        public TimeSpan StartPosition { get; set; }
+        public TimeSpan StartPosition
+        {
+            get { return _tsTimemestamp.StartPosition; }
+            set { _tsTimemestamp.StartPosition = value; }
+        }
 
         public bool EnableProcessing
         {
@@ -129,7 +134,7 @@ namespace SM.Media
         public void FlushBuffers()
         {
             Decoder.FlushBuffers();
-            _timestampOffset = null;
+            _tsTimemestamp.Flush();
         }
 
         public void ProcessEndOfData()
@@ -205,27 +210,21 @@ namespace SM.Media
                 {
                     if (null != packet)
                     {
-                        if (!gotFirstPacket)
+                        if (_tsTimemestamp.Update(packet, !gotFirstPacket))
                         {
-                            gotFirstPacket = true;
-
-                            var startPosition = StartPosition;
-
-                            Debug.WriteLine("MediParser.CreatePacketHandler: Sync to start position {0} at {1}", startPosition, packet.PresentationTimestamp);
-
-                            var timestampOffset = packet.PresentationTimestamp - startPosition;
-
-                            if (!_timestampOffset.HasValue || timestampOffset < _timestampOffset)
+                            if (_tsTimemestamp.Offset.HasValue)
                             {
-                                _timestampOffset = timestampOffset;
+                                var offset = _tsTimemestamp.Offset.Value;
 
                                 lock (_mediaStreamsLock)
                                 {
                                     foreach (var timestampOffsetHandler in _timestampOffsetHandlers)
-                                        timestampOffsetHandler(timestampOffset);
+                                        timestampOffsetHandler(offset);
                                 }
                             }
                         }
+
+                        gotFirstPacket = true;
 
                         Debug.Assert(packet.PresentationTimestamp >= StartPosition, string.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.PresentationTimestamp, StartPosition, packet.PresentationTimestamp >= StartPosition));
                     }

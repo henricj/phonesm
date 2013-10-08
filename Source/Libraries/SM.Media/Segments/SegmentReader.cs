@@ -43,10 +43,10 @@ namespace SM.Media.Segments
         long _endOffset;
         long? _expectedBytes;
         Stream _readStream;
+        HttpRequestMessage _request;
         HttpResponseMessage _response;
         Stream _responseStream;
         long _startOffset;
-        HttpRequestMessage _request;
 
         public SegmentReader(ISegment segment, HttpClient httpClient)
         {
@@ -247,7 +247,7 @@ namespace SM.Media.Segments
                             if (!_expectedBytes.HasValue)
                                 _expectedBytes = contentLength;
 
-                            _responseStream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                            _responseStream = new PositionStream(await _response.Content.ReadAsStreamAsync().ConfigureAwait(false));
 
                             var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
 

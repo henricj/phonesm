@@ -102,6 +102,8 @@ namespace SM.Media
         #region IStreamSource Members
 
         public TimeSpan PresentationTimestamp { get; private set; }
+        public TimeSpan? DecodeTimestamp { get; private set; }
+
         public bool IsEof { get; private set; }
 
         public TsPesPacket GetNextSample()
@@ -149,6 +151,8 @@ namespace SM.Media
                 ReportDequeue(packet.Length, packet.PresentationTimestamp);
 
                 PresentationTimestamp = packet.PresentationTimestamp - TimestampOffset;
+
+                DecodeTimestamp = packet.DecodeTimestamp - TimestampOffset;
 
 #if DEBUG
                 //Debug.WriteLine("StreamBuffer {0}/{1} forwarding sample {2}", _streamBufferId, _streamType.Contents, PresentationTimestamp);

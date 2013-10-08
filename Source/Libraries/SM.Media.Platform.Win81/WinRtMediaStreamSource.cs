@@ -435,8 +435,8 @@ namespace SM.Media
                     if (null == mediaStreamSample)
                         throw new InvalidOperationException("MediaStreamSamples cannot be null");
 
-                    if (packet.DecodeTimestamp.HasValue)
-                        mediaStreamSample.DecodeTimestamp = packet.DecodeTimestamp.Value;
+                    if (_streamSource.DecodeTimestamp.HasValue)
+                        mediaStreamSample.DecodeTimestamp = _streamSource.DecodeTimestamp.Value;
 
                     if (packet.Duration.HasValue)
                         mediaStreamSample.Duration = packet.Duration.Value;

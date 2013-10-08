@@ -44,6 +44,7 @@ namespace SM.Media
         float? BufferingProgress { get; }
 
         TimeSpan PresentationTimestamp { get; }
+        TimeSpan? DecodeTimestamp { get; }
 
         bool IsEof { get; }
 

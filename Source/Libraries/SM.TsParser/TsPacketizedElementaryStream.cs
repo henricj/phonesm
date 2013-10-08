@@ -201,7 +201,7 @@ namespace SM.TsParser
                 return;
 
             var pts = 0UL;
-            var dts = 0UL;
+            ulong? dts = null;
 
             if (0 != PTS_DTS_flags)
             {
@@ -324,7 +324,10 @@ namespace SM.TsParser
             else
                 pts = _pts.Extend(pts);
 
-            var pes = CreatePacket(payloadIndex, _index - payloadIndex, pts);
+            if (dts.HasValue)
+                dts = _pts.Extend(dts.Value);
+
+            var pes = CreatePacket(payloadIndex, _index - payloadIndex, pts, dts);
 
             _startIndex = _index;
 
@@ -336,7 +339,7 @@ namespace SM.TsParser
             return TimeSpan.FromTicks((long)Math.Round(pts * PtsTo100ns));
         }
 
-        TsPesPacket CreatePacket(int index, int length, ulong pts)
+        TsPesPacket CreatePacket(int index, int length, ulong pts, ulong? dts)
         {
             Debug.Assert(length > 0);
             Debug.Assert(index >= 0);
@@ -347,6 +350,7 @@ namespace SM.TsParser
             pes.Index = index;
             pes.Length = length;
             pes.PresentationTimestamp = PtsToTimestamp(pts);
+            pes.DecodeTimestamp = dts.HasValue ? PtsToTimestamp(dts.Value) : null as TimeSpan?;
 
             Debug.Assert(pes.PresentationTimestamp >= TimeSpan.Zero);
 
@@ -363,7 +367,7 @@ namespace SM.TsParser
                 return;
 
             // TODO: What about the timestamp...?
-            var pes = CreatePacket(_startIndex + 6, _index - 6 - _startIndex, 0);
+            var pes = CreatePacket(_startIndex + 6, _index - 6 - _startIndex, 0, null);
 
             _startIndex = _index;
 

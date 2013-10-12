@@ -26,7 +26,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -142,6 +141,17 @@ namespace SM.Media
         }
 
         #endregion
+
+        public void CancelPending()
+        {
+            //Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
+
+            if (null != _videoStreamState)
+                _videoStreamState.Cancel();
+
+            if (null != _audioStreamState)
+                _audioStreamState.Cancel();
+        }
 
         void ThrowIfDisposed()
         {
@@ -295,11 +305,37 @@ namespace SM.Media
                 _audioStreamState.SampleRequested(request);
         }
 
-        void MediaStreamSourceOnStarting(MediaStreamSource sender, MediaStreamSourceStartingEventArgs args)
+        async void MediaStreamSourceOnStarting(MediaStreamSource sender, MediaStreamSourceStartingEventArgs args)
         {
-            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting()");
+            var request = args.Request;
+            var startPosition = request.StartPosition;
 
-            args.Request.SetActualStartPosition(TimeSpan.Zero);
+            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting({0})", startPosition);
+
+            if (!startPosition.HasValue)
+                return;
+
+            MediaStreamSourceStartingRequestDeferral deferral = null;
+
+            try
+            {
+                CancelPending();
+
+                deferral = request.GetDeferral();
+
+                var actual = await MediaManager.SeekMediaAsync(startPosition.Value).ConfigureAwait(false);
+
+                request.SetActualStartPosition(actual);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Unable to seek: " + ex.Message);
+            }
+            finally
+            {
+                if (null != deferral)
+                    deferral.Complete();
+            }
         }
 
         class StreamState
@@ -486,6 +522,41 @@ namespace SM.Media
                     if (lockTaken)
                         _sampleLock.Exit();
                 }
+            }
+
+            public void Cancel()
+            {
+                MediaStreamSourceSampleRequestDeferral deferral = null;
+                MediaStreamSourceSampleRequest request = null;
+
+                var lockTaken = false;
+
+                try
+                {
+                    _sampleLock.Enter(ref lockTaken);
+
+                    deferral = _deferral;
+
+                    if (null == deferral)
+                        return;
+
+                    _deferral = null;
+
+                    request = _request;
+
+                    if (null != request)
+                        _request = null;
+                }
+                finally
+                {
+                    if (lockTaken)
+                        _sampleLock.Exit();
+                }
+
+                if (null == request || null == deferral)
+                    return;
+
+                deferral.Complete();
             }
         }
     }

@@ -14,6 +14,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{E1427E
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{E8B42D48-C2D8-4361-B1D9-C5119CD07727}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Global", "Global", "{18E868D9-31BC-4D5C-84C9-7BDAC909CFC0}"
+	ProjectSection(SolutionItems) = preProject
+		Global\GlobalAssemblyInfo.cs = Global\GlobalAssemblyInfo.cs
+		Global\SM.MediaVersion.cs = Global\SM.MediaVersion.cs
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.Win81", "Libraries\SM.Media.Win81\SM.Media.Win81.csproj", "{4C7AE991-5179-4061-AFE1-878FF850AA72}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.TsParser.Win81", "Libraries\SM.TsParser.Win81\SM.TsParser.Win81.csproj", "{C704B39A-C68B-4133-8983-5DC911BE284A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -54,8 +66,36 @@ Global
 		{7441BE13-D07C-424E-AD1A-54CC78A51E0F}.Release|x64.Build.0 = Release|x64
 		{7441BE13-D07C-424E-AD1A-54CC78A51E0F}.Release|x86.ActiveCfg = Release|x86
 		{7441BE13-D07C-424E-AD1A-54CC78A51E0F}.Release|x86.Build.0 = Release|x86
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Debug|ARM.ActiveCfg = Debug|ARM
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Debug|ARM.Build.0 = Debug|ARM
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Debug|x64.ActiveCfg = Debug|x64
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Debug|x64.Build.0 = Debug|x64
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Debug|x86.ActiveCfg = Debug|x86
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Debug|x86.Build.0 = Debug|x86
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Release|ARM.ActiveCfg = Release|ARM
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Release|ARM.Build.0 = Release|ARM
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Release|x64.ActiveCfg = Release|x64
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Release|x64.Build.0 = Release|x64
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Release|x86.ActiveCfg = Release|x86
+		{4C7AE991-5179-4061-AFE1-878FF850AA72}.Release|x86.Build.0 = Release|x86
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Debug|ARM.ActiveCfg = Debug|ARM
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Debug|ARM.Build.0 = Debug|ARM
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Debug|x64.ActiveCfg = Debug|x64
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Debug|x64.Build.0 = Debug|x64
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Debug|x86.ActiveCfg = Debug|x86
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Debug|x86.Build.0 = Debug|x86
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Release|ARM.ActiveCfg = Release|ARM
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Release|ARM.Build.0 = Release|ARM
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Release|x64.ActiveCfg = Release|x64
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Release|x64.Build.0 = Release|x64
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Release|x86.ActiveCfg = Release|x86
+		{C704B39A-C68B-4133-8983-5DC911BE284A}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4C7AE991-5179-4061-AFE1-878FF850AA72} = {E8B42D48-C2D8-4361-B1D9-C5119CD07727}
+		{C704B39A-C68B-4133-8983-5DC911BE284A} = {E8B42D48-C2D8-4361-B1D9-C5119CD07727}
 	EndGlobalSection
 EndGlobal

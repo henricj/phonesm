@@ -25,12 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-//using System.Windows.Controls;
-//using System.Windows.Media;
-//using System.Windows.Threading;
 using Windows.Media.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
@@ -41,6 +37,8 @@ namespace SM.Media
 {
     public class NoOpMediaElementManager : IMediaElementManager
     {
+        #region IMediaElementManager Members
+
         public Task SetSource(IMediaStreamSource source)
         {
             source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
@@ -52,6 +50,8 @@ namespace SM.Media
         {
             return TplTaskExtensions.CompletedTask;
         }
+
+        #endregion
 
         public Task Dispatch(Action action)
         {
@@ -66,7 +66,6 @@ namespace SM.Media
         readonly CoreDispatcher _dispatcher;
         MediaElement _mediaElement;
         int _sourceIsSet;
-        MediaStreamSource _mediaStreamSource;
 
         public MediaElementManager(CoreDispatcher dispatcher, Func<MediaElement> createMediaElement, Action<MediaElement> destroyMediaElement)
         {
@@ -74,6 +73,8 @@ namespace SM.Media
             _createMediaElement = createMediaElement;
             _destroyMediaElement = destroyMediaElement;
         }
+
+        #region IMediaElementManager Members
 
         public Task SetSource(IMediaStreamSource source)
         {
@@ -100,13 +101,9 @@ namespace SM.Media
                                     _destroyMediaElement(mediaElement);
                                 }
 
-                                //_mediaStreamSource  = mss.CreateMediaStreamSource();
-
                                 _mediaElement = _createMediaElement();
 
                                 mss.RegisterMediaStreamSourceHandler(ms => Dispatch(() => _mediaElement.SetMediaStreamSource(ms)));
-
-                                //_mediaElement.SetMediaStreamSource(_mediaStreamSource);
                             });
         }
 
@@ -125,9 +122,11 @@ namespace SM.Media
 
                                    _destroyMediaElement(mediaElement);
                                })
-                               .ConfigureAwait(false);
+                    .ConfigureAwait(false);
             }
         }
+
+        #endregion
 
         Task Dispatch(Action action)
         {

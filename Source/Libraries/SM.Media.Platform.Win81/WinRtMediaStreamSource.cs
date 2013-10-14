@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,6 +33,7 @@ using Windows.Media.MediaProperties;
 using SM.Media.Configuration;
 using SM.Media.Utility;
 using SM.TsParser;
+using Debug = System.Diagnostics.Debug;
 
 namespace SM.Media
 {
@@ -51,6 +51,8 @@ namespace SM.Media
         TimeSpan? _seekTarget;
         TimeSpan? _duration;
         Action<MediaStreamSource> _mssHandler;
+
+        int _checkBusy;
 
         StreamState _videoStreamState;
         StreamState _audioStreamState;
@@ -131,20 +133,32 @@ namespace SM.Media
 
         public void CheckForSamples()
         {
-            //Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
+            //System.Diagnostics.Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
 
-            if (null != _videoStreamState)
-                _videoStreamState.CheckForSamples();
+            var wasBusy = 1 == Interlocked.Exchange(ref _checkBusy, 1);
 
-            if (null != _audioStreamState)
-                _audioStreamState.CheckForSamples();
+            if (wasBusy)
+                return;
+
+            try
+            {
+                if (null != _videoStreamState)
+                    _videoStreamState.CheckForSamples();
+
+                if (null != _audioStreamState)
+                    _audioStreamState.CheckForSamples();
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _checkBusy, 0);
+            }
         }
 
         #endregion
 
         public void CancelPending()
         {
-            //Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
+            //System.Diagnostics.Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
 
             if (null != _videoStreamState)
                 _videoStreamState.Cancel();
@@ -411,8 +425,8 @@ namespace SM.Media
                         {
                             _sampleLock.Enter(ref lockTaken);
 
-                            Debug.Assert(null == _deferral);
-                            Debug.Assert(null == _request);
+                            Utility.Debug.Assert(null == _deferral);
+                            Utility.Debug.Assert(null == _request);
 
                             _deferral = deferral;
                             _request = request;
@@ -477,7 +491,7 @@ namespace SM.Media
                     if (packet.Duration.HasValue)
                         mediaStreamSample.Duration = packet.Duration.Value;
 
-                    //Debug.WriteLine("Sample {0} at {1}. duration {2} length {3}",
+                    //System.Diagnostics.Debug.WriteLine("Sample {0} at {1}. duration {2} length {3}",
                     //    request.StreamDescriptor.Name, mediaStreamSample.Timestamp, mediaStreamSample.Duration, packet.Length);
 
                     request.Sample = mediaStreamSample;
@@ -526,8 +540,7 @@ namespace SM.Media
 
             public void Cancel()
             {
-                MediaStreamSourceSampleRequestDeferral deferral = null;
-                MediaStreamSourceSampleRequest request = null;
+                MediaStreamSourceSampleRequestDeferral deferral;
 
                 var lockTaken = false;
 
@@ -541,11 +554,7 @@ namespace SM.Media
                         return;
 
                     _deferral = null;
-
-                    request = _request;
-
-                    if (null != request)
-                        _request = null;
+                    _request = null;
                 }
                 finally
                 {
@@ -553,7 +562,7 @@ namespace SM.Media
                         _sampleLock.Exit();
                 }
 
-                if (null == request || null == deferral)
+                if (null == deferral)
                     return;
 
                 deferral.Complete();

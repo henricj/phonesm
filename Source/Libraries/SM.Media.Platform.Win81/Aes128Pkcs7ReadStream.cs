@@ -25,43 +25,16 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Security.Cryptography.Core;
 using Windows.Storage.Streams;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class CbcReadBuffer
-    {
-        readonly string _algorithmName;
-        byte[] _decryptedData;
-        int _decryptedLength;
-        int _decryptedOffset;
-        byte[] _encryptedData;
-        byte[] _iv;
-
-        public CbcReadBuffer(string algorithmName, string algorithmLastName, byte[] iv = null)
-        {
-            if (algorithmName == null)
-                throw new ArgumentNullException("algorithmName");
-            if (algorithmLastName == null)
-                throw new ArgumentNullException("algorithmLastName");
-
-            _algorithmName = algorithmName;
-            _iv = iv;
-        }
-
-        public int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotImplementedException();
-            //if (null != _decryptedData) 
-        }
-    }
-
     public class Aes128Pkcs7ReadStream : Stream
     {
         readonly int _blockLength;
@@ -71,11 +44,13 @@ namespace SM.Media
         readonly CryptographicKey _key;
         readonly CryptographicKey _lastKey;
         readonly Stream _parent;
+        byte[] _buffer;
         int _bytesRead;
         int _count;
-        int _dataLength;
-        int _dataOffset;
         byte[] _decryptedData;
+        int _decryptedLength;
+        int _decryptedOffset;
+        bool _eof;
         int _offset;
 
         public Aes128Pkcs7ReadStream(Stream parent, byte[] key, byte[] iv)
@@ -90,8 +65,6 @@ namespace SM.Media
                 throw new ArgumentException("parent must be a readable stream");
 
             _parent = parent;
-            var keyBuffer = key.AsBuffer();
-            _ivBuffer = iv.AsBuffer();
 
             var algorithm = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesCbc);
             var lastAlgorithm = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesCbcPkcs7);
@@ -102,9 +75,181 @@ namespace SM.Media
                 throw new ArgumentOutOfRangeException("iv", "length must match the block length");
 
             _encryptedBuffer = _encrypted.AsBuffer();
+            _encryptedBuffer.Length = 0;
+
+            var keyBuffer = key.AsBuffer();
 
             _key = algorithm.CreateSymmetricKey(keyBuffer);
             _lastKey = lastAlgorithm.CreateSymmetricKey(keyBuffer);
+
+            _ivBuffer = CopyArray(iv).AsBuffer();
+        }
+
+        byte[] CopyArray(byte[] data)
+        {
+            var copy = new byte[data.Length];
+
+            Array.Copy(data, copy, copy.Length);
+
+            return copy;
+        }
+
+        void ClearBuffers()
+        {
+            _decryptedData = null;
+            _decryptedLength = 0;
+            _decryptedOffset = 0;
+
+            _encryptedBuffer.Length = 0;
+        }
+
+        public override void Flush()
+        {
+            ClearBuffers();
+
+            _parent.Flush();
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            ClearBuffers();
+
+            return _parent.FlushAsync(cancellationToken);
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool ReadFromDecryptedData()
+        {
+            if (null == _decryptedData)
+                return false;
+
+            Debug.Assert(_decryptedLength > 0);
+            Debug.Assert(_decryptedOffset >= 0 && _decryptedOffset + _decryptedLength <= _decryptedData.Length);
+
+            var length = Math.Min(_decryptedLength, _count);
+
+            Debug.Assert(length >= 0);
+
+            if (length <= 0)
+                return 0 == _count;
+
+            Array.Copy(_decryptedData, _decryptedOffset, _buffer, _offset, length);
+
+            _decryptedLength -= length;
+            _decryptedOffset += length;
+
+            Debug.Assert(_decryptedLength >= 0);
+            Debug.Assert(_decryptedOffset > 0 && _decryptedOffset + _decryptedLength <= _decryptedData.Length);
+
+            _count -= length;
+            _offset += length;
+
+            Debug.Assert(_count >= 0);
+            Debug.Assert(_offset > 0 && _count + _offset <= _buffer.Length);
+
+            if (0 == _decryptedLength)
+                _decryptedData = null;
+
+            _bytesRead += length;
+
+            return 0 == _count;
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer");
+
+            if (offset < 0)
+                throw new ArgumentOutOfRangeException("offset");
+
+            if (offset + count > buffer.Length)
+                throw new ArgumentOutOfRangeException("buffer");
+
+            if (count < 1)
+                return 0;
+
+            _count = count;
+            _offset = offset;
+            _buffer = buffer;
+
+            _bytesRead = 0;
+
+            // First, use up what we can of any old data.
+            if (ReadFromDecryptedData())
+                return _bytesRead;
+
+            for (; ; )
+            {
+                Debug.Assert(null == _decryptedData);
+
+                // Now, we try to read more data from our parent.
+                if (_parent.CanRead)
+                {
+                    var remaining = _encryptedBuffer.Capacity - _encryptedBuffer.Length;
+
+                    if (remaining > 0)
+                    {
+                        // Fill as much of the remaining buffer as we can.
+                        var readLength = await _parent.ReadAsync(_encrypted, (int)_encryptedBuffer.Length, (int)remaining, cancellationToken).ConfigureAwait(false);
+
+                        if (readLength < 1)
+                            _eof = true;
+                        else
+                            _encryptedBuffer.Length += (uint)readLength;
+                    }
+                }
+
+                var isLast = _eof || !_parent.CanRead;
+
+                var blocks = (int)_encryptedBuffer.Length / _blockLength;
+
+                var length = isLast ? (int)_encryptedBuffer.Length : blocks * _blockLength;
+
+                if (!isLast && length == _encryptedBuffer.Length)
+                {
+                    // We can't be sure this isn't the last block until we read some more.
+                    if (length >= _blockLength)
+                        length -= _blockLength;
+                    else
+                        length = 0;
+                }
+
+                if (length > 0)
+                {
+                    var oldLength = _encryptedBuffer.Length;
+
+                    _encryptedBuffer.Length = (uint)length;
+
+                    var decrypted = CryptographicEngine.Decrypt(isLast ? _lastKey : _key, _encryptedBuffer, _ivBuffer);
+
+                    if (!isLast)
+                    {
+                        Debug.Assert(_encryptedBuffer.Length >= _blockLength);
+
+                        // Preserve the new IV
+                        _encryptedBuffer.CopyTo((uint)(_encryptedBuffer.Length - _blockLength), _ivBuffer, 0u, (uint)_blockLength);
+                    }
+
+                    Debug.Assert(oldLength >= length);
+
+                    _encryptedBuffer.Length = (uint)(oldLength - length);
+
+                    if (_encryptedBuffer.Length > 0)
+                        Array.Copy(_encrypted, length, _encrypted, 0, (int)_encryptedBuffer.Length);
+
+                    _decryptedLength = (int)decrypted.Length;
+                    _decryptedData = _decryptedLength > 0 ? decrypted.ToArray() : null;
+                    _decryptedOffset = 0;
+                }
+
+                if (ReadFromDecryptedData() || isLast)
+                    return _bytesRead;
+            }
         }
 
         #region Cruft
@@ -151,125 +296,5 @@ namespace SM.Media
         }
 
         #endregion
-
-        public override void Flush()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotImplementedException();
-        }
-
-        bool ReadFromDecryptedData(byte[] buffer)
-        {
-            if (null == _decryptedData)
-                return false;
-
-            Debug.Assert(_dataLength > 0);
-            Debug.Assert(_decryptedData.Length >= _dataLength);
-            Debug.Assert(_dataOffset >= 0 && _dataOffset <= _decryptedData.Length);
-
-            var length = Math.Min(_dataLength, _count);
-
-            Debug.Assert(length >= 0);
-
-            if (length <= 0)
-                return 0 == _count;
-
-            Array.Copy(_decryptedData, _dataOffset, buffer, _offset, length);
-
-            _dataLength -= length;
-            _dataOffset += length;
-
-            Debug.Assert(_dataLength >= 0);
-
-            _count -= length;
-            _offset += length;
-
-            Debug.Assert(_count >= 0);
-
-            if (0 == _dataLength)
-                _decryptedData = null;
-
-            _bytesRead += length;
-
-            return 0 == _count;
-        }
-
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            if (buffer == null)
-                throw new ArgumentNullException("buffer");
-
-            if (offset < 0)
-                throw new ArgumentOutOfRangeException("offset");
-
-            if (offset + count > buffer.Length)
-                throw new ArgumentOutOfRangeException("buffer");
-
-            if (count < 1)
-                return 0;
-
-            _count = count;
-            _offset = offset;
-
-            _bytesRead = 0;
-
-            // First, use up what we can of any old data.
-            if (ReadFromDecryptedData(buffer))
-                return _bytesRead;
-
-            for (; ; )
-            {
-                Debug.Assert(null == _decryptedData);
-
-                // Now, we try to read more data from our parent.
-                if (_parent.CanRead)
-                {
-                    if (_encryptedBuffer.Length > 0)
-                    {
-                        // Fill as much of the remaining buffer as we can.
-                        var length = await _parent.ReadAsync(_encrypted, 0, _encrypted.Length - (int)_encryptedBuffer.Length, cancellationToken).ConfigureAwait(false);
-
-                        _encryptedBuffer.Length += (uint)length;
-                    }
-                }
-
-                var isLast = !_parent.CanRead;
-
-                var blocks = (int)_encryptedBuffer.Length / _blockLength;
-
-                if (isLast || blocks > 0)
-                {
-                    var length = isLast ? (int)_encryptedBuffer.Length : blocks * _blockLength;
-
-                    _encryptedBuffer.Length = (uint)length;
-
-                    var decrypted = await CryptographicEngine.DecryptAsync(isLast ? _lastKey : _key, _encryptedBuffer, _ivBuffer)
-                                                             .AsTask(cancellationToken)
-                                                             .ConfigureAwait(false);
-
-                    if (!isLast)
-                    {
-                        Debug.Assert(decrypted.Length >= _blockLength);
-
-                        // Preserve the new IV
-                        decrypted.CopyTo((uint)(decrypted.Length - _blockLength), _ivBuffer, 0u, (uint)_blockLength);
-                    }
-
-                    _encryptedBuffer.Length -= (uint)length;
-
-                    if (_encryptedBuffer.Length > 0)
-                        Array.Copy(_encrypted, length, _encrypted, 0, (int)_encryptedBuffer.Length);
-
-                    _decryptedData = decrypted.ToArray();
-
-                    if (ReadFromDecryptedData(buffer))
-                        return _bytesRead;
-                }
-            }
-        }
     }
 }

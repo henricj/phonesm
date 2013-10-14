@@ -6,18 +6,16 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{7441BE13-D07C-424E-AD1A-54CC78A51E0F}</ProjectGuid>
+    <ProjectGuid>{C704B39A-C68B-4133-8983-5DC911BE284A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SM.Media</RootNamespace>
-    <AssemblyName>SM.Media.Platform.Win81</AssemblyName>
+    <RootNamespace>SM.TsParser</RootNamespace>
+    <AssemblyName>SM.TsParser.Win81</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformVersion>8.1</TargetPlatformVersion>
     <MinimumVisualStudioVersion>12</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{BC8A1FFA-BEE3-4634-8014-F334798102B3};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -103,51 +101,56 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="MediaElementManager.cs" />
-    <Compile Include="Utility\Debug.cs" />
-    <Compile Include="WinRtMediaStreamSource.cs" />
-    <Compile Include="Aes128Pkcs7ReadStream.cs" />
-    <Compile Include="PlatformServices.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\SM.Media.Win81\SM.Media.Win81.csproj">
-      <Project>{4c7ae991-5179-4061-afe1-878ff850aa72}</Project>
-      <Name>SM.Media.Win81</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser.Win81\SM.TsParser.Win81.csproj">
-      <Project>{c704b39a-c68b-4133-8983-5dc911be284a}</Project>
-      <Name>SM.TsParser.Win81</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="System.Net.Http.Extensions">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.15\lib\win8\System.Net.Http.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.15\lib\win8\System.Net.Http.Primitives.dll</HintPath>
-    </Reference>
+    <Compile Include="..\SM.TsParser\IProgramStream.cs" />
+    <Compile Include="..\SM.TsParser\IProgramStreams.cs" />
+    <Compile Include="..\SM.TsParser\ProgramStreams.cs" />
+    <Compile Include="..\SM.TsParser\TsPacketizedElementaryStream.cs" />
+    <Compile Include="..\SM.TsParser\TsPesPacket.cs" />
+    <Compile Include="..\SM.TsParser\TsProgramSpecificInformation.cs" />
+    <Compile Include="..\SM.TsParser\Properties\AssemblyInfo.cs">
+      <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\TsDecoder.cs" />
+    <Compile Include="..\SM.TsParser\TsPacket.cs" />
+    <Compile Include="..\SM.TsParser\TsProgramMapTable.cs" />
+    <Compile Include="..\SM.TsParser\TsProgramAssociationTable.cs" />
+    <Compile Include="..\SM.TsParser\TsStream.cs" />
+    <Compile Include="..\SM.TsParser\TsStreamType.cs" />
+    <Compile Include="..\SM.TsParser\Utility\BufferInstance.cs">
+      <Link>Utility\BufferInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\Utility\Crc32Msb.cs">
+      <Link>Utility\Crc32Msb.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\Utility\IBufferPool.cs">
+      <Link>Utility\IBufferPool.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\Utility\ITsPesPacketPool.cs">
+      <Link>Utility\ITsPesPacketPool.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\Utility\ObjectPool.cs">
+      <Link>Utility\ObjectPool.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\Utility\RegisterExtender.cs">
+      <Link>Utility\RegisterExtender.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.TsParser\Utility\TsPesPacketPool.cs">
+      <Link>Utility\TsPesPacketPool.cs</Link>
+    </Compile>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '12.0' ">
     <VisualStudioVersion>12.0</VisualStudioVersion>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.10\tools\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.10\tools\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureBclBuildImported" BeforeTargets="BeforeBuild" Condition="'$(BclBuildImported)' == ''">
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.10\tools\Microsoft.Bcl.Build.targets')" Text="This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
-    <Error Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.10\tools\Microsoft.Bcl.Build.targets')" Text="The build restored NuGet packages. Build the project again to include these packages in the build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

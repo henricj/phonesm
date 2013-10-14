@@ -26,6 +26,8 @@
 
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
@@ -87,6 +89,16 @@ namespace SM.Media.Utility
             return length;
         }
 
+#if NETFX_CORE
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var length = await _parent.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+
+            _position += length;
+
+            return length;
+        }
+#else
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
         {
             return _parent.BeginRead(buffer, offset, count, callback, state);
@@ -100,6 +112,7 @@ namespace SM.Media.Utility
 
             return length;
         }
+#endif
 
         public override long Seek(long offset, SeekOrigin origin)
         {
@@ -128,6 +141,9 @@ namespace SM.Media.Utility
         public override int ReadByte()
         {
             var x = _parent.ReadByte();
+
+            if (-1 == x)
+                return x;
 
             ++_position;
 

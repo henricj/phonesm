@@ -52,8 +52,6 @@ namespace SM.Media
         TimeSpan? _duration;
         Action<MediaStreamSource> _mssHandler;
 
-        int _checkBusy;
-
         StreamState _videoStreamState;
         StreamState _audioStreamState;
 
@@ -135,30 +133,11 @@ namespace SM.Media
         {
             //System.Diagnostics.Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
 
-            var wasBusy = 1 == Interlocked.Exchange(ref _checkBusy, 1);
+            if (null != _videoStreamState)
+                _videoStreamState.CheckForSamples();
 
-            if (wasBusy)
-                return;
-
-            try
-            {
-                if (null != _videoStreamState)
-                    _videoStreamState.CheckForSamples();
-
-                if (null != _audioStreamState)
-                    _audioStreamState.CheckForSamples();
-            }
-#if DEBUG
-            catch (Exception ex)
-            {
-                Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples failed:" + ex.Message);
-                throw;
-            }
-#endif
-            finally
-            {
-                Interlocked.Exchange(ref _checkBusy, 0);
-            }
+            if (null != _audioStreamState)
+                _audioStreamState.CheckForSamples();
         }
 
         #endregion

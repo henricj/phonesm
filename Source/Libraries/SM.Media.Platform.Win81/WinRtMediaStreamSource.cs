@@ -148,6 +148,13 @@ namespace SM.Media
                 if (null != _audioStreamState)
                     _audioStreamState.CheckForSamples();
             }
+#if DEBUG
+            catch (Exception ex)
+            {
+                Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples failed:" + ex.Message);
+                throw;
+            }
+#endif
             finally
             {
                 Interlocked.Exchange(ref _checkBusy, 0);
@@ -405,7 +412,7 @@ namespace SM.Media
                             _sampleLock.Exit();
                     }
 
-                    if (!TryCompleteRequest(request, deferral))
+                    if (!TryCompleteRequest(request))
                         return;
 
                     var localDeferral = deferral;
@@ -440,7 +447,7 @@ namespace SM.Media
                 }
             }
 
-            bool TryCompleteRequest(MediaStreamSourceSampleRequest request, MediaStreamSourceSampleRequestDeferral deferral)
+            bool TryCompleteRequest(MediaStreamSourceSampleRequest request)
             {
                 TsPesPacket packet = null;
 
@@ -451,12 +458,7 @@ namespace SM.Media
                     if (null == packet)
                     {
                         if (_streamSource.IsEof)
-                        {
-                            if (null != deferral)
-                                deferral.Complete();
-
                             return true;
-                        }
 
                         if (_streamSource.BufferingProgress.HasValue)
                             _bufferingProgress = (uint)(Math.Round(100 * _streamSource.BufferingProgress.Value));
@@ -503,9 +505,6 @@ namespace SM.Media
                     // Prevent the .FreeSample() below from freeing this packet.
                     packet = null;
 
-                    if (null != deferral)
-                        deferral.Complete();
-
                     return true;
                 }
                 finally
@@ -517,7 +516,10 @@ namespace SM.Media
 
             public void SampleRequested(MediaStreamSourceSampleRequest request)
             {
-                if (TryCompleteRequest(request, null))
+                Utility.Debug.Assert(null == _deferral);
+                Utility.Debug.Assert(null == _request);
+
+                if (TryCompleteRequest(request))
                     return;
 
                 var deferral = request.GetDeferral();
@@ -527,6 +529,9 @@ namespace SM.Media
                 try
                 {
                     _sampleLock.Enter(ref lockTaken);
+
+                    Utility.Debug.Assert(null == _deferral);
+                    Utility.Debug.Assert(null == _request);
 
                     _request = request;
                     _deferral = deferral;

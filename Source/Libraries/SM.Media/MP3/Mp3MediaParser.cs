@@ -76,12 +76,12 @@ namespace SM.Media.MP3
             _streamBuffer.Enqueue(null);
         }
 
-        public void ProcessData(byte[] buffer, int length)
+        public void ProcessData(byte[] buffer, int offset, int length)
         {
             Debug.Assert(length > 0);
             Debug.Assert(length <= buffer.Length);
 
-            _parser.ProcessData(buffer, 0, length);
+            _parser.ProcessData(buffer, offset, length);
         }
 
         public void FlushBuffers()

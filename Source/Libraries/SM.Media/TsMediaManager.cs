@@ -326,7 +326,7 @@ namespace SM.Media
                     if (null == wi)
                         mediaParser.ProcessEndOfData();
                     else
-                        mediaParser.ProcessData(wi.Buffer, wi.Length);
+                        mediaParser.ProcessData(wi.Buffer, 0, wi.Length);
                 }, reader.BlockingPool.Free);
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);

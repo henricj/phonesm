@@ -80,28 +80,7 @@ namespace SM.Media.AAC
             _streamBuffer.Enqueue(null);
         }
 
-        public void ProcessData(byte[] buffer, int length)
-        {
-            Debug.Assert(length > 0);
-            Debug.Assert(length <= buffer.Length);
-
-            ProcessData(buffer, 0, length);
-        }
-
-        public void FlushBuffers()
-        {
-            FreeBuffer();
-        }
-
-        public bool EnableProcessing { get; set; }
-        public TimeSpan StartPosition { get; set; }
-
-        public void Initialize(Action<IProgramStreams> programstreamsHandler)
-        { }
-
-        #endregion
-
-        void ProcessData(byte[] buffer, int offset, int length)
+        public void ProcessData(byte[] buffer, int offset, int length)
         {
             Debug.Assert(length > 0);
             Debug.Assert(offset + length <= buffer.Length);
@@ -185,6 +164,19 @@ namespace SM.Media.AAC
                 }
             }
         }
+
+        public void FlushBuffers()
+        {
+            FreeBuffer();
+        }
+
+        public bool EnableProcessing { get; set; }
+        public TimeSpan StartPosition { get; set; }
+
+        public void Initialize(Action<IProgramStreams> programstreamsHandler)
+        { }
+
+        #endregion
 
         void SubmitFrame()
         {

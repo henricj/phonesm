@@ -34,7 +34,7 @@ namespace SM.Media
         bool EnableProcessing { get; set; }
         TimeSpan StartPosition { get; set; }
         void ProcessEndOfData();
-        void ProcessData(byte[] buffer, int length);
+        void ProcessData(byte[] buffer, int offset, int length);
         void FlushBuffers();
         void Initialize(Action<IProgramStreams> programStreamsHandler = null);
     }

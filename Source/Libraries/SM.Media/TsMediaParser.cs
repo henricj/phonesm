@@ -41,11 +41,11 @@ namespace SM.Media
 
         #endregion
 
-        readonly Func<TsStreamType, TsDecoder, StreamBuffer> _streamBufferFactory;
         readonly Action<IMediaParserMediaStream> _mediaParserStreamHandler;
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
         readonly PesHandlers _pesHandlers;
+        readonly Func<TsStreamType, TsDecoder, StreamBuffer> _streamBufferFactory;
         readonly List<Action<TimeSpan>> _timestampOffsetHandlers = new List<Action<TimeSpan>>();
         readonly TsDecoder _tsDecoder;
         readonly ITsTimestamp _tsTimemestamp;
@@ -138,9 +138,9 @@ namespace SM.Media
             _tsDecoder.ParseEnd();
         }
 
-        public void ProcessData(byte[] buffer, int length)
+        public void ProcessData(byte[] buffer, int offset, int length)
         {
-            _tsDecoder.Parse(buffer, 0, length);
+            _tsDecoder.Parse(buffer, offset, length);
         }
 
         #endregion

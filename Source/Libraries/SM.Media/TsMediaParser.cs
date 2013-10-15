@@ -41,8 +41,7 @@ namespace SM.Media
 
         #endregion
 
-        readonly IBufferingManager _bufferingManager;
-        readonly Action _checkForSamples;
+        readonly Func<TsStreamType, TsDecoder, StreamBuffer> _streamBufferFactory;
         readonly Action<IMediaParserMediaStream> _mediaParserStreamHandler;
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
@@ -51,17 +50,14 @@ namespace SM.Media
         readonly TsDecoder _tsDecoder;
         readonly ITsTimestamp _tsTimemestamp;
 
-        public TsMediaParser(IBufferingManager bufferingManager, ITsTimestamp tsTimemestamp, Action checkForSamples, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
+        public TsMediaParser(Func<TsStreamType, TsDecoder, StreamBuffer> streamBufferFactory, ITsTimestamp tsTimemestamp, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
         {
-            if (null == bufferingManager)
-                throw new ArgumentNullException("bufferingManager");
-            if (checkForSamples == null)
-                throw new ArgumentNullException("checkForSamples");
+            if (streamBufferFactory == null)
+                throw new ArgumentNullException("streamBufferFactory");
             if (tsTimemestamp == null)
                 throw new ArgumentNullException("tsTimemestamp");
 
-            _bufferingManager = bufferingManager;
-            _checkForSamples = checkForSamples;
+            _streamBufferFactory = streamBufferFactory;
             _tsTimemestamp = tsTimemestamp;
 
             if (null == handlerFactory)
@@ -194,7 +190,7 @@ namespace SM.Media
 
         Action<TsPesPacket> CreatePacketHandler(PacketHandlerFactory streamHandlerFactory, uint pid, TsStreamType streamType)
         {
-            var streamBuffer = new StreamBuffer(streamType, _tsDecoder.PesPacketPool.FreePesPacket, _bufferingManager, _checkForSamples);
+            var streamBuffer = _streamBufferFactory(streamType, _tsDecoder);
 
             var localStreamBuffer = streamBuffer;
 

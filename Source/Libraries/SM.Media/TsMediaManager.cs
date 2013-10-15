@@ -376,7 +376,9 @@ namespace SM.Media
             {
                 var tsTimestamp = new TsTimestamp();
 
-                reader.MediaParser = new TsMediaParser(reader.BufferingManager, tsTimestamp, _mediaStreamSource.CheckForSamples,
+                reader.MediaParser = new TsMediaParser(
+                    (streamType, tsDecoder) => new StreamBuffer(streamType, tsDecoder.PesPacketPool.FreePesPacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
+                    tsTimestamp,
                     mediaStream =>
                     {
                         mediaStream.ConfigurationComplete +=

@@ -245,7 +245,7 @@ namespace SM.Media
             try
             {
                 readerTasks = _readerManager.SegmentManagerReaders
-                                            .Select(r => CreateReaderPipeline(r, _mediaStreamSource.CheckForSamples))
+                                            .Select(CreateReaderPipeline)
                                             .ToArray();
 
                 _readers = await TaskEx.WhenAll(readerTasks)
@@ -306,7 +306,7 @@ namespace SM.Media
             throw exception;
         }
 
-        async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders, Action bufferingChange)
+        async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
         {
             var reader = new ReaderPipeline
                          {
@@ -331,7 +331,7 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = new BufferingManager(reader.QueueWorker, bufferingChange);
+            reader.BufferingManager = new BufferingManager(reader.QueueWorker, _mediaStreamSource.CheckForSamples);
 
             Action<IProgramStreams> programStreamsHandler = null;
 

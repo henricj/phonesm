@@ -355,8 +355,8 @@ namespace SM.Media
             else
             {
                 //if (!allDone && isExhausted && (!validData || 0 == highestCount))
-                if (!allDone && allExhausted && validData)
-                //if (!allDone && isExhausted)
+                //if (!allDone && allExhausted && validData)
+                  if (!allDone && isExhausted)
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
 
@@ -503,7 +503,12 @@ namespace SM.Media
 
             public void ReportEnqueue(int size, TimeSpan timestamp)
             {
-                IsExhausted = false;
+                if (IsExhausted)
+                {
+                    Debug.WriteLine("BufferingQueue.ReportEnqueue(): IsExhausted=false " + _streamType.Contents);
+                    IsExhausted = false;
+                }
+
                 _bufferingManager.Report(Enqueue, size, timestamp);
             }
 
@@ -515,9 +520,11 @@ namespace SM.Media
             public void ReportExhaustion()
             {
                 if (!IsExhausted)
+                {
                     Debug.WriteLine("BufferingQueue.ReportExhaustion(): " + _streamType.Contents);
+                    IsExhausted = true;
+                }
 
-                IsExhausted = true;
                 _bufferingManager.ReportExhaustion(Exhausted);
             }
 

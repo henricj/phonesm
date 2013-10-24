@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using SM.Media.Utility;
 using SM.TsParser;
 
 namespace SM.Media
@@ -42,10 +43,10 @@ namespace SM.Media
         static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(9);
         static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(25);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
-        readonly Action _bufferingChange;
         readonly object _lock = new object();
         readonly IQueueThrottling _queueThrottling;
         readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
+        readonly SignalTask _reportingTask;
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
         double _bufferingProgress;
@@ -60,7 +61,8 @@ namespace SM.Media
                 throw new ArgumentNullException("bufferingChange");
 
             _queueThrottling = queueThrottling;
-            _bufferingChange = bufferingChange;
+
+            _reportingTask = new SignalTask(bufferingChange, CancellationToken.None);
         }
 
         public TimeSpan BufferPosition
@@ -356,7 +358,7 @@ namespace SM.Media
             {
                 //if (!allDone && isExhausted && (!validData || 0 == highestCount))
                 //if (!allDone && allExhausted && validData)
-                  if (!allDone && isExhausted)
+                if (!allDone && isExhausted)
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
 
@@ -426,7 +428,7 @@ namespace SM.Media
         {
             _bufferingProgress = bufferingProgress;
 
-            _bufferingChange();
+            _reportingTask.Fire();
         }
 
         void HandleStateChange()

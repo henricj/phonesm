@@ -167,6 +167,7 @@
     <Compile Include="Utility\IApplicationInformation.cs" />
     <Compile Include="Utility\ICommandWorker.cs" />
     <Compile Include="Utility\PositionStream.cs" />
+    <Compile Include="Utility\SignalTask.cs" />
     <Compile Include="Utility\TaskCommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\HttpWebRequestFactory.cs" />

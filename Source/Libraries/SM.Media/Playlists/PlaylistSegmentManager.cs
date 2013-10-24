@@ -301,6 +301,16 @@ namespace SM.Media.Playlists
                     {
                         _readSubListFailureCount = 0;
 
+                        if (_isDynamicPlaylist)
+                        {
+                            var remaining = TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount);
+
+                            if (remaining < TimeSpan.FromMilliseconds(100))
+                                throw new InvalidOperationException("Expiration too short: " + remaining);
+
+                            _expirationTimer.Change(remaining, NotPeriodic);
+                        }
+
                         return;
                     }
                 }
@@ -408,10 +418,12 @@ namespace SM.Media.Playlists
                     }
 
                     if (!needReload)
+                    {
                         segments = ResyncSegments();
 
-                    if (isDynamicPlayist)
-                        UpdateDynamicPlaylistExpiration(segments0);
+                        if (isDynamicPlayist)
+                            UpdateDynamicPlaylistExpiration(segments0);
+                    }
                 }
 
                 if (!needReload)

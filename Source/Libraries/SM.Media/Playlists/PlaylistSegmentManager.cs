@@ -400,7 +400,8 @@ namespace SM.Media.Playlists
                     {
                         if (null != lastPlaylist
                             && lastPlaylist[0].MediaSequence == segments[0].MediaSequence
-                            && (segments[0].MediaSequence.HasValue || lastPlaylist[0].Url == segments[0].Url))
+                            && (segments[0].MediaSequence.HasValue || lastPlaylist[0].Url == segments[0].Url)
+                            && lastPlaylist.Length == segments.Length)
                         {
                             // We are running out of playlist, but the server just gave us the
                             // same list as last time.

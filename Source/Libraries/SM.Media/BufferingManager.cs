@@ -275,6 +275,7 @@ namespace SM.Media
         {
             var newest = TimeSpan.MinValue;
             var oldest = TimeSpan.MaxValue;
+            var minDuration = TimeSpan.MaxValue;
             var lowestCount = int.MaxValue;
             var highestCount = int.MinValue;
             var totalBuffered = 0;
@@ -295,7 +296,12 @@ namespace SM.Media
                     allExhausted = false;
 
                 if (!queue.IsValid)
+                {
+                    if (minDuration > TimeSpan.Zero)
+                        minDuration = TimeSpan.Zero;
+
                     continue;
+                }
 
                 totalBuffered += queue.Size;
 
@@ -318,9 +324,18 @@ namespace SM.Media
 
                 if (oldTime < oldest)
                     oldest = oldTime.Value;
+                
+                var duration = (newTime - oldTime) ?? TimeSpan.Zero;
+
+                if (duration < TimeSpan.Zero)
+                    duration = TimeSpan.Zero;
+
+                if (duration < minDuration)
+                    minDuration = duration;
             }
 
-            var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;
+            var timestampDifference = validData ? minDuration : TimeSpan.MaxValue;
+            //var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;
 
             // The presentation order is not always the same as the decoding order.  Fudge things
             // in the assert so we can still catch grievous errors.
@@ -346,6 +361,8 @@ namespace SM.Media
                     Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): {0} duration, {1} size, {2} memory",
                         validData ? timestampDifference.ToString() : "none", validData ? totalBuffered.ToString() : "none", GC.GetTotalMemory(false));
 
+                    DumpQueues();
+
                     ReportBuffering(1);
                 }
                 else if (validData)
@@ -361,6 +378,8 @@ namespace SM.Media
                 if (!allDone && isExhausted)
                 {
                     Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2} memory", timestampDifference, totalBuffered, GC.GetTotalMemory(false));
+
+                    DumpQueues();
 
                     _totalBufferedStart = totalBuffered;
 
@@ -388,6 +407,15 @@ namespace SM.Media
             return false;
         }
 
+        [Conditional("DEBUG")]
+        void DumpQueues()
+        {
+            foreach (var queue in _queues)
+            {
+                Debug.WriteLine("  " + queue);
+            }
+        }
+
         void UpdateBuffering(TimeSpan timestampDifference, int bufferSize)
         {
             if ((timestampDifference >= BufferDurationThreshold && bufferSize >= BufferSizeStopBuffering) || bufferSize >= BufferSizeMaximum || timestampDifference > BufferDurationDisableThreshold)
@@ -397,6 +425,8 @@ namespace SM.Media
 #pragma warning restore 0420
 
                 Debug.WriteLine("BufferingManager.UpdateBuffering done buffering: {0} duration, {1} size, {2} memory", timestampDifference, bufferSize, GC.GetTotalMemory(false));
+
+                DumpQueues();
 
                 ReportBuffering(1);
             }
@@ -583,6 +613,11 @@ namespace SM.Media
 
                 if (!_newestPacket.HasValue)
                     _newestPacket = timestamp;
+            }
+
+            public override string ToString()
+            {
+                return string.Format("{0} count {1} size {2} newest {3} oldest {4}", _streamType.Contents, _packetCount, _bufferSize, _newestPacket, _oldestPacket);
             }
         }
 

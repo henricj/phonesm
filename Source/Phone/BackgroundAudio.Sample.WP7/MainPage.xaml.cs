@@ -121,7 +121,11 @@ namespace BackgroundAudio.Sample.WP7
         private void playButton_Click(object sender, EventArgs e)
         {
             if (BackgroundAudioPlayer.Instance.Track == null)
-                BackgroundAudioPlayer.Instance.Track = new AudioTrack(null, null, null, null, null, "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8", EnabledPlayerControls.All);
+                BackgroundAudioPlayer.Instance.Track = new AudioTrack(null, "Apple",
+            null, null, null,
+                    //"http://www.bbc.co.uk/mediaselector/playlists/hls/radio/bbc_london.m3u8",
+                "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
+                EnabledPlayerControls.All);
 
             // Tell the backgound audio agent to play the current track.
             BackgroundAudioPlayer.Instance.Play();

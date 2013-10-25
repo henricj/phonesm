@@ -822,7 +822,7 @@ namespace SM.Media.MediaPlayer
                     return;
                 }
 
-                subProgram = program.SubPrograms.FirstOrDefault();
+                subProgram = SelectSubProgram(program.SubPrograms);
 
                 if (null == subProgram)
                 {
@@ -848,5 +848,7 @@ namespace SM.Media.MediaPlayer
 
             _tsMediaManager.Play();
         }
+
+        public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
     }
 }

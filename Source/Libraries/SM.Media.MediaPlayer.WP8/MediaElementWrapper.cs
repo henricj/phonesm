@@ -40,6 +40,7 @@ using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
 using TimelineMarkerRoutedEventArgs = System.Windows.Media.TimelineMarkerRoutedEventArgs;
 using TimelineMarkerRoutedEventHandler = Microsoft.PlayerFramework.TimelineMarkerRoutedEventHandler;
+using System.Collections.Generic;
 
 namespace SM.Media.MediaPlayer
 {
@@ -554,7 +555,7 @@ namespace SM.Media.MediaPlayer
                     throw new FileNotFoundException("Unable to load program");
                 }
 
-                subProgram = program.SubPrograms.FirstOrDefault();
+                subProgram = SelectSubProgram(program.SubPrograms);
 
                 if (null == subProgram)
                 {
@@ -616,5 +617,7 @@ namespace SM.Media.MediaPlayer
                                     .Wait();
             }
         }
+
+        public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
     }
 }

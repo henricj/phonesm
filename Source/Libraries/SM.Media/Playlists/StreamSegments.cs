@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -207,6 +207,8 @@ namespace SM.Media.Playlists
                             stream = await filter(stream).ConfigureAwait(false);
 
                         var key = await keyTask.ConfigureAwait(false);
+
+                        Debug.WriteLine("Segment AES-128: key {0} iv {1}", BitConverter.ToString(key), BitConverter.ToString(iv));
 
                         return GlobalPlatformServices.Default.Aes128DecryptionFilter(stream, key, iv);
                     }

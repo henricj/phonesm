@@ -94,10 +94,10 @@ namespace SM.Media
         public void Configure(MediaConfiguration configuration)
         {
             if (null != configuration.AudioConfiguration)
-                ConfigureAudioStream(configuration.AudioConfiguration, configuration.AudioStream);
+                _audioStreamState = new StreamState("Audio", configuration.AudioStream, CreateAudioDescriptor(configuration.AudioConfiguration));
 
             if (null != configuration.VideoConfiguration)
-                ConfigureVideoStream(configuration.VideoConfiguration, configuration.VideoStream);
+                _videoStreamState = new StreamState("Video", configuration.VideoStream, CreateVideoDescriptor(configuration.VideoConfiguration));
 
             lock (_streamConfigurationLock)
             {
@@ -193,11 +193,6 @@ namespace SM.Media
             return descriptor;
         }
 
-        void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
-        {
-            _videoStreamState = new StreamState(videoSource, CreateVideoDescriptor(configurationSource));
-        }
-
         IMediaStreamDescriptor CreateAudioDescriptor(IAudioConfigurationSource configurationSource)
         {
             Func<uint, uint, uint, AudioEncodingProperties> propertyFactory;
@@ -237,11 +232,6 @@ namespace SM.Media
                 descriptor.Name = configurationSource.Name;
 
             return descriptor;
-        }
-
-        void ConfigureAudioStream(IAudioConfigurationSource configurationSource, IStreamSource audioSource)
-        {
-            _audioStreamState = new StreamState(audioSource, CreateAudioDescriptor(configurationSource));
         }
 
         void CompleteConfigure()
@@ -341,6 +331,7 @@ namespace SM.Media
         class StreamState
         {
             public readonly IMediaStreamDescriptor Descriptor;
+            readonly string _name;
 
             readonly IStreamSource _streamSource;
             uint _bufferingProgress;
@@ -349,13 +340,16 @@ namespace SM.Media
             MediaStreamSourceSampleRequest _request;
             SpinLock _sampleLock = new SpinLock();
 
-            public StreamState(IStreamSource streamSource, IMediaStreamDescriptor descriptor)
+            public StreamState(string name, IStreamSource streamSource, IMediaStreamDescriptor descriptor)
             {
+                if (name == null)
+                    throw new ArgumentNullException("name");
                 if (streamSource == null)
                     throw new ArgumentNullException("streamSource");
                 if (descriptor == null)
                     throw new ArgumentNullException("descriptor");
 
+                _name = name;
                 _streamSource = streamSource;
                 Descriptor = descriptor;
             }
@@ -446,7 +440,7 @@ namespace SM.Media
 
                         if (_bufferingProgress != _reportedBufferingProgress)
                         {
-                            Debug.WriteLine("Sample {0} buffering {1}%", request.StreamDescriptor.Name, _bufferingProgress);
+                            //Debug.WriteLine("Sample {0} buffering {1}%", _name, _bufferingProgress);
 
                             request.ReportSampleProgress(_bufferingProgress);
                             _reportedBufferingProgress = _bufferingProgress;
@@ -472,8 +466,8 @@ namespace SM.Media
                     if (packet.Duration.HasValue)
                         mediaStreamSample.Duration = packet.Duration.Value;
 
-                    //System.Diagnostics.Debug.WriteLine("Sample {0} at {1}. duration {2} length {3}",
-                    //    request.StreamDescriptor.Name, mediaStreamSample.Timestamp, mediaStreamSample.Duration, packet.Length);
+                    //Debug.WriteLine("Sample {0} at {1}. duration {2} length {3}",
+                    //    _name, mediaStreamSample.Timestamp, mediaStreamSample.Duration, packet.Length);
 
                     request.Sample = mediaStreamSample;
 

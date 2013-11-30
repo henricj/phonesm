@@ -102,7 +102,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             base.OnCancel();
         }
 
-        public Task SetSource(IMediaStreamSource source)
+        public Task SetSourceAsync(IMediaStreamSource source)
         {
             var mediaStreamSource = (MediaStreamSource)source;
 
@@ -111,7 +111,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             return TplTaskExtensions.CompletedTask;
         }
 
-        public Task Close()
+        public Task CloseAsync()
         {
             NotifyComplete();
             return TplTaskExtensions.CompletedTask;

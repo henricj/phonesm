@@ -269,20 +269,20 @@ namespace HlsView
             var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
             if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
+                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
 
             _tsMediaStreamSource = new TsMediaStreamSource();
 
             _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
 
-            _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
+            _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
 
             _tsMediaManager.Play();
 
             _positionSampler.Start();
         }
 
-        void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.InvokeAsync(() =>
                                    {
@@ -348,7 +348,7 @@ namespace HlsView
 
             if (null != _mediaElementManager)
             {
-                _mediaElementManager.Close()
+                _mediaElementManager.CloseAsync()
                                     .Wait();
             }
         }
@@ -359,7 +359,7 @@ namespace HlsView
 
             if (null != _mediaElementManager)
             {
-                _mediaElementManager.Close()
+                _mediaElementManager.CloseAsync()
                                     .Wait();
             }
         }

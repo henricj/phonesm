@@ -260,7 +260,7 @@ namespace SM.Media
 
                 StartReaders();
 
-                await _mediaElementManager.SetSource(_mediaStreamSource).ConfigureAwait(false);
+                await _mediaElementManager.SetSourceAsync(_mediaStreamSource).ConfigureAwait(false);
 
                 return;
             }
@@ -555,7 +555,7 @@ namespace SM.Media
             reader.BufferingManager.Flush();
         }
 
-        async Task CloseAsync()
+        public async Task CloseAsync()
         {
             var tasks = new List<Task>();
 
@@ -612,8 +612,12 @@ namespace SM.Media
                     }
                 }
 
-                if (null != drainTask)
-                    await TaskEx.WhenAny(drainTask, stopPlaylist, TaskEx.Delay(1500)).ConfigureAwait(false);
+                if (null != drainTask || null != stopPlaylist)
+                {
+                    await TaskEx.WhenAny(drainTask ?? TplTaskExtensions.CompletedTask,
+                        stopPlaylist ?? TplTaskExtensions.CompletedTask,
+                        TaskEx.Delay(1500)).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -622,7 +626,7 @@ namespace SM.Media
             }
 
             if (null != _mediaElementManager)
-                await _mediaElementManager.Close().ConfigureAwait(false);
+                await _mediaElementManager.CloseAsync().ConfigureAwait(false);
 
             if (null != _readers)
             {

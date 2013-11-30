@@ -37,14 +37,14 @@ namespace SM.Media
 {
     public class NoOpMediaElementManager : IMediaElementManager
     {
-        public Task SetSource(IMediaStreamSource source)
+        public Task SetSourceAsync(IMediaStreamSource source)
         {
             source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
 
             return TplTaskExtensions.CompletedTask;
         }
 
-        public Task Close()
+        public Task CloseAsync()
         {
             return TplTaskExtensions.CompletedTask;
         }
@@ -70,7 +70,7 @@ namespace SM.Media
             _destroyMediaElement = destroyMediaElement;
         }
 
-        public Task SetSource(IMediaStreamSource source)
+        public Task SetSourceAsync(IMediaStreamSource source)
         {
             return Dispatch(() =>
                             {
@@ -96,7 +96,7 @@ namespace SM.Media
                             });
         }
 
-        public async Task Close()
+        public async Task CloseAsync()
         {
             var wasSet = Interlocked.CompareExchange(ref _sourceIsSet, 2, 1);
 

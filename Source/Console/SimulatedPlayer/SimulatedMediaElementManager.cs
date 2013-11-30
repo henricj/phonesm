@@ -63,12 +63,12 @@ namespace SimulatedPlayer
 
         #region IMediaElementManager Members
 
-        Task IMediaElementManager.Close()
+        Task IMediaElementManager.CloseAsync()
         {
             return Close();
         }
 
-        Task IMediaElementManager.SetSource(IMediaStreamSource source)
+        Task IMediaElementManager.SetSourceAsync(IMediaStreamSource source)
         {
             return SetSource(source);
         }
@@ -148,7 +148,7 @@ namespace SimulatedPlayer
 
             if (oldestIndex >= 0)
             {
-                Task.Run(async () =>
+                var t = Task.Run(async () =>
                                {
                                    await Task.Delay((int)(10 * (1 + _random.GetRandomNumber()))).ConfigureAwait(false);
 

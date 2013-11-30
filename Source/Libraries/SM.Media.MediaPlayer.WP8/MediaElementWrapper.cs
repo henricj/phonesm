@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -40,7 +41,6 @@ using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
 using TimelineMarkerRoutedEventArgs = System.Windows.Media.TimelineMarkerRoutedEventArgs;
 using TimelineMarkerRoutedEventHandler = Microsoft.PlayerFramework.TimelineMarkerRoutedEventHandler;
-using System.Collections.Generic;
 
 namespace SM.Media.MediaPlayer
 {
@@ -396,11 +396,7 @@ namespace SM.Media.MediaPlayer
                                   Playlists = new[] { value }
                               };
 
-            if (null != _tsMediaStreamSource)
-            {
-                // Implement cleanup
-                Debug.Assert(true);
-            }
+            MediaElement.Source = null;
 
             await OpenMediaAsync().ConfigureAwait(true);
 
@@ -535,6 +531,9 @@ namespace SM.Media.MediaPlayer
 
         async Task OpenMediaAsync()
         {
+            if (null != _tsMediaStreamSource)
+                await CloseMediaAsync().ConfigureAwait(false);
+
             if (null != _playlist)
             {
                 _playlist.Dispose();
@@ -576,17 +575,102 @@ namespace SM.Media.MediaPlayer
             var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
             if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
+                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
 
             if (null == _tsMediaStreamSource)
                 _tsMediaStreamSource = new TsMediaStreamSource();
 
             _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
 
-            _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
+            _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
         }
 
-        void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs e)
+        async Task CloseMediaAsync()
+        {
+            var cleanupOk = false;
+
+            try
+            {
+                await _tsMediaStreamSource.CloseAsync().ConfigureAwait(false);
+
+                cleanupOk = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Cleanup of existing media stream source failed: " + ex.Message);
+            }
+
+            if (!cleanupOk)
+            {
+                var mss = _tsMediaStreamSource;
+
+                if (null != mss)
+                {
+                    _tsMediaStreamSource = null;
+
+                    try
+                    {
+                        mss.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Fallback cleanup of existing media stream source failed: " + ex.Message);
+                    }
+                }
+            }
+
+            var playlist = _playlist;
+
+            if (null != playlist)
+            {
+                _playlist = null;
+
+                var task = playlist.StopAsync()
+                    .ContinueWith(t =>
+                                  {
+                                      var ex = t.Exception;
+
+                                      if (null != ex)
+                                          Debug.WriteLine("StopPlaylist failed: " + ex.Message);
+
+                                      try
+                                      {
+                                          playlist.Dispose();
+                                      }
+                                      catch (Exception ex2)
+                                      {
+                                          Debug.WriteLine("Playlists dispose failed: " + ex2.Message);
+                                      }
+                                  });
+            }
+
+            var mediaManager = _tsMediaManager;
+
+            if (null != mediaManager)
+            {
+                _tsMediaManager = null;
+
+                mediaManager.OnStateChange -= TsMediaManagerOnStateChange;
+
+                try
+                {
+                    await mediaManager.CloseAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Media manager close failed: " + ex.Message);
+                }
+
+                mediaManager.Dispose();
+            }
+
+            if (null != _mediaElementManager)
+            {
+                await _mediaElementManager.CloseAsync().ConfigureAwait(false);
+            }
+        }
+
+        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
         {
             Debug.WriteLine("MediaElementWrapper.TsMediaManagerOnOnStateChange to {0}: {1}", e.State, e.Message);
         }
@@ -604,7 +688,7 @@ namespace SM.Media.MediaPlayer
             Close();
 
             if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnOnStateChange;
+                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
 
             if (null != _playlist)
             {
@@ -613,7 +697,7 @@ namespace SM.Media.MediaPlayer
 
             if (null != _mediaElementManager)
             {
-                _mediaElementManager.Close()
+                _mediaElementManager.CloseAsync()
                                     .Wait();
             }
         }

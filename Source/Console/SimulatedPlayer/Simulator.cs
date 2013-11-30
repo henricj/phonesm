@@ -77,7 +77,7 @@ namespace SimulatedPlayer
 
             try
             {
-                var programs = await _programManager.LoadAsync();
+                var programs = await _programManager.LoadAsync().ConfigureAwait(false);
 
                 var program = programs.Values.FirstOrDefault();
 

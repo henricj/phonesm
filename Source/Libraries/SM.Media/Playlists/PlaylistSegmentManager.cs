@@ -54,6 +54,7 @@ namespace SM.Media.Playlists
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         CancellationTokenSource _abortTokenSource;
         int _dynamicStartIndex;
+        int _isDisposed;
         bool _isDynamicPlaylist;
         bool _isInitialized;
         bool _isRunning;
@@ -103,6 +104,9 @@ namespace SM.Media.Playlists
 
         public void Dispose()
         {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
             _abortTokenSource.Cancel();
 
             using (_expirationTimer)
@@ -131,13 +135,21 @@ namespace SM.Media.Playlists
 
         public Task StopAsync()
         {
+            // We would generally want to throw an ObjectDisposedException,
+            // but here we are dealing with something along the lines of
+            // Close() or even Dispose() itself.  Perhaps there should
+            // be a separate CloseAsync() call?
+            if (0 != _isDisposed)
+                return TplTaskExtensions.CompletedTask;
+
             Task reader;
 
             lock (_segmentLock)
             {
                 _isRunning = false;
 
-                _expirationTimer.Change(NotDue, NotPeriodic);
+                if (0 == _isDisposed) // Mitigate race...
+                    _expirationTimer.Change(NotDue, NotPeriodic);
 
                 _abortTokenSource.Cancel();
 
@@ -494,13 +506,16 @@ namespace SM.Media.Playlists
             // lastLength is the length of the most recent playlist.  We must
             // start inside this playlist.
 
-            SetDynamicStartIndex(segments, segments.Length - lastLength + 1);
+            SetDynamicStartIndex(segments, segments.Length - lastLength - 1);
 
             return segments;
         }
 
         void SetDynamicStartIndex(IList<ISegment> segments, int notBefore)
         {
+            if (notBefore < -1)
+                notBefore = -1;
+
             _dynamicStartIndex = notBefore;
 
             // Don't start more than 60 seconds in the past.

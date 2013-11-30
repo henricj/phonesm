@@ -151,9 +151,15 @@ namespace SM.Media.Segments
 
             try
             {
-                using (_readStream)
-                { }
-                _readStream = null;
+                var readStream = _readStream;
+
+                if (null != readStream)
+                {
+                    _readStream = null;
+
+                    using (readStream)
+                    { }
+                }
             }
             catch (Exception ex)
             {
@@ -164,9 +170,15 @@ namespace SM.Media.Segments
             {
                 try
                 {
-                    using (_responseStream)
-                    { }
-                    _responseStream = null;
+                    var responseStream = _responseStream;
+
+                    if (null != responseStream)
+                    {
+                        _responseStream = null;
+
+                        using (responseStream)
+                        { }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -176,9 +188,15 @@ namespace SM.Media.Segments
 
             try
             {
-                using (_response)
-                { }
-                _response = null;
+                var response = _response;
+
+                if (null != response)
+                {
+                    _response = null;
+
+                    using (response)
+                    { }
+                }
             }
             catch (Exception ex)
             {
@@ -187,9 +205,15 @@ namespace SM.Media.Segments
 
             try
             {
-                using (_request)
-                { }
-                _request = null;
+                var request = _request;
+
+                if (null != request)
+                {
+                    _request = null;
+
+                    using (request)
+                    { }
+                }
             }
             catch (Exception ex)
             {

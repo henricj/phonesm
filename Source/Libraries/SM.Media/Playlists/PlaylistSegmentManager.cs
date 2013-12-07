@@ -64,6 +64,8 @@ namespace SM.Media.Playlists
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
         ICachedWebRequest _subPlaylistRequest;
+        const int MinimumExpirationMs = 333;
+        static readonly TimeSpan MinimumExpirationTimeSpan = TimeSpan.FromMilliseconds(MinimumExpirationMs);
 
         public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, Func<M3U8Parser, IStreamSegments> segmentsFactory)
             : this(webRequestFactory, program, segmentsFactory, CancellationToken.None)
@@ -317,8 +319,12 @@ namespace SM.Media.Playlists
                         {
                             var remaining = TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount);
 
-                            if (remaining < TimeSpan.FromMilliseconds(100))
-                                throw new InvalidOperationException("Expiration too short: " + remaining);
+                            if (remaining < MinimumExpirationTimeSpan)
+                            {
+                                Debug.WriteLine("Expiration too short: " + remaining);
+
+                                remaining = MinimumExpirationTimeSpan;
+                            }
 
                             _expirationTimer.Change(remaining, NotPeriodic);
                         }
@@ -418,6 +424,11 @@ namespace SM.Media.Playlists
                             // We are running out of playlist, but the server just gave us the
                             // same list as last time.
                             Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
+
+                            var expiration = Environment.TickCount + 2 * MinimumExpirationMs;
+
+                            if (_segmentsExpiration < expiration)
+                                _segmentsExpiration = expiration;
 
                             needReload = true;
                         }

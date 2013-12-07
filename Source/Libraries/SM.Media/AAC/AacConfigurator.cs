@@ -101,7 +101,7 @@ namespace SM.Media.AAC
             var cpd = w.ToCodecPrivateData();
 
             CodecPrivateData = cpd;
-            Name = _frameHeader.Name;
+            Name = frameHeader.Name;
             Channels = frameHeader.ChannelConfig;
             SamplingFrequency = frameHeader.SamplingFrequency;
 

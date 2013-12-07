@@ -78,7 +78,7 @@ namespace SM.Media.Ac3
 
         public void Configure(Ac3FrameHeader frameHeader)
         {
-            Name = _frameHeader.Name;
+            Name = frameHeader.Name;
             Bitrate = frameHeader.Bitrate;
             SamplingFrequency = frameHeader.SamplingFrequency;
 

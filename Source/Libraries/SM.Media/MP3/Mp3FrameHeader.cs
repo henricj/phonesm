@@ -212,9 +212,12 @@ namespace SM.Media.MP3
             SampleRate = sampleRate;
             FrameLength = GetFrameSize(layer, bitRate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
-            Name = string.Format("MP3 {0}, {1} sample {2}kHz bitrate {3}kHz {4} channels",
-                VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitRate / 1000.0, Channels);
 
+            if (string.IsNullOrEmpty(Name))
+            {
+                Name = string.Format("MP3 {0}, {1} sample {2}kHz bitrate {3}kHz {4} channels",
+                    VersionName[versionCode], LayerName[layerCode], sampleRate / 1000.0, bitRate / 1000.0, Channels);
+            }
 #if DEBUG
             if (verbose)
             {

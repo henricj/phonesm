@@ -94,7 +94,7 @@ namespace SM.Media.Ac3
         {
             get
             {
-                throw new NotImplementedException(); 
+                throw new NotImplementedException();
                 //return TimeSpan.FromSeconds(1024.0 / SamplingFrequency); 
             }
         }
@@ -135,9 +135,9 @@ namespace SM.Media.Ac3
 
             var b4 = buffer[index++];
 
-            var fscod  = (b4 >> 6) & 0x03;
+            var fscod = (b4 >> 6) & 0x03;
 
-            SamplingFrequency = GetSamplingFrequency(fscod );
+            SamplingFrequency = GetSamplingFrequency(fscod);
 
             if (SamplingFrequency <= 0)
                 return false;
@@ -149,7 +149,8 @@ namespace SM.Media.Ac3
             if (null != frameCode)
                 Bitrate = 1000 * frameCode.Bitrate;
 
-            Name = string.Format("AC-3 {0}kHz", SamplingFrequency / 1000.0);
+            if (string.IsNullOrEmpty(Name))
+                Name = string.Format("AC-3 {0}kHz", SamplingFrequency / 1000.0);
 
 #if DEBUG
             if (verbose)

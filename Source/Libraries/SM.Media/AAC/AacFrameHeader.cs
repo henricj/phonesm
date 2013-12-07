@@ -213,7 +213,8 @@ namespace SM.Media.AAC
                 var crcLo = buffer[index++];
             }
 
-            Name = string.Format("{0}, {1}kHz {2} channels", GetProfileName(), SamplingFrequency / 1000.0, ChannelConfig);
+            if (string.IsNullOrEmpty(Name))
+                Name = string.Format("{0}, {1}kHz {2} channels", GetProfileName(), SamplingFrequency / 1000.0, ChannelConfig);
 
 #if DEBUG
             if (verbose)

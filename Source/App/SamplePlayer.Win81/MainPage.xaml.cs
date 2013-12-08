@@ -348,7 +348,7 @@ namespace SamplePlayer.Win81
 
             if (null != _mediaElementManager)
             {
-                _mediaElementManager.Close()
+                _mediaElementManager.CloseAsync()
                                     .Wait();
             }
         }
@@ -359,7 +359,7 @@ namespace SamplePlayer.Win81
 
             if (null != _mediaElementManager)
             {
-                _mediaElementManager.Close()
+                _mediaElementManager.CloseAsync()
                                     .Wait();
             }
         }

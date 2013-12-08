@@ -253,7 +253,7 @@ namespace SM.Media.Segments
                         if (_startOffset >= 0 && _endOffset > 0)
                         {
                             _request.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
-                            _expectedBytes = _endOffset - _startOffset;
+                            _expectedBytes = _endOffset - _startOffset + 1;
                         }
                         else
                             _expectedBytes = null;

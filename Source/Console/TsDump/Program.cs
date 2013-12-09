@@ -33,64 +33,6 @@ using SM.TsParser;
 
 namespace TsDump
 {
-    class NullBufferingManager : IBufferingManager
-    {
-        static readonly IBufferingQueue Queue = new NullBufferingQueue();
-
-        #region IBufferingManager Members
-
-        public double BufferingProgress
-        {
-            get { return 1; }
-        }
-
-        public bool IsBuffering
-        {
-            get { return false; }
-        }
-
-        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
-        {
-            return Queue;
-        }
-
-        public void Flush()
-        { }
-
-        public bool IsSeekAlreadyBuffered(TimeSpan position)
-        {
-            return true;
-        }
-
-        #endregion
-
-        #region Nested type: NullBufferingQueue
-
-        class NullBufferingQueue : IBufferingQueue
-        {
-            #region IBufferingQueue Members
-
-            public void ReportEnqueue(int size, TimeSpan timestamp)
-            { }
-
-            public void ReportDequeue(int size, TimeSpan timestamp)
-            { }
-
-            public void ReportFlush()
-            { }
-
-            public void ReportExhaustion()
-            { }
-
-            public void ReportDone()
-            { }
-
-            #endregion
-        }
-
-        #endregion
-    }
-
     class Program
     {
         static Action<TsPesPacket> _freePesHandler;

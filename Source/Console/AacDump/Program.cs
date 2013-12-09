@@ -1,4 +1,4 @@
-// -----------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
 //  <copyright file="Program.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
@@ -29,24 +29,13 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using SM.Media;
-using SM.TsParser;
+using SM.Media.AAC;
+using SM.Media.Utility;
 
-namespace TsDump
+namespace AacDump
 {
     class Program
     {
-        static Action<TsPesPacket> _freePesHandler;
-
-        static void FreePacket(TsPesPacket packet)
-        {
-            var h = _freePesHandler;
-
-            if (null == h)
-                return;
-
-            h(packet);
-        }
-
         static void Main(string[] args)
         {
             if (args.Length < 1)
@@ -54,11 +43,43 @@ namespace TsDump
 
             try
             {
-                using (var parser = new TsMediaParser((streamType, tsDecoder) => new StreamBuffer(streamType, tsDecoder.PesPacketPool.FreePesPacket, new NullBufferingManager(), () => { }),
-                    new TsTimestamp(), _ => { },
-                    (pid, streamType) => new PesStreamCopyHandler(pid, streamType, FreePacket).PacketHandler))
+                IStreamSource streamSource = null;
+
+                using (var parser = new AacMediaParser(new NullBufferingManager(), new BufferPool(64 * 1024, 2),
+                    () =>
+                    {
+                        if (null == streamSource)
+                            return;
+
+                        for (; ; )
+                        {
+                            var packet = streamSource.GetNextSample();
+
+                            if (null == packet)
+                            {
+                                if (streamSource.IsEof)
+                                { }
+
+                                return;
+                            }
+
+                            Console.WriteLine("{0} {1} {2}", packet.PresentationTimestamp, packet.Duration, packet.Length);
+
+                            for (var i = 0; i < packet.Length; ++i)
+                            {
+                                if (i > 0 && 0 == (i & 0x03))
+                                    Console.Write(0 == (i & 0x1f) ? '\n' : ' ');
+
+                                Console.Write(packet.Buffer[packet.Index + i].ToString("x2"));
+                            }
+
+                            Console.WriteLine();
+
+                            streamSource.FreeSample(packet);
+                        }
+                    }))
                 {
-                    _freePesHandler = parser.Decoder.PesPacketPool.FreePesPacket;
+                    parser.MediaStream.ConfigurationComplete += (sender, eventArgs) => streamSource = eventArgs.StreamSource;
 
                     foreach (var arg in args)
                     {
@@ -86,15 +107,13 @@ namespace TsDump
             return Task.FromResult(s);
         }
 
-        static async Task ReadAsync(string arg, TsMediaParser parser)
+        static async Task ReadAsync(string arg, IMediaParser parser)
         {
-            var buffer = new byte[188 * 1024]; // new byte[16 * 1024];
+            var buffer = new byte[16 * 1024];
 
             using (var f = await OpenAsync(arg).ConfigureAwait(false))
             {
-                parser.Initialize(ProgramStreamsHandler);
-
-                var decoder = parser.Decoder;
+                parser.Initialize();
 
                 var index = 0;
                 var eof = false;
@@ -116,21 +135,13 @@ namespace TsDump
                     } while (index < thresholdSize);
 
                     if (index > 0)
-                        decoder.Parse(buffer, 0, index);
+                        parser.ProcessData(buffer, 0, index);
 
                     index = 0;
                 }
 
-                decoder.ParseEnd();
+                parser.ProcessEndOfData();
             }
-        }
-
-        static void ProgramStreamsHandler(IProgramStreams programStreams)
-        {
-            Console.WriteLine("Program: " + programStreams.ProgramNumber);
-
-            foreach (var s in programStreams.Streams)
-                Console.WriteLine("   {0}({1}): {2}", s.StreamType.Contents, s.Pid, s.StreamType.Description);
         }
     }
 }

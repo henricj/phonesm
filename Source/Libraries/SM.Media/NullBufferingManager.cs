@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MpegLayer3WaveFormat.cs" company="Henric Jungheim">
+//  <copyright file="NullBufferingManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,63 +25,64 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 
-namespace SM.Media.Mmreg
+namespace SM.Media
 {
-    // // See MPEGLAYER3WAVEFORMAT in Microsoft's mmreg.h
-    class MpegLayer3WaveFormat : WaveFormatEx
+    public class NullBufferingManager : IBufferingManager
     {
-        #region Flags enum
+        static readonly IBufferingQueue Queue = new NullBufferingQueue();
 
-        [Flags]
-        public enum Flags : uint
+        #region IBufferingManager Members
+
+        public double BufferingProgress
         {
-            PaddingIso = 0x00000000,
-            PaddingOn = 0x00000001,
-            PaddingOff = 0x00000002,
+            get { return 1; }
+        }
+
+        public bool IsBuffering
+        {
+            get { return false; }
+        }
+
+        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
+        {
+            return Queue;
+        }
+
+        public void Flush()
+        { }
+
+        public bool IsSeekAlreadyBuffered(TimeSpan position)
+        {
+            return true;
         }
 
         #endregion
 
-        #region Id enum
+        #region Nested type: NullBufferingQueue
 
-        public enum Id : ushort
+        class NullBufferingQueue : IBufferingQueue
         {
-            Unkown = 0,
-            Mpeg = 1,
-            ConstantFrameSize = 2
+            #region IBufferingQueue Members
+
+            public void ReportEnqueue(int size, TimeSpan timestamp)
+            { }
+
+            public void ReportDequeue(int size, TimeSpan timestamp)
+            { }
+
+            public void ReportFlush()
+            { }
+
+            public void ReportExhaustion()
+            { }
+
+            public void ReportDone()
+            { }
+
+            #endregion
         }
 
         #endregion
-
-        const int MpegLayer3WfxExtraBytes = 12;
-
-        public uint fdwFlags;
-        public ushort nBlockSize;
-        public ushort nCodecDelay;
-        public ushort nFramesPerBlock = 1;
-        public ushort wID = (ushort)Id.Mpeg;
-
-        public MpegLayer3WaveFormat()
-        {
-            wFormatTag = (ushort)WaveFormatTag.MpegLayer3;
-        }
-
-        public override ushort cbSize
-        {
-            get { return (ushort)(base.cbSize + MpegLayer3WfxExtraBytes); }
-        }
-
-        public override void ToBytes(IList<byte> buffer)
-        {
-            base.ToBytes(buffer);
-
-            buffer.AddLe(wID);
-            buffer.AddLe(fdwFlags);
-            buffer.AddLe(nBlockSize);
-            buffer.AddLe(nFramesPerBlock);
-            buffer.AddLe(nCodecDelay);
-        }
     }
 }

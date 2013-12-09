@@ -144,19 +144,33 @@ namespace SM.Media.AAC
                     // "_frameHeader" has a valid header and we have enough buffer space
                     // for the frame.
 
-                    var remainingFrameLength = _frameHeader.FrameLength - (_index - _startIndex);
+                    var completed = _index - _startIndex;
+
+                    Debug.Assert(completed >= 0);
+
+                    var remainingFrameLength = _frameHeader.FrameLength - completed;
+
+                    Debug.Assert(remainingFrameLength >= 0);
+
                     var remainingBuffer = endOffset - i;
+
+                    Debug.Assert(remainingBuffer >= 0);
 
                     var copyLength = Math.Min(remainingBuffer, remainingFrameLength);
 
-                    Debug.Assert(copyLength > 0);
+                    Debug.Assert(copyLength >= 0);
 
-                    Array.Copy(buffer, i, _bufferEntry.Buffer, _index, copyLength);
+                    if (copyLength > 0)
+                        Array.Copy(buffer, i, _bufferEntry.Buffer, _index, copyLength);
 
                     _index += copyLength;
                     i += copyLength;
+                    completed += copyLength;
 
-                    if (_index - _startIndex == _frameHeader.FrameLength)
+                    Debug.Assert(completed >= 0 && completed == _index - _startIndex);
+                    Debug.Assert(completed <= _frameHeader.FrameLength);
+
+                    if (completed == _frameHeader.FrameLength)
                     {
                         // We have a completed AAC frame.
                         SubmitFrame();
@@ -189,6 +203,7 @@ namespace SM.Media.AAC
                 _position = StartPosition;
 
             packet.PresentationTimestamp = _position.Value;
+            packet.Duration = _frameHeader.Duration;
 
             _position += _frameHeader.Duration;
 

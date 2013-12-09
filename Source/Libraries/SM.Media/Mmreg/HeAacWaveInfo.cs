@@ -40,17 +40,29 @@ namespace SM.Media.Mmreg
             LOAS = 3
         }
 
+        public override ushort cbSize
+        {
+            get
+            {
+                var size = base.cbSize + 12;
+
+                if (null != pbAudioSpecificConfig)
+                    size += pbAudioSpecificConfig.Count;
+
+                return (ushort)size;
+            }
+        }
+
         public uint dwReserved2;
         public ushort wAudioProfileLevelIndication = 0xFE;
         public ushort wPayloadType = (ushort)PayloadType.ADTS;
         public ushort wReserved1;
         public ushort wStructType;
+        public ICollection<byte> pbAudioSpecificConfig;
 
         public HeAacWaveInfo()
         {
             wFormatTag = (ushort)WaveFormatTag.HeAac;
-
-            cbSize += 12;
         }
 
         public override void ToBytes(IList<byte> buffer)
@@ -62,6 +74,12 @@ namespace SM.Media.Mmreg
             buffer.AddLe(wStructType);
             buffer.AddLe(wReserved1);
             buffer.AddLe(dwReserved2);
+
+            if (null == pbAudioSpecificConfig || pbAudioSpecificConfig.Count <= 0)
+                return;
+
+            foreach (var b in pbAudioSpecificConfig)
+                buffer.Add(b);
         }
     }
 }

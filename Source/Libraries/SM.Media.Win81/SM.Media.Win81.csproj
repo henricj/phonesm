@@ -165,6 +165,9 @@
     <Compile Include="..\SM.Media\MP3\Mp3Parser.cs">
       <Link>MP3\Mp3Parser.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\NullBufferingManager.cs">
+      <Link>NullBufferingManager.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\PacketStreamWrapper.cs" />
     <Compile Include="..\SM.Media\Playlists\IProgramManager.cs">
       <Link>Playlists\IProgramManager.cs</Link>
@@ -183,6 +186,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Playlists\StreamSegments.cs">
       <Link>Playlists\StreamSegments.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\FullResolutionTimeSpan.cs">
+      <Link>Utility\FullResolutionTimeSpan.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\SignalTask.cs">
       <Link>Utility\SignalTask.cs</Link>

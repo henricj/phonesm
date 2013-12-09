@@ -193,8 +193,6 @@ namespace SM.Media.AAC
             if (FrameLength < 1)
                 return false;
 
-            FrameLength += CrcFlag ? 9 : 7;
-
             var h6 = buffer[index++];
 
             var fullness = ((h5 & 0x1f) << 6) | ((h6 >> 2) & 0x3f);

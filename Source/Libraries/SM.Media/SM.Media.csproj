@@ -181,6 +181,7 @@
     <Compile Include="Utility\QueueWorker.cs" />
     <Compile Include="Utility\Retry.cs" />
     <Compile Include="Utility\RetryPolicy.cs" />
+    <Compile Include="Utility\FullResolutionTimeSpan.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Utility\WorkCommand.cs" />

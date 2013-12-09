@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using SM.Media.Utility;
 
 namespace SM.Media.MP3
 {
@@ -290,7 +291,7 @@ namespace SM.Media.MP3
         {
             var samples = (1 == version) ? SamplesV1[layer] : SamplesV2[layer];
 
-            return TimeSpan.FromSeconds(samples / (double)sampleRate);
+            return FullResolutionTimeSpan.FromSeconds(samples / (double)sampleRate);
         }
     }
 }

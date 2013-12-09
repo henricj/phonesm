@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SM.Media.Utility;
 
 namespace SM.Media.AAC
 {
@@ -112,7 +113,7 @@ namespace SM.Media.AAC
 
         public TimeSpan Duration
         {
-            get { return TimeSpan.FromSeconds(_frames * 1024.0 / SamplingFrequency); }
+            get { return FullResolutionTimeSpan.FromSeconds(_frames * 1024.0 / SamplingFrequency); }
         }
 
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)

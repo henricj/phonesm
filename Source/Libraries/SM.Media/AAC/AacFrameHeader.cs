@@ -27,11 +27,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using SM.Media.Audio;
 using SM.Media.Utility;
 
 namespace SM.Media.AAC
 {
-    sealed class AacFrameHeader
+    public sealed class AacFrameHeader : IAudioFrameHeader
     {
         static readonly int[] SamplingFrequencyTable =
         {
@@ -98,23 +100,46 @@ namespace SM.Media.AAC
                 { 44, "USAC" },
             };
 
+        byte[] _audioSpecificConfig;
         int _frames;
 
         public int Profile { get; private set; }
-        public int SamplingFrequency { get; private set; }
         public int Layer { get; private set; }
         public int FrequencyIndex { get; private set; }
         public ushort ChannelConfig { get; private set; }
 
         public bool CrcFlag { get; set; }
-        public int FrameLength { get; private set; }
 
-        public string Name { get; private set; }
+        public ICollection<byte> AudioSpecificConfig
+        {
+            get
+            {
+                if (null == _audioSpecificConfig)
+                    _audioSpecificConfig = AacDecoderSettings.Parameters.AudioSpecificConfigFactory(this).ToArray();
+
+                return _audioSpecificConfig;
+            }
+
+            set { _audioSpecificConfig = value.ToArray(); }
+        }
+
+        public int Bitrate { get; private set; }
+
+        #region IAudioFrameHeader Members
+
+        public int HeaderLength
+        {
+            get { return CrcFlag ? 9 : 7; }
+        }
 
         public TimeSpan Duration
         {
             get { return FullResolutionTimeSpan.FromSeconds(_frames * 1024.0 / SamplingFrequency); }
         }
+
+        public int SamplingFrequency { get; private set; }
+        public int FrameLength { get; private set; }
+        public string Name { get; private set; }
 
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
         {
@@ -224,6 +249,8 @@ namespace SM.Media.AAC
 #endif
             return true;
         }
+
+        #endregion
 
         string GetProfileName()
         {

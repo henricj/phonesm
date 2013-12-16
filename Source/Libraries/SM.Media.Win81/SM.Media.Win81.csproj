@@ -92,17 +92,35 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\AAC\AacAudioSpecificConfig.cs">
+      <Link>AAC\AacAudioSpecificConfig.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\AAC\AacDecoderParameters.cs">
+      <Link>AAC\AacDecoderParameters.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\AAC\AacDecoderSettings.cs">
+      <Link>AAC\AacDecoderSettings.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\AAC\AacFrameHeader.cs">
       <Link>AAC\AacFrameHeader.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\AAC\AacMediaParser.cs">
       <Link>AAC\AacMediaParser.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\AAC\AacParser.cs">
+      <Link>AAC\AacParser.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\AAC\AacStreamHandler.cs">
       <Link>AAC\AacStreamHandler.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\AAC\AacConfigurator.cs">
       <Link>AAC\AacConfigurator.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\AudioParserBase.cs">
+      <Link>Audio\AudioParserBase.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\IAudioFrameHeader.cs">
+      <Link>Audio\IAudioFrameHeader.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\CachedWebRequest.cs" />
     <Compile Include="..\SM.Media\CallbackReader.cs" />

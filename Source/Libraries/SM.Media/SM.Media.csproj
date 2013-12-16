@@ -41,10 +41,16 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="AAC\AacAudioSpecificConfig.cs" />
     <Compile Include="AAC\AacFrameHeader.cs" />
     <Compile Include="AAC\AacMediaParser.cs" />
+    <Compile Include="AAC\AacDecoderParameters.cs" />
+    <Compile Include="AAC\AacParser.cs" />
+    <Compile Include="AAC\AacDecoderSettings.cs" />
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
+    <Compile Include="Audio\AudioParserBase.cs" />
+    <Compile Include="Audio\IAudioFrameHeader.cs" />
     <Compile Include="CachedWebRequest.cs" />
     <Compile Include="CallbackReader.cs" />
     <Compile Include="Configuration\AudioFormat.cs" />

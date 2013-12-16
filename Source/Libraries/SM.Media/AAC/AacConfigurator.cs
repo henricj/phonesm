@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.Audio;
 using SM.Media.Configuration;
 using SM.Media.Mmreg;
 
@@ -48,7 +49,7 @@ namespace SM.Media.AAC
 
         public AudioFormat Format
         {
-            get { return AudioFormat.AacAdts; }
+            get { return AacDecoderSettings.Parameters.UseRawAac ? AudioFormat.AacRaw : AudioFormat.AacAdts; }
         }
 
         public int SamplingFrequency { get; private set; }
@@ -77,38 +78,50 @@ namespace SM.Media.AAC
 
         #endregion
 
-        public void Configure(AacFrameHeader frameHeader)
+        public void Configure(IAudioFrameHeader frameHeader)
         {
-#if false
-            var w = new RawAacWaveInfo
-                     {
-                         nChannels = frameHeader.ChannelConfig,
-                         wBitsPerSample = 16,
-                         nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
-                         ObjectType = frameHeader.Profile + 1,
-                         FrequencyIndex = frameHeader.FrequencyIndex,
-                         ChannelConfiguration = frameHeader.ChannelConfig
-                     };
-#else
-            var w = new HeAacWaveInfo
-                    {
-                        nChannels = frameHeader.ChannelConfig,
-                        wBitsPerSample = 16,
-                        nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
-                    };
-#endif
+            var aacFrameHeader = (AacFrameHeader)frameHeader;
 
-            var cpd = w.ToCodecPrivateData();
+            CodecPrivateData = BuildCodecPrivateData(aacFrameHeader);
 
-            CodecPrivateData = cpd;
             Name = frameHeader.Name;
-            Channels = frameHeader.ChannelConfig;
+            Channels = aacFrameHeader.ChannelConfig;
             SamplingFrequency = frameHeader.SamplingFrequency;
 
             var h = ConfigurationComplete;
 
             if (null != h)
                 h(this, EventArgs.Empty);
+        }
+
+        static string BuildCodecPrivateData(AacFrameHeader aacFrameHeader)
+        {
+            var factory = AacDecoderSettings.Parameters.CodecPrivateDataFactory;
+
+            if (null != factory)
+                return factory(aacFrameHeader);
+
+#if false
+            var w = new RawAacWaveInfo
+                {
+                    nChannels = aacFrameHeader.ChannelConfig,
+                    nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
+                    nAvgBytesPerSec = (uint)(aacFrameHeader.Duration.TotalSeconds <= 0 ? 0 : aacFrameHeader.FrameLength / aacFrameHeader.Duration.TotalSeconds),
+                    ObjectType = aacFrameHeader.Profile + 1,
+                    FrequencyIndex = aacFrameHeader.FrequencyIndex,
+                    ChannelConfiguration = aacFrameHeader.ChannelConfig
+                };
+#else
+            var w = new HeAacWaveInfo
+                    {
+                        wPayloadType = (ushort)(AacDecoderSettings.Parameters.UseRawAac ? HeAacWaveInfo.PayloadType.Raw : HeAacWaveInfo.PayloadType.ADTS),
+                        nChannels = aacFrameHeader.ChannelConfig,
+                        nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
+                        pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
+                    };
+#endif
+
+            return w.ToCodecPrivateData();
         }
     }
 }

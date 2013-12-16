@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Mp3Parser.cs" company="Henric Jungheim">
+//  <copyright file="AacParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -30,12 +30,12 @@ using SM.Media.Audio;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
-namespace SM.Media.MP3
+namespace SM.Media.AAC
 {
-    sealed class Mp3Parser : AudioParserBase
+    sealed class AacParser : AudioParserBase
     {
-        public Mp3Parser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
-            : base(new Mp3FrameHeader(), pesPacketPool, configurationHandler, submitPacket)
+        public AacParser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
+            : base(new AacFrameHeader(), pesPacketPool, configurationHandler, submitPacket)
         { }
 
         public override void ProcessData(byte[] buffer, int offset, int length)
@@ -44,8 +44,7 @@ namespace SM.Media.MP3
             Debug.Assert(offset + length <= buffer.Length);
 
             var endOffset = offset + length;
-
-            // Make sure there is enough room for the frame header.  We really only need 4 bytes
+            // Make sure there is enough room for the frame header.  We really only need 9 bytes
             // for the header.
             EnsureBufferSpace(128);
 
@@ -53,7 +52,7 @@ namespace SM.Media.MP3
             {
                 var storedLength = _index - _startIndex;
 
-                if (storedLength < 4)
+                if (storedLength <= 9)
                 {
                     var data = buffer[i++];
 
@@ -64,18 +63,18 @@ namespace SM.Media.MP3
                     }
                     else if (1 == storedLength)
                     {
-                        if (0xe0 == (0xe0 & data))
+                        if (0xf0 == (0xf0 & data))
                             _packet.Buffer[_index++] = data;
                         else
                             _index = _startIndex;
                     }
-                    else if (2 == storedLength)
+                    else if (storedLength < 9)
                         _packet.Buffer[_index++] = data;
-                    else if (3 == storedLength)
+                    else
                     {
                         _packet.Buffer[_index++] = data;
 
-                        // We now have an MP3 header.
+                        // We now have an AAC header.
 
                         if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
                         {
@@ -84,18 +83,17 @@ namespace SM.Media.MP3
                             continue;
                         }
 
-                        Debug.Assert(_frameHeader.FrameLength > 4);
+                        Debug.Assert(_frameHeader.FrameLength > 7);
 
                         if (!_isConfigured)
                         {
                             _configurationHandler(_frameHeader);
-
                             _isConfigured = true;
                         }
 
                         // Even better: the frame header is valid.  Now we need some data...
 
-                        EnsureBufferSpace(_frameHeader.FrameLength - 4);
+                        EnsureBufferSpace(_frameHeader.FrameLength);
                     }
                 }
                 else
@@ -103,21 +101,43 @@ namespace SM.Media.MP3
                     // "_frameHeader" has a valid header and we have enough buffer space
                     // for the frame.
 
-                    var remainingFrameLength = _frameHeader.FrameLength - (_index - _startIndex);
+                    var completed = _index - _startIndex;
+
+                    Debug.Assert(completed >= 0);
+
+                    var remainingFrameLength = _frameHeader.FrameLength - completed;
+
+                    Debug.Assert(remainingFrameLength >= 0);
+
                     var remainingBuffer = endOffset - i;
+
+                    Debug.Assert(remainingBuffer >= 0);
 
                     var copyLength = Math.Min(remainingBuffer, remainingFrameLength);
 
-                    Debug.Assert(copyLength > 0);
+                    Debug.Assert(copyLength >= 0);
 
-                    Array.Copy(buffer, i, _packet.Buffer, _index, copyLength);
+                    if (copyLength > 0)
+                        Array.Copy(buffer, i, _packet.Buffer, _index, copyLength);
 
                     _index += copyLength;
                     i += copyLength;
+                    completed += copyLength;
 
-                    if (_index - _startIndex == _frameHeader.FrameLength)
+                    Debug.Assert(completed >= 0 && completed == _index - _startIndex);
+                    Debug.Assert(completed <= _frameHeader.FrameLength);
+
+                    if (completed == _frameHeader.FrameLength)
                     {
-                        // We have a completed MP3 frame.
+                        // We have a completed AAC frame.
+
+                        if (AacDecoderSettings.Parameters.UseRawAac)
+                        {
+                            var header = _frameHeader.HeaderLength;
+
+                            _startIndex += header;
+                        }
+
                         SubmitFrame();
                     }
                 }
@@ -127,7 +147,7 @@ namespace SM.Media.MP3
         void SkipInvalidFrameHeader()
         {
             if (0xff == _packet.Buffer[_startIndex + 1] &&
-                0xe0 == (0xe0 & _packet.Buffer[_startIndex + 2]))
+                0xf0 == (0xf0 & _packet.Buffer[_startIndex + 2]))
             {
                 // _bufferEntry.Buffer[_startIndex] is already 0xff
                 _packet.Buffer[_startIndex + 1] = _packet.Buffer[_startIndex + 2];
@@ -136,7 +156,7 @@ namespace SM.Media.MP3
                 _index = _startIndex + 3;
             }
             else if (0xff == _packet.Buffer[_startIndex + 2] &&
-                     0xe0 == (0xe0 & _packet.Buffer[_startIndex + 3]))
+                     0xf0 == (0xf0 & _packet.Buffer[_startIndex + 3]))
             {
                 // _bufferEntry.Buffer[_startIndex] is already 0xff
                 _packet.Buffer[_startIndex + 1] = _packet.Buffer[_startIndex + 3];

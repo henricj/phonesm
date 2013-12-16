@@ -199,17 +199,30 @@ namespace SM.Media.AAC
             packet.Index = _startIndex;
             packet.Length = _index - _startIndex;
 
-            if (!_position.HasValue)
-                _position = StartPosition;
+            if (AacDecoderSettings.Parameters.UseRawAac)
+            {
+                var header = _frameHeader.HeaderLength;
 
-            packet.PresentationTimestamp = _position.Value;
-            packet.Duration = _frameHeader.Duration;
+                packet.Index += header;
+                packet.Length -= header;
+            }
 
-            _position += _frameHeader.Duration;
+            if (packet.Length > 0)
+            {
+                if (!_position.HasValue)
+                    _position = StartPosition;
 
-            //Debug.WriteLine("AacMediaParser.SubmitFrame: position {0} duration {1}", _position, _frameHeader.Duration);
+                packet.PresentationTimestamp = _position.Value;
+                packet.Duration = _frameHeader.Duration;
 
-            _streamBuffer.Enqueue(packet);
+                _position += _frameHeader.Duration;
+
+                //Debug.WriteLine("AacMediaParser.SubmitFrame: position {0} duration {1}", _position, _frameHeader.Duration);
+
+                _streamBuffer.Enqueue(packet);
+            }
+            else
+                _packetPool.FreePesPacket(packet);
 
             _startIndex = _index;
 

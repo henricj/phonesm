@@ -58,7 +58,7 @@ namespace SM.Media
             (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new AacConfigurator(streamType.Description);
-                var streamHandler = new AacStreamHandler(pid, streamType, nextHandler, configurator);
+                var streamHandler = new AacStreamHandler(tsDecoder.PesPacketPool, pid, streamType, nextHandler, configurator.Configure);
 
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };

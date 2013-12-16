@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using SM.Media.Audio;
 using SM.Media.Pes;
 using SM.TsParser;
 using SM.TsParser.Utility;
@@ -34,26 +35,30 @@ namespace SM.Media.MP3
 {
     class Mp3StreamHandler : PesStreamHandler
     {
-        readonly Action<Mp3FrameHeader> _configurator;
+        const bool UseParser = false; // Have Mp3Parser parse the stream and submit frames to the OS.
+        readonly Action<IAudioFrameHeader> _configurator;
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly Action<TsPesPacket> _nextHandler;
         readonly Mp3Parser _parser;
         readonly ITsPesPacketPool _pesPacketPool;
         bool _foundFrame;
 
-        public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, Action<Mp3FrameHeader> configurator)
+        public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, Action<IAudioFrameHeader> configurator)
             : base(pid, streamType)
         {
             if (pesPacketPool == null)
                 throw new ArgumentNullException("pesPacketPool");
             if (nextHandler == null)
                 throw new ArgumentNullException("nextHandler");
+            if (configurator == null)
+                throw new ArgumentNullException("configurator");
 
             _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
             _configurator = configurator;
 
-            _parser = new Mp3Parser(pesPacketPool, _configurator, _nextHandler);
+            if (UseParser)
+                _parser = new Mp3Parser(pesPacketPool, _configurator, _nextHandler);
         }
 
         public override void PacketHandler(TsPesPacket packet)
@@ -63,6 +68,21 @@ namespace SM.Media.MP3
             if (null == packet)
             {
                 _nextHandler(null);
+
+                return;
+            }
+
+            if (UseParser)
+            {
+                _parser.Position = packet.PresentationTimestamp;
+                _parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
+
+                return;
+            }
+
+            if (false)
+            {
+                FrameSplittingHandler(packet);
 
                 return;
             }
@@ -77,11 +97,6 @@ namespace SM.Media.MP3
             }
 
             _nextHandler(packet);
-
-            //_parser.Position = packet.PresentationTimestamp;
-            //_parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
-
-            //FrameSplittingHandler(packet);
         }
 
         void FrameSplittingHandler(TsPesPacket packet)

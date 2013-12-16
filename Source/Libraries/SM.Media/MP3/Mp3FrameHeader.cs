@@ -26,11 +26,12 @@
 
 using System;
 using System.Diagnostics;
+using SM.Media.Audio;
 using SM.Media.Utility;
 
 namespace SM.Media.MP3
 {
-    sealed class Mp3FrameHeader
+    sealed class Mp3FrameHeader : IAudioFrameHeader
     {
         static readonly short[] V1L1 =
         {
@@ -98,13 +99,7 @@ namespace SM.Media.MP3
         };
 
         public int ChannelMode { get; private set; }
-        public int FrameLength { get; private set; }
-        public int SampleRate { get; private set; }
         public int Bitrate { get; private set; }
-        public TimeSpan Duration { get; private set; }
-
-        public string Name { get; private set; }
-
         public int Channels { get; private set; }
 
         public int? MarkerIndex { get; private set; }
@@ -119,6 +114,15 @@ namespace SM.Media.MP3
                 return MarkerIndex.Value + FrameLength;
             }
         }
+
+        #region IAudioFrameHeader Members
+
+        public int FrameLength { get; private set; }
+        public int HeaderLength { get; private set; }
+        public int SamplingFrequency { get; private set; }
+        public TimeSpan Duration { get; private set; }
+
+        public string Name { get; private set; }
 
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
         {
@@ -175,6 +179,8 @@ namespace SM.Media.MP3
 
             var crcFlag = 0 == (h1 & 1);
 
+            HeaderLength = crcFlag ? 6 : 4;
+
             var h2 = buffer[index++];
 
             var bitrateIndex = (h2 >> 4) & 0x0f;
@@ -210,7 +216,7 @@ namespace SM.Media.MP3
             ChannelMode = channelMode;
             Channels = channelMode == 3 ? 1 : 2;
             Bitrate = bitRate;
-            SampleRate = sampleRate;
+            SamplingFrequency = sampleRate;
             FrameLength = GetFrameSize(layer, bitRate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
 
@@ -228,6 +234,8 @@ namespace SM.Media.MP3
 #endif
             return true;
         }
+
+        #endregion
 
         static int GetBitrate(int version, int layer, int bitrateIndex)
         {

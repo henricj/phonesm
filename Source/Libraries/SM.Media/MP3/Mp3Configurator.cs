@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.Audio;
 using SM.Media.Configuration;
 using SM.Media.Mmreg;
 
@@ -81,11 +82,13 @@ namespace SM.Media.MP3
 
         #endregion
 
-        public void Configure(Mp3FrameHeader frameHeader)
+        public void Configure(IAudioFrameHeader frameHeader)
         {
-            _waveFormat.nChannels = (ushort)frameHeader.Channels;
-            _waveFormat.nSamplesPerSec = (uint)frameHeader.SampleRate;
-            _waveFormat.nAvgBytesPerSec = (uint)frameHeader.Bitrate / 8;
+            var mp3FrameHeader = (Mp3FrameHeader)frameHeader;
+
+            _waveFormat.nChannels = (ushort)mp3FrameHeader.Channels;
+            _waveFormat.nSamplesPerSec = (uint)frameHeader.SamplingFrequency;
+            _waveFormat.nAvgBytesPerSec = (uint)mp3FrameHeader.Bitrate / 8;
             _waveFormat.nBlockSize = (ushort)frameHeader.FrameLength;
 
             var cpd = _waveFormat.ToCodecPrivateData();
@@ -93,8 +96,8 @@ namespace SM.Media.MP3
             CodecPrivateData = cpd;
 
             Channels = _waveFormat.nChannels;
-            SamplingFrequency = frameHeader.SampleRate;
-            Bitrate = frameHeader.Bitrate;
+            SamplingFrequency = frameHeader.SamplingFrequency;
+            Bitrate = mp3FrameHeader.Bitrate;
             Name = frameHeader.Name;
 
             var h = ConfigurationComplete;

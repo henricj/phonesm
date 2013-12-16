@@ -25,23 +25,38 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Configuration;
+using SM.Media.Audio;
 using SM.Media.Pes;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.AAC
 {
-    public class AacStreamHandler : PesStreamHandler
+    class AacStreamHandler : PesStreamHandler
     {
-        readonly IFrameParser _configurator;
+        readonly Action<IAudioFrameHeader> _configurator;
+        readonly AacFrameHeader _frameHeader = new AacFrameHeader();
         readonly Action<TsPesPacket> _nextHandler;
-        bool _foundframe;
+        readonly AacParser _parser;
+        readonly ITsPesPacketPool _pesPacketPool;
+        bool _isConfigured;
 
-        public AacStreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IFrameParser configurator)
+        public AacStreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, Action<IAudioFrameHeader> configurator)
             : base(pid, streamType)
         {
+            if (pesPacketPool == null)
+                throw new ArgumentNullException("pesPacketPool");
+            if (nextHandler == null)
+                throw new ArgumentNullException("nextHandler");
+            if (configurator == null)
+                throw new ArgumentNullException("configurator");
+
+            _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
             _configurator = configurator;
+
+            if (AacDecoderSettings.Parameters.UseParser)
+                _parser = new AacParser(pesPacketPool, configurator, _nextHandler);
         }
 
         public override void PacketHandler(TsPesPacket packet)
@@ -56,29 +71,31 @@ namespace SM.Media.AAC
                 return;
             }
 
-            // Reject garbage packet
-            if (packet.Length < 7)
-                return;
-
-            if (!_foundframe)
-                _foundframe = _configurator.Parse(packet.Buffer, packet.Index, packet.Length);
-
-            if (null != _nextHandler)
+            if (null != _parser)
             {
-#if false
-                var hasCrc = 0 == (packet.Buffer[packet.Index + 1] & 1);
+                _parser.Position = packet.PresentationTimestamp;
+                _parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
 
-                var headerLength = hasCrc ? 9 : 7;
-
-                if (packet.Length < headerLength)
-                    return;
-
-                packet.Index += headerLength;
-                packet.Length -= headerLength;
-#endif
-
-                _nextHandler(packet);
+                return;
             }
+
+            //Reject garbage packet
+            if (packet.Length < 7)
+            {
+                _pesPacketPool.FreePesPacket(packet);
+                return;
+            }
+
+            if (!_isConfigured)
+            {
+                if (_frameHeader.Parse(packet.Buffer, packet.Index, packet.Length, true))
+                {
+                    _isConfigured = true;
+                    _configurator(_frameHeader);
+                }
+            }
+
+            _nextHandler(packet);
         }
     }
 }

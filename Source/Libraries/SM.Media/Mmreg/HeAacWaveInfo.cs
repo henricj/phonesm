@@ -32,7 +32,7 @@ namespace SM.Media.Mmreg
     // We should use RawAac1 (0xff) instead of ADTS (0x1610).
     public class HeAacWaveInfo : WaveFormatEx
     {
-        enum PayloadType : ushort
+        public enum PayloadType : ushort
         {
             Raw = 0,
             ADTS = 1,
@@ -63,6 +63,9 @@ namespace SM.Media.Mmreg
         public HeAacWaveInfo()
         {
             wFormatTag = (ushort)WaveFormatTag.HeAac;
+
+            wBitsPerSample = 16;
+            nBlockAlign = 1;
         }
 
         public override void ToBytes(IList<byte> buffer)

@@ -38,6 +38,9 @@ namespace SM.Media.Mmreg
         public RawAacWaveInfo()
         {
             wFormatTag = (ushort)WaveFormatTag.RawAac1;
+
+            nBlockAlign = 4;
+            wBitsPerSample = 16;
         }
 
         public override ushort cbSize

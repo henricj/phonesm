@@ -351,6 +351,8 @@ namespace SM.Media
 
             var cpd = configurationSource.CodecPrivateData;
 
+            Debug.WriteLine("TsMediaStreamSource.ConfigureVideoStream(): CodecPrivateData: " + cpd);
+
             if (!string.IsNullOrWhiteSpace(cpd))
                 msa[MediaStreamAttributeKeys.CodecPrivateData] = cpd;
 
@@ -374,6 +376,8 @@ namespace SM.Media
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
             var cpd = configurationSource.CodecPrivateData;
+
+            Debug.WriteLine("TsMediaStreamSource.ConfigureAudioStream(): CodecPrivateData: " + cpd);
 
             if (!string.IsNullOrWhiteSpace(cpd))
                 msa[MediaStreamAttributeKeys.CodecPrivateData] = cpd;

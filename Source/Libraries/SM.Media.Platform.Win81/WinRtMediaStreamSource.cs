@@ -202,6 +202,9 @@ namespace SM.Media
                 case AudioFormat.Mp3:
                     propertyFactory = AudioEncodingProperties.CreateMp3;
                     break;
+                case AudioFormat.AacRaw:
+                    propertyFactory = AudioEncodingProperties.CreateAac;
+                    break;
                 case AudioFormat.AacAdts:
                     propertyFactory = AudioEncodingProperties.CreateAacAdts;
                     break;
@@ -223,8 +226,6 @@ namespace SM.Media
 
             var audioEncodingProperties = propertyFactory((uint)configurationSource.SamplingFrequency,
                 (uint)configurationSource.Channels, (uint?)configurationSource.Bitrate ?? 0u);
-
-            audioEncodingProperties.BitsPerSample = 16;
 
             var descriptor = new AudioStreamDescriptor(audioEncodingProperties);
 

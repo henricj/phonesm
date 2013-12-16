@@ -31,6 +31,7 @@ namespace SM.Media.Configuration
         Unknown = 0,
         Mp3,
         AacAdts,
-        Ac3
+        Ac3,
+        AacRaw
     }
 }

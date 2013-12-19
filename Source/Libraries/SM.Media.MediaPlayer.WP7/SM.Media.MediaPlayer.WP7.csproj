@@ -117,17 +117,17 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SM.Media.Legacy\SM.Media.Legacy.csproj">
+      <Project>{37F16220-78C4-4931-BF3A-0A61FAFFE3D5}</Project>
+      <Name>SM.Media.Legacy</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SM.Media.Platform.WP7\SM.Media.Platform.WP7.csproj">
       <Project>{89D3F028-F32F-4113-A711-29E4FE9AC877}</Project>
       <Name>SM.Media.Platform.WP7</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SM.Media\SM.Media.csproj">
-      <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
-      <Name>SM.Media</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
-      <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-      <Name>SM.TsParser</Name>
+    <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
+      <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
+      <Name>SM.TsParser.Legacy</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.$(TargetFrameworkProfile).Overrides.targets" />
@@ -138,6 +138,7 @@
     <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" Text="This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
     <Error Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" Text="The build restored NuGet packages. Build the project again to include these packages in the build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
   </Target>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

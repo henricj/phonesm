@@ -121,13 +121,13 @@
       <Project>{7441be13-d07c-424e-ad1a-54cc78a51e0f}</Project>
       <Name>SM.Media.Platform.Win81</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\SM.Media.Win81\SM.Media.Win81.csproj">
-      <Project>{4c7ae991-5179-4061-afe1-878ff850aa72}</Project>
-      <Name>SM.Media.Win81</Name>
+    <ProjectReference Include="..\..\Libraries\SM.Media\SM.Media.csproj">
+      <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
+      <Name>SM.Media</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\SM.TsParser.Win81\SM.TsParser.Win81.csproj">
-      <Project>{c704b39a-c68b-4133-8983-5dc911be284a}</Project>
-      <Name>SM.TsParser.Win81</Name>
+    <ProjectReference Include="..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
+      <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+      <Name>SM.TsParser</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +149,7 @@
     <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" Text="This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
     <Error Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" Text="The build restored NuGet packages. Build the project again to include these packages in the build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
   </Target>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

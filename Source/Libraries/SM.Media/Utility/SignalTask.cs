@@ -31,29 +31,74 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public class SignalTask
+    public sealed class SignalTask : IDisposable
     {
-        readonly Action _handler;
+        readonly Func<Task> _handler;
         readonly object _lock = new object();
-        readonly CancellationToken _token;
+        readonly CancellationTokenSource _token;
+        bool _isDisposed;
         bool _isPending;
         Task _task;
 
-        public SignalTask(Action handler, CancellationToken token)
+        public SignalTask(Func<Task> handler, CancellationToken token)
         {
             if (handler == null)
                 throw new ArgumentNullException("handler");
 
             _handler = handler;
-            _token = token;
+            _token = CancellationTokenSource.CreateLinkedTokenSource(token);
         }
 
-        public void Fire()
+        public bool IsActive
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _isPending || null != _task;
+                }
+            }
+        }
+
+        #region IDisposable Members
+
+        public void Dispose()
         {
             Task task;
 
             lock (_lock)
             {
+                _isDisposed = true;
+                task = _task;
+            }
+
+            _token.Cancel();
+
+            if (null == task)
+                return;
+
+            try
+            {
+                task.Wait();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SignalTask.Dispose(): " + ex.Message);
+            }
+        }
+
+        #endregion
+
+        public void Fire()
+        {
+            Task<Task> task;
+            Task unwrapTask;
+
+            lock (_lock)
+            {
+                if (_isDisposed)
+                    throw new ObjectDisposedException(GetType().FullName);
+
                 if (_isPending)
                     return;
 
@@ -62,52 +107,94 @@ namespace SM.Media.Utility
                 if (null != _task)
                     return;
 
-                task = new Task(CallHandler, _token);
 
-                _task = task;
+                task = new Task<Task>(CallHandlerAsync, _token.Token
+#if SM_MEDIA_LEGACY
+                    );
+#else
+                    , TaskCreationOptions.DenyChildAttach);
+#endif
+
+                _task = unwrapTask = task.Unwrap();
             }
 
-            task.Start();
+            try
+            {
+                // We start the outer task *after* leaving the monitor.
+                task.Start(TaskScheduler.Default);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SignalTask.Fire() task start failed: " + ex.Message);
+
+                lock (_lock)
+                {
+                    if (ReferenceEquals(unwrapTask, _task))
+                    {
+                        _task = null;
+                        _isPending = false;
+                    }
+                }
+
+                throw;
+            }
+
+#if DEBUG
+            if (_isDisposed)
+                throw new ObjectDisposedException(GetType().FullName);
+#endif
         }
 
-        void CallHandler()
+        async Task CallHandlerAsync()
         {
-            for (; ; )
+            try
+            {
+                for (; ; )
+                {
+                    lock (_lock)
+                    {
+                        if (!_isPending || _isDisposed || _token.IsCancellationRequested)
+                        {
+                            _task = null;
+
+                            return;
+                        }
+
+                        _isPending = false;
+                    }
+
+                    try
+                    {
+                        await _handler().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("SignalTask.CallHandlerAsync() handler failed: " + ex.Message);
+                    }
+                }
+            }
+            catch (Exception ex)
             {
                 lock (_lock)
                 {
-                    if (!_isPending)
-                    {
-                        _task = null;
-
-                        return;
-                    }
-
+                    _task = null;
                     _isPending = false;
                 }
 
-                try
-                {
-                    _handler();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("SignalTask.CallHandler(): " + ex.Message);
-                }
+                Debug.WriteLine("SignalTask.CallHandlerAsync() failed: " + ex.Message);
             }
         }
 
         public Task WaitAsync()
         {
+            Task task;
+
             lock (_lock)
             {
-                var task = _task;
-
-                if (null == task)
-                    return TplTaskExtensions.CompletedTask;
-
-                return task;
+                task = _task;
             }
+
+            return task ?? TplTaskExtensions.CompletedTask;
         }
     }
 }

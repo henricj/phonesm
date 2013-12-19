@@ -124,7 +124,22 @@ namespace SM.Media
                 return TplTaskExtensions.CompletedTask;
             }
 
-            return _dispatcher.InvokeAsync(action);
+            var tcs = new TaskCompletionSource<bool>();
+
+            var dispatcherOperation = _dispatcher.BeginInvoke(() =>
+                                                              {
+                                                                  try
+                                                                  {
+                                                                      action();
+                                                                      tcs.TrySetResult(true);
+                                                                  }
+                                                                  catch (Exception ex)
+                                                                  {
+                                                                      tcs.TrySetException(ex);
+                                                                  }
+                                                              });
+
+            return tcs.Task;
         }
 
         void UiThreadCleanup()

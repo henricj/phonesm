@@ -32,6 +32,5 @@ using System.Runtime.CompilerServices;
 
 [assembly: AssemblyTitle("SM.Media")]
 [assembly: AssemblyDescription("")]
-[assembly: InternalsVisibleTo("SM.Media.Platform.WP7")]
 [assembly: InternalsVisibleTo("SM.Media.Platform.WP8")]
 [assembly: InternalsVisibleTo("SM.Media.Platform.Desktop")]

@@ -284,7 +284,7 @@ namespace HlsView
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
-            Dispatcher.InvokeAsync(() =>
+            Dispatcher.BeginInvoke(() =>
                                    {
                                        var message = tsMediaManagerStateEventArgs.Message;
 

@@ -39,14 +39,16 @@ namespace SM.Media.Playlists
 {
     public class PlaylistSegmentManager : ISegmentManager
     {
+        const int MinimumExpirationMs = 333;
         static readonly TimeSpan NotDue = new TimeSpan(0, 0, 0, 0, -1);
         static readonly TimeSpan NotPeriodic = new TimeSpan(0, 0, 0, 0, -1);
         static readonly TimeSpan MinimumReload = new TimeSpan(0, 0, 0, 5);
         static readonly TimeSpan MaximumReload = TimeSpan.FromMinutes(2);
         static readonly TimeSpan ExcessiveDuration = TimeSpan.FromMinutes(5);
+        static readonly TimeSpan MinimumExpirationTimeSpan = TimeSpan.FromMilliseconds(MinimumExpirationMs);
         readonly CancellationToken _cancellationToken;
         readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
-        readonly Timer _expirationTimer;
+        readonly TaskTimer _refreshTimer = new TaskTimer();
         readonly List<ISegment> _segmentList = new List<ISegment>();
         readonly object _segmentLock = new object();
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
@@ -59,13 +61,12 @@ namespace SM.Media.Playlists
         bool _isInitialized;
         bool _isRunning;
         int _readSubListFailureCount;
-        Task _reader;
+        SignalTask _readTask;
+        //Task _reader;
         ISegment[] _segments;
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
         ICachedWebRequest _subPlaylistRequest;
-        const int MinimumExpirationMs = 333;
-        static readonly TimeSpan MinimumExpirationTimeSpan = TimeSpan.FromMilliseconds(MinimumExpirationMs);
 
         public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, Func<M3U8Parser, IStreamSegments> segmentsFactory)
             : this(webRequestFactory, program, segmentsFactory, CancellationToken.None)
@@ -90,7 +91,7 @@ namespace SM.Media.Playlists
             _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
 
             _isDynamicPlaylist = true;
-            _expirationTimer = new Timer(PlaylistExpiration, null, NotDue, NotPeriodic);
+            _readTask = new SignalTask(ReadSubList, _abortTokenSource.Token);
 
             _segmentsExpiration = Environment.TickCount;
 
@@ -111,7 +112,7 @@ namespace SM.Media.Playlists
 
             _abortTokenSource.Cancel();
 
-            using (_expirationTimer)
+            using (_readTask)
             { }
         }
 
@@ -124,13 +125,24 @@ namespace SM.Media.Playlists
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
+            SignalTask oldReadTask = null;
+
             lock (_segmentLock)
             {
                 if (_abortTokenSource.IsCancellationRequested && !_cancellationToken.IsCancellationRequested)
+                {
                     _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
+
+                    oldReadTask = _readTask;
+
+                    _readTask = new SignalTask(ReadSubList, _abortTokenSource.Token);
+                }
 
                 _isRunning = true;
             }
+
+            if (null != oldReadTask)
+                return oldReadTask.WaitAsync();
 
             return TplTaskExtensions.CompletedTask;
         }
@@ -144,18 +156,16 @@ namespace SM.Media.Playlists
             if (0 != _isDisposed)
                 return TplTaskExtensions.CompletedTask;
 
-            Task reader;
+            Task reader = null;
 
             lock (_segmentLock)
             {
                 _isRunning = false;
 
-                if (0 == _isDisposed) // Mitigate race...
-                    _expirationTimer.Change(NotDue, NotPeriodic);
-
                 _abortTokenSource.Cancel();
 
-                reader = _reader;
+                if (null != _readTask)
+                    reader = _readTask.WaitAsync();
             }
 
             return reader ?? TplTaskExtensions.CompletedTask;
@@ -180,23 +190,23 @@ namespace SM.Media.Playlists
 
         #endregion
 
-        void PlaylistExpiration(object state)
-        {
-            Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration ({0})", DateTimeOffset.Now);
+        //void PlaylistExpiration(object state)
+        //{
+        //    Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration ({0})", DateTimeOffset.Now);
 
-            lock (_segmentLock)
-            {
-                if (!_isDynamicPlaylist || !_isRunning)
-                    return;
+        //    lock (_segmentLock)
+        //    {
+        //        if (!_isDynamicPlaylist || !_isRunning)
+        //            return;
 
-                if (null == _reader)
-                {
-                    Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
+        //        if (null == _reader)
+        //        {
+        //            Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
 
-                    StartReaderLocked();
-                }
-            }
-        }
+        //            StartReaderLocked();
+        //        }
+        //    }
+        //}
 
         void Seek(TimeSpan timestamp)
         {
@@ -242,27 +252,22 @@ namespace SM.Media.Playlists
                 if (_isInitialized && (!_isDynamicPlaylist || !_isRunning || _segmentsExpiration - Environment.TickCount > 0))
                     return TplTaskExtensions.CompletedTask;
 
-                if (null == _reader)
-                {
-                    Debug.WriteLine("PlaylistSegmentManager.CheckReload is starting ReadSubList ({0})", DateTimeOffset.Now);
-
-                    StartReaderLocked();
-                }
+                _readTask.Fire();
 
                 if (null == _segments || index + 1 >= _segments.Length)
-                    return _reader;
+                    return _readTask.WaitAsync();
             }
 
             return TplTaskExtensions.CompletedTask;
         }
 
-        void StartReaderLocked()
-        {
-            Debug.Assert(null == _reader);
+        //void StartReaderLocked()
+        //{
+        //    Debug.Assert(null == _reader);
 
-            _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
-                          .Unwrap();
-        }
+        //    _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
+        //                  .Unwrap();
+        //}
 
         async Task<M3U8Parser> FetchPlaylist(IEnumerable<Uri> urls)
         {
@@ -309,7 +314,7 @@ namespace SM.Media.Playlists
             {
                 try
                 {
-                    _expirationTimer.Change(NotDue, NotPeriodic);
+                    _refreshTimer.Cancel();
 
                     if (await UpdatePlaylist().ConfigureAwait(false))
                     {
@@ -326,7 +331,7 @@ namespace SM.Media.Playlists
                                 remaining = MinimumExpirationTimeSpan;
                             }
 
-                            _expirationTimer.Change(remaining, NotPeriodic);
+                            _refreshTimer.SetTimer(() => _readTask.Fire(), remaining);
                         }
 
                         return;
@@ -362,14 +367,14 @@ namespace SM.Media.Playlists
 
                 Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
 
-                _expirationTimer.Change(timeSpan, NotPeriodic);
+                _refreshTimer.SetTimer(() => _readTask.Fire(), timeSpan);
             }
             finally
             {
                 lock (_segmentLock)
                 {
                     _isInitialized = true;
-                    _reader = null;
+                    //_reader = null;
                 }
             }
         }

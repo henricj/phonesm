@@ -62,7 +62,12 @@ namespace SM.Media
 
             _queueThrottling = queueThrottling;
 
-            _reportingTask = new SignalTask(bufferingChange, CancellationToken.None);
+            _reportingTask = new SignalTask(() =>
+                                            {
+                                                bufferingChange();
+
+                                                return TplTaskExtensions.CompletedTask;
+                                            }, CancellationToken.None);
         }
 
         public TimeSpan BufferPosition

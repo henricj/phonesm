@@ -40,8 +40,6 @@ namespace SM.Media.Playlists
     public class PlaylistSegmentManager : ISegmentManager
     {
         const int MinimumExpirationMs = 333;
-        static readonly TimeSpan NotDue = new TimeSpan(0, 0, 0, 0, -1);
-        static readonly TimeSpan NotPeriodic = new TimeSpan(0, 0, 0, 0, -1);
         static readonly TimeSpan MinimumReload = new TimeSpan(0, 0, 0, 5);
         static readonly TimeSpan MaximumReload = TimeSpan.FromMinutes(2);
         static readonly TimeSpan ExcessiveDuration = TimeSpan.FromMinutes(5);
@@ -62,7 +60,6 @@ namespace SM.Media.Playlists
         bool _isRunning;
         int _readSubListFailureCount;
         SignalTask _readTask;
-        //Task _reader;
         ISegment[] _segments;
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
@@ -190,24 +187,6 @@ namespace SM.Media.Playlists
 
         #endregion
 
-        //void PlaylistExpiration(object state)
-        //{
-        //    Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration ({0})", DateTimeOffset.Now);
-
-        //    lock (_segmentLock)
-        //    {
-        //        if (!_isDynamicPlaylist || !_isRunning)
-        //            return;
-
-        //        if (null == _reader)
-        //        {
-        //            Debug.WriteLine("PlaylistSegmentManager.PlaylistExpiration is starting ReadSubList ({0})", DateTimeOffset.Now);
-
-        //            StartReaderLocked();
-        //        }
-        //    }
-        //}
-
         void Seek(TimeSpan timestamp)
         {
             StartPosition = TimeSpan.Zero;
@@ -260,14 +239,6 @@ namespace SM.Media.Playlists
 
             return TplTaskExtensions.CompletedTask;
         }
-
-        //void StartReaderLocked()
-        //{
-        //    Debug.Assert(null == _reader);
-
-        //    _reader = Task.Factory.StartNew((Func<Task>)ReadSubList, CancellationToken, TaskCreationOptions.None, TaskScheduler.Default)
-        //                  .Unwrap();
-        //}
 
         async Task<M3U8Parser> FetchPlaylist(IEnumerable<Uri> urls)
         {
@@ -735,6 +706,7 @@ namespace SM.Media.Playlists
 
             static int FindNewIndex(ISegment[] oldSegments, ISegment[] newSegments, int oldIndex)
             {
+                // TODO: Use ISegment.MediaSequence where possible.
                 if (null == oldSegments || oldIndex < 0 || oldIndex >= oldSegments.Length)
                     return -1;
 

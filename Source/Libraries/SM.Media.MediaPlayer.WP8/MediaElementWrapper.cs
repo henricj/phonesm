@@ -70,6 +70,8 @@ namespace SM.Media.MediaPlayer
         /// <param name="httpClients"></param>
         public MediaElementWrapper(IHttpClients httpClients)
         {
+            Debug.WriteLine("MediaElementWrapper.ctor()");
+
             if (httpClients == null)
                 throw new ArgumentNullException("httpClients");
 
@@ -97,6 +99,8 @@ namespace SM.Media.MediaPlayer
             get { return _mediaElement; }
             private set
             {
+                Debug.WriteLine("MediaElementWrapper.MediaElement setter");
+
                 if (_mediaElement != null)
                 {
                     _mediaElement.CurrentStateChanged -= mediaElement_CurrentStateChanged;
@@ -373,6 +377,8 @@ namespace SM.Media.MediaPlayer
             get { return null == _programManager ? null : _programManager.Playlists.FirstOrDefault(); }
             set
             {
+                Debug.WriteLine("MediaElementWrapper.Source setter: " + value);
+
                 if (value == null) // hack: MediaElement doesn't raise CurrentStateChanged on its own
                 {
                     Cleanup();
@@ -440,17 +446,23 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public override void OnApplyTemplate()
         {
+            Debug.WriteLine("MediaElementWrapper.OnApplyTemplate()");
+
             base.OnApplyTemplate();
             _templateAppliedTaskSource.TrySetResult(null);
         }
 
         void mediaElement_LogReady(object sender, LogReadyRoutedEventArgs e)
         {
+            Debug.WriteLine("MediaElementWrapper.mediaElement_LogReady()");
+
             if (LogReady != null) LogReady(this, new Microsoft.PlayerFramework.LogReadyRoutedEventArgs(e.Log, e.LogSource));
         }
 
         void mediaElement_CurrentStateChanged(object sender, RoutedEventArgs e)
         {
+            Debug.WriteLine("MediaElementWrapper.mediaElement_CurrentStateChanged()");
+
             if (CurrentStateChanged != null) CurrentStateChanged(sender, e);
         }
 
@@ -482,20 +494,22 @@ namespace SM.Media.MediaPlayer
 
         void MediaElement_MediaEnded(object sender, RoutedEventArgs e)
         {
-            Debug.WriteLine("MediaElementWrapper.MediaElement_MediaEnded");
+            Debug.WriteLine("MediaElementWrapper.MediaElement_MediaEnded()");
 
             Close();
         }
 
         void MediaElement_MediaFailed(object sender, RoutedEventArgs e)
         {
-            Debug.WriteLine("MediaElementWrapper.MediaElement_MediaFailed");
+            Debug.WriteLine("MediaElementWrapper.MediaElement_MediaFailed()");
 
             Close();
         }
 
         async Task StartPlaybackWrapperAsync()
         {
+            Debug.WriteLine("MediaElementWrapper.StartPlaybackWrapperAsync()");
+
             try
             {
                 await StartPlaybackAsync().ConfigureAwait(false);
@@ -503,13 +517,13 @@ namespace SM.Media.MediaPlayer
             catch (Exception ex)
             {
                 // Send a "Failed" message here?
-                Debug.WriteLine("MediaElementWrapper.StartPlaybackWrapperAsync failed: " + ex.Message);
+                Debug.WriteLine("MediaElementWrapper.StartPlaybackWrapperAsync() failed: " + ex.Message);
             }
         }
 
         async Task StartPlaybackAsync()
         {
-            Debug.WriteLine("MediaElementWrapper.StartPlaybackAsync");
+            Debug.WriteLine("MediaElementWrapper.StartPlaybackAsync()");
 
             if (null == _programManager)
                 return;
@@ -531,6 +545,8 @@ namespace SM.Media.MediaPlayer
 
         async Task OpenMediaAsync()
         {
+            Debug.WriteLine("MediaElementWrapper.OpenMediaAsync()");
+
             if (null != _tsMediaStreamSource)
                 await CloseMediaAsync().ConfigureAwait(false);
 
@@ -550,7 +566,7 @@ namespace SM.Media.MediaPlayer
 
                 if (null == program)
                 {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource: program not found");
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): program not found");
                     throw new FileNotFoundException("Unable to load program");
                 }
 
@@ -558,13 +574,13 @@ namespace SM.Media.MediaPlayer
 
                 if (null == subProgram)
                 {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource: no sub programs found");
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): no sub programs found");
                     throw new FileNotFoundException("Unable to load program stream");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaElementWrapper.SetMediaSource: unable to load playlist: " + ex.Message);
+                Debug.WriteLine("MediaElementWrapper.SetMediaSource(): unable to load playlist: " + ex.Message);
                 throw;
             }
 
@@ -587,6 +603,8 @@ namespace SM.Media.MediaPlayer
 
         async Task CloseMediaAsync()
         {
+            Debug.WriteLine("MediaElementWrapper.CloseMediaAsync()");
+
             var cleanupOk = false;
 
             try
@@ -626,22 +644,22 @@ namespace SM.Media.MediaPlayer
                 _playlist = null;
 
                 var task = playlist.StopAsync()
-                    .ContinueWith(t =>
-                                  {
-                                      var ex = t.Exception;
+                                   .ContinueWith(t =>
+                                                 {
+                                                     var ex = t.Exception;
 
-                                      if (null != ex)
-                                          Debug.WriteLine("StopPlaylist failed: " + ex.Message);
+                                                     if (null != ex)
+                                                         Debug.WriteLine("StopPlaylist failed: " + ex.Message);
 
-                                      try
-                                      {
-                                          playlist.Dispose();
-                                      }
-                                      catch (Exception ex2)
-                                      {
-                                          Debug.WriteLine("Playlists dispose failed: " + ex2.Message);
-                                      }
-                                  });
+                                                     try
+                                                     {
+                                                         playlist.Dispose();
+                                                     }
+                                                     catch (Exception ex2)
+                                                     {
+                                                         Debug.WriteLine("Playlists dispose failed: " + ex2.Message);
+                                                     }
+                                                 });
             }
 
             var mediaManager = _tsMediaManager;
@@ -665,18 +683,18 @@ namespace SM.Media.MediaPlayer
             }
 
             if (null != _mediaElementManager)
-            {
                 await _mediaElementManager.CloseAsync().ConfigureAwait(false);
-            }
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
         {
-            Debug.WriteLine("MediaElementWrapper.TsMediaManagerOnOnStateChange to {0}: {1}", e.State, e.Message);
+            Debug.WriteLine("MediaElementWrapper.TsMediaManagerOnOnStateChange() to {0}: {1}", e.State, e.Message);
         }
 
         public void Close()
         {
+            Debug.WriteLine("MediaElementWrapper.Close()");
+
             if (null == _tsMediaManager)
                 return;
 
@@ -685,6 +703,8 @@ namespace SM.Media.MediaPlayer
 
         public void Cleanup()
         {
+            Debug.WriteLine("MediaElementWrapper.Cleanup()");
+
             Close();
 
             if (null != _tsMediaManager)

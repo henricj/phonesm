@@ -46,7 +46,6 @@ namespace SM.Media
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
 
-        bool _isClosed;
         int _isDisposed;
         TimeSpan? _seekTarget;
         TimeSpan? _duration;
@@ -87,8 +86,6 @@ namespace SM.Media
 
             Debug.WriteLine("WinRtMediaStreamSource.Dispose()");
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
-
-            _isClosed = true;
         }
 
         public void Configure(MediaConfiguration configuration)
@@ -114,11 +111,6 @@ namespace SM.Media
 
         public Task CloseAsync()
         {
-            lock (_stateLock)
-            {
-                _isClosed = true;
-            }
-
             return _drainCompleted.WaitAsync();
         }
 
@@ -167,15 +159,11 @@ namespace SM.Media
             {
                 case "H264":
                     return VideoEncodingProperties.CreateH264();
-                    break;
                 case "MP2V":
                     return VideoEncodingProperties.CreateMpeg2();
-                    break;
                 default:
-                    break;
+                    return null;
             }
-
-            return null;
         }
 
         IMediaStreamDescriptor CreateVideoDescriptor(IVideoConfigurationSource configurationSource)

@@ -60,10 +60,10 @@ namespace SM.Media.Playlists
                 {
                     var parser = new M3U8Parser();
 
-                    await parser.ParseAsync(httpClient, playlist, cancellationToken)
+                    var actualPlaylist = await parser.ParseAsync(httpClient, playlist, cancellationToken)
                                 .ConfigureAwait(false);
 
-                    return Load(playlist, parser);
+                    return Load(actualPlaylist, parser);
                 }
                 catch (HttpRequestException e)
                 {

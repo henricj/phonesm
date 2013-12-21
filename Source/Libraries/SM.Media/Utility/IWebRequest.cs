@@ -33,6 +33,7 @@ namespace SM.Media.Utility
     public interface ICachedWebRequest
     {
         Uri Url { get; }
+        Uri RequestUri { get; }
 
         Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
             where TCached : class;

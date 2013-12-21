@@ -77,7 +77,7 @@ namespace SM.Media.M3U8
         /// <param name="playlist"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static Task ParseAsync(this M3U8Parser parser, HttpClient httpClient, Uri playlist, CancellationToken cancellationToken)
+        public static Task<Uri> ParseAsync(this M3U8Parser parser, HttpClient httpClient, Uri playlist, CancellationToken cancellationToken)
         {
             var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
 
@@ -91,13 +91,15 @@ namespace SM.Media.M3U8
                                          {
                                              if (response.IsSuccessStatusCode)
                                              {
+                                                 playlist = response.RequestMessage.RequestUri;
+
                                                  using (var stream = await response.Content.ReadAsStreamAsync()
                                                                                    .ConfigureAwait(false))
                                                  {
                                                      parser.Parse(playlist, stream);
                                                  }
 
-                                                 return;
+                                                 return playlist;
                                              }
 
                                              if (!RetryPolicy.IsRetryable(response.StatusCode))

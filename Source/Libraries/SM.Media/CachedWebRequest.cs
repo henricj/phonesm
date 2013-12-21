@@ -43,12 +43,12 @@ namespace SM.Media
 
         readonly HttpClient _httpClient;
         readonly Uri _url;
-        readonly Func<Uri, HttpWebRequest> _webRequestFactory;
         CacheControlHeaderValue _cacheControl;
         object _cachedObject;
         EntityTagHeaderValue _etag;
         DateTimeOffset? _lastModified;
         string _noCache;
+        Uri _requestUri;
 
         public CachedWebRequest(Uri url, HttpClient httpClient)
         {
@@ -67,6 +67,11 @@ namespace SM.Media
         public Uri Url
         {
             get { return _url; }
+        }
+
+        public Uri RequestUri
+        {
+            get { return _requestUri; }
         }
 
         public async Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
@@ -97,6 +102,8 @@ namespace SM.Media
                 {
                     if (response.IsSuccessStatusCode)
                     {
+                        _requestUri = response.RequestMessage.RequestUri;
+
                         _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
                         return;
                     }
@@ -114,7 +121,6 @@ namespace SM.Media
                     _cachedObject = null;
                     response.EnsureSuccessStatusCode();
                 }
-
             }
         }
 

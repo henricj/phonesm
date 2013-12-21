@@ -247,8 +247,6 @@ namespace SM.Media.Playlists
                 if (null == _subPlaylistRequest || _subPlaylistRequest.Url != playlist)
                     _subPlaylistRequest = _webRequestFactory(playlist);
 
-                var localPlaylist = playlist;
-
                 CancellationToken.ThrowIfCancellationRequested();
 
                 var parsedPlaylist = await _subPlaylistRequest.ReadAsync(
@@ -263,7 +261,7 @@ namespace SM.Media.Playlists
 
                         using (var ms = new MemoryStream(bytes))
                         {
-                            parser.Parse(localPlaylist, ms);
+                            parser.Parse(_subPlaylistRequest.RequestUri, ms);
                         }
 
                         return parser;

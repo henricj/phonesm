@@ -30,31 +30,32 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    sealed class SingleUseTaskTimer : CancellationTokenSource, IDisposable
+    sealed class SingleUseTaskTimer : IDisposable
     {
-        // From: http://stackoverflow.com/a/12790048
+        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
+        // General idea from: http://stackoverflow.com/a/12790048
+        // CancellationTokenSource is sealed on WP7...
         public SingleUseTaskTimer(Action callback, TimeSpan expiration)
         {
-            Task.Delay(expiration, Token)
-                .ContinueWith(
-                    (t, s) =>
-                    {
-                        var action = (Action)s;
-
-                        action();
-                    },
-                    callback, CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion,
-                    TaskScheduler.Default);
+            TaskEx.Delay(expiration, _cancellationTokenSource.Token)
+                  .ContinueWith(
+                      t => callback(),
+                      TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
         #region IDisposable Members
 
-        public new void Dispose()
+        public void Dispose()
         {
-            Cancel();
+            _cancellationTokenSource.Dispose();
         }
 
         #endregion
+
+        public void Cancel()
+        {
+            _cancellationTokenSource.Cancel();
+        }
     }
 }

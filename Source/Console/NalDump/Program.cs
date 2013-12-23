@@ -120,7 +120,7 @@ namespace NalDump
         {
             var data = buffer.ToArray();
 
-            writer.WriteLine("NALU({0}): {1}", buffer.Count, BitConverter.ToString(data, 0, data.Length));
+            writer.WriteLine("NALU({0}/{1}): {2}", buffer.Count, buffer[0] & 0x1f, BitConverter.ToString(data, 0, data.Length));
 
             return true;
         }

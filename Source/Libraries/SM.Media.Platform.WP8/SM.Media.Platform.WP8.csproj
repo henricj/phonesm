@@ -89,6 +89,7 @@
       <Link>Utility\ThreadCommandWorker.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utility\DispatcherExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SM.Media\SM.Media.csproj">

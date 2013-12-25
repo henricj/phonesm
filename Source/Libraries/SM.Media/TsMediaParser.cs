@@ -41,6 +41,7 @@ namespace SM.Media
 
         #endregion
 
+        readonly BufferPool _bufferPool;
         readonly Action<IMediaParserMediaStream> _mediaParserStreamHandler;
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
@@ -73,7 +74,9 @@ namespace SM.Media
 
             _mediaParserStreamHandler = mediaParserStreamHandler;
 
-            _tsDecoder = new TsDecoder(new BufferPool(5 * 64 * 1024, 2), _pesHandlers.GetPesHandler);
+            _bufferPool = new BufferPool(5 * 64 * 1024, 2);
+
+            _tsDecoder = new TsDecoder(_bufferPool, _pesHandlers.GetPesHandler);
         }
 
         public IMediaParserMediaStream[] MediaStreams
@@ -119,6 +122,8 @@ namespace SM.Media
 
             using (_tsDecoder)
             { }
+
+            _bufferPool.Dispose();
         }
 
         public void Initialize(Action<IProgramStreams> programStreamsHandler = null)

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ObjectPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,10 +26,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SM.TsParser.Utility
 {
-    sealed class ObjectPool<T> : IDisposable where T : new()
+    sealed class ObjectPool<T> : IDisposable
+        where T : new()
     {
         readonly Stack<T> _pool = new Stack<T>();
 #if OBJECT_POOL_STATISTICS
@@ -82,6 +84,11 @@ namespace SM.TsParser.Utility
         {
             lock (_pool)
             {
+#if OBJECT_POOL_STATISTICS
+                Debug.Assert(_allocations == _deallocations, string.Format("ObjectPool.Clear(): allocations {0} != deallocations {1}", _allocations, _deallocations));
+                Debug.Assert(_pool.Count == _objectsCreated, string.Format("ObjectPool.Clear(): _pool.Count {0} != _objectsCreated {1}", _pool.Count, _objectsCreated));
+#endif
+
                 _pool.Clear();
 
 #if OBJECT_POOL_STATISTICS

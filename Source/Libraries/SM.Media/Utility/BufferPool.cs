@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="BufferPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,9 +32,10 @@ using SM.TsParser.Utility;
 
 namespace SM.Media.Utility
 {
-    public sealed class BufferPool : IBufferPool
+    public sealed class BufferPool : IBufferPool, IDisposable
     {
         readonly BufferSubPool[] _pools;
+        int _isDisposed;
 #if BUFFER_POOL_STATS
         int _requestedAllocationBytes;
         int _actualAllocationBytes;
@@ -95,9 +96,7 @@ namespace SM.Media.Utility
 
             PoolBufferInstance bufferEntry;
             if (null != pool)
-            {
                 bufferEntry = pool.Allocate(minSize);
-            }
             else
             {
                 bufferEntry = new PoolBufferInstance(minSize);
@@ -150,6 +149,11 @@ namespace SM.Media.Utility
 
         public void Clear()
         {
+#if BUFFER_POOL_STATS
+            Debug.Assert(_allocationCount == _freeCount, string.Format("BufferPool.Dispose(): _allocationCount {0} != _freeCount {1}", _allocationCount, _freeCount));
+            Debug.Assert(_actualAllocationBytes == _actualFreeBytes, string.Format("BufferPool.Dispose(): _actualAllocationBytes {0} != _actualFreeBytes {1}", _actualAllocationBytes, _actualFreeBytes));
+#endif
+
             foreach (var pool in _pools)
                 pool.Clear();
 
@@ -166,7 +170,7 @@ namespace SM.Media.Utility
 
         #region Nested type: BufferSubPool
 
-        class BufferSubPool
+        sealed class BufferSubPool : IDisposable
         {
             public readonly int Size;
 
@@ -198,7 +202,6 @@ namespace SM.Media.Utility
                     if (_pool.Count > 0)
                         return _pool.Pop();
                 }
-
 
                 var bufferEntry = new PoolBufferInstance(Size);
 #if BUFFER_POOL_STATS
@@ -232,16 +235,18 @@ namespace SM.Media.Utility
                 lock (_pool)
                 {
 #if BUFFER_POOL_STATS
+                    Debug.Assert(_allocationCount == _freeCount, string.Format("BufferSubPool.Dispose(): _allocationCount {0} != _freeCount {1}", _allocationCount, _freeCount));
+                    Debug.Assert(_newAllocationCount == _pool.Count, string.Format("BufferSubPool.Dispose(): _newAllocationCount {0} != _pool.Count {1}", _newAllocationCount, _pool.Count));
+
                     if (_pool.Count != _allocationTracker.Count)
-                    {
                         Debug.WriteLine("SubPool {0}: Pool size {1} != Tracker {2}", Size, _pool.Count, _allocationTracker.Count);
-                    }
 #endif
+
                     _pool.Clear();
 
 #if BUFFER_POOL_STATS
                     Debug.WriteLine("SubPool {0}: new {1} alloc {2} free {3} allocSize {4}",
-                                    Size, _newAllocationCount, _allocationCount, _freeCount, _allocationActualSize);
+                        Size, _newAllocationCount, _allocationCount, _freeCount, _allocationActualSize);
 
                     _allocationTracker.Clear();
                     _newAllocationCount = 0;
@@ -251,8 +256,27 @@ namespace SM.Media.Utility
 #endif
                 }
             }
+
+            public void Dispose()
+            {
+                Clear();
+            }
         }
 
         #endregion
+
+        public void Dispose()
+        {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            Clear();
+
+            if (null != _pools)
+            {
+                foreach (var pool in _pools)
+                    pool.Dispose();
+            }
+        }
     }
 }

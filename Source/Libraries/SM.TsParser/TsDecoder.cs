@@ -76,6 +76,9 @@ namespace SM.TsParser
         public void Dispose()
         {
             Clear();
+
+            using (_tsPesPacketPool)
+            { }
         }
 
         #endregion

@@ -39,6 +39,9 @@ namespace SM.Media.Utility
         bool _isDisposed;
         bool _isPending;
         Task _task;
+#if DEBUG
+        int _callCounter;
+#endif
 
         public SignalTask(Func<Task> handler, CancellationToken token)
         {
@@ -107,12 +110,11 @@ namespace SM.Media.Utility
                 if (null != _task)
                     return;
 
-
                 task = new Task<Task>(CallHandlerAsync, _token.Token
 #if SM_MEDIA_LEGACY
                     );
 #else
-                    , TaskCreationOptions.DenyChildAttach);
+, TaskCreationOptions.DenyChildAttach);
 #endif
 
                 _task = unwrapTask = task.Unwrap();
@@ -163,6 +165,10 @@ namespace SM.Media.Utility
                         _isPending = false;
                     }
 
+#if DEBUG
+                    var count = Interlocked.Increment(ref _callCounter);
+                    Debug.Assert(1 == count, "SignalTask.CallHandlerAsync(): concurrent call detected");
+#endif
                     try
                     {
                         await _handler().ConfigureAwait(false);
@@ -170,6 +176,13 @@ namespace SM.Media.Utility
                     catch (Exception ex)
                     {
                         Debug.WriteLine("SignalTask.CallHandlerAsync() handler failed: " + ex.Message);
+                    }
+                    finally
+                    {
+#if DEBUG
+                        count = Interlocked.Decrement(ref _callCounter);
+                        Debug.Assert(0 == count, "SignalTask.CallHandlerAsync(): concurrent call detected after return");
+#endif
                     }
                 }
             }

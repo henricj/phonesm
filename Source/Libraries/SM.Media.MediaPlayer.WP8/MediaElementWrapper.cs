@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -36,6 +37,7 @@ using System.Windows.Media;
 using Microsoft.PlayerFramework;
 using SM.Media.Playlists;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
 using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
@@ -58,6 +60,11 @@ namespace SM.Media.MediaPlayer
         readonly IHttpClients _httpClients;
         // This class is 
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
+        readonly SignalTask _workerTask;
+
+        readonly object _lock = new object();
+        Uri _requestedSource;
+        bool _closeRequested;
 
         /// <summary>
         ///     The MediaElement being wrapped
@@ -89,6 +96,62 @@ namespace SM.Media.MediaPlayer
 #endif
             Content = MediaElement;
             _templateAppliedTaskSource = new TaskCompletionSource<object>();
+
+            _workerTask = new SignalTask(Worker, CancellationToken.None);
+        }
+
+        async Task Worker()
+        {
+            try
+            {
+                bool closeRequested;
+                Uri requestedSource;
+
+                lock (_lock)
+                {
+                    closeRequested = _closeRequested;
+
+                    if (closeRequested)
+                        _closeRequested = false;
+
+                    requestedSource = _requestedSource;
+
+                    if (null != requestedSource)
+                        _requestedSource = null;
+                }
+
+                if (closeRequested)
+                {
+                    //Debug.WriteLine("MediaElementWrapper.Worker() calling CloseMediaAsync()");
+
+                    //var stopwatch = Stopwatch.StartNew();
+
+                    await CloseMediaAsync().ConfigureAwait(false);
+
+                    //stopwatch.Stop();
+
+                    //Debug.WriteLine("MediaElementWrapper.Worker() returned from CloseMediaAsync() after " + stopwatch.Elapsed);
+
+                    return;
+                }
+
+                if (null != requestedSource)
+                {
+                    //Debug.WriteLine("MediaElementWrapper.Worker() calling SetMediaSourceAsync()");
+
+                    //var stopwatch = Stopwatch.StartNew();
+
+                    await SetMediaSourceAsync(requestedSource).ConfigureAwait(false);
+
+                    //stopwatch.Stop();
+
+                    //Debug.WriteLine("MediaElementWrapper.Worker() returned from SetMediaSourceAsync() after " + stopwatch.Elapsed);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaElementWrapper.Worker() failed: " + ex.Message);
+            }
         }
 
         /// <summary>
@@ -209,38 +272,53 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public void Pause()
         {
+            Debug.WriteLine("MediaElementWrapper.Pause()");
+
             MediaElement.Pause();
         }
 
         /// <inheritdoc />
         public void Play()
         {
+            Debug.WriteLine("MediaElementWrapper.Play()");
+
+            //MediaElement.Play();
+
             var task = StartPlaybackWrapperAsync();
 
+            TaskCollector.Default.Add(task, "Play: StartPlaybackWrapperAsync()");
             // We do not wait for the task to complete.
         }
 
         /// <inheritdoc />
         public void RequestLog()
         {
+            Debug.WriteLine("MediaElementWrapper.RequestLog()");
+
             MediaElement.RequestLog();
         }
 
         /// <inheritdoc />
         public void SetSource(Stream stream)
         {
+            Debug.WriteLine("MediaElementWrapper.SetSource(Stream)");
+
             MediaElement.SetSource(stream);
         }
 
         /// <inheritdoc />
         public void SetSource(MediaStreamSource mediaStreamSource)
         {
+            Debug.WriteLine("MediaElementWrapper.SetSource(MediaStreamSource)");
+
             MediaElement.SetSource(mediaStreamSource);
         }
 
         /// <inheritdoc />
         public void Stop()
         {
+            Debug.WriteLine("MediaElementWrapper.Stop()");
+
             MediaElement.Stop();
         }
 
@@ -381,14 +459,28 @@ namespace SM.Media.MediaPlayer
 
                 if (value == null) // hack: MediaElement doesn't raise CurrentStateChanged on its own
                 {
-                    Cleanup();
+                    MediaElement.Source = null;
+
+                    lock (_lock)
+                    {
+                        _closeRequested = true;
+                        _requestedSource = null;
+                    }
+
+                    _workerTask.Fire();
 
                     if (CurrentStateChanged != null)
                         CurrentStateChanged(this, new RoutedEventArgs());
                 }
                 else
                 {
-                    var task = SetMediaSourceAsync(value);
+                    lock (_lock)
+                    {
+                        _closeRequested = false;
+                        _requestedSource = value;
+                    }
+
+                    _workerTask.Fire();
 
                     // Do not wait for the task to complete.
                 }
@@ -402,13 +494,18 @@ namespace SM.Media.MediaPlayer
                                   Playlists = new[] { value }
                               };
 
-            MediaElement.Source = null;
-
             await OpenMediaAsync().ConfigureAwait(true);
 
-            SetSource(_tsMediaStreamSource);
+            await SetSourceAsync(_tsMediaStreamSource).ConfigureAwait(false);
 
             var task = StartPlaybackWrapperAsync();
+
+            TaskCollector.Default.Add(task, "SetMediaSourceAsync: StartPlaybackWrapperAsync()");
+        }
+
+        public Task SetSourceAsync(MediaStreamSource mediaStreamSource)
+        {
+            return Dispatcher.DispatchAsync(() => SetSource(mediaStreamSource));
         }
 
         /// <inheritdoc />
@@ -528,17 +625,31 @@ namespace SM.Media.MediaPlayer
             if (null == _programManager)
                 return;
 
-            var state = MediaElement.CurrentState;
+            var isDoneTask = Dispatcher.DispatchAsync(
+                () =>
+                {
+                    var state = MediaElement.CurrentState;
 
-            if (MediaElementState.Closed != state && MediaElementState.Opening != state)
-            {
-                if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(state))
-                    MediaElement.Play();
+                    if (MediaElementState.Closed != state && MediaElementState.Opening != state)
+                    {
+                        if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(state))
+                            MediaElement.Play();
 
+                        return true;
+                    }
+
+                    return false;
+                });
+
+            if (await isDoneTask.ConfigureAwait(false))
                 return;
-            }
 
-            await OpenMediaAsync().ConfigureAwait(false);
+            if (null == _tsMediaManager || null == _tsMediaStreamSource || TsMediaManager.MediaState.Error == _tsMediaManager.State || TsMediaManager.MediaState.Closed == _tsMediaManager.State)
+            {
+                await OpenMediaAsync().ConfigureAwait(false);
+
+                Debug.Assert(null != _tsMediaManager);
+            }
 
             _tsMediaManager.Play();
         }
@@ -549,6 +660,9 @@ namespace SM.Media.MediaPlayer
 
             if (null != _tsMediaStreamSource)
                 await CloseMediaAsync().ConfigureAwait(false);
+
+            Debug.Assert(null == _tsMediaStreamSource);
+            Debug.Assert(null == _tsMediaManager);
 
             if (null != _playlist)
             {
@@ -590,9 +704,6 @@ namespace SM.Media.MediaPlayer
 
             var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
-            if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
-
             if (null == _tsMediaStreamSource)
                 _tsMediaStreamSource = new TsMediaStreamSource();
 
@@ -605,36 +716,34 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.CloseMediaAsync()");
 
-            var cleanupOk = false;
+            var mediaManager = _tsMediaManager;
 
-            try
+            if (null != mediaManager)
             {
-                await _tsMediaStreamSource.CloseAsync().ConfigureAwait(false);
-
-                cleanupOk = true;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Cleanup of existing media stream source failed: " + ex.Message);
-            }
-
-            if (!cleanupOk)
-            {
-                var mss = _tsMediaStreamSource;
-
-                if (null != mss)
+                try
                 {
-                    _tsMediaStreamSource = null;
+                    //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() calling mediaManager.CloseAsync()");
 
-                    try
-                    {
-                        mss.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("Fallback cleanup of existing media stream source failed: " + ex.Message);
-                    }
+                    var stopwatch = Stopwatch.StartNew();
+
+                    await mediaManager.CloseAsync().ConfigureAwait(false);
+
+                    stopwatch.Stop();
+
+                    //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() returned from mediaManager.CloseAsync() after " + stopwatch.Elapsed);
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Media manager close failed: " + ex.Message);
+                }
+
+                mediaManager.OnStateChange -= TsMediaManagerOnStateChange;
+
+                var task = Task.Run(() => mediaManager.Dispose());
+
+                TaskCollector.Default.Add(task, "MediaElementWrapper.CloseMediaAsync() media manager dispose");
+
+                _tsMediaManager = null;
             }
 
             var playlist = _playlist;
@@ -644,46 +753,82 @@ namespace SM.Media.MediaPlayer
                 _playlist = null;
 
                 var task = playlist.StopAsync()
-                                   .ContinueWith(t =>
-                                                 {
-                                                     var ex = t.Exception;
+                                   .ContinueWith(
+                                       t =>
+                                       {
+                                           var ex = t.Exception;
 
-                                                     if (null != ex)
-                                                         Debug.WriteLine("StopPlaylist failed: " + ex.Message);
+                                           if (null != ex)
+                                               Debug.WriteLine("StopPlaylist failed: " + ex.Message);
 
-                                                     try
-                                                     {
-                                                         playlist.Dispose();
-                                                     }
-                                                     catch (Exception ex2)
-                                                     {
-                                                         Debug.WriteLine("Playlists dispose failed: " + ex2.Message);
-                                                     }
-                                                 });
+                                           try
+                                           {
+                                               playlist.Dispose();
+                                           }
+                                           catch (Exception ex2)
+                                           {
+                                               Debug.WriteLine("Playlists dispose failed: " + ex2.Message);
+                                           }
+                                       });
+
+                TaskCollector.Default.Add(task, "MediaElementWrapper playlist.StopAsync()");
             }
 
-            var mediaManager = _tsMediaManager;
+            var tsMediaStreamSource = _tsMediaStreamSource;
 
-            if (null != mediaManager)
+            if (null != tsMediaStreamSource)
+                _tsMediaStreamSource = null;
+
+            if (null != mediaManager || null != tsMediaStreamSource)
             {
-                _tsMediaManager = null;
+                var cleanupTask = Task.Run(
+                    () =>
+                    {
+                        if (null != mediaManager)
+                        {
+                            try
+                            {
+                                //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() cleanup calling mediaManager.Dispose()");
 
-                mediaManager.OnStateChange -= TsMediaManagerOnStateChange;
+                                //var stopwatch = Stopwatch.StartNew();
 
-                try
-                {
-                    await mediaManager.CloseAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("Media manager close failed: " + ex.Message);
-                }
+                                mediaManager.Dispose();
 
-                mediaManager.Dispose();
+                                //stopwatch.Stop();
+
+                                //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() cleanup returned from mediaManager.Dispose() after " + stopwatch.Elapsed);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() dispose of media manager failed: " + ex.Message);
+                            }
+                        }
+
+                        if (null != tsMediaStreamSource)
+                        {
+                            try
+                            {
+                                //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() cleanup calling tsMediaStreamSource.Dispose()");
+
+                                //var stopwatch = Stopwatch.StartNew();
+
+                                tsMediaStreamSource.Dispose();
+
+                                //stopwatch.Stop();
+
+                                //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() cleanup returned from tsMediaStreamSource.Dispose() after " + stopwatch.Elapsed);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() dispose of media stream source failed: " + ex.Message);
+                            }
+                        }
+                    });
+
+                TaskCollector.Default.Add(cleanupTask, "MediaElementWrapper.CloseMediaAsync() media manager and media stream source dispose");
             }
 
-            if (null != _mediaElementManager)
-                await _mediaElementManager.CloseAsync().ConfigureAwait(false);
+            Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() completed");
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
@@ -695,10 +840,13 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.Close()");
 
-            if (null == _tsMediaManager)
-                return;
+            lock (_lock)
+            {
+                _closeRequested = true;
+                _requestedSource = null;
+            }
 
-            _tsMediaManager.Close();
+            _workerTask.Fire();
         }
 
         public void Cleanup()
@@ -713,6 +861,8 @@ namespace SM.Media.MediaPlayer
             if (null != _playlist)
             {
                 var t = _playlist.StopAsync();
+
+                TaskCollector.Default.Add(t, "MediaElementWrapper.Cleanup() playlist.StopAsync()");
             }
 
             if (null != _mediaElementManager)
@@ -720,6 +870,8 @@ namespace SM.Media.MediaPlayer
                 _mediaElementManager.CloseAsync()
                                     .Wait();
             }
+
+            _workerTask.WaitAsync().Wait();
         }
 
         public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();

@@ -147,6 +147,7 @@
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs" />
+    <Compile Include="Utility\TaskCollector.cs" />
     <Compile Include="Utility\TaskEx.cs" />
     <Compile Include="TsMediaParser.cs" />
     <Compile Include="H264\NalUnitParser.cs" />

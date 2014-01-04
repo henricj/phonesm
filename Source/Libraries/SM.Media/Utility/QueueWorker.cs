@@ -278,31 +278,41 @@ namespace SM.Media.Utility
                                 normalExit = true;
                                 _workerRunning = false;
 
-                                if (isClosed && !_closeTaskCompletionSource.Task.IsCompleted)
-                                    closeTask = true;
+                                if (!isClosed)
+                                    return;
 
-                                return;
+                                if (_closeTaskCompletionSource.Task.IsCompleted)
+                                    return;
+
+                                _workerRunning = true;
+                                closeTask = true;
                             }
 
-                            if (0 == _processBuffers.Count)
+                            if (!closeTask)
                             {
-                                normalExit = true;
-                                _workerRunning = false;
+                                if (0 == _processBuffers.Count)
+                                {
+                                    normalExit = true;
+                                    _workerRunning = false;
 
-                                return;
+                                    return;
+                                }
+
+                                var item = _processBuffers.First;
+
+                                _processBuffers.RemoveFirst();
+
+                                workItem = item.Value;
                             }
-
-                            var item = _processBuffers.First;
-
-                            _processBuffers.RemoveFirst();
-
-                            workItem = item.Value;
                         }
 
                         _callback(workItem);
 
                         if (null == workItem)
                             Clear();
+
+                        if (closeTask)
+                            return;
 
                         continue;
                     }
@@ -320,11 +330,7 @@ namespace SM.Media.Utility
                             _cleanup(workItem);
                     }
 
-#if WINDOWS_PHONE8
-                    await Task.Delay(250, _abortTokenSource.Token).ConfigureAwait(false);
-#else
                     await TaskEx.Delay(250, _abortTokenSource.Token).ConfigureAwait(false);
-#endif
                 }
             }
             catch (Exception ex)

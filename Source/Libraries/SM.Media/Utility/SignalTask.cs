@@ -123,7 +123,8 @@ namespace SM.Media.Utility
             try
             {
                 // We start the outer task *after* leaving the monitor.
-                task.Start(TaskScheduler.Default);
+                if (TaskStatus.Created == task.Status)
+                    task.Start(TaskScheduler.Default);
             }
             catch (Exception ex)
             {

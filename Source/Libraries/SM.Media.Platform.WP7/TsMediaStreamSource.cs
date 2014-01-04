@@ -39,7 +39,7 @@ namespace SM.Media
     public sealed class TsMediaStreamSource : MediaStreamSource, IMediaStreamSource
     {
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
-        readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
+        readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent();
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
@@ -251,6 +251,8 @@ namespace SM.Media
 
                     var task = SeekHandler();
 
+                    TaskCollector.Default.Add(task, "TsMediaStreamSource.SignalHandler SeekHandler()");
+
                     return;
                 }
 
@@ -297,6 +299,7 @@ namespace SM.Media
             if (_isClosed || null == streamSample)
             {
                 SendLastStreamSample(mediaStreamDescription);
+
                 return true;
             }
 
@@ -339,7 +342,6 @@ namespace SM.Media
             if (CloseStream(mediaStreamDescription.Type))
             {
                 ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
-                _drainCompleted.Set();
             }
         }
 
@@ -634,6 +636,8 @@ namespace SM.Media
 
                 _state = SourceState.Closed;
             }
+
+            _drainCompleted.Set();
 
             var mediaManager = MediaManager;
 

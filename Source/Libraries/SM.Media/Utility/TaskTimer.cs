@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Timer.cs" company="Henric Jungheim">
+//  <copyright file="TaskTimer.cs" company="Henric Jungheim">
 //  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>

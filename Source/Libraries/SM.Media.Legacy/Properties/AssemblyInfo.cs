@@ -24,12 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-// General Information about an assembly is controlled through the following 
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
-[assembly: AssemblyTitle("SM.Media")]
+[assembly: AssemblyTitle("SM.Media.Legacy")]
 [assembly: AssemblyDescription("")]
-[assembly: InternalsVisibleTo("SM.Media.Platform.WP7")]

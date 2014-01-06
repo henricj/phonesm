@@ -746,10 +746,6 @@ namespace SM.Media.MediaPlayer
 
                 mediaManager.OnStateChange -= TsMediaManagerOnStateChange;
 
-                var task = Task.Run(() => mediaManager.Dispose());
-
-                TaskCollector.Default.Add(task, "MediaElementWrapper.CloseMediaAsync() media manager dispose");
-
                 _tsMediaManager = null;
             }
 

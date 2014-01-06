@@ -64,7 +64,8 @@ namespace SM.Media
             Seeking,
             Playing,
             Closed,
-            Error
+            Error,
+            Closing
         }
 
         #endregion
@@ -532,6 +533,8 @@ namespace SM.Media
             if (IsClosed)
                 return;
 
+            State = MediaState.Closing;
+
             _closeCancellationTokenSource.Cancel();
 
             Task stopPlaylistTask = null;
@@ -634,20 +637,31 @@ namespace SM.Media
         {
             Debug.WriteLine("TsMediaManager.CloseAsync() closing readers");
 
-            var tasks = _readers.Where(reader => null != reader)
-                                .Select(reader => reader.CloseAsync())
-                                .ToArray();
-
-            if (tasks.Length > 0)
+            try
             {
-                try
-                {
-                    await TaskEx.WhenAll(tasks).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
-                }
+                var tasks = _readers.Select(reader =>
+                                            {
+                                                if (null == reader)
+                                                    return null;
+
+                                                try
+                                                {
+                                                    return reader.CloseAsync();
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    Debug.WriteLine("TsMediaManager.CloseReadersAsync(): reader.CloseAsync failed: " + ex.Message);
+                                                }
+
+                                                return null;
+                                            })
+                                    .Where(t => null != t);
+
+                await TaskEx.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
             }
 
             Debug.WriteLine("TsMediaManager.CloseAsync() readers closed");

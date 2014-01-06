@@ -229,7 +229,17 @@ namespace SM.Media.Playlists
             using (readTask)
             {
                 if (null != cancellationTokenSource)
-                    cancellationTokenSource.Cancel();
+                {
+                    try
+                    {
+                        if (!cancellationTokenSource.IsCancellationRequested)
+                            cancellationTokenSource.Cancel();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("PlaylistSegmentManager.CleanupReader() cancel failed: " + ex.Message);
+                    }
+                }
 
                 if (null != readTask)
                     await readTask.WaitAsync().ConfigureAwait(false);

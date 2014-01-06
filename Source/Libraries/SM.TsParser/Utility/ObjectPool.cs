@@ -77,7 +77,7 @@ namespace SM.TsParser.Utility
 
         public void Dispose()
         {
-            _pool.Clear();
+            Clear();
         }
 
         public void Clear()

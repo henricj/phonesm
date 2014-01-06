@@ -39,6 +39,7 @@ namespace SM.Media.Utility
         bool _isDisposed;
         bool _isPending;
         Task _task;
+        TaskCompletionSource<bool> _taskCompletionSource;
 #if DEBUG
         int _callCounter;
 #endif
@@ -88,6 +89,8 @@ namespace SM.Media.Utility
             {
                 Debug.WriteLine("SignalTask.Dispose(): " + ex.Message);
             }
+
+            _token.Dispose();
         }
 
         #endregion
@@ -102,7 +105,7 @@ namespace SM.Media.Utility
                 if (_isDisposed)
                     throw new ObjectDisposedException(GetType().FullName);
 
-                if (_isPending)
+                if (_isPending || _token.IsCancellationRequested)
                     return;
 
                 _isPending = true;
@@ -118,6 +121,7 @@ namespace SM.Media.Utility
 #endif
 
                 _task = unwrapTask = task.Unwrap();
+                _taskCompletionSource = null;
             }
 
             try
@@ -135,6 +139,7 @@ namespace SM.Media.Utility
                     if (ReferenceEquals(unwrapTask, _task))
                     {
                         _task = null;
+                        _taskCompletionSource = null;
                         _isPending = false;
                     }
                 }
@@ -201,14 +206,28 @@ namespace SM.Media.Utility
 
         public Task WaitAsync()
         {
+            // Use a TaskCompletionSource to avoid leaking the actual task.
+            // A caller might wait on the task, leading to a race with the
+            // code in .Fire() that creates and then starts the task.
             Task task;
+            TaskCompletionSource<bool> taskCompletionSource;
 
             lock (_lock)
             {
                 task = _task;
+
+                if (null == task || task.IsCompleted)
+                    return TplTaskExtensions.CompletedTask;
+
+                if (null == _taskCompletionSource)
+                    _taskCompletionSource = new TaskCompletionSource<bool>();
+
+                taskCompletionSource = _taskCompletionSource;
             }
 
-            return task ?? TplTaskExtensions.CompletedTask;
+            task.ContinueWith(t => taskCompletionSource.SetResult(true));
+
+            return taskCompletionSource.Task;
         }
     }
 }

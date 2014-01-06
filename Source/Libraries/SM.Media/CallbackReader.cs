@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="CallbackReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -86,6 +86,23 @@ namespace SM.Media
             {
                 Debug.WriteLine(ex.Message);
             }
+
+            Task reader;
+            CancellationTokenSource cancellationTokenSource;
+
+            lock (_readerLock)
+            {
+                reader = _readerTask;
+                _readerTask = TplTaskExtensions.CompletedTask;
+
+                cancellationTokenSource = _readCancellationSource;
+                _readCancellationSource = null;
+            }
+
+            TaskCollector.Default.Add(reader, "CallbackReader.Close");
+
+            if (null != cancellationTokenSource)
+                cancellationTokenSource.Dispose();
         }
 
         void Close()
@@ -166,8 +183,11 @@ namespace SM.Media
             }
         }
 
-        public Task StartAsync()
+        public Task StartAsync(CancellationToken cancellationToken)
         {
+            CancellationTokenSource oldCancellationTokenSource = null;
+            Task readerTask;
+
             lock (_readerLock)
             {
                 Debug.Assert(null == _readerTask || _readerTask.IsCompleted);
@@ -176,36 +196,42 @@ namespace SM.Media
                     return TplTaskExtensions.CompletedTask;
 
                 if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
-                    _readCancellationSource = new CancellationTokenSource();
+                {
+                    oldCancellationTokenSource = _readCancellationSource;
 
-                var cancellationSource = _readCancellationSource;
+                    _readCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                }
+
+                var cancellationSource = _readCancellationSource.Token;
 
                 _readerRunning = true;
-                _readerTask = TaskEx.Run(() => ReadAsync(cancellationSource.Token), cancellationSource.Token);
+                readerTask = _readerTask = TaskEx.Run(() => ReadAsync(cancellationSource), cancellationSource);
             }
 
-            return _readerTask;
+            if (null != oldCancellationTokenSource)
+                oldCancellationTokenSource.Dispose();
+
+            return readerTask;
         }
 
         public async Task StopAsync()
         {
-            Task oldReader;
+            Task reader;
+            CancellationTokenSource cancellationTokenSource;
 
             lock (_readerLock)
             {
-                oldReader = _readerTask;
-
-                if (null != oldReader)
-                {
-                    if (null != _readCancellationSource)
-                        _readCancellationSource.Cancel();
-                }
+                reader = _readerTask;
+                cancellationTokenSource = _readCancellationSource;
             }
+
+            if (null != cancellationTokenSource && !cancellationTokenSource.IsCancellationRequested)
+                cancellationTokenSource.Cancel();
 
             try
             {
-                if (null != oldReader)
-                    await oldReader.ConfigureAwait(false);
+                if (null != reader)
+                    await reader.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

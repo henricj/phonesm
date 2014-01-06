@@ -146,6 +146,7 @@
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
+    <Compile Include="Utility\FifoTaskScheduler.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
     <Compile Include="Utility\TaskEx.cs" />
@@ -193,12 +194,9 @@
     <Compile Include="Utility\AsyncManualResetEvent.cs" />
     <Compile Include="Utility\BlockingPool.cs" />
     <Compile Include="Utility\BufferPool.cs" />
-    <Compile Include="Utility\CommandWorkerBase.cs" />
     <Compile Include="Utility\IApplicationInformation.cs" />
-    <Compile Include="Utility\ICommandWorker.cs" />
     <Compile Include="Utility\PositionStream.cs" />
     <Compile Include="Utility\SignalTask.cs" />
-    <Compile Include="Utility\TaskCommandWorker.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\HttpWebRequestFactory.cs" />
     <Compile Include="Utility\IBlockingPool.cs" />
@@ -215,7 +213,6 @@
     <Compile Include="Utility\TaskTimer.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
-    <Compile Include="Utility\WorkCommand.cs" />
     <Compile Include="Web\HttpClients.cs" />
     <Compile Include="Web\IHttpClients.cs" />
   </ItemGroup>

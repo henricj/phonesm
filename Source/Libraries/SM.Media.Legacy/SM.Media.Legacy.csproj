@@ -161,6 +161,9 @@
     <Compile Include="..\SM.Media\Playlists\StreamSegments.cs">
       <Link>Playlists\StreamSegments.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\FifoTaskScheduler.cs">
+      <Link>Utility\FifoTaskScheduler.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\FullResolutionTimeSpan.cs">
       <Link>Utility\FullResolutionTimeSpan.cs</Link>
     </Compile>
@@ -403,20 +406,11 @@
     <Compile Include="..\SM.Media\Utility\BufferPool.cs">
       <Link>Utility\BufferPool.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Utility\CommandWorkerBase.cs">
-      <Link>Utility\CommandWorkerBase.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Utility\IApplicationInformation.cs">
       <Link>Utility\IApplicationInformation.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Utility\ICommandWorker.cs">
-      <Link>Utility\ICommandWorker.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Utility\PositionStream.cs">
       <Link>Utility\PositionStream.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Utility\TaskCommandWorker.cs">
-      <Link>Utility\TaskCommandWorker.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\GlobalPlatformServices.cs">
       <Link>Utility\GlobalPlatformServices.cs</Link>
@@ -459,9 +453,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\WorkBuffer.cs">
       <Link>Utility\WorkBuffer.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Utility\WorkCommand.cs">
-      <Link>Utility\WorkCommand.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpClients.cs">
       <Link>Web\HttpClients.cs</Link>

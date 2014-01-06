@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
@@ -37,11 +38,11 @@ namespace SimulatedPlayer
 {
     sealed class SimulatedMediaElementManager : IMediaElementManager, ISimulatedMediaElement, IDisposable
     {
-        readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
+        readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
         readonly object _lock = new object();
         // _mediaStreamFsm must not be readonly.  Member functions would then operate on *copies* of the value
         // rather than this field (since it is a value type).
-        MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
+        readonly MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         readonly RandomNumbers _random = new RandomNumbers();
         readonly Dictionary<int, SampleState> _streams = new Dictionary<int, SampleState>();
         ISimulatedMediaStreamSource _mediaStreamSource;
@@ -55,7 +56,7 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
-            using (_commandWorker)
+            using (_fifoTaskScheduler)
             { }
         }
 
@@ -79,7 +80,9 @@ namespace SimulatedPlayer
 
         public void ReportOpenMediaCompleted()
         {
-            _commandWorker.SendCommand(new WorkCommand(PlayMedia));
+            var task = Task.Factory.StartNew((Func<Task>)PlayMedia, CancellationToken.None, TaskCreationOptions.None, _fifoTaskScheduler);
+
+            TaskCollector.Default.Add(task, "SimulatedMediaElementManager.ReportOpenMediaCompleted");
         }
 
         public void ReportSeekCompleted(long ticks)
@@ -149,14 +152,14 @@ namespace SimulatedPlayer
             if (oldestIndex >= 0)
             {
                 var t = Task.Run(async () =>
-                               {
-                                   await Task.Delay((int)(10 * (1 + _random.GetRandomNumber()))).ConfigureAwait(false);
+                                       {
+                                           await Task.Delay((int)(10 * (1 + _random.GetRandomNumber()))).ConfigureAwait(false);
 
-                                   var mediaStreamSource = _mediaStreamSource;
+                                           var mediaStreamSource = _mediaStreamSource;
 
-                                   if (null != mediaStreamSource)
-                                       mediaStreamSource.GetSampleAsync(oldestIndex);
-                               });
+                                           if (null != mediaStreamSource)
+                                               mediaStreamSource.GetSampleAsync(oldestIndex);
+                                       });
             }
         }
 
@@ -175,7 +178,9 @@ namespace SimulatedPlayer
 
             _mediaStreamSource = (ISimulatedMediaStreamSource)source;
 
-            _commandWorker.SendCommand(new WorkCommand(OpenMedia));
+            var task = Task.Factory.StartNew((Func<Task>)OpenMedia, CancellationToken.None, TaskCreationOptions.None, _fifoTaskScheduler);
+
+            TaskCollector.Default.Add(task, "SimulatedMediaElementManager.SetSource");
 
             return TplTaskExtensions.CompletedTask;
         }

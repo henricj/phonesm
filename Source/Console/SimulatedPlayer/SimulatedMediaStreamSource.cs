@@ -37,11 +37,11 @@ namespace SimulatedPlayer
 {
     class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {
-        readonly TaskCommandWorker _commandWorker = new TaskCommandWorker();
+        readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
-        readonly List<WorkCommand> _pendingGets = new List<WorkCommand>();
+        readonly List<Task> _pendingGets = new List<Task>();
         readonly object _stateLock = new object();
         bool _isClosed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
@@ -59,7 +59,7 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
-            using (_commandWorker)
+            using (_fifoTaskScheduler)
             { }
         }
 
@@ -130,7 +130,7 @@ namespace SimulatedPlayer
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
 
-            _commandWorker.SendCommand(new WorkCommand(
+            Task.Factory.StartNew((Func<Task>)(
                 async () =>
                 {
                     if (_isClosed)
@@ -144,7 +144,7 @@ namespace SimulatedPlayer
                     ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                     _mediaElement.ReportSeekCompleted(position.Ticks);
 
-                    WorkCommand[] pendingGets;
+                    Task[] pendingGets;
 
                     lock (_stateLock)
                     {
@@ -156,24 +156,26 @@ namespace SimulatedPlayer
                     }
 
                     foreach (var getCmd in pendingGets)
-                        _commandWorker.SendCommand(getCmd);
-                }));
+                    {
+                        getCmd.Start(_fifoTaskScheduler);
+                    }
+                }), CancellationToken.None, TaskCreationOptions.None, _fifoTaskScheduler);
         }
 
         public void GetSampleAsync(int streamType)
         {
-            var command = new WorkCommand(
+            var task = new Task(
                 () =>
                 {
                     if (streamType < 0)
-                        return null;
+                        return;
 
                     IStreamSource streamSource = null;
 
                     lock (_lock)
                     {
                         if (streamType >= _mediaStreams.Count)
-                            return null;
+                            return;
 
                         streamSource = _mediaStreams[streamType];
                     }
@@ -181,7 +183,7 @@ namespace SimulatedPlayer
                     if (null == streamSource)
                     {
                         _mediaElement.ReportGetSampleProgress(0);
-                        return null;
+                        return;
                     }
 
                     var packet = streamSource.GetNextSample();
@@ -218,8 +220,6 @@ namespace SimulatedPlayer
                             current = existing;
                         }
                     }
-
-                    return null;
                 });
 
             lock (_stateLock)
@@ -233,10 +233,10 @@ namespace SimulatedPlayer
                 if (State.Play != state)
                 {
                     Debug.WriteLine("SimulatedMediaStreamSource defer Get({0})", streamType);
-                    _pendingGets.Add(command);
+                    _pendingGets.Add(task);
                 }
                 else
-                    _commandWorker.SendCommand(command);
+                    task.Start(_fifoTaskScheduler);
             }
         }
 

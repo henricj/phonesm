@@ -100,7 +100,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TsMediaStreamSource.cs" />
     <Compile Include="Utility\SingleThreadSignalTaskScheduler.cs" />
-    <Compile Include="Utility\ThreadCommandWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

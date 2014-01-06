@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -698,8 +698,6 @@ namespace SM.Media
                 reader.MediaParser.EnableProcessing = false;
             }
 
-            var stopPlaylistTask = _readerManager.StopAsync();
-
             var stopReaderTasks = _readers.Select(
                 async r =>
                 {
@@ -709,8 +707,6 @@ namespace SM.Media
 
             await TaskEx.WhenAll(stopReaderTasks).ConfigureAwait(false);
 
-            await stopPlaylistTask.ConfigureAwait(false);
-
             foreach (var reader in _readers)
             {
                 reader.MediaParser.FlushBuffers();
@@ -719,8 +715,6 @@ namespace SM.Media
                 reader.MediaParser.EnableProcessing = true;
                 reader.QueueWorker.IsEnabled = true;
             }
-
-            await _readerManager.StartAsync().ConfigureAwait(false);
 
             State = MediaState.Seeking;
 

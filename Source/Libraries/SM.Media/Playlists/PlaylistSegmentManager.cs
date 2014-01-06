@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlaylistSegmentManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -107,10 +107,19 @@ namespace SM.Media.Playlists
             if (0 != Interlocked.Exchange(ref _isDisposed, 1))
                 return;
 
-            _abortTokenSource.Cancel();
+            _refreshTimer.Cancel();
 
-            using (_readTask)
-            { }
+            try
+            {
+                CleanupReader()
+                    .Wait();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("PlaylistSegmentManager.Dispose() failed: " + ex.Message);
+            }
+
+            _refreshTimer.Dispose();
         }
 
         public Uri Url { get; private set; }
@@ -120,14 +129,19 @@ namespace SM.Media.Playlists
 
         public Task StartAsync()
         {
+            ThrowIfDisposed();
+
             _cancellationToken.ThrowIfCancellationRequested();
 
             SignalTask oldReadTask = null;
+            CancellationTokenSource cancellationTokenSource = null;
 
             lock (_segmentLock)
             {
-                if (_abortTokenSource.IsCancellationRequested && !_cancellationToken.IsCancellationRequested)
+                if (_abortTokenSource.IsCancellationRequested)
                 {
+                    cancellationTokenSource = _abortTokenSource;
+
                     _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
 
                     oldReadTask = _readTask;
@@ -138,10 +152,7 @@ namespace SM.Media.Playlists
                 _isRunning = true;
             }
 
-            if (null != oldReadTask)
-                return oldReadTask.WaitAsync();
-
-            return TplTaskExtensions.CompletedTask;
+            return CleanupReader(oldReadTask, cancellationTokenSource);
         }
 
         public Task StopAsync()
@@ -153,23 +164,28 @@ namespace SM.Media.Playlists
             if (0 != _isDisposed)
                 return TplTaskExtensions.CompletedTask;
 
-            Task reader = null;
+            _refreshTimer.Cancel();
+
+            SignalTask readTask;
+            CancellationTokenSource cancellationTokenSource;
 
             lock (_segmentLock)
             {
                 _isRunning = false;
 
-                _abortTokenSource.Cancel();
-
-                if (null != _readTask)
-                    reader = _readTask.WaitAsync();
+                cancellationTokenSource = _abortTokenSource;
+                readTask = _readTask;
             }
 
-            return reader ?? TplTaskExtensions.CompletedTask;
+            return CleanupReader(readTask, cancellationTokenSource);
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
+            ThrowIfDisposed();
+
+            CancellationToken.ThrowIfCancellationRequested();
+
             if (_isDynamicPlaylist)
                 await CheckReload(-1).ConfigureAwait(false);
 
@@ -186,6 +202,45 @@ namespace SM.Media.Playlists
         }
 
         #endregion
+
+        async Task CleanupReader()
+        {
+            SignalTask readTask;
+            CancellationTokenSource cancellationTokenSource;
+
+            lock (_segmentLock)
+            {
+                readTask = _readTask;
+                cancellationTokenSource = _abortTokenSource;
+            }
+
+            await CleanupReader(readTask, cancellationTokenSource).ConfigureAwait(false);
+
+            lock (_segmentLock)
+            {
+                _readTask = null;
+                _abortTokenSource = null;
+            }
+        }
+
+        static async Task CleanupReader(SignalTask readTask, CancellationTokenSource cancellationTokenSource)
+        {
+            using (cancellationTokenSource)
+            using (readTask)
+            {
+                if (null != cancellationTokenSource)
+                    cancellationTokenSource.Cancel();
+
+                if (null != readTask)
+                    await readTask.WaitAsync().ConfigureAwait(false);
+            }
+        }
+
+        void ThrowIfDisposed()
+        {
+            if (0 != _isDisposed)
+                throw new ObjectDisposedException(GetType().FullName);
+        }
 
         void Seek(TimeSpan timestamp)
         {
@@ -300,6 +355,8 @@ namespace SM.Media.Playlists
                                 remaining = MinimumExpirationTimeSpan;
                             }
 
+                            CancellationToken.ThrowIfCancellationRequested();
+
                             _refreshTimer.SetTimer(() => _readTask.Fire(), remaining);
                         }
 
@@ -335,6 +392,8 @@ namespace SM.Media.Playlists
                 var timeSpan = TimeSpan.FromSeconds(delay);
 
                 Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
+
+                CancellationToken.ThrowIfCancellationRequested();
 
                 _refreshTimer.SetTimer(() => _readTask.Fire(), timeSpan);
             }

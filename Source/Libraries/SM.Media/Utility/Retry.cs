@@ -79,11 +79,7 @@ namespace SM.Media.Utility
 
             _delay += _delay;
 
-#if WINDOWS_PHONE8
-                await Task.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
-#else
             await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
-#endif
         }
 
         public async Task<bool> CanRetryAfterDelay(CancellationToken cancellationToken)

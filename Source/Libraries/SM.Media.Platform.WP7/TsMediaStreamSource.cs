@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -201,6 +201,9 @@ namespace SM.Media
 
             lock (_stateLock)
             {
+                if (_isClosed)
+                    return;
+
                 seekTimestamp = _pendingSeekTarget;
             }
 
@@ -340,9 +343,7 @@ namespace SM.Media
             ReportGetSampleCompleted(sample);
 
             if (CloseStream(mediaStreamDescription.Type))
-            {
                 ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
-            }
         }
 
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
@@ -549,6 +550,9 @@ namespace SM.Media
         {
             lock (_stateLock)
             {
+                if (_isClosed)
+                    return;
+
                 _state = SourceState.Seek;
 
                 _pendingSeekTarget = _seekTarget ?? seekTimestamp;

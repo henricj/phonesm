@@ -110,6 +110,8 @@ namespace SM.Media.Utility
             if (0 != wasDisposed)
                 return;
 
+            _abortTokenSource.Cancel();
+
             Clear();
 
             Task queueWorker;
@@ -120,6 +122,8 @@ namespace SM.Media.Utility
 
             if (null != queueWorker)
                 queueWorker.Wait();
+
+            _abortTokenSource.Dispose();
         }
 
         #endregion

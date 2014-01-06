@@ -34,6 +34,12 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\..\Global\phonesm.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .NET Framework is automatically included -->
     <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
@@ -463,6 +469,9 @@
     <Compile Include="Utility\SingleUseTaskTimer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Global\phonesm.snk">
+      <Link>phonesm.snk</Link>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

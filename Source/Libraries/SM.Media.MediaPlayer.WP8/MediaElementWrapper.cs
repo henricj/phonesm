@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MediaElementWrapper.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -558,7 +558,14 @@ namespace SM.Media.MediaPlayer
 
         void mediaElement_CurrentStateChanged(object sender, RoutedEventArgs e)
         {
-            Debug.WriteLine("MediaElementWrapper.mediaElement_CurrentStateChanged()");
+#if DEBUG
+            var state = "<unknown>";
+
+            if (null != MediaElement && MediaElement.Dispatcher.CheckAccess())
+                state = MediaElement.CurrentState.ToString();
+
+            Debug.WriteLine("MediaElementWrapper.mediaElement_CurrentStateChanged(): " + state);
+#endif
 
             if (CurrentStateChanged != null) CurrentStateChanged(sender, e);
         }
@@ -839,6 +846,10 @@ namespace SM.Media.MediaPlayer
         public void Close()
         {
             Debug.WriteLine("MediaElementWrapper.Close()");
+
+            Debug.Assert(Dispatcher.CheckAccess());
+
+            MediaElement.Source = null;
 
             lock (_lock)
             {

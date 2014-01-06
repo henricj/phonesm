@@ -150,14 +150,20 @@ namespace SM.Media
 
         public Task CloseAsync()
         {
-            if (0 == _streamOpenFlags)
-                return TplTaskExtensions.CompletedTask;
+            Debug.WriteLine("TsMediaStreamSource.CloseAsync(): open {0} drain {1}", _streamOpenFlags, _drainCompleted.WaitAsync().Status);
 
             lock (_stateLock)
             {
                 _isClosed = true;
 
                 _state = SourceState.WaitForClose;
+            }
+
+            if (0 == _streamOpenFlags)
+            {
+                _drainCompleted.Set();
+
+                return TplTaskExtensions.CompletedTask;
             }
 
             return _drainCompleted.WaitAsync();

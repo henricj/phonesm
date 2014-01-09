@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacConfigurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -101,25 +101,38 @@ namespace SM.Media.AAC
             if (null != factory)
                 return factory(aacFrameHeader);
 
-#if false
-            var w = new RawAacWaveInfo
-                {
-                    nChannels = aacFrameHeader.ChannelConfig,
-                    nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
-                    nAvgBytesPerSec = (uint)(aacFrameHeader.Duration.TotalSeconds <= 0 ? 0 : aacFrameHeader.FrameLength / aacFrameHeader.Duration.TotalSeconds),
-                    ObjectType = aacFrameHeader.Profile + 1,
-                    FrequencyIndex = aacFrameHeader.FrequencyIndex,
-                    ChannelConfiguration = aacFrameHeader.ChannelConfig
-                };
-#else
-            var w = new HeAacWaveInfo
-                    {
-                        wPayloadType = (ushort)(AacDecoderSettings.Parameters.UseRawAac ? HeAacWaveInfo.PayloadType.Raw : HeAacWaveInfo.PayloadType.ADTS),
-                        nChannels = aacFrameHeader.ChannelConfig,
-                        nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
-                        pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
-                    };
-#endif
+            WaveFormatEx w;
+
+            var waveFormatEx = AacDecoderSettings.Parameters.ConfigurationFormat;
+
+            switch (waveFormatEx)
+            {
+                case AacDecoderParameters.WaveFormatEx.RawAac:
+                    if (!AacDecoderSettings.Parameters.UseRawAac)
+                        throw new NotSupportedException("AacDecoderSettings.Parameters.UseRawAac must be enabled when using AacDecoderParameters.WaveFormatEx.RawAac");
+
+                    w = new RawAacWaveInfo
+                        {
+                            nChannels = aacFrameHeader.ChannelConfig,
+                            nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
+                            nAvgBytesPerSec = (uint)(aacFrameHeader.Duration.TotalSeconds <= 0 ? 0 : aacFrameHeader.FrameLength / aacFrameHeader.Duration.TotalSeconds),
+                            pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
+                        };
+
+                    break;
+                case AacDecoderParameters.WaveFormatEx.HeAac:
+                    w = new HeAacWaveInfo
+                        {
+                            wPayloadType = (ushort)(AacDecoderSettings.Parameters.UseRawAac ? HeAacWaveInfo.PayloadType.Raw : HeAacWaveInfo.PayloadType.ADTS),
+                            nChannels = aacFrameHeader.ChannelConfig,
+                            nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
+                            pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
+                        };
+
+                    break;
+                default:
+                    throw new NotSupportedException("Unknown WaveFormatEx type: " + waveFormatEx);
+            }
 
             return w.ToCodecPrivateData();
         }

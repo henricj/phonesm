@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="RawAacWaveInfo.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
 
 namespace SM.Media.Mmreg
@@ -35,6 +34,8 @@ namespace SM.Media.Mmreg
     // http://wiki.multimedia.cx/index.php?title=MPEG-4_Audio#Audio_Specific_Config
     public class RawAacWaveInfo : WaveFormatEx
     {
+        public ICollection<byte> pbAudioSpecificConfig;
+
         public RawAacWaveInfo()
         {
             wFormatTag = (ushort)WaveFormatTag.RawAac1;
@@ -45,28 +46,26 @@ namespace SM.Media.Mmreg
 
         public override ushort cbSize
         {
-            get { return (ushort)(base.cbSize + 2); }
-        }
+            get
+            {
+                var size = base.cbSize;
 
-        // TODO: Range check these things...
-        public int ObjectType { get; set; }
-        public int FrequencyIndex { get; set; }
-        public int ChannelConfiguration { get; set; }
+                if (null != pbAudioSpecificConfig)
+                    size += (ushort)pbAudioSpecificConfig.Count;
+
+                return size;
+            }
+        }
 
         public override void ToBytes(IList<byte> buffer)
         {
             base.ToBytes(buffer);
 
-            if (31 == ObjectType)
-                throw new NotImplementedException("Extended object types are not supported");
+            if (null == pbAudioSpecificConfig || pbAudioSpecificConfig.Count <= 0)
+                return;
 
-            if (15 == FrequencyIndex)
-                throw new NotImplementedException("Unsupported frequency");
-
-            var v = (ushort)((ObjectType << 11) | (FrequencyIndex << 7) | (ChannelConfiguration << 3));
-
-            buffer.Add((byte)(v >> 8));
-            buffer.Add((byte)v);
+            foreach (var b in pbAudioSpecificConfig)
+                buffer.Add(b);
         }
     }
 }

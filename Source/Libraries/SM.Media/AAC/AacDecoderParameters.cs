@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacDecoderParameters.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,8 +31,23 @@ namespace SM.Media.AAC
 {
     public class AacDecoderParameters
     {
+        #region WaveFormatEx enum
+
+        public enum WaveFormatEx
+        {
+            RawAac,
+            HeAac
+        };
+
+        #endregion
+
         Func<AacFrameHeader, ICollection<byte>> _audioSpecificConfigFactory;
         bool _useParser;
+
+        public AacDecoderParameters()
+        {
+            ConfigurationFormat = WaveFormatEx.HeAac;
+        }
 
         public bool UseParser
         {
@@ -41,6 +56,8 @@ namespace SM.Media.AAC
         }
 
         public bool UseRawAac { get; set; }
+
+        public WaveFormatEx ConfigurationFormat { get; set; }
 
         public Func<AacFrameHeader, ICollection<byte>> AudioSpecificConfigFactory
         {

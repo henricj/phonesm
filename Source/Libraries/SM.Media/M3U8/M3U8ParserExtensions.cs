@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8ParserExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,7 +40,22 @@ namespace SM.Media.M3U8
         /// <summary>
         ///     The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
         /// </summary>
-        static readonly Encoding M3UEncoding = Encoding.GetEncoding("iso-8859-1");
+        static readonly Encoding M3UEncoding = GetM3UEncoding();
+
+        static Encoding GetM3UEncoding()
+        {
+            try
+            {
+                return Encoding.GetEncoding("iso-8859-1");
+            }
+            catch (ArgumentException)
+            {
+                // Silverlight...?
+                // We could try http://www.hardcodet.net/2010/03/silverlight-text-encoding-class-generator
+            }
+
+            return Encoding.UTF8;
+        }
 
         /// <summary>
         ///     Resolve a possibly relative url.

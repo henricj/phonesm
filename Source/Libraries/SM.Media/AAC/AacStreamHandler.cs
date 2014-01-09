@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacStreamHandler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -65,6 +65,9 @@ namespace SM.Media.AAC
 
             if (null == packet)
             {
+                if (null != _parser)
+                    _parser.FlushBuffers();
+
                 if (null != _nextHandler)
                     _nextHandler(null);
 

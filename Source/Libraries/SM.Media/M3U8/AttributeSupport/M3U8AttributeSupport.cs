@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8AttributeSupport.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -94,31 +94,27 @@ namespace SM.Media.M3U8.AttributeSupport
 
             var start = value.IndexOf("0x", StringComparison.OrdinalIgnoreCase);
 
-            if (start < 0 || start + 1 == value.Length)
+            if (start < 0 || start + 2 >= value.Length)
                 return null;
 
-            var bytes = new List<byte>();
+            start += 2;
+
+            var bytes = new List<byte>(16);
 
             var currentNibble = 0;
             var haveNibble = false;
 
-            for (var i = start + 1; i < value.Length; ++i)
+            for (var i = start; i < value.Length; ++i)
             {
                 var c = value[i];
                 byte v;
 
                 if (c >= '0' && c <= '9')
-                {
                     v = (byte)(c - '0');
-                }
                 else if (c >= 'a' && c <= 'f')
-                {
-                    v = (byte)(c - 'a');
-                }
+                    v = (byte)(c - 'a' + 10);
                 else if (c >= 'A' && c <= 'F')
-                {
-                    v = (byte)(c - 'A');
-                }
+                    v = (byte)(c - 'A' + 10);
                 else
                 {
                     // Skip everything else or fail?

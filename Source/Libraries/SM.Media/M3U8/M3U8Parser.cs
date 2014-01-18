@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8Parser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -67,7 +67,7 @@ namespace SM.Media.M3U8
         }
 
         /// <summary>
-        ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-11
+        ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-12
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="lines"> </param>

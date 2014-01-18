@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8AttributeParserSupport.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -58,7 +58,8 @@ namespace SM.Media.M3U8.AttributeSupport
                 {
                     var c = value[i];
 
-                    // See section 3.2 of http://tools.ietf.org/html/draft-pantos-http-live-streaming-10
+                    // See section 3.2 ofthe RFC
+                    // http://tools.ietf.org/html/draft-pantos-http-live-streaming-12#section-3.2
                     if ((c >= 'A' && c <= 'Z') || '-' == c)
                         sb.Append(c);
                 }

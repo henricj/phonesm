@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacDecoderSettings.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,22 +24,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using SM.Media.Utility;
+
 namespace SM.Media.AAC
 {
     public static class AacDecoderSettings
     {
-        static AacDecoderParameters _parameters;
+        static readonly ResettableParameters<AacDecoderParameters> AacDecoderParameters = new ResettableParameters<AacDecoderParameters>();
 
         public static AacDecoderParameters Parameters
         {
-            get
-            {
-                if (null == _parameters)
-                    _parameters = new AacDecoderParameters();
-
-                return _parameters;
-            }
-            set { _parameters = value; }
+            get { return AacDecoderParameters.Parameters; }
+            set { AacDecoderParameters.Parameters = value; }
         }
     }
 }

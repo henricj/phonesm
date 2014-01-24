@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="StreamingMediaPlugin.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,6 @@ using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -560,7 +559,7 @@ namespace SM.Media.MediaPlayer
                 if (null != _httpClients)
                     _httpClients.Dispose();
 
-                _httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue(_applicationInformation.Title ?? "Unknown", _applicationInformation.Version ?? "0.0"));
+                _httpClients = new HttpClients(userAgent: _applicationInformation.CreateUserAgent());
 
                 _segmentsFactory = new SegmentsFactory(_httpClients);
 

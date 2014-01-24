@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,6 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -74,7 +73,7 @@ namespace NasaTv8
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue(ApplicationInformation.Title ?? "Unknown", ApplicationInformation.Version ?? "0.0"));
+            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();

@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="Program.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,6 @@
 
 using System;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
@@ -45,7 +44,9 @@ namespace SimulatedPlayer
             {
                 var cookies = new CookieContainer();
 
-                using (var httpClients = new HttpClients(userAgent: new ProductInfoHeaderValue("SimulatedPlayer", "1.0"), cookieContainer: cookies))
+                var userAgent = HttpSettings.Parameters.UserAgentFactory("SimulatedPlayer", "1.0");
+
+                using (var httpClients = new HttpClients(userAgent: userAgent, cookieContainer: cookies))
                 using (var simulator = new Simulator(httpClients))
                 {
                     simulator.Run().Wait();

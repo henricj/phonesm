@@ -153,6 +153,7 @@
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
+    <Compile Include="Utility\ResettableParameters.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
     <Compile Include="Utility\TaskEx.cs" />
@@ -220,7 +221,11 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Web\HttpClients.cs" />
+    <Compile Include="Web\HttpDefaults.cs" />
+    <Compile Include="Web\HttpParameters.cs" />
+    <Compile Include="Web\HttpSettings.cs" />
     <Compile Include="Web\IHttpClients.cs" />
+    <Compile Include="Web\Rfc2047Encoding.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

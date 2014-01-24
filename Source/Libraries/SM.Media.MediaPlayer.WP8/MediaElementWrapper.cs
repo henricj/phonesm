@@ -707,7 +707,7 @@ namespace SM.Media.MediaPlayer
 
             _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
 
-            _mediaElementManager = new NoOpMediaElementManager();
+            _mediaElementManager = new NullMediaElementManager();
 
             var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 

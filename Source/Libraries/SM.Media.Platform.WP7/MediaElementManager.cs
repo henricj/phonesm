@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaElementManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,26 +35,6 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class NoOpMediaElementManager : IMediaElementManager
-    {
-        public Task SetSourceAsync(IMediaStreamSource source)
-        {
-            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
-
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Task CloseAsync()
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Task Dispatch(Action action)
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-    }
-
     public class MediaElementManager : IMediaElementManager
     {
         readonly Func<MediaElement> _createMediaElement;
@@ -69,6 +49,8 @@ namespace SM.Media
             _createMediaElement = createMediaElement;
             _destroyMediaElement = destroyMediaElement;
         }
+
+        #region IMediaElementManager Members
 
         public Task SetSourceAsync(IMediaStreamSource source)
         {
@@ -92,7 +74,7 @@ namespace SM.Media
 
                                 _mediaElement = _createMediaElement();
 
-                                _mediaElement.SetSource((MediaStreamSource) source);
+                                _mediaElement.SetSource((MediaStreamSource)source);
                             });
         }
 
@@ -111,9 +93,11 @@ namespace SM.Media
 
                                    _destroyMediaElement(mediaElement);
                                })
-                               .ConfigureAwait(false);
+                    .ConfigureAwait(false);
             }
         }
+
+        #endregion
 
         Task Dispatch(Action action)
         {

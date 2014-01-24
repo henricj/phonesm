@@ -148,6 +148,9 @@
     <Compile Include="..\SM.Media\NullBufferingManager.cs">
       <Link>NullBufferingManager.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\NullMediaElementManager.cs">
+      <Link>NullMediaElementManager.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\PacketStreamWrapper.cs" />
     <Compile Include="..\SM.Media\Playlists\IProgramManager.cs">
       <Link>Playlists\IProgramManager.cs</Link>

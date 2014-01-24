@@ -74,6 +74,9 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="..\..\Libraries\SM.Media.Platform.WP7\MediaElementManager.cs">
+      <Link>MediaElementManager.cs</Link>
+    </Compile>
     <Compile Include="..\HlsView\MainPage.xaml.cs">
       <Link>MainPage.xaml.cs</Link>
       <DependentUpon>MainPage.xaml</DependentUpon>

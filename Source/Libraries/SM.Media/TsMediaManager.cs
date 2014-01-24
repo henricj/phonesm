@@ -356,7 +356,7 @@ namespace SM.Media
             {
                 var ext = filename.Substring(lastPeriod);
 
-                if (string.Equals(ext, ".mp3", StringComparison.CurrentCultureIgnoreCase))
+                if (string.Equals(ext, ".mp3", StringComparison.OrdinalIgnoreCase))
                 {
                     var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
 
@@ -366,7 +366,7 @@ namespace SM.Media
 
                     reader.ExpectedStreamCount = 1;
                 }
-                else if (string.Equals(ext, ".aac", StringComparison.CurrentCultureIgnoreCase))
+                else if (string.Equals(ext, ".aac", StringComparison.OrdinalIgnoreCase))
                 {
                     var mediaParser = new AacMediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
 

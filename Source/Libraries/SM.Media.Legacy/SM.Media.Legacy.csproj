@@ -185,6 +185,9 @@
     <Compile Include="..\SM.Media\Utility\TaskTimer.cs">
       <Link>Utility\TaskTimer.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\ApplicationInformationExtensions.cs">
+      <Link>Web\ApplicationInformationExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpDefaults.cs">
       <Link>Web\HttpDefaults.cs</Link>
     </Compile>

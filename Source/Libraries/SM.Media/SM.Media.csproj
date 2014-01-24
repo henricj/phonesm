@@ -220,6 +220,7 @@
     <Compile Include="Utility\TaskTimer.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
+    <Compile Include="Web\ApplicationInformationExtensions.cs" />
     <Compile Include="Web\HttpClients.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
     <Compile Include="Web\HttpParameters.cs" />

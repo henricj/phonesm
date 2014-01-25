@@ -31,10 +31,11 @@ namespace SM.Media.Buffering
     public class DefaultBufferingPolicy : IBufferingPolicy
     {
         int _bytesMaximum = 8192 * 1024;
-        int _bytesMinimum = 350 * 1024;
+        int _bytesMinimum = 300 * 1024;
         TimeSpan _durationBufferingDone = TimeSpan.FromSeconds(9);
+        TimeSpan _durationBufferingMax = TimeSpan.FromSeconds(20);
         TimeSpan _durationReadDisable = TimeSpan.FromSeconds(25);
-        TimeSpan _durationReadEnable = TimeSpan.FromSeconds(7);
+        TimeSpan _durationReadEnable = TimeSpan.FromSeconds(12);
 
         public int BytesMaximum
         {
@@ -66,6 +67,12 @@ namespace SM.Media.Buffering
             set { _durationReadDisable = value; }
         }
 
+        public TimeSpan DurationBufferingMax
+        {
+            get { return _durationBufferingMax; }
+            set { _durationBufferingMax = value; }
+        }
+
         #region IBufferingPolicy Members
 
         public virtual bool ShouldBlockReads(bool isReadBlocked, TimeSpan durationBuffered, int bytesBuffered, bool isExhausted, bool isAllExhausted)
@@ -92,7 +99,7 @@ namespace SM.Media.Buffering
         {
             var bufferSize = Math.Max(0, bytesBuffered - bytesBufferedWhenExhausted);
 
-            return (bufferDuration >= DurationBufferingDone && bufferSize >= BytesMinimum) || bytesBuffered >= BytesMaximum || bufferDuration > DurationReadDisable;
+            return (bufferDuration >= DurationBufferingDone && bufferSize >= BytesMinimum) || bytesBuffered >= BytesMaximum || bufferDuration > DurationBufferingMax;
         }
 
         public virtual float GetProgress(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted)
@@ -101,8 +108,8 @@ namespace SM.Media.Buffering
 
             var bufferingStatus1 = Math.Max(0, bufferDuration.Ticks / (float)DurationBufferingDone.Ticks);
             var bufferingStatus2 = bufferSize / (float)BytesMinimum;
-            var bufferingStatus3 = bufferSize / (float)BytesMaximum;
-            var bufferingStatus4 = Math.Max(0, bufferDuration.Ticks / (float)DurationReadDisable.Ticks);
+            var bufferingStatus3 = bytesBuffered / (float)BytesMaximum;
+            var bufferingStatus4 = Math.Max(0, bufferDuration.Ticks / (float)DurationBufferingMax.Ticks);
 
             var bufferingStatus = Math.Max(Math.Max(Math.Min(bufferingStatus1, bufferingStatus2), bufferingStatus3), bufferingStatus4);
 

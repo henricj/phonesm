@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PesStreamHandler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -44,6 +44,7 @@ namespace SM.Media.Pes
         {
             return;
 
+#pragma warning disable 162
             if (null == packet)
                 Debug.WriteLine("PES {0}/{1} End-of-stream", StreamType.Contents, Pid);
             else
@@ -55,6 +56,7 @@ namespace SM.Media.Pes
                     packet.PresentationTimestamp, packet.Length);
 #endif
             }
+#pragma warning restore 162
         }
     }
 }

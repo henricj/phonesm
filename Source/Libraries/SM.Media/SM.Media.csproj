@@ -112,7 +112,9 @@
     <Compile Include="PacketStreamWrapper.cs" />
     <Compile Include="Playlists\IProgramManager.cs" />
     <Compile Include="Playlists\IStreamSegments.cs" />
+    <Compile Include="Playlists\PlaylistParameters.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />
+    <Compile Include="Playlists\PlaylistSettings.cs" />
     <Compile Include="Playlists\ProgramManager.cs" />
     <Compile Include="Playlists\SegmentsFactory.cs" />
     <Compile Include="Playlists\StreamSegments.cs" />

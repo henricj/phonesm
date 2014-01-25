@@ -176,8 +176,14 @@
     <Compile Include="..\SM.Media\Playlists\IStreamSegments.cs">
       <Link>Playlists\IStreamSegments.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistParameters.cs">
+      <Link>Playlists\PlaylistParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManager.cs">
       <Link>Playlists\PlaylistSegmentManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistSettings.cs">
+      <Link>Playlists\PlaylistSettings.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\ProgramManager.cs">
       <Link>Playlists\ProgramManager.cs</Link>

@@ -39,13 +39,12 @@ namespace SM.Media.Playlists
 {
     public class PlaylistSegmentManager : ISegmentManager
     {
-        const int MinimumExpirationMs = 333;
-        static readonly TimeSpan MinimumReload = new TimeSpan(0, 0, 0, 5);
-        static readonly TimeSpan MaximumReload = TimeSpan.FromMinutes(2);
-        static readonly TimeSpan ExcessiveDuration = TimeSpan.FromMinutes(5);
-        static readonly TimeSpan MinimumExpirationTimeSpan = TimeSpan.FromMilliseconds(MinimumExpirationMs);
         readonly CancellationToken _cancellationToken;
         readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
+        readonly TimeSpan _excessiveDuration;
+        readonly TimeSpan _maximumReload;
+        readonly TimeSpan _minimumReload;
+        readonly TimeSpan _minimumRetry;
         readonly TaskTimer _refreshTimer = new TaskTimer();
         readonly List<ISegment> _segmentList = new List<ISegment>();
         readonly object _segmentLock = new object();
@@ -85,6 +84,14 @@ namespace SM.Media.Playlists
             _segmentsFactory = segmentsFactory;
             _cancellationToken = cancellationToken;
 
+            var p = PlaylistSettings.Parameters;
+
+            _minimumRetry = p.MinimumRetry;
+            _minimumReload = p.MinimumReload;
+            _maximumReload = p.MaximumReload;
+            _excessiveDuration = p.ExcessiveDuration;
+
+            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
             _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
 
             _isDynamicPlaylist = true;
@@ -287,7 +294,7 @@ namespace SM.Media.Playlists
 
         Task CheckReload(int index)
         {
-            Debug.WriteLine("PlaylistSegmentManager.CheckReload ({0})", DateTimeOffset.Now);
+            //Debug.WriteLine("PlaylistSegmentManager.CheckReload ({0})", DateTimeOffset.Now);
 
             CancellationToken.ThrowIfCancellationRequested();
 
@@ -358,11 +365,11 @@ namespace SM.Media.Playlists
                         {
                             var remaining = TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount);
 
-                            if (remaining < MinimumExpirationTimeSpan)
+                            if (remaining < _minimumRetry)
                             {
                                 Debug.WriteLine("Expiration too short: " + remaining);
 
-                                remaining = MinimumExpirationTimeSpan;
+                                remaining = _minimumRetry;
                             }
 
                             CancellationToken.ThrowIfCancellationRequested();
@@ -468,7 +475,7 @@ namespace SM.Media.Playlists
                             // same list as last time.
                             Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
 
-                            var expiration = Environment.TickCount + 2 * MinimumExpirationMs;
+                            var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
 
                             if (_segmentsExpiration < expiration)
                                 _segmentsExpiration = expiration;
@@ -610,10 +617,10 @@ namespace SM.Media.Playlists
 
             var expire = reloadDelay.Value;
 
-            if (expire < MinimumReload)
-                expire = MinimumReload;
-            else if (expire > MaximumReload)
-                expire = MaximumReload;
+            if (expire < _minimumReload)
+                expire = _minimumReload;
+            else if (expire > _maximumReload)
+                expire = _maximumReload;
 
             // We use the system uptime rather than DateTime.UtcNow to
             // avoid grief if there is a step in the system time.
@@ -625,7 +632,7 @@ namespace SM.Media.Playlists
             _segmentsExpiration = segmentsExpiration;
         }
 
-        static TimeSpan? GetDuration(IEnumerable<ISegment> segments)
+        TimeSpan? GetDuration(IEnumerable<ISegment> segments)
         {
             var duration = TimeSpan.Zero;
 
@@ -634,7 +641,7 @@ namespace SM.Media.Playlists
                 if (!segment.Duration.HasValue)
                     return null;
 
-                if (segment.Duration <= TimeSpan.Zero || segment.Duration > ExcessiveDuration)
+                if (segment.Duration <= TimeSpan.Zero || segment.Duration > _excessiveDuration)
                     return null;
 
                 duration += segment.Duration.Value;
@@ -643,7 +650,7 @@ namespace SM.Media.Playlists
             return duration;
         }
 
-        static TimeSpan? GetDuration(IList<ISegment> segments, int start, int end)
+        TimeSpan? GetDuration(IList<ISegment> segments, int start, int end)
         {
             var duration = TimeSpan.Zero;
 
@@ -654,7 +661,7 @@ namespace SM.Media.Playlists
                 if (!segment.Duration.HasValue)
                     return null;
 
-                if (segment.Duration <= TimeSpan.Zero || segment.Duration > ExcessiveDuration)
+                if (segment.Duration <= TimeSpan.Zero || segment.Duration > _excessiveDuration)
                     return null;
 
                 duration += segment.Duration.Value;

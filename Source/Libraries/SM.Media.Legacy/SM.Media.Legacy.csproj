@@ -84,8 +84,23 @@
     <Compile Include="..\SM.Media\Audio\IAudioFrameHeader.cs">
       <Link>Audio\IAudioFrameHeader.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\BufferingDefaults.cs">
-      <Link>BufferingDefaults.cs</Link>
+    <Compile Include="..\SM.Media\Buffering\BufferingDefaults.cs">
+      <Link>Buffering\BufferingDefaults.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Buffering\BufferingManager.cs">
+      <Link>Buffering\BufferingManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Buffering\DefaultBufferingPolicy.cs">
+      <Link>Buffering\DefaultBufferingPolicy.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Buffering\IBufferingManager.cs">
+      <Link>Buffering\IBufferingManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Buffering\IBufferingPolicy.cs">
+      <Link>Buffering\IBufferingPolicy.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Buffering\NullBufferingManager.cs">
+      <Link>Buffering\NullBufferingManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\CachedWebRequest.cs" />
     <Compile Include="..\SM.Media\CallbackReader.cs" />
@@ -151,9 +166,6 @@
     <Compile Include="..\SM.Media\MP3\Mp3Parser.cs">
       <Link>MP3\Mp3Parser.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\NullBufferingManager.cs">
-      <Link>NullBufferingManager.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\NullMediaElementManager.cs">
       <Link>NullMediaElementManager.cs</Link>
     </Compile>
@@ -213,7 +225,6 @@
       <Link>Web\Rfc2047Encoding.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="..\SM.Media\BufferingManager.cs" />
     <Compile Include="..\SM.Media\Configuration\ConfigurationEventArgs.cs">
       <Link>Configuration\ConfigurationEventArgs.cs</Link>
     </Compile>
@@ -229,7 +240,6 @@
     <Compile Include="..\SM.Media\Configuration\IVideoConfigurationSource.cs">
       <Link>Configuration\IVideoConfigurationSource.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\IBufferingManager.cs" />
     <Compile Include="..\SM.Media\IQueueThrottling.cs" />
     <Compile Include="..\SM.Media\IMediaParserMediaStream.cs" />
     <Compile Include="..\SM.Media\IStreamHandler.cs" />

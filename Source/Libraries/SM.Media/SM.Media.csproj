@@ -77,7 +77,10 @@
     <Compile Include="AAC\AacConfigurator.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
-    <Compile Include="BufferingDefaults.cs" />
+    <Compile Include="Buffering\BufferingDefaults.cs" />
+    <Compile Include="Buffering\BufferingManager.cs" />
+    <Compile Include="Buffering\DefaultBufferingPolicy.cs" />
+    <Compile Include="Buffering\IBufferingPolicy.cs" />
     <Compile Include="CachedWebRequest.cs" />
     <Compile Include="CallbackReader.cs" />
     <Compile Include="Configuration\AudioFormat.cs" />
@@ -105,7 +108,7 @@
     <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="MP3\Mp3Parser.cs" />
     <Compile Include="NullMediaElementManager.cs" />
-    <Compile Include="NullBufferingManager.cs" />
+    <Compile Include="Buffering\NullBufferingManager.cs" />
     <Compile Include="PacketStreamWrapper.cs" />
     <Compile Include="Playlists\IProgramManager.cs" />
     <Compile Include="Playlists\IStreamSegments.cs" />
@@ -114,13 +117,12 @@
     <Compile Include="Playlists\SegmentsFactory.cs" />
     <Compile Include="Playlists\StreamSegments.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="BufferingManager.cs" />
     <Compile Include="Configuration\ConfigurationEventArgs.cs" />
     <Compile Include="Configuration\IAudioConfigurationSource.cs" />
     <Compile Include="Configuration\IFrameParser.cs" />
     <Compile Include="Configuration\IConfigurationSource.cs" />
     <Compile Include="Configuration\IVideoConfigurationSource.cs" />
-    <Compile Include="IBufferingManager.cs" />
+    <Compile Include="Buffering\IBufferingManager.cs" />
     <Compile Include="IQueueThrottling.cs" />
     <Compile Include="IMediaParserMediaStream.cs" />
     <Compile Include="IStreamHandler.cs" />

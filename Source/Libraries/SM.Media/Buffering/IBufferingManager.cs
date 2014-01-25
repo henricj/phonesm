@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaManagerParameters.cs" company="Henric Jungheim">
+//  <copyright file="IBufferingManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,33 +25,32 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Buffering;
-using SM.Media.Segments;
 using SM.TsParser;
 
-namespace SM.Media
+namespace SM.Media.Buffering
 {
-    public class MediaManagerParameters
+    public interface IBufferingManager
     {
-        #region Delegates
+        double BufferingProgress { get; }
+        bool IsBuffering { get; }
+        IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
+        void Flush();
+        bool IsSeekAlreadyBuffered(TimeSpan position);
+    }
 
-        public delegate IBufferingManager BufferingManagerFactoryDelegate(ISegmentManagerReaders readers, IQueueThrottling queueThrottling, Action checkForSamples, IBufferingPolicy bufferingPolicy);
+    public interface IBufferingQueue
+    {
+        void ReportEnqueue(int size, TimeSpan timestamp);
+        void ReportDequeue(int size, TimeSpan timestamp);
+        void ReportFlush();
+        void ReportExhaustion();
+        void ReportDone();
+    }
 
-        #endregion
-
-        public MediaManagerParameters()
-        {
-            BufferingManagerFactory = BufferingDefaults.CreateBufferingManager;
-            BufferingPolicy = new DefaultBufferingPolicy();
-        }
-
-        public ISegmentReaderManager SegmentReaderManager { get; set; }
-        public IMediaElementManager MediaElementManager { get; set; }
-        public IMediaStreamSource MediaStreamSource { get; set; }
-
-        public BufferingManagerFactoryDelegate BufferingManagerFactory { get; set; }
-        public IBufferingPolicy BufferingPolicy { get; set; }
-
-        public Action<IProgramStreams> ProgramStreamsHandler { get; set; }
+    public interface IManagedBuffer
+    {
+        TimeSpan TimestampOffset { get; }
+        TsStreamType StreamType { get; }
+        void Flush();
     }
 }

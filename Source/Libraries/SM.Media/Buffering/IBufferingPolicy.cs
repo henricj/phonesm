@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="BufferingDefaults.cs" company="Henric Jungheim">
+//  <copyright file="IBufferingPolicy.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,15 +25,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Segments;
 
-namespace SM.Media
+namespace SM.Media.Buffering
 {
-    public static class BufferingDefaults
+    public interface IBufferingPolicy
     {
-        public static IBufferingManager CreateBufferingManager(ISegmentManagerReaders segmentManagerReaders, IQueueThrottling queueThrottling, Action bufferingChange)
-        {
-            return new BufferingManager(queueThrottling, bufferingChange);
-        }
+        bool ShouldBlockReads(bool isReadBlocked, TimeSpan durationBuffered, int bytesBuffered, bool isExhausted, bool isAllExhausted);
+        bool IsDoneBuffering(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted);
+        float GetProgress(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted);
     }
 }

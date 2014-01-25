@@ -32,6 +32,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.AAC;
+using SM.Media.Buffering;
 using SM.Media.Configuration;
 using SM.Media.MP3;
 using SM.Media.Segments;
@@ -71,14 +72,15 @@ namespace SM.Media
         #endregion
 
         const int MaxBuffers = 8;
+        readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaStreamSource _mediaStreamSource;
-        readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly ISegmentReaderManager _segmentReaderManager;
+        IBufferingPolicy _bufferingPolicy;
         MediaState _mediaState;
         CancellationTokenSource _playbackCancellationTokenSource;
         ISegmentReaderManager _readerManager;
@@ -90,6 +92,7 @@ namespace SM.Media
             _mediaElementManager = mediaManagerParameters.MediaElementManager;
             _mediaStreamSource = mediaManagerParameters.MediaStreamSource;
             _bufferingManagerFactory = mediaManagerParameters.BufferingManagerFactory;
+            _bufferingPolicy = mediaManagerParameters.BufferingPolicy;
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
 
             if (null == _segmentReaderManager)
@@ -343,7 +346,7 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = _bufferingManagerFactory(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples);
+            reader.BufferingManager = _bufferingManagerFactory(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples, _bufferingPolicy);
 
             Action<IProgramStreams> programStreamsHandler = null;
 

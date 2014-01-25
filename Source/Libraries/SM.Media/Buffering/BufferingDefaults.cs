@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IBufferingManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="BufferingDefaults.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,32 +25,15 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.TsParser;
+using SM.Media.Segments;
 
-namespace SM.Media
+namespace SM.Media.Buffering
 {
-    public interface IBufferingManager
+    public static class BufferingDefaults
     {
-        double BufferingProgress { get; }
-        bool IsBuffering { get; }
-        IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
-        void Flush();
-        bool IsSeekAlreadyBuffered(TimeSpan position);
-    }
-
-    public interface IBufferingQueue
-    {
-        void ReportEnqueue(int size, TimeSpan timestamp);
-        void ReportDequeue(int size, TimeSpan timestamp);
-        void ReportFlush();
-        void ReportExhaustion();
-        void ReportDone();
-    }
-
-    public interface IManagedBuffer
-    {
-        TimeSpan TimestampOffset { get; }
-        void Flush();
-        TsStreamType StreamType { get; }
+        public static IBufferingManager CreateBufferingManager(ISegmentManagerReaders segmentManagerReaders, IQueueThrottling queueThrottling, Action bufferingChange, IBufferingPolicy bufferingPolicy)
+        {
+            return new BufferingManager(queueThrottling, bufferingChange, bufferingPolicy);
+        }
     }
 }

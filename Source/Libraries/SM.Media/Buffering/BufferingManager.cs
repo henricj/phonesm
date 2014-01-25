@@ -31,18 +31,14 @@ using System.Threading;
 using SM.Media.Utility;
 using SM.TsParser;
 
-namespace SM.Media
+namespace SM.Media.Buffering
 {
     public class BufferingManager : IBufferingManager
     {
-        const int BufferSizeMaximum = 8192 * 1024;
-        const int BufferSizeStopBuffering = 350 * 1024;
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromMilliseconds(256);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
-        static readonly TimeSpan BufferDurationEnableThreshold = TimeSpan.FromSeconds(7);
-        static readonly TimeSpan BufferDurationThreshold = TimeSpan.FromSeconds(9);
-        static readonly TimeSpan BufferDurationDisableThreshold = TimeSpan.FromSeconds(25);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
+        readonly IBufferingPolicy _bufferingPolicy;
         readonly object _lock = new object();
         readonly IQueueThrottling _queueThrottling;
         readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
@@ -53,18 +49,21 @@ namespace SM.Media
         volatile int _isBuffering = 1;
         int _totalBufferedStart;
 
-        public BufferingManager(IQueueThrottling queueThrottling, Action bufferingChange)
+        public BufferingManager(IQueueThrottling queueThrottling, Action reportBufferingChange, IBufferingPolicy bufferingPolicy)
         {
             if (null == queueThrottling)
                 throw new ArgumentNullException("queueThrottling");
-            if (bufferingChange == null)
-                throw new ArgumentNullException("bufferingChange");
+            if (reportBufferingChange == null)
+                throw new ArgumentNullException("reportBufferingChange");
+            if (bufferingPolicy == null)
+                throw new ArgumentNullException("bufferingPolicy");
 
             _queueThrottling = queueThrottling;
+            _bufferingPolicy = bufferingPolicy;
 
             _reportingTask = new SignalTask(() =>
                                             {
-                                                bufferingChange();
+                                                reportBufferingChange();
 
                                                 return TplTaskExtensions.CompletedTask;
                                             }, CancellationToken.None);
@@ -230,6 +229,8 @@ namespace SM.Media
             {
                 _blockReads = shouldBlock;
 
+                Debug.WriteLine("BufferingManager.UnlockedReport() block reads: " + _blockReads);
+
                 HandleStateChange();
             }
         }
@@ -373,7 +374,7 @@ namespace SM.Media
                     ReportBuffering(1);
                 }
                 else if (validData)
-                    UpdateBuffering(timestampDifference, Math.Max(0, totalBuffered - _totalBufferedStart));
+                    UpdateBuffering(timestampDifference, totalBuffered);
 
                 if (0 != _isBuffering)
                     return false;
@@ -400,19 +401,7 @@ namespace SM.Media
             if (!validData)
                 return false;
 
-            if (totalBuffered > BufferSizeMaximum)
-                return true;
-
-            if (isExhausted)
-                return false;
-
-            if (timestampDifference < BufferDurationEnableThreshold)
-                return false;
-
-            if (timestampDifference > BufferDurationDisableThreshold)
-                return true;
-
-            return false;
+            return _bufferingPolicy.ShouldBlockReads(_blockReads, timestampDifference, totalBuffered, isExhausted, allExhausted);
         }
 
         [Conditional("DEBUG")]
@@ -424,7 +413,7 @@ namespace SM.Media
 
         void UpdateBuffering(TimeSpan timestampDifference, int bufferSize)
         {
-            if ((timestampDifference >= BufferDurationThreshold && bufferSize >= BufferSizeStopBuffering) || bufferSize >= BufferSizeMaximum || timestampDifference > BufferDurationDisableThreshold)
+            if (_bufferingPolicy.IsDoneBuffering(timestampDifference, bufferSize, _totalBufferedStart))
             {
 #pragma warning disable 0420
                 Interlocked.Exchange(ref _isBuffering, 0);
@@ -447,12 +436,7 @@ namespace SM.Media
                 {
                     _bufferStatusTimeUtc = now;
 
-                    var bufferingStatus1 = Math.Max(0, timestampDifference.Ticks / (double)BufferDurationThreshold.Ticks);
-                    var bufferingStatus2 = bufferSize / (double)BufferSizeStopBuffering;
-                    var bufferingStatus3 = bufferSize / (double)BufferSizeMaximum;
-                    var bufferingStatus4 = Math.Max(0, timestampDifference.Ticks / (double)BufferDurationDisableThreshold.Ticks);
-
-                    var bufferingStatus = Math.Max(Math.Max(Math.Min(bufferingStatus1, bufferingStatus2), bufferingStatus3), bufferingStatus4);
+                    var bufferingStatus = _bufferingPolicy.GetProgress(timestampDifference, bufferSize, _totalBufferedStart);
 
                     Debug.WriteLine("BufferingManager.UpdateBuffering: {0:F2}%, {1} duration, {2} size, {3:F} MiB memory",
                         bufferingStatus * 100, timestampDifference, bufferSize, GC.GetTotalMemory(false).BytesToMiB());

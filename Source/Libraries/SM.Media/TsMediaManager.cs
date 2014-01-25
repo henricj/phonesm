@@ -76,6 +76,7 @@ namespace SM.Media
         readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaStreamSource _mediaStreamSource;
+        readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly ISegmentReaderManager _segmentReaderManager;
         MediaState _mediaState;
@@ -83,21 +84,25 @@ namespace SM.Media
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(ISegmentReaderManager segmentReaderManager, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource, Action<IProgramStreams> programStreamsHandler = null)
+        public TsMediaManager(MediaManagerParameters mediaManagerParameters)
         {
-            if (null == segmentReaderManager)
+            _segmentReaderManager = mediaManagerParameters.SegmentReaderManager;
+            _mediaElementManager = mediaManagerParameters.MediaElementManager;
+            _mediaStreamSource = mediaManagerParameters.MediaStreamSource;
+            _bufferingManagerFactory = mediaManagerParameters.BufferingManagerFactory;
+            _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
+
+            if (null == _segmentReaderManager)
                 throw new ArgumentNullException("segmentReaderManager");
 
-            if (null == mediaElementManager)
+            if (null == _mediaElementManager)
                 throw new ArgumentNullException("mediaElementManager");
 
-            if (mediaStreamSource == null)
+            if (null == _mediaStreamSource)
                 throw new ArgumentNullException("mediaStreamSource");
 
-            _segmentReaderManager = segmentReaderManager;
-            _mediaElementManager = mediaElementManager;
-            _mediaStreamSource = mediaStreamSource;
-            _programStreamsHandler = programStreamsHandler;
+            if (null == _bufferingManagerFactory)
+                throw new ArgumentException("bufferingManagerFactory");
 
             _mediaStreamSource.MediaManager = this;
 
@@ -203,6 +208,7 @@ namespace SM.Media
             using (_playbackCancellationTokenSource)
             { }
 
+            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
             _playbackCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_closeCancellationTokenSource.Token);
         }
 
@@ -337,7 +343,7 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = new BufferingManager(reader.QueueWorker, _mediaStreamSource.CheckForSamples);
+            reader.BufferingManager = _bufferingManagerFactory(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples);
 
             Action<IProgramStreams> programStreamsHandler = null;
 

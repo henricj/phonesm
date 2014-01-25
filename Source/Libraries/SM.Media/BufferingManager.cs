@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="BufferingManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ using SM.TsParser;
 
 namespace SM.Media
 {
-    class BufferingManager : IBufferingManager
+    public class BufferingManager : IBufferingManager
     {
         const int BufferSizeMaximum = 8192 * 1024;
         const int BufferSizeStopBuffering = 350 * 1024;
@@ -329,7 +329,7 @@ namespace SM.Media
 
                 if (oldTime < oldest)
                     oldest = oldTime.Value;
-                
+
                 var duration = (newTime - oldTime) ?? TimeSpan.Zero;
 
                 if (duration < TimeSpan.Zero)
@@ -416,9 +416,7 @@ namespace SM.Media
         void DumpQueues()
         {
             foreach (var queue in _queues)
-            {
                 Debug.WriteLine("  " + queue);
-            }
         }
 
         void UpdateBuffering(TimeSpan timestampDifference, int bufferSize)

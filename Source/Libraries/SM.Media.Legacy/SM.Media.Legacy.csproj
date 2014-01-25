@@ -84,6 +84,9 @@
     <Compile Include="..\SM.Media\Audio\IAudioFrameHeader.cs">
       <Link>Audio\IAudioFrameHeader.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\BufferingDefaults.cs">
+      <Link>BufferingDefaults.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\CachedWebRequest.cs" />
     <Compile Include="..\SM.Media\CallbackReader.cs" />
     <Compile Include="..\SM.Media\Configuration\AudioFormat.cs">
@@ -135,6 +138,9 @@
     </Compile>
     <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ValueTag.cs">
       <Link>M3U8\TagSupport</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManagerParameters.cs">
+      <Link>MediaManagerParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3FrameHeader.cs">
       <Link>MP3\Mp3FrameHeader.cs</Link>

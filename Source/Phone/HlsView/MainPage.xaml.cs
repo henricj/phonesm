@@ -272,7 +272,14 @@ namespace HlsView
 
             _tsMediaStreamSource = new TsMediaStreamSource();
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
+            var mediaManagerParameters = new MediaManagerParameters
+            {
+                SegmentReaderManager = segmentReaderManager,
+                MediaElementManager = _mediaElementManager,
+                MediaStreamSource = _tsMediaStreamSource
+            };
+
+            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
 
             _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
 

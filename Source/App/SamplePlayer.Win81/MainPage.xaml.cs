@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
@@ -37,7 +36,9 @@ using Windows.UI.Xaml.Navigation;
 using SM.Media;
 using SM.Media.Playlists;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
+using Debug = System.Diagnostics.Debug;
 
 namespace SamplePlayer.Win81
 {
@@ -273,7 +274,14 @@ namespace SamplePlayer.Win81
 
             _tsMediaStreamSource = new WinRtMediaStreamSource();
 
-            _tsMediaManager = new TsMediaManager(segmentReaderManager, _mediaElementManager, _tsMediaStreamSource);
+            var mediaManagerParameters = new MediaManagerParameters
+                                         {
+                                             SegmentReaderManager = segmentReaderManager,
+                                             MediaElementManager = _mediaElementManager,
+                                             MediaStreamSource = _tsMediaStreamSource
+                                         };
+
+            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
 
             _tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
 
@@ -318,6 +326,8 @@ namespace SamplePlayer.Win81
             if (null != _playlist)
             {
                 var t = _playlist.StopAsync();
+
+                TaskCollector.Default.Add(t, "MainPage.CleanupMedia");
             }
         }
 

@@ -26,6 +26,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,6 +37,7 @@ using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;
+using IProgramStream = SM.TsParser.IProgramStream;
 
 namespace SM.Media.BackgroundAudioStreamingAgent
 {
@@ -69,18 +71,23 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, httpClients.CreateSegmentClient);
 
             var tsMediaStreamSource = new TsMediaStreamSource();
-            tsMediaManager = new TsMediaManager(segmentReaderManager, this, tsMediaStreamSource, streams =>
-                                                                                                     {
-                                                                                                         var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
+            var mediaManagerParameters = new MediaManagerParameters
+            {
+                SegmentReaderManager = segmentReaderManager,
+                MediaElementManager = this,
+                MediaStreamSource = tsMediaStreamSource,
+                ProgramStreamsHandler = streams =>
+                {
+                    IProgramStream firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
 
-                                                                                                         var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
-                                                                                                         foreach (
-                                                                                                             var programStream in others)
-                                                                                                         {
-                                                                                                             programStream.BlockStream = true;
-                                                                                                         }
-                                                                                                     });
+                    IEnumerable<IProgramStream> others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
+                    foreach (
+                        IProgramStream programStream in others)
+                        programStream.BlockStream = true;
+                }
+            };
 
+            tsMediaManager = new TsMediaManager(mediaManagerParameters);
             tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
             tsMediaManager.Play();
         }

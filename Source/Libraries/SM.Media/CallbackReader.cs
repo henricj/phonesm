@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="CallbackReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -127,13 +127,13 @@ namespace SM.Media
 
                         var start = DateTimeOffset.Now;
 
-                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2}", segmentReader, start, GC.GetTotalMemory(false));
+                        Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2:F} MiB", segmentReader, start, GC.GetTotalMemory(false).BytesToMiB());
 
                         await ReadSegment(segmentReader, cancellationToken).ConfigureAwait(false);
 
                         var complete = DateTimeOffset.Now;
 
-                        Debug.WriteLine("---- Completed {0} at {1} ({2}).  Total memory: {3}", segmentReader, complete, complete - start, GC.GetTotalMemory(false));
+                        Debug.WriteLine("---- Completed {0} at {1} ({2}).  Total memory: {3:F} MiB", segmentReader, complete, complete - start, GC.GetTotalMemory(false).BytesToMiB());
                     }
                 }
 

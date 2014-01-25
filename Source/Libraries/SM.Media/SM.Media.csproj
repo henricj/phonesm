@@ -155,6 +155,7 @@
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
+    <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
     <Compile Include="Utility\ResettableParameters.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs" />

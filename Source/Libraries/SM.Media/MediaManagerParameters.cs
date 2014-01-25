@@ -43,6 +43,7 @@ namespace SM.Media
         {
             BufferingManagerFactory = BufferingDefaults.CreateBufferingManager;
             BufferingPolicy = new DefaultBufferingPolicy();
+            MediaElementManager = new NullMediaElementManager();
         }
 
         public ISegmentReaderManager SegmentReaderManager { get; set; }

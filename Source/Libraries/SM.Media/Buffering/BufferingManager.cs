@@ -229,8 +229,6 @@ namespace SM.Media.Buffering
             {
                 _blockReads = shouldBlock;
 
-                Debug.WriteLine("BufferingManager.UnlockedReport() block reads: " + _blockReads);
-
                 HandleStateChange();
             }
         }
@@ -401,7 +399,22 @@ namespace SM.Media.Buffering
             if (!validData)
                 return false;
 
-            return _bufferingPolicy.ShouldBlockReads(_blockReads, timestampDifference, totalBuffered, isExhausted, allExhausted);
+            var shouldBlock = _bufferingPolicy.ShouldBlockReads(_blockReads, timestampDifference, totalBuffered, isExhausted, allExhausted);
+
+#if DEBUG
+            if (shouldBlock != _blockReads)
+            {
+                Debug.WriteLine("BufferingManager.UpdateState read blocking -> {0}, {1} duration {2} size {3:F} MiB memory",
+                    shouldBlock,
+                    validData ? timestampDifference.ToString() : "none",
+                    validData ? totalBuffered.ToString() : "none",
+                    GC.GetTotalMemory(false).BytesToMiB());
+
+                DumpQueues();
+            }
+#endif
+
+            return shouldBlock;
         }
 
         [Conditional("DEBUG")]

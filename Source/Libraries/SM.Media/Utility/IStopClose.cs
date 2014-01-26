@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="ISegmentManager.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="IStopClose.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,27 +26,12 @@
 
 using System;
 using System.Threading.Tasks;
-using SM.Media.Utility;
 
-namespace SM.Media.Segments
+namespace SM.Media.Utility
 {
-    public interface ISegmentManager : IStopClose
+    public interface IStopClose : IDisposable
     {
-        Uri Url { get; }
-        TimeSpan StartPosition { get; }
-        TimeSpan? Duration { get; }
-
-        IAsyncEnumerable<ISegment> Playlist { get; }
-
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp);
-        Task StartAsync();
-    }
-
-    public static class SegmentManagerAsyncExtensions
-    {
-        public static Task<TimeSpan> Start(this ISegmentManager segmentManager)
-        {
-            return segmentManager.SeekAsync(TimeSpan.Zero);
-        }
+        Task StopAsync();
+        Task CloseAsync();
     }
 }

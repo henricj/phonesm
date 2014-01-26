@@ -187,6 +187,11 @@ namespace SM.Media.Playlists
             return CleanupReader(readTask, cancellationTokenSource);
         }
 
+        public Task CloseAsync()
+        {
+            return StopAsync();
+        }
+
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
             ThrowIfDisposed();

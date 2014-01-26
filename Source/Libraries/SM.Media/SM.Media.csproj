@@ -114,6 +114,7 @@
     <Compile Include="Playlists\IStreamSegments.cs" />
     <Compile Include="Playlists\PlaylistParameters.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />
+    <Compile Include="Playlists\PlaylistSegmentManagerFactory.cs" />
     <Compile Include="Playlists\PlaylistSettings.cs" />
     <Compile Include="Playlists\ProgramManager.cs" />
     <Compile Include="Playlists\SegmentsFactory.cs" />
@@ -157,12 +158,16 @@
     <Compile Include="M3U8\M3U8TagInstanceExtensions.cs" />
     <Compile Include="M3U8\M3U8Tags.cs" />
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
+    <Compile Include="Segments\SegmentManagerFactory.cs" />
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
+    <Compile Include="Utility\DisposeExtensions.cs" />
     <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
     <Compile Include="Utility\ResettableParameters.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs" />
+    <Compile Include="Utility\IStopClose.cs" />
+    <Compile Include="Utility\StopCloseExtensions.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
     <Compile Include="Utility\TaskEx.cs" />
     <Compile Include="TsMediaParser.cs" />

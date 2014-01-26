@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ISegmentManager.cs" company="Henric Jungheim">
+//  <copyright file="StopCloseExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Threading.Tasks;
-using SM.Media.Utility;
 
-namespace SM.Media.Segments
+namespace SM.Media.Utility
 {
-    public interface ISegmentManager : IStopClose
+    public static class StopCloseExtensions
     {
-        Uri Url { get; }
-        TimeSpan StartPosition { get; }
-        TimeSpan? Duration { get; }
-
-        IAsyncEnumerable<ISegment> Playlist { get; }
-
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp);
-        Task StartAsync();
-    }
-
-    public static class SegmentManagerAsyncExtensions
-    {
-        public static Task<TimeSpan> Start(this ISegmentManager segmentManager)
+        /// <summary>
+        ///     CloseAsync() and then Dispose the item.
+        /// </summary>
+        /// <param name="stopClose"></param>
+        /// <returns></returns>
+        public static Task CleanupAsync(this IStopClose stopClose)
         {
-            return segmentManager.SeekAsync(TimeSpan.Zero);
+            var t = TaskEx.Run(async () =>
+                                     {
+                                         await stopClose.CloseAsync().ConfigureAwait(false);
+
+                                         stopClose.DisposeSafe();
+                                     });
+
+            return t;
+        }
+
+        /// <summary>
+        ///     CleanupAsync() in the background.
+        /// </summary>
+        /// <param name="stopClose"></param>
+        /// <param name="description"></param>
+        public static void CleanupBackground(this IStopClose stopClose, string description = null)
+        {
+            var t = stopClose.CleanupAsync();
+
+            TaskCollector.Default.Add(t, description ?? "StopCloseExtensions.CleanupAsync() stopClose.CleanupBackground()");
         }
     }
 }

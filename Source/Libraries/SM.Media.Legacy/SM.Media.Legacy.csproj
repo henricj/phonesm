@@ -182,6 +182,9 @@
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManager.cs">
       <Link>Playlists\PlaylistSegmentManager.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerFactory.cs">
+      <Link>Playlists\PlaylistSegmentManagerFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSettings.cs">
       <Link>Playlists\PlaylistSettings.cs</Link>
     </Compile>
@@ -194,8 +197,14 @@
     <Compile Include="..\SM.Media\Playlists\StreamSegments.cs">
       <Link>Playlists\StreamSegments.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Segments\SegmentManagerFactory.cs">
+      <Link>Segments\SegmentManagerFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\ByteConversion.cs">
       <Link>Utility\ByteConversion.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\DisposeExtensions.cs">
+      <Link>Utility\DisposeExtensions.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\FifoTaskScheduler.cs">
       <Link>Utility\FifoTaskScheduler.cs</Link>
@@ -203,11 +212,17 @@
     <Compile Include="..\SM.Media\Utility\FullResolutionTimeSpan.cs">
       <Link>Utility\FullResolutionTimeSpan.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\IStopClose.cs">
+      <Link>Utility\IStopClose.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\ResettableParameters.cs">
       <Link>Utility\ResettableParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\SignalTask.cs">
       <Link>Utility\SignalTask.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\StopCloseExtensions.cs">
+      <Link>Utility\StopCloseExtensions.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\TaskCollector.cs">
       <Link>Utility\TaskCollector.cs</Link>

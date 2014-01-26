@@ -1,0 +1,96 @@
+// -----------------------------------------------------------------------
+//  <copyright file="PlaylistSegmentManagerFactory.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using SM.Media.M3U8;
+using SM.Media.Segments;
+using SM.Media.Web;
+
+namespace SM.Media.Playlists
+{
+    public class PlaylistSegmentManagerFactory
+    {
+        public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
+        readonly IHttpClients _httpClients;
+        readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
+
+        public PlaylistSegmentManagerFactory(IHttpClients httpClients)
+        {
+            _httpClients = httpClients;
+            _segmentsFactory = new SegmentsFactory(_httpClients).CreateStreamSegments;
+        }
+
+        public async Task<ISegmentManager> CreatePlaylistSegmentManager(Uri source)
+        {
+            var programManager = new ProgramManager(_httpClients, _segmentsFactory)
+                                 {
+                                     Playlists = new[] { source }
+                                 };
+
+            var subProgram = await LoasdSubProgram(programManager).ConfigureAwait(false);
+
+            return new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory);
+        }
+
+        static async Task<ISubProgram> LoasdSubProgram(ProgramManager programManager)
+        {
+            ISubProgram subProgram;
+
+            try
+            {
+                var programs = await programManager.LoadAsync().ConfigureAwait(false);
+
+                var program = programs.Values.FirstOrDefault();
+
+                if (null == program)
+                {
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): program not found");
+                    throw new FileNotFoundException("Unable to load program");
+                }
+
+                subProgram = SelectSubProgram(program.SubPrograms);
+
+                if (null == subProgram)
+                {
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): no sub programs found");
+                    throw new FileNotFoundException("Unable to load program stream");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaElementWrapper.SetMediaSource(): unable to load playlist: " + ex.Message);
+                throw;
+            }
+
+            return subProgram;
+        }
+    }
+}

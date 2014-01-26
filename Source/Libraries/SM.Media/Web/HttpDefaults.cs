@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 
 namespace SM.Media.Web
@@ -39,8 +40,11 @@ namespace SM.Media.Web
 
                 return userAgent;
             }
-            catch (FormatException)
+            catch (FormatException ex)
             {
+                Debug.WriteLine("HttpDefaults.DefaultUserAgentFactory({0}, {1}) unable to construct ProductInfoHeaderValue: {2}",
+                    productName, productVersion, ex.Message);
+
                 return null;
             }
         }

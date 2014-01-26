@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -10,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 
@@ -40,6 +43,12 @@ namespace BackgroundAudio.Sample.WP7
             // Show graphics profiling information while debugging.
             if (System.Diagnostics.Debugger.IsAttached)
             {
+                TaskScheduler.UnobservedTaskException += (sender, eventArgs) => Debug.WriteLine("*** Unobserved task exception {0}", eventArgs.Exception.Message);
+
+                // Close the background audio player in case it 
+                // was running from a previous debugging session.
+                BackgroundAudioPlayer.Instance.Close();
+                
                 // Display the current frame rate counters.
                 Application.Current.Host.Settings.EnableFrameRateCounter = true;
 
@@ -96,6 +105,8 @@ namespace BackgroundAudio.Sample.WP7
         // Code to execute on Unhandled Exceptions
         private void Application_UnhandledException(object sender, ApplicationUnhandledExceptionEventArgs e)
         {
+            Debug.WriteLine("*** Unhandled exception: " + e.ExceptionObject.Message);
+
             if (System.Diagnostics.Debugger.IsAttached)
             {
                 // An unhandled exception has occurred; break into the debugger

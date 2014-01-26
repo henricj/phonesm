@@ -32,6 +32,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.M3U8
 {
@@ -77,7 +78,7 @@ namespace SM.Media.M3U8
         public static void Parse(this M3U8Parser parser, Uri baseUrl, Stream stream, Encoding encoding = null)
         {
             if (null == encoding)
-                encoding = baseUrl.LocalPath.EndsWith(".m3u") ? M3UEncoding : Encoding.UTF8;
+                encoding = baseUrl.HasExtension(".m3u") ? M3UEncoding : Encoding.UTF8;
 
             using (var sr = new StreamReader(stream, encoding))
             {

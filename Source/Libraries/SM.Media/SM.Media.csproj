@@ -235,6 +235,7 @@
     <Compile Include="Web\HttpSettings.cs" />
     <Compile Include="Web\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
+    <Compile Include="Web\UriExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

@@ -37,6 +37,7 @@ using SM.Media.Configuration;
 using SM.Media.MP3;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 using SM.TsParser;
 
 namespace SM.Media
@@ -73,6 +74,7 @@ namespace SM.Media
 
         const int MaxBuffers = 8;
         readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
+        readonly IBufferingPolicy _bufferingPolicy;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
@@ -80,7 +82,6 @@ namespace SM.Media
         readonly IMediaStreamSource _mediaStreamSource;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly ISegmentReaderManager _segmentReaderManager;
-        IBufferingPolicy _bufferingPolicy;
         MediaState _mediaState;
         CancellationTokenSource _playbackCancellationTokenSource;
         ISegmentReaderManager _readerManager;
@@ -357,14 +358,10 @@ namespace SM.Media
             if (null == firstSegment)
                 throw new FileNotFoundException();
 
-            var filename = firstSegment.Url.LocalPath;
+            var ext = firstSegment.Url.GetExtension();
 
-            var lastPeriod = filename.LastIndexOf('.');
-
-            if (lastPeriod > 0)
+            if (null != ext)
             {
-                var ext = filename.Substring(lastPeriod);
-
                 if (string.Equals(ext, ".mp3", StringComparison.OrdinalIgnoreCase))
                 {
                     var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);

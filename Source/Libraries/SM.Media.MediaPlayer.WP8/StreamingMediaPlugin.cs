@@ -66,7 +66,11 @@ namespace SM.Media.MediaPlayer
             MediaPlayer.MediaClosed -= MediaPlayer_MediaClosed;
 
             if (null != _mediaElement)
+            {
                 _mediaElement.Cleanup();
+
+                _mediaElement = null;
+            }
 
             if (null != _httpClients)
             {
@@ -89,7 +93,7 @@ namespace SM.Media.MediaPlayer
                 var httpClients = HttpClients;
                 var segmentManagerFactory = new SegmentManagerFactory(new PlaylistSegmentManagerFactory(httpClients));
 
-                _mediaElement = new MediaElementWrapper(httpClients, segmentManagerFactory);
+                _mediaElement = new MediaElementWrapper(setSourceAsync => new MediaStreamFascade(httpClients, segmentManagerFactory, setSourceAsync));
 
                 return _mediaElement;
             }

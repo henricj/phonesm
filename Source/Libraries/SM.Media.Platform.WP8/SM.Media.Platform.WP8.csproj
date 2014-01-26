@@ -70,6 +70,9 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascade.cs">
+      <Link>MediaStreamFascade.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>
     </Compile>

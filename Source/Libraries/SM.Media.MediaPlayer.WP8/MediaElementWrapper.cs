@@ -28,15 +28,12 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.PlayerFramework;
-using SM.Media.Segments;
 using SM.Media.Utility;
-using SM.Media.Web;
 using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
 using TimelineMarkerRoutedEventArgs = System.Windows.Media.TimelineMarkerRoutedEventArgs;
@@ -53,20 +50,10 @@ namespace SM.Media.MediaPlayer
     ///     This code is based on
     ///     https://playerframework.codeplex.com/SourceControl/latest#Phone.SL/Controls/MediaElementWrapper.cs
     /// </remarks>
-    public class MediaElementWrapper : ContentControl, IMediaElement
+    public sealed class MediaElementWrapper : ContentControl, IMediaElement
     {
-        readonly IHttpClients _httpClients;
+        readonly MediaStreamFascade _mediaStreamFascade;
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
-        readonly SignalTask _workerTask;
-        readonly object _lock = new object();
-        Uri _requestedSource;
-        Uri _source;
-        bool _closeRequested;
-        TsMediaManager _tsMediaManager;
-        TsMediaStreamSource _tsMediaStreamSource;
-        ISegmentManager _playlist;
-        readonly ISegmentManagerFactory _segmentManagerFactory;
-        string _defaultSourceType = ".m3u8";
 
         /// <summary>
         ///     The MediaElement being wrapped
@@ -74,34 +61,20 @@ namespace SM.Media.MediaPlayer
         MediaElement _mediaElement;
 
         /// <summary>
-        ///     Select the source type to be used if a type cannot be guessed from the source URL.  The default is ".m3u8".
-        /// </summary>
-        /// createD
-        public string DefaultSourceType
-        {
-            get { return _defaultSourceType; }
-            set { _defaultSourceType = value; }
-        }
-
-        /// <summary>
         ///     Creates a new instance of the MediaElementWrapper class.
         /// </summary>
-        /// <param name="httpClients"></param>
-        /// <param name="segmentManagerFactory"></param>
-        public MediaElementWrapper(IHttpClients httpClients, ISegmentManagerFactory segmentManagerFactory)
+        /// <param name="mediaStreamFascadeFactory"></param>
+        public MediaElementWrapper(Func<Func<MediaStreamSource, Task>, MediaStreamFascade> mediaStreamFascadeFactory)
         {
-            Debug.WriteLine("MediaElementWrapper.ctor()");
+            if (mediaStreamFascadeFactory == null)
+                throw new ArgumentNullException("mediaStreamFascadeFactory");
 
-            if (httpClients == null)
-                throw new ArgumentNullException("httpClients");
-            if (segmentManagerFactory == null)
-                throw new ArgumentNullException("segmentManagerFactory");
+            Debug.WriteLine("MediaElementWrapper.ctor()");
 
             HorizontalContentAlignment = HorizontalAlignment.Stretch;
             VerticalContentAlignment = VerticalAlignment.Stretch;
 
-            _httpClients = httpClients;
-            _segmentManagerFactory = segmentManagerFactory;
+            _mediaStreamFascade = mediaStreamFascadeFactory(SetSourceAsync);
 
             MediaElement = new MediaElement();
             MediaElement.MediaEnded += MediaElement_MediaEnded;
@@ -111,71 +84,15 @@ namespace SM.Media.MediaPlayer
 #endif
             Content = MediaElement;
             _templateAppliedTaskSource = new TaskCompletionSource<object>();
-
-            _workerTask = new SignalTask(Worker, CancellationToken.None);
-        }
-
-        async Task Worker()
-        {
-            try
-            {
-                bool closeRequested;
-                Uri requestedSource;
-
-                lock (_lock)
-                {
-                    closeRequested = _closeRequested;
-
-                    if (closeRequested)
-                        _closeRequested = false;
-
-                    requestedSource = _requestedSource;
-
-                    if (null != requestedSource)
-                        _requestedSource = null;
-                }
-
-                if (closeRequested)
-                {
-                    //Debug.WriteLine("MediaElementWrapper.Worker() calling CloseMediaAsync()");
-
-                    //var stopwatch = Stopwatch.StartNew();
-
-                    await CloseMediaAsync().ConfigureAwait(false);
-
-                    //stopwatch.Stop();
-
-                    //Debug.WriteLine("MediaElementWrapper.Worker() returned from CloseMediaAsync() after " + stopwatch.Elapsed);
-
-                    return;
-                }
-
-                if (null != requestedSource)
-                {
-                    //Debug.WriteLine("MediaElementWrapper.Worker() calling SetMediaSourceAsync()");
-
-                    //var stopwatch = Stopwatch.StartNew();
-
-                    await SetMediaSourceAsync(requestedSource).ConfigureAwait(false);
-
-                    //stopwatch.Stop();
-
-                    //Debug.WriteLine("MediaElementWrapper.Worker() returned from SetMediaSourceAsync() after " + stopwatch.Elapsed);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaElementWrapper.Worker() failed: " + ex.Message);
-            }
         }
 
         /// <summary>
         ///     The underlying MediaElement being wrapped
         /// </summary>
-        protected MediaElement MediaElement
+        public MediaElement MediaElement
         {
             get { return _mediaElement; }
-            private set
+            set
             {
                 Debug.WriteLine("MediaElementWrapper.MediaElement setter");
 
@@ -299,7 +216,7 @@ namespace SM.Media.MediaPlayer
 
             //MediaElement.Play();
 
-            var task = StartPlaybackWrapperAsync();
+            var task = StartPlaybackAsync();
 
             TaskCollector.Default.Add(task, "Play: StartPlaybackWrapperAsync()");
             // We do not wait for the task to complete.
@@ -467,7 +384,7 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public Uri Source
         {
-            get { return _source; }
+            get { return _mediaStreamFascade.Source; }
             set
             {
                 Debug.WriteLine("MediaElementWrapper.Source setter: " + value);
@@ -476,43 +393,13 @@ namespace SM.Media.MediaPlayer
                 {
                     MediaElement.Source = null;
 
-                    lock (_lock)
-                    {
-                        _closeRequested = true;
-                        _requestedSource = null;
-                    }
-
                     // hack: MediaElement doesn't raise CurrentStateChanged on its own
                     if (CurrentStateChanged != null)
                         CurrentStateChanged(this, new RoutedEventArgs());
                 }
-                else
-                {
-                    lock (_lock)
-                    {
-                        _closeRequested = false;
-                        _requestedSource = value;
-                    }
-                }
 
-                _workerTask.Fire();
+                _mediaStreamFascade.Source = value;
             }
-        }
-
-        async Task SetMediaSourceAsync(Uri source)
-        {
-            await OpenMediaAsync(source).ConfigureAwait(true);
-
-            await SetSourceAsync(_tsMediaStreamSource).ConfigureAwait(false);
-
-            var task = StartPlaybackWrapperAsync();
-
-            TaskCollector.Default.Add(task, "SetMediaSourceAsync: StartPlaybackWrapperAsync()");
-        }
-
-        public Task SetSourceAsync(MediaStreamSource mediaStreamSource)
-        {
-            return Dispatcher.DispatchAsync(() => SetSource(mediaStreamSource));
         }
 
         /// <inheritdoc />
@@ -610,158 +497,71 @@ namespace SM.Media.MediaPlayer
             Close();
         }
 
-        async Task StartPlaybackWrapperAsync()
+        public Task SetSourceAsync(MediaStreamSource mediaStreamSource)
         {
-            Debug.WriteLine("MediaElementWrapper.StartPlaybackWrapperAsync()");
+            Debug.WriteLine("MediaElementWrapper.SetSourceAsync()");
 
-            try
-            {
-                await StartPlaybackAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                // Send a "Failed" message here?
-                Debug.WriteLine("MediaElementWrapper.StartPlaybackWrapperAsync() failed: " + ex.Message);
-            }
+            return Dispatcher.DispatchAsync(() =>
+                                            {
+                                                SetSource(mediaStreamSource);
+
+                                                var task = StartPlaybackAsync();
+
+                                                TaskCollector.Default.Add(task, "SetMediaSourceAsync: StartPlaybackAsync()");
+                                            });
         }
 
-        async Task StartPlaybackAsync()
+        static readonly MediaElementState[] PlayableStates = { MediaElementState.Paused, MediaElementState.Stopped };
+
+        public Task<bool> TryStartPlaybackAsync()
+        {
+            Debug.WriteLine("MediaElementWrapper.TryStartPlaybackAsync()");
+
+            if (Dispatcher.CheckAccess())
+                return TryStartPlayback() ? TplTaskExtensions.TrueTask : TplTaskExtensions.FalseTask;
+
+            return Dispatcher.DispatchAsync(() => TryStartPlayback());
+        }
+
+        bool TryStartPlayback()
+        {
+            Debug.WriteLine("MediaElementWrapper.TryStartPlayback()");
+
+            var state = MediaElement.CurrentState;
+
+            if (MediaElementState.Closed != state && MediaElementState.Opening != state)
+            {
+                if (PlayableStates.Contains(state))
+                    MediaElement.Play();
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task StartPlaybackAsync()
         {
             Debug.WriteLine("MediaElementWrapper.StartPlaybackAsync()");
 
-            if (null == _source)
+            if (null == Source)
                 return;
 
-            var isDoneTask = Dispatcher.DispatchAsync(
-                () =>
-                {
-                    var state = MediaElement.CurrentState;
-
-                    if (MediaElementState.Closed != state && MediaElementState.Opening != state)
-                    {
-                        if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(state))
-                            MediaElement.Play();
-
-                        return true;
-                    }
-
-                    return false;
-                });
-
-            if (await isDoneTask.ConfigureAwait(false))
+            if (await TryStartPlaybackAsync().ConfigureAwait(false))
                 return;
 
-            if (null == _tsMediaManager || null == _tsMediaStreamSource || TsMediaManager.MediaState.Error == _tsMediaManager.State || TsMediaManager.MediaState.Closed == _tsMediaManager.State)
-            {
-                if (null == _source)
-                    return;
-
-                await OpenMediaAsync(_source).ConfigureAwait(false);
-
-                Debug.Assert(null != _tsMediaManager);
-            }
-
-            _tsMediaManager.Play();
+            await _mediaStreamFascade.StartPlaybackAsync().ConfigureAwait(false);
         }
 
-        async Task OpenMediaAsync(Uri source)
+        public void Cleanup()
         {
-            Debug.WriteLine("MediaElementWrapper.OpenMediaAsync()");
+            Debug.WriteLine("MediaElementWrapper.Cleanup()");
 
-            if (null != _tsMediaStreamSource)
-                await CloseMediaAsync().ConfigureAwait(false);
+            Close();
 
-            Debug.Assert(null == _tsMediaStreamSource);
-            Debug.Assert(null == _tsMediaManager);
-            Debug.Assert(null == _playlist);
+            _mediaStreamFascade.CloseAsync().Wait();
 
-            if (null == source)
-                return;
-
-            if (!source.IsAbsoluteUri)
-            {
-                Debug.WriteLine("MediaElementWrapper.OpenMediaAsync() source is not absolute: " + source);
-                return;
-            }
-
-            _source = source;
-
-            _playlist = await _segmentManagerFactory.CreateDefaultAsync(source, DefaultSourceType).ConfigureAwait(false);
-
-            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
-
-            _tsMediaStreamSource = new TsMediaStreamSource();
-
-            var mediaManagerParameters = new MediaManagerParameters
-                                         {
-                                             SegmentReaderManager = segmentReaderManager,
-                                             MediaStreamSource = _tsMediaStreamSource
-                                         };
-
-            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
-
-            _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
-        }
-
-        async Task CloseMediaAsync()
-        {
-            Debug.WriteLine("MediaElementWrapper.CloseMediaAsync()");
-
-            var mediaManager = _tsMediaManager;
-
-            if (null != mediaManager)
-            {
-                try
-                {
-                    //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() calling mediaManager.CloseAsync()");
-
-                    //var stopwatch = Stopwatch.StartNew();
-
-                    await mediaManager.CloseAsync().ConfigureAwait(false);
-
-                    //stopwatch.Stop();
-
-                    //Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() returned from mediaManager.CloseAsync() after " + stopwatch.Elapsed);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("Media manager close failed: " + ex.Message);
-                }
-
-                mediaManager.OnStateChange -= TsMediaManagerOnStateChange;
-
-                _tsMediaManager = null;
-            }
-
-            var playlist = _playlist;
-
-            if (null != playlist)
-            {
-                _playlist = null;
-
-                playlist.CleanupBackground("MediaElementWrapper.CloseMediaAsync playlist");
-            }
-
-            var tsMediaStreamSource = _tsMediaStreamSource;
-
-            if (null != tsMediaStreamSource)
-            {
-                _tsMediaStreamSource = null;
-
-                tsMediaStreamSource.DisposeBackground("MediaElementWrapper.CloseMediaAsync tsMediaStreamSource");
-            }
-
-            if (null != mediaManager)
-                mediaManager.DisposeBackground("MediaElementWrapper.CloseMediaAsync mediaManager");
-
-            _source = null;
-
-            Debug.WriteLine("MediaElementWrapper.CloseMediaAsync() completed");
-        }
-
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
-        {
-            Debug.WriteLine("MediaElementWrapper.TsMediaManagerOnOnStateChange() to {0}: {1}", e.State, e.Message);
+            _mediaStreamFascade.DisposeSafe();
         }
 
         public void Close()
@@ -772,34 +572,7 @@ namespace SM.Media.MediaPlayer
 
             MediaElement.Source = null;
 
-            lock (_lock)
-            {
-                _closeRequested = true;
-                _requestedSource = null;
-            }
-
-            _workerTask.Fire();
-        }
-
-        public void Cleanup()
-        {
-            Debug.WriteLine("MediaElementWrapper.Cleanup()");
-
-            Close();
-
-            if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
-
-            var playlist = _playlist;
-
-            if (null != playlist)
-            {
-                _playlist = null;
-
-                playlist.CleanupBackground("MediaElementWrapper.Cleanup() playlist.CloseAsync()");
-            }
-
-            _workerTask.WaitAsync().Wait();
+            _mediaStreamFascade.RequestStop();
         }
     }
 }

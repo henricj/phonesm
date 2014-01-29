@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="WinRtMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,7 +34,6 @@ using Windows.Media.MediaProperties;
 using SM.Media.Configuration;
 using SM.Media.Utility;
 using SM.TsParser;
-using Debug = System.Diagnostics.Debug;
 
 namespace SM.Media
 {
@@ -394,8 +394,8 @@ namespace SM.Media
                         {
                             _sampleLock.Enter(ref lockTaken);
 
-                            Utility.Debug.Assert(null == _deferral);
-                            Utility.Debug.Assert(null == _request);
+                            SmDebug.Assert(null == _deferral);
+                            SmDebug.Assert(null == _request);
 
                             _deferral = deferral;
                             _request = request;
@@ -478,8 +478,8 @@ namespace SM.Media
 
             public void SampleRequested(MediaStreamSourceSampleRequest request)
             {
-                Utility.Debug.Assert(null == _deferral);
-                Utility.Debug.Assert(null == _request);
+                SmDebug.Assert(null == _deferral);
+                SmDebug.Assert(null == _request);
 
                 if (TryCompleteRequest(request))
                     return;
@@ -492,8 +492,8 @@ namespace SM.Media
                 {
                     _sampleLock.Enter(ref lockTaken);
 
-                    Utility.Debug.Assert(null == _deferral);
-                    Utility.Debug.Assert(null == _request);
+                    SmDebug.Assert(null == _deferral);
+                    SmDebug.Assert(null == _request);
 
                     _request = request;
                     _deferral = deferral;

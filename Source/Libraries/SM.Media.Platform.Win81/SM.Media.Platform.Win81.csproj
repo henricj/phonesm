@@ -88,7 +88,7 @@
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
     <Compile Include="MediaElementManager.cs" />
-    <Compile Include="Utility\Debug.cs" />
+    <Compile Include="Utility\SmDebug.cs" />
     <Compile Include="WinRtMediaStreamSource.cs" />
     <Compile Include="Aes128Pkcs7ReadStream.cs" />
     <Compile Include="PlatformServices.cs" />

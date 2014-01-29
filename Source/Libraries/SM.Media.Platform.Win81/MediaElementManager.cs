@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaElementManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Media.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
@@ -89,7 +88,7 @@ namespace SM.Media
 
                                 var wasSet = Interlocked.Exchange(ref _sourceIsSet, 1);
 
-                                Debug.Assert(0 == wasSet);
+                                SmDebug.Assert(0 == wasSet);
 
                                 if (null != _mediaElement)
                                 {
@@ -166,7 +165,7 @@ namespace SM.Media
             {
                 var was3 = Interlocked.Exchange(ref _sourceIsSet, 0);
 
-                Debug.Assert(3 == was3);
+                SmDebug.Assert(3 == was3);
             }
         }
     }

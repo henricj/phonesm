@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="Debug.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="SmDebug.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@ using System.Diagnostics;
 
 namespace SM.Media.Utility
 {
-    public static class Debug
+    public static class SmDebug
     {
         [Conditional("DEBUG")]
         public static void Assert(bool condition, string message = null)
@@ -37,9 +37,9 @@ namespace SM.Media.Utility
                 return;
 
             if (string.IsNullOrEmpty(message))
-                System.Diagnostics.Debug.Assert(condition);
+                Debug.Assert(condition);
             else
-                System.Diagnostics.Debug.Assert(condition, message);
+                Debug.Assert(condition, message);
 
             if (Debugger.IsAttached)
                 Debugger.Break();

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Aes128Pkcs7ReadStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -127,12 +127,12 @@ namespace SM.Media
             if (null == _decryptedData)
                 return false;
 
-            Debug.Assert(_decryptedLength > 0);
-            Debug.Assert(_decryptedOffset >= 0 && _decryptedOffset + _decryptedLength <= _decryptedData.Length);
+            SmDebug.Assert(_decryptedLength > 0);
+            SmDebug.Assert(_decryptedOffset >= 0 && _decryptedOffset + _decryptedLength <= _decryptedData.Length);
 
             var length = Math.Min(_decryptedLength, _count);
 
-            Debug.Assert(length >= 0);
+            SmDebug.Assert(length >= 0);
 
             if (length <= 0)
                 return 0 == _count;
@@ -142,14 +142,14 @@ namespace SM.Media
             _decryptedLength -= length;
             _decryptedOffset += length;
 
-            Debug.Assert(_decryptedLength >= 0);
-            Debug.Assert(_decryptedOffset > 0 && _decryptedOffset + _decryptedLength <= _decryptedData.Length);
+            SmDebug.Assert(_decryptedLength >= 0);
+            SmDebug.Assert(_decryptedOffset > 0 && _decryptedOffset + _decryptedLength <= _decryptedData.Length);
 
             _count -= length;
             _offset += length;
 
-            Debug.Assert(_count >= 0);
-            Debug.Assert(_offset > 0 && _count + _offset <= _buffer.Length);
+            SmDebug.Assert(_count >= 0);
+            SmDebug.Assert(_offset > 0 && _count + _offset <= _buffer.Length);
 
             if (0 == _decryptedLength)
                 _decryptedData = null;
@@ -185,7 +185,7 @@ namespace SM.Media
 
             for (; ; )
             {
-                Debug.Assert(null == _decryptedData);
+                SmDebug.Assert(null == _decryptedData);
 
                 // Now, we try to read more data from our parent.
                 if (_parent.CanRead)
@@ -229,13 +229,13 @@ namespace SM.Media
 
                     if (!isLast)
                     {
-                        Debug.Assert(_encryptedBuffer.Length >= _blockLength);
+                        SmDebug.Assert(_encryptedBuffer.Length >= _blockLength);
 
                         // Preserve the new IV
                         _encryptedBuffer.CopyTo((uint)(_encryptedBuffer.Length - _blockLength), _ivBuffer, 0u, (uint)_blockLength);
                     }
 
-                    Debug.Assert(oldLength >= length);
+                    SmDebug.Assert(oldLength >= length);
 
                     _encryptedBuffer.Length = (uint)(oldLength - length);
 

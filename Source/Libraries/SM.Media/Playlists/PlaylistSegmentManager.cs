@@ -282,10 +282,12 @@ namespace SM.Media.Playlists
             {
                 var segment = _segments[i];
 
-                if (!segment.Duration.HasValue)
+                var duration = GetSaneDuration(segment.Duration);
+
+                if (!duration.HasValue)
                     break;
 
-                if (seekTime + segment.Duration > timestamp)
+                if (seekTime + duration.Value > timestamp)
                 {
                     StartPosition = seekTime;
                     _startSegmentIndex = i - 1;
@@ -293,8 +295,11 @@ namespace SM.Media.Playlists
                     return;
                 }
 
-                seekTime += segment.Duration.Value;
+                seekTime += duration.Value;
             }
+
+            StartPosition = seekTime;
+            _startSegmentIndex = _segments.Length;
         }
 
         Task CheckReload(int index)
@@ -643,14 +648,24 @@ namespace SM.Media.Playlists
 
             foreach (var segment in segments)
             {
-                if (!segment.Duration.HasValue)
+                var segmentDuration = GetSaneDuration(segment.Duration);
+
+                if (!segmentDuration.HasValue)
                     return null;
 
-                if (segment.Duration <= TimeSpan.Zero || segment.Duration > _excessiveDuration)
-                    return null;
-
-                duration += segment.Duration.Value;
+                duration += segmentDuration.Value;
             }
+
+            return duration;
+        }
+
+        TimeSpan? GetSaneDuration(TimeSpan? duration)
+        {
+            if (!duration.HasValue)
+                return null;
+
+            if (duration.Value <= TimeSpan.Zero || duration.Value >= _excessiveDuration)
+                return null;
 
             return duration;
         }

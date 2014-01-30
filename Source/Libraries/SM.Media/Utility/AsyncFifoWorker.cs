@@ -110,6 +110,20 @@ namespace SM.Media.Utility
 
     public static class AsyncFifoWorkerExtensions
     {
+        public static void Post(this AsyncFifoWorker worker, Action action)
+        {
+            worker.Post(() =>
+                        {
+                            action();
+                            return TplTaskExtensions.CompletedTask;
+                        });
+        }
+
+        public static void Post(this AsyncFifoWorker worker, Task work)
+        {
+            worker.Post(() => work);
+        }
+
         public static Task PostAsync(this AsyncFifoWorker worker, Func<Task> workFunc)
         {
             var tcs = new TaskCompletionSource<bool>();

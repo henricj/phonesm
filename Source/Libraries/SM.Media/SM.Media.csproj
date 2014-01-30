@@ -88,6 +88,10 @@
     <Compile Include="Ac3\Ac3FrameHeader.cs" />
     <Compile Include="Ac3\Ac3MediaParser.cs" />
     <Compile Include="Ac3\Ac3StreamHandler.cs" />
+    <Compile Include="Content\ContentKind.cs" />
+    <Compile Include="Content\ContentType.cs" />
+    <Compile Include="Content\ContentTypeDetector.cs" />
+    <Compile Include="Content\ContentTypes.cs" />
     <Compile Include="H262\H262Configurator.cs" />
     <Compile Include="H262\H262StreamHandler.cs" />
     <Compile Include="IMediaElementManager.cs" />
@@ -236,11 +240,13 @@
     <Compile Include="Web\ApplicationInformationExtensions.cs" />
     <Compile Include="Web\HttpClients.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
+    <Compile Include="Web\HttpHeaderReader.cs" />
     <Compile Include="Web\HttpParameters.cs" />
     <Compile Include="Web\HttpSettings.cs" />
     <Compile Include="Web\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />
+    <Compile Include="Web\WebContentTypeDetector.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

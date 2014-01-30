@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,7 +35,7 @@ namespace SM.Media.Web
 {
     public interface IWebContentTypeDetector
     {
-        Task<ContentType> GetContentTypeAsync(Uri source, CancellationToken cancellationToken);
+        Task<ContentType> GetContentTypeAsync(Uri url, CancellationToken cancellationToken);
     }
 
     public class WebContentTypeDetector : IWebContentTypeDetector
@@ -50,23 +51,34 @@ namespace SM.Media.Web
 
         #region IWebContentTypeDetector Members
 
-        public async Task<ContentType> GetContentTypeAsync(Uri source, CancellationToken cancellationToken)
+        public async Task<ContentType> GetContentTypeAsync(Uri url, CancellationToken cancellationToken)
         {
-            var contentTypes = _contentTypeDetector.GetContentType(source);
+            var contentTypes = _contentTypeDetector.GetContentType(url);
 
             var contentType = contentTypes.SingleOrDefault();
 
             if (null != contentType)
-                return contentType;
+            {
+                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url ext {0} type {1}", url, contentType);
 
-            var headers = await _headerReader.GetHeadersAsync(source, cancellationToken).ConfigureAwait(false);
+                return contentType;
+            }
+
+            var headers = await _headerReader.GetHeadersAsync(url, cancellationToken).ConfigureAwait(false);
 
             if (null == headers)
                 return null;
 
-            contentTypes = _contentTypeDetector.GetContentType(source, headers);
+            contentTypes = _contentTypeDetector.GetContentType(url, headers);
 
-            return contentTypes.SingleOrDefault();
+            contentType = contentTypes.SingleOrDefault();
+
+            if (null != contentType)
+                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url header {0} type {1}", url, contentType);
+            else
+                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url {0} unknown type", url);
+
+            return contentType;
         }
 
         #endregion

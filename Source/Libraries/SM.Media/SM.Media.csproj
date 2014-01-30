@@ -165,6 +165,7 @@
     <Compile Include="Segments\SegmentManagerFactory.cs" />
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
+    <Compile Include="Utility\AsyncFifoWorker.cs" />
     <Compile Include="Utility\DisposeExtensions.cs" />
     <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />

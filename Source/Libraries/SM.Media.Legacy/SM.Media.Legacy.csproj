@@ -212,6 +212,9 @@
     <Compile Include="..\SM.Media\Segments\SegmentManagerFactory.cs">
       <Link>Segments\SegmentManagerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\AsyncFifoWorker.cs">
+      <Link>Utility\AsyncFifoWorker.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\ByteConversion.cs">
       <Link>Utility\ByteConversion.cs</Link>
     </Compile>

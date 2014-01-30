@@ -800,16 +800,32 @@ namespace SM.Media.Playlists
 
             static int FindNewIndex(ISegment[] oldSegments, ISegment[] newSegments, int oldIndex)
             {
-                // TODO: Use ISegment.MediaSequence where possible.
+                Debug.Assert(null != newSegments);
+
                 if (null == oldSegments || oldIndex < 0 || oldIndex >= oldSegments.Length)
                     return -1;
 
-                var url = oldSegments[oldIndex].Url;
+                if (newSegments.Length < 1)
+                    return -1;
 
-                var index = FindIndexByUrl(url, newSegments);
+                var oldSegment = oldSegments[oldIndex];
 
-                if (index >= 0)
-                    return index;
+                var mediaSequence = oldSegment.MediaSequence;
+
+                if (mediaSequence.HasValue)
+                {
+                    var index = FindIndexByMediaSequence(mediaSequence.Value, newSegments);
+
+                    if (index >= 0)
+                        return index;
+                }
+
+                var url = oldSegment.Url;
+
+                var urlIndex = FindIndexByUrl(url, newSegments);
+
+                if (urlIndex >= 0)
+                    return urlIndex;
 
                 Debug.WriteLine("PlaylistSegmentManager.FindNewIndex(): playlist discontinuity, does not contain {0}", url);
 
@@ -823,6 +839,27 @@ namespace SM.Media.Playlists
                     if (url == segments[i].Url)
                         return i;
                 }
+
+                return -1;
+            }
+
+            static int FindIndexByMediaSequence(long mediaSequence, IList<ISegment> segments)
+            {
+                var firstMediaSequence = segments[0].MediaSequence;
+
+                if (!firstMediaSequence.HasValue)
+                    return -1;
+
+                if (mediaSequence < firstMediaSequence.Value)
+                    return -1;
+
+                var offset = (int)(mediaSequence - firstMediaSequence.Value);
+
+                if (offset >= segments.Count)
+                    return -1;
+
+                if (segments[offset].MediaSequence == mediaSequence)
+                    return offset;
 
                 return -1;
             }

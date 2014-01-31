@@ -36,7 +36,7 @@ namespace SM.Media.Web
 {
     public interface IHttpHeaderReader
     {
-        Task<HttpContentHeaders> GetHeadersAsync(Uri source, CancellationToken cancellationToken);
+        Task<Tuple<HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(Uri source, bool tryHead, CancellationToken cancellationToken);
     }
 
     public class HttpHeaderReader : IHttpHeaderReader
@@ -50,23 +50,26 @@ namespace SM.Media.Web
 
         #region IHttpHeaderReader Members
 
-        public virtual async Task<HttpContentHeaders> GetHeadersAsync(Uri source, CancellationToken cancellationToken)
+        public virtual async Task<Tuple<HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(Uri source, bool tryHead, CancellationToken cancellationToken)
         {
             using (var httpClient = _httpClients.CreateSegmentClient(source))
             {
                 httpClient.DefaultRequestHeaders.Accept.Clear();
                 httpClient.DefaultRequestHeaders.Referrer = null;
 
-                try
+                if (tryHead)
                 {
-                    var headers = await GetHeadersAsync(httpClient, HttpMethod.Head, source, cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        var headers = await GetHeadersAsync(httpClient, HttpMethod.Head, source, cancellationToken).ConfigureAwait(false);
 
-                    if (null != headers)
-                        return headers;
-                }
-                catch (HttpRequestException ex)
-                {
-                    Debug.WriteLine("SegmentManagerFactory.CreateAsync() HEAD request failed: " + ex.Message);
+                        if (null != headers)
+                            return headers;
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Debug.WriteLine("SegmentManagerFactory.CreateAsync() HEAD request failed: " + ex.Message);
+                    }
                 }
 
                 try
@@ -84,7 +87,7 @@ namespace SM.Media.Web
 
         #endregion
 
-        protected virtual Task<HttpContentHeaders> GetHeadersAsync(HttpClient httpClient, HttpMethod method, Uri source, CancellationToken cancellationToken)
+        protected virtual Task<Tuple<HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(HttpClient httpClient, HttpMethod method, Uri source, CancellationToken cancellationToken)
         {
             return new Retry(2, 200, RetryPolicy.IsWebExceptionRetryable)
                 .CallAsync(
@@ -95,7 +98,7 @@ namespace SM.Media.Web
                             var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
                             if (response.IsSuccessStatusCode)
-                                return response.Content.Headers;
+                                return Tuple.Create(response.Headers, response.Content.Headers);
                         }
 
                         return null;

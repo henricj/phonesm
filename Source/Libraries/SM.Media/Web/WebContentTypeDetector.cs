@@ -64,12 +64,12 @@ namespace SM.Media.Web
                 return contentType;
             }
 
-            var headers = await _headerReader.GetHeadersAsync(url, cancellationToken).ConfigureAwait(false);
+            var headers = await _headerReader.GetHeadersAsync(url, true, cancellationToken).ConfigureAwait(false);
 
             if (null == headers)
                 return null;
 
-            contentTypes = _contentTypeDetector.GetContentType(url, headers);
+            contentTypes = _contentTypeDetector.GetContentType(url, headers.Item2);
 
             contentType = contentTypes.SingleOrDefault();
 

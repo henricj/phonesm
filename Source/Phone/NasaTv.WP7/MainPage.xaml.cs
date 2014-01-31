@@ -26,7 +26,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -35,8 +34,6 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using SM.Media;
-using SM.Media.Playlists;
-using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -45,125 +42,16 @@ namespace NasaTv
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
-        readonly IHttpClients _httpClients;
-        MediaElementManager _mediaElementManager;
-        PlaylistSegmentManager _playlist;
-        ITsMediaManager _tsMediaManager;
-        TsMediaStreamSource _tsMediaStreamSource;
+        readonly MediaElementManager _mediaElementManager;
+        readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
+        MediaStreamFascade _mediaStreamFascade;
 
         // Constructor
         public MainPage()
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
-
-            foreach (ApplicationBarIconButton ib in ApplicationBar.Buttons)
-            {
-                switch (ib.Text)
-                {
-                    case "stop":
-                        stopButton = ib;
-                        break;
-                    case "play":
-                        playButton = ib;
-                        break;
-                }
-            }
-
-            OnStop();
-        }
-
-        void OnPlay()
-        {
-            errorBox.Visibility = Visibility.Collapsed;
-            playButton.IsEnabled = false;
-            LayoutRoot.Background.Opacity = 0.25;
-        }
-
-        void OnStop()
-        {
-            playButton.IsEnabled = true;
-            stopButton.IsEnabled = false;
-            ApplicationBar.IsVisible = true;
-            LayoutRoot.Background.Opacity = 1;
-        }
-
-        async void playButton_Click(object sender, EventArgs e)
-        {
-            Debug.WriteLine("Play clicked");
-
-            // Try to avoid shattering MediaElement's glass jaw.
-            if (null != mediaElement1 && MediaElementState.Closed != mediaElement1.CurrentState)
-            {
-                CleanupMedia();
-
-                return;
-            }
-
-            OnPlay();
-
-            if (null != _playlist)
-            {
-                _playlist.Dispose();
-                _playlist = null;
-            }
-
-            if (null != _tsMediaStreamSource)
-            {
-                _tsMediaStreamSource.Dispose();
-                _tsMediaStreamSource = null;
-            }
-
-            var segmentsFactory = new SegmentsFactory(_httpClients);
-
-            var programManager = new ProgramManager(_httpClients, segmentsFactory.CreateStreamSegments)
-                                 {
-                                     Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") }
-                                 };
-            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
-
-            Program program;
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await programManager.LoadAsync().ConfigureAwait(true);
-
-                program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    errorBox.Text = "No programs found";
-                    errorBox.Visibility = Visibility.Visible;
-                    playButton.IsEnabled = true;
-
-                    return;
-                }
-
-                subProgram = program.SubPrograms.FirstOrDefault();
-
-                if (null == subProgram)
-                {
-                    errorBox.Text = "No program streams found";
-                    errorBox.Visibility = Visibility.Visible;
-                    playButton.IsEnabled = true;
-
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                errorBox.Text = ex.Message;
-                errorBox.Visibility = Visibility.Visible;
-                playButton.IsEnabled = true;
-
-                return;
-            }
-
-            var programClient = _httpClients.CreatePlaylistClient(program.Url);
-
-            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
+            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
                 () =>
@@ -203,25 +91,72 @@ namespace NasaTv
                     UpdateState(MediaElementState.Closed);
                 });
 
-            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
+            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
 
-            if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
+            _mediaStreamFascadeParameters.MediaManagerParameters.MediaElementManager = _mediaElementManager;
 
-            _tsMediaStreamSource = new TsMediaStreamSource();
-
-            var mediaManagerParameters = new MediaManagerParameters
+            foreach (ApplicationBarIconButton ib in ApplicationBar.Buttons)
             {
-                SegmentReaderManager = segmentReaderManager,
-                MediaElementManager = _mediaElementManager,
-                MediaStreamSource = _tsMediaStreamSource
-            };
+                switch (ib.Text)
+                {
+                    case "stop":
+                        stopButton = ib;
+                        break;
+                    case "play":
+                        playButton = ib;
+                        break;
+                }
+            }
 
-            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
+            OnStop();
+        }
 
-            _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
+        void OnPlay()
+        {
+            errorBox.Visibility = Visibility.Collapsed;
+            playButton.IsEnabled = false;
+            LayoutRoot.Background.Opacity = 0.25;
+        }
 
-            _tsMediaManager.Play();
+        void OnStop()
+        {
+            playButton.IsEnabled = true;
+            stopButton.IsEnabled = false;
+            ApplicationBar.IsVisible = true;
+            LayoutRoot.Background.Opacity = 1;
+        }
+
+        void playButton_Click(object sender, EventArgs e)
+        {
+            Debug.WriteLine("Play clicked");
+
+            // Try to avoid shattering MediaElement's glass jaw.
+            if (null != mediaElement1 && MediaElementState.Closed != mediaElement1.CurrentState)
+            {
+                CleanupMedia();
+
+                return;
+            }
+
+            OnPlay();
+
+            if (null != _mediaStreamFascade)
+            {
+                _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+                _mediaStreamFascade.DisposeSafe();
+            }
+
+            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, _mediaElementManager.SetSourceAsync)
+                                  {
+                                      Source = new Uri(
+                                          "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                                          //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                                          )
+                                  };
+
+            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+
+            _mediaStreamFascade.Play();
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -236,11 +171,8 @@ namespace NasaTv
 
         void CleanupMedia()
         {
-            //mediaElement1.Stop();
-            //mediaElement1.Source = null;
-
-            if (null != _tsMediaManager)
-                _tsMediaManager.Close();
+            if (null != _mediaStreamFascade)
+                _mediaStreamFascade.RequestStop();
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)

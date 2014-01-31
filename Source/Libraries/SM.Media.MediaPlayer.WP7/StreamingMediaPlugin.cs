@@ -34,12 +34,11 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.SilverlightMediaFramework.Plugins;
 using Microsoft.SilverlightMediaFramework.Plugins.Metadata;
 using Microsoft.SilverlightMediaFramework.Plugins.Primitives;
 using Microsoft.SilverlightMediaFramework.Utilities.Extensions;
-using SM.Media.Playlists;
-using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -61,7 +60,7 @@ namespace SM.Media.MediaPlayer
         const string PluginDescription =
             "Provides HTTP Live Streaming capabilities for the Silverlight Media Framework by wrapping the MediaElement.";
 
-        const string PluginVersion = "1.0.0.0";
+        const string PluginVersion = "1.1.0.0";
 
         const DeliveryMethods SupportedDeliveryMethodsInternal = DeliveryMethods.Streaming;
 
@@ -69,6 +68,12 @@ namespace SM.Media.MediaPlayer
         static readonly double[] SupportedRates = { SupportedPlaybackRate };
 
         protected MediaElement MediaElement { get; set; }
+
+        Stream _streamSource;
+        HttpClients _httpClients;
+        readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
+        MediaStreamFascade _mediaStreamFascade;
+        Dispatcher _dispatcher;
 
         #region Events
 
@@ -323,7 +328,7 @@ namespace SM.Media.MediaPlayer
             {
                 if (MediaElement != null)
                 {
-                    _tsMediaManager.SeekTarget = value;
+                    _mediaStreamFascade.SeekTarget = value;
                     MediaElement.Position = value;
                     SeekCompleted.IfNotNull(i => i(this));
                 }
@@ -490,24 +495,19 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public Uri Source
         {
-            get
+            get { return null == _mediaStreamFascade ? null : _mediaStreamFascade.Source; }
+            set
             {
-                return MediaElement != null
-                    ? MediaElement.Source
-                    : null;
-            }
-            set { MediaElement.IfNotNull(i => SetMediaSource(value)); }
-        }
+                Debug.WriteLine("StreamingMediaPlugin.Source setter: " + value);
 
-        Stream _streamSource;
-        MediaElementManager _mediaElementManager;
-        TsMediaManager _tsMediaManager;
-        ProgramManager _programManager;
-        HttpClients _httpClients;
-        readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
-        SegmentsFactory _segmentsFactory;
-        PlaylistSegmentManager _playlist;
-        TsMediaStreamSource _tsMediaStreamSource;
+                if (null == _mediaStreamFascade)
+                    return;
+
+                _mediaStreamFascade.Source = value;
+
+                _mediaStreamFascade.Play();
+            }
+        }
 
         public Stream StreamSource
         {
@@ -515,6 +515,8 @@ namespace SM.Media.MediaPlayer
 
             set
             {
+                Debug.WriteLine("StreamingMediaPlugin.StreamSource setter");
+
                 if (MediaElement != null)
                 {
                     MediaElement.SetSource(value);
@@ -530,7 +532,9 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public void Play()
         {
-            MediaElement.IfNotNull(i => { var task = StartPlayback(); });
+            Debug.WriteLine("StreamingMediaPlugin.Play()");
+
+            StartPlayback();
         }
 
         /// <summary>
@@ -538,6 +542,8 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public void Pause()
         {
+            Debug.WriteLine("StreamingMediaPlugin.Pause()");
+
             MediaElement.IfNotNull(i => i.Pause());
         }
 
@@ -546,6 +552,8 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public void Stop()
         {
+            Debug.WriteLine("StreamingMediaPlugin.Stop()");
+
             MediaElement.IfNotNull(i => i.Stop());
         }
 
@@ -561,12 +569,16 @@ namespace SM.Media.MediaPlayer
 
                 _httpClients = new HttpClients(userAgent: _applicationInformation.CreateUserAgent());
 
-                _segmentsFactory = new SegmentsFactory(_httpClients);
+                var mediaStreamFascadeParameters = new MediaStreamFascadeParameters(_httpClients, () => new TsMediaStreamSource());
 
                 InitializeStreamingMediaElement();
                 IsLoaded = true;
                 PluginLoaded.IfNotNull(i => i(this));
                 //SendLogEntry(KnownLogEntryTypes.ProgressiveMediaPluginLoaded, message: ProgressiveMediaPluginResources.ProgressiveMediaPluginLoadedLogMessage);
+
+                _dispatcher = MediaElement.Dispatcher;
+
+                _mediaStreamFascade = new MediaStreamFascade(mediaStreamFascadeParameters, SetSourceAsync);
             }
             catch (Exception ex)
             {
@@ -582,6 +594,12 @@ namespace SM.Media.MediaPlayer
             try
             {
                 IsLoaded = false;
+
+                if (null != _mediaStreamFascade)
+                {
+                    _mediaStreamFascade.DisposeSafe();
+                    _mediaStreamFascade = null;
+                }
 
                 if (null != _httpClients)
                 {
@@ -721,17 +739,6 @@ namespace SM.Media.MediaPlayer
             MediaOpened.IfNotNull(i => i(this));
         }
 
-        void CleanupMedia()
-        {
-            if (null != _tsMediaManager)
-                _tsMediaManager.Close();
-
-            if (null != _playlist)
-            {
-                var t = _playlist.StopAsync();
-            }
-        }
-
         void MediaElement_LogReady(object sender, LogReadyRoutedEventArgs e)
         {
             //var message = string.Format(ProgressiveMediaPluginResources.MediaElementGeneratedLogMessageFormat,
@@ -771,90 +778,64 @@ namespace SM.Media.MediaPlayer
             return (MediaPluginState)Enum.Parse(typeof(MediaPluginState), mediaElementState.ToString(), true);
         }
 
-        void SetMediaSource(Uri source)
+        void CleanupMedia()
         {
-            _programManager = new ProgramManager(_httpClients, _segmentsFactory.CreateStreamSegments)
-                              {
-                                  Playlists = new[] { source }
-                              };
+            Debug.WriteLine("StreamingMediaPlugin.CleanupMedia()");
+
+            Close();
+
+            _mediaStreamFascade.CloseAsync().Wait();
+
+            _mediaStreamFascade.DisposeSafe();
         }
 
-        async Task StartPlayback()
+        public void Close()
         {
+            Debug.WriteLine("StreamingMediaPlugin.Close()");
+
+            Debug.Assert(_dispatcher.CheckAccess());
+
+            MediaElement.Source = null;
+
+            _mediaStreamFascade.RequestStop();
+        }
+
+        Task SetSourceAsync(IMediaStreamSource mediaStreamSource)
+        {
+            Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync()");
+
+            var mss = (MediaStreamSource)mediaStreamSource;
+
+            return _dispatcher.InvokeAsync(() =>
+                                           {
+                                               if (null == MediaElement)
+                                                   return;
+
+                                               MediaElement.SetSource(mss);
+                                           });
+        }
+
+        void StartPlayback()
+        {
+            Debug.WriteLine("StreamingMediaPlugin.StartPlayback()");
+
             if (null == MediaElement)
                 return;
 
-            if (null == _programManager)
+            if (null == _mediaStreamFascade)
                 return;
 
             if (MediaElementState.Closed != MediaElement.CurrentState)
             {
                 if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(MediaElement.CurrentState))
+                {
                     MediaElement.Play();
 
-                return;
-            }
-
-            if (null != _playlist)
-            {
-                _playlist.Dispose();
-                _playlist = null;
-            }
-
-            if (null != _tsMediaStreamSource)
-            {
-                _tsMediaStreamSource.Dispose();
-                _tsMediaStreamSource = null;
-            }
-
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await _programManager.LoadAsync().ConfigureAwait(true);
-
-                var program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    Debug.WriteLine("StreamingMediaPlugin.StartPlayback: program not found");
-                    return;
-                }
-
-                subProgram = SelectSubProgram(program.SubPrograms);
-
-                if (null == subProgram)
-                {
-                    Debug.WriteLine("StreamingMediaPlugin.StartPlayback: no sub programs found");
                     return;
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("StreamingMediaPlugin.StartPlayback: " + ex.Message);
-                throw;
-            }
 
-            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
-
-            _mediaElementManager = new MediaElementManager(MediaElement.Dispatcher, () => MediaElement, me => { });
-
-            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
-
-            _tsMediaStreamSource = new TsMediaStreamSource();
-
-            var mediaManagerParameters = new MediaManagerParameters
-            {
-                SegmentReaderManager = segmentReaderManager,
-                MediaElementManager = _mediaElementManager,
-                MediaStreamSource = _tsMediaStreamSource
-            };
-
-            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
-
-            _tsMediaManager.Play();
+            _mediaStreamFascade.Play();
         }
-
-        public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
     }
 }

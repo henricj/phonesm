@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SimulatedMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,7 @@ namespace SimulatedPlayer
 {
     class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {
-        readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
@@ -59,7 +59,7 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
-            using (_fifoTaskScheduler)
+            using (_asyncFifoWorker)
             { }
         }
 
@@ -130,7 +130,7 @@ namespace SimulatedPlayer
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
 
-            Task.Factory.StartNew((Func<Task>)(
+            _asyncFifoWorker.Post(
                 async () =>
                 {
                     if (_isClosed)
@@ -156,10 +156,8 @@ namespace SimulatedPlayer
                     }
 
                     foreach (var getCmd in pendingGets)
-                    {
-                        getCmd.Start(_fifoTaskScheduler);
-                    }
-                }), CancellationToken.None, TaskCreationOptions.None, _fifoTaskScheduler);
+                        _asyncFifoWorker.Post(getCmd);
+                });
         }
 
         public void GetSampleAsync(int streamType)
@@ -236,7 +234,7 @@ namespace SimulatedPlayer
                     _pendingGets.Add(task);
                 }
                 else
-                    task.Start(_fifoTaskScheduler);
+                    _asyncFifoWorker.Post(task);
             }
         }
 

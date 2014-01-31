@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SimulatedMediaElementManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -38,7 +38,7 @@ namespace SimulatedPlayer
 {
     sealed class SimulatedMediaElementManager : IMediaElementManager, ISimulatedMediaElement, IDisposable
     {
-        readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
         readonly object _lock = new object();
         // _mediaStreamFsm must not be readonly.  Member functions would then operate on *copies* of the value
         // rather than this field (since it is a value type).
@@ -56,7 +56,7 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
-            using (_fifoTaskScheduler)
+            using (_asyncFifoWorker)
             { }
         }
 
@@ -69,9 +69,17 @@ namespace SimulatedPlayer
             return Close();
         }
 
-        Task IMediaElementManager.SetSourceAsync(IMediaStreamSource source)
+        public Task SetSourceAsync(IMediaStreamSource source)
         {
-            return SetSource(source);
+            Debug.WriteLine("SimulatedMediaElementManager.SetSourceAsync()");
+
+            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
+
+            _mediaStreamSource = (ISimulatedMediaStreamSource)source;
+
+            _asyncFifoWorker.Post(OpenMedia);
+
+            return TplTaskExtensions.CompletedTask;
         }
 
         #endregion
@@ -80,16 +88,20 @@ namespace SimulatedPlayer
 
         public void ReportOpenMediaCompleted()
         {
-            var task = Task.Factory.StartNew((Func<Task>)PlayMedia, CancellationToken.None, TaskCreationOptions.None, _fifoTaskScheduler);
+            Debug.WriteLine("SimulatedMediaElementManager.ReportOpenMediaCompleted()");
 
-            TaskCollector.Default.Add(task, "SimulatedMediaElementManager.ReportOpenMediaCompleted");
+            _asyncFifoWorker.Post(PlayMedia);
         }
 
         public void ReportSeekCompleted(long ticks)
-        { }
+        {
+            Debug.WriteLine("SimulatedMediaElementManager.ReportSeekCompleted(): " + TimeSpan.FromTicks(ticks));
+        }
 
         public void ReportGetSampleProgress(float progress)
-        { }
+        {
+            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleProgress(): " + progress);
+        }
 
         public void ReportGetSampleCompleted(int streamType, IStreamSource streamSource, TsPesPacket packet)
         {
@@ -168,22 +180,11 @@ namespace SimulatedPlayer
             Debug.WriteLine("SimulatedMediaElement.ErrorOccurred({0})", message);
 
             var task = Close();
+
+            TaskCollector.Default.Add(task, "SimulatedMediaElement.ErrorOccurred");
         }
 
         #endregion
-
-        public Task SetSource(IMediaStreamSource source)
-        {
-            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
-
-            _mediaStreamSource = (ISimulatedMediaStreamSource)source;
-
-            var task = Task.Factory.StartNew((Func<Task>)OpenMedia, CancellationToken.None, TaskCreationOptions.None, _fifoTaskScheduler);
-
-            TaskCollector.Default.Add(task, "SimulatedMediaElementManager.SetSource");
-
-            return TplTaskExtensions.CompletedTask;
-        }
 
         public Task Close()
         {
@@ -248,6 +249,16 @@ namespace SimulatedPlayer
             _random.Shuffle(taskActions);
 
             await Task.WhenAll(taskActions.Select(Task.Run)).ConfigureAwait(false);
+        }
+
+        public async Task PlayAsync()
+        {
+            await Task.Delay((int)(_random.GetRandomNumber() * 250 * 100));
+        }
+
+        public void Play()
+        {
+            _asyncFifoWorker.Post(PlayAsync);
         }
 
         #region Nested type: SampleState

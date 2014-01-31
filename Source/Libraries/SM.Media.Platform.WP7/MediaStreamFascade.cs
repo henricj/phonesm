@@ -28,51 +28,52 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media
 {
+    public interface IMediaStreamFascadeParameters
+    {
+        IHttpClients HttpClients { get; }
+        ISegmentManagerFactory SegmentManagerFactory { get; }
+        Func<IMediaStreamSource> MediaStreamSourceFactory { get; }
+        IMediaManagerParameters MediaManagerParameters { get; }
+    }
+
     public sealed class MediaStreamFascade : IDisposable
     {
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
         readonly IHttpClients _httpClients;
-        readonly object _lock = new object();
+        readonly IMediaManagerParameters _mediaManagerParameters;
+        readonly Func<IMediaStreamSource> _mediaStreamSourceFactory;
         readonly ISegmentManagerFactory _segmentManagerFactory;
-        readonly Func<MediaStreamSource, Task> _setSourceAsync;
-        readonly SignalTask _workerTask;
-        string _defaultSourceType = ".m3u8";
+        readonly Func<IMediaStreamSource, Task> _setSourceAsync;
+        IMediaStreamSource _mediaStreamSource;
         ISegmentManager _playlist;
-        Uri _requestedSource;
         Uri _source;
-        bool _stopRequested;
         TsMediaManager _tsMediaManager;
-        TsMediaStreamSource _tsMediaStreamSource;
 
-        public MediaStreamFascade(IHttpClients httpClients, ISegmentManagerFactory segmentManagerFactory, Func<MediaStreamSource, Task> setSourceAsync)
+        public MediaStreamFascade(IMediaStreamFascadeParameters mediaStreamFascadeParameters, Func<IMediaStreamSource, Task> setSourceAsync)
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
-            if (null == segmentManagerFactory)
-                throw new ArgumentNullException("segmentManagerFactory");
+            if (null == mediaStreamFascadeParameters)
+                throw new ArgumentNullException("mediaStreamFascadeParameters");
             if (null == setSourceAsync)
                 throw new ArgumentNullException("setSourceAsync");
 
-            _httpClients = httpClients;
-            _segmentManagerFactory = segmentManagerFactory;
+            if (null == mediaStreamFascadeParameters.SegmentManagerFactory)
+                throw new ArgumentException("SegmentManagerFactory cannot be null", "mediaStreamFascadeParameters");
+            if (null == mediaStreamFascadeParameters.MediaStreamSourceFactory)
+                throw new ArgumentException("MediaStreamSourceFactory cannot be null", "mediaStreamFascadeParameters");
+            if (null == mediaStreamFascadeParameters.MediaManagerParameters)
+                throw new ArgumentException("MediaManagerParameters cannot be null", "mediaStreamFascadeParameters");
+
+            _httpClients = mediaStreamFascadeParameters.HttpClients;
+            _segmentManagerFactory = mediaStreamFascadeParameters.SegmentManagerFactory;
+            _mediaStreamSourceFactory = mediaStreamFascadeParameters.MediaStreamSourceFactory;
+            _mediaManagerParameters = mediaStreamFascadeParameters.MediaManagerParameters;
             _setSourceAsync = setSourceAsync;
-
-            _workerTask = new SignalTask(Worker, CancellationToken.None);
-        }
-
-        /// <summary>
-        ///     Select the source type to be used if a type cannot be guessed from the source URL.  The default is ".m3u8".
-        /// </summary>
-        public string DefaultSourceType
-        {
-            get { return _defaultSourceType; }
-            set { _defaultSourceType = value; }
         }
 
         public Uri Source
@@ -81,23 +82,37 @@ namespace SM.Media
             set
             {
                 if (value == null)
-                {
-                    lock (_lock)
-                    {
-                        _stopRequested = true;
-                        _requestedSource = null;
-                    }
-                }
+                    Post(CloseMediaAsync);
+                else if (value.IsAbsoluteUri)
+                    Post(() => SetMediaSourceAsync(value));
                 else
                 {
-                    lock (_lock)
-                    {
-                        _stopRequested = false;
-                        _requestedSource = value;
-                    }
+                    Debug.WriteLine("MediaStreamFascade Source setter: invalid URL: " + value);
+                    Post(CloseMediaAsync);
                 }
+            }
+        }
 
-                _workerTask.Fire();
+        public TimeSpan? SeekTarget
+        {
+            get { return null == _mediaStreamSource ? null : _mediaStreamSource.SeekTarget; }
+            set
+            {
+                if (null == _mediaStreamSource)
+                    return;
+
+                _mediaStreamSource.SeekTarget = value;
+            }
+        }
+
+        public TsMediaManager.MediaState State
+        {
+            get
+            {
+                if (null == _tsMediaManager)
+                    return TsMediaManager.MediaState.Closed;
+
+                return _tsMediaManager.State;
             }
         }
 
@@ -105,6 +120,8 @@ namespace SM.Media
 
         public void Dispose()
         {
+            StateChange = null;
+
             if (null != _tsMediaManager)
             {
                 _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
@@ -113,71 +130,41 @@ namespace SM.Media
                 _tsMediaManager = null;
             }
 
-            if (null != _tsMediaStreamSource)
+            if (null != _mediaStreamSource)
             {
-                _tsMediaStreamSource.DisposeSafe();
-                _tsMediaStreamSource = null;
+                _mediaStreamSource.DisposeSafe();
+                _mediaStreamSource = null;
             }
+
+            _asyncFifoWorker.Dispose();
         }
 
         #endregion
 
-        async Task Worker()
+        public event EventHandler<TsMediaManagerStateEventArgs> StateChange;
+
+        void Post(Func<Task> work)
         {
-            try
-            {
-                bool closeRequested;
-                Uri requestedSource;
-
-                lock (_lock)
-                {
-                    closeRequested = _stopRequested;
-
-                    if (closeRequested)
-                        _stopRequested = false;
-
-                    requestedSource = _requestedSource;
-
-                    if (null != requestedSource)
-                        _requestedSource = null;
-                }
-
-                if (closeRequested)
-                {
-                    //Debug.WriteLine("MediaPlayerSource.Worker() calling CloseMediaAsync()");
-
-                    await CloseMediaAsync().ConfigureAwait(false);
-
-                    //Debug.WriteLine("MediaPlayerSource.Worker() returned from CloseMediaAsync()");
-
-                    return;
-                }
-
-                if (null != requestedSource)
-                {
-                    //Debug.WriteLine("MediaPlayerSource.Worker() calling SetMediaSourceAsync()");
-                    //var stopwatch = Stopwatch.StartNew();
-
-                    await SetMediaSourceAsync(requestedSource).ConfigureAwait(false);
-
-                    //stopwatch.Stop();
-                    //Debug.WriteLine("MediaPlayerSource.Worker() returned from SetMediaSourceAsync()");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaPlayerSource.Worker() failed: " + ex.Message);
-            }
+            _asyncFifoWorker.Post(work);
         }
 
         async Task SetMediaSourceAsync(Uri source)
         {
+            Debug.WriteLine("MediaStreamFascade.SetMediaSourceAsync({0})", source);
+
             await OpenMediaAsync(source).ConfigureAwait(true);
 
-            await _setSourceAsync(_tsMediaStreamSource).ConfigureAwait(false);
+            await _setSourceAsync(_mediaStreamSource).ConfigureAwait(false);
         }
 
-        public async Task StartPlaybackAsync()
+        public void Play()
+        {
+            Debug.WriteLine("MediaStreamFascade.Play()");
+
+            Post(StartPlaybackAsync);
+        }
+
+        async Task StartPlaybackAsync()
         {
             Debug.WriteLine("MediaPlayerSource.StartPlaybackAsync()");
 
@@ -186,7 +173,7 @@ namespace SM.Media
                 if (null == _source)
                     return;
 
-                if (null == _tsMediaManager || null == _tsMediaStreamSource || TsMediaManager.MediaState.Error == _tsMediaManager.State || TsMediaManager.MediaState.Closed == _tsMediaManager.State)
+                if (null == _tsMediaManager || null == _mediaStreamSource || TsMediaManager.MediaState.Error == _tsMediaManager.State || TsMediaManager.MediaState.Closed == _tsMediaManager.State)
                 {
                     if (null == _source)
                         return;
@@ -209,10 +196,10 @@ namespace SM.Media
         {
             Debug.WriteLine("MediaPlayerSource.OpenMediaAsync()");
 
-            if (null != _tsMediaStreamSource)
+            if (null != _mediaStreamSource)
                 await CloseMediaAsync().ConfigureAwait(false);
 
-            Debug.Assert(null == _tsMediaStreamSource);
+            Debug.Assert(null == _mediaStreamSource);
             Debug.Assert(null == _tsMediaManager);
             Debug.Assert(null == _playlist);
 
@@ -227,16 +214,20 @@ namespace SM.Media
 
             _source = source;
 
-            _playlist = await _segmentManagerFactory.CreateDefaultAsync(source, DefaultSourceType).ConfigureAwait(false);
+            _playlist = await _segmentManagerFactory.CreateAsync(source, CancellationToken.None).ConfigureAwait(false);
 
             var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
 
-            _tsMediaStreamSource = new TsMediaStreamSource();
+            _mediaStreamSource = _mediaStreamSourceFactory();
 
             var mediaManagerParameters = new MediaManagerParameters
                                          {
                                              SegmentReaderManager = segmentReaderManager,
-                                             MediaStreamSource = _tsMediaStreamSource
+                                             MediaStreamSource = _mediaStreamSource,
+                                             MediaElementManager = _mediaManagerParameters.MediaElementManager,
+                                             BufferingManagerFactory = _mediaManagerParameters.BufferingManagerFactory,
+                                             BufferingPolicy = _mediaManagerParameters.BufferingPolicy,
+                                             ProgramStreamsHandler = _mediaManagerParameters.ProgramStreamsHandler
                                          };
 
             _tsMediaManager = new TsMediaManager(mediaManagerParameters);
@@ -279,11 +270,11 @@ namespace SM.Media
                 playlist.CleanupBackground("MediaPlayerSource.CloseMediaAsync playlist");
             }
 
-            var tsMediaStreamSource = _tsMediaStreamSource;
+            var tsMediaStreamSource = _mediaStreamSource;
 
             if (null != tsMediaStreamSource)
             {
-                _tsMediaStreamSource = null;
+                _mediaStreamSource = null;
 
                 tsMediaStreamSource.DisposeBackground("MediaPlayerSource.CloseMediaAsync tsMediaStreamSource");
             }
@@ -299,19 +290,27 @@ namespace SM.Media
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
         {
             Debug.WriteLine("MediaPlayerSource.TsMediaManagerOnOnStateChange() to {0}: {1}", e.State, e.Message);
+
+            var stateChange = StateChange;
+
+            if (null == stateChange)
+                return;
+
+            try
+            {
+                stateChange(this, e);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaStreamFascade.TsMediaManagerOnStateChange() Exception in StateChange event handler: " + ex.Message);
+            }
         }
 
         public void RequestStop()
         {
             Debug.WriteLine("MediaPlayerSource.Stop()");
 
-            lock (_lock)
-            {
-                _stopRequested = true;
-                _requestedSource = null;
-            }
-
-            _workerTask.Fire();
+            Post(CloseMediaAsync);
         }
 
         public Task CloseAsync()
@@ -330,7 +329,16 @@ namespace SM.Media
                 playlist.CleanupBackground("MediaPlayerSource.Cleanup() playlist.CloseAsync()");
             }
 
-            return _workerTask.WaitAsync();
+            var tcs = new TaskCompletionSource<bool>();
+
+            Post(() =>
+                 {
+                     tcs.TrySetResult(true);
+
+                     return TplTaskExtensions.CompletedTask;
+                 });
+
+            return tcs.Task;
         }
     }
 }

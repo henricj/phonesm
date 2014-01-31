@@ -7,7 +7,7 @@
     <ProjectGuid>{D8D466D7-46E7-4B4A-8A5E-EE2ECF4411D2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SM.Media.Platform.Desktop</RootNamespace>
+    <RootNamespace>SM.Media</RootNamespace>
     <AssemblyName>SM.Media.Platform.Desktop</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFrameworkProfile>
@@ -56,6 +56,12 @@
     </Compile>
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascade.cs">
+      <Link>MediaStreamFascade.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascadeParameters.cs">
+      <Link>MediaStreamFascadeParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>

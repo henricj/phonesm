@@ -26,7 +26,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,8 +34,6 @@ using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using SM.Media;
-using SM.Media.Playlists;
-using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -46,20 +43,61 @@ namespace HlsView
     {
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
-        readonly IHttpClients _httpClients;
+        readonly IMediaElementManager _mediaElementManager;
+        readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
         readonly DispatcherTimer _positionSampler;
-        IMediaElementManager _mediaElementManager;
-        PlaylistSegmentManager _playlist;
+        MediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
-        ITsMediaManager _tsMediaManager;
-        TsMediaStreamSource _tsMediaStreamSource;
 
         // Constructor
         public MainPage()
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _mediaElementManager = new MediaElementManager(Dispatcher,
+                () =>
+                {
+                    var me = new MediaElement
+                             {
+                                 Margin = new Thickness(0)
+                             };
+
+                    me.MediaFailed += mediaElement1_MediaFailed;
+                    me.MediaEnded += mediaElement1_MediaEnded;
+                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
+                    me.BufferingProgressChanged += OnBufferingProgressChanged;
+                    ContentPanel.Children.Add(me);
+
+                    mediaElement1 = me;
+
+                    UpdateState(MediaElementState.Opening);
+
+                    return me;
+                },
+                me =>
+                {
+                    if (null != me)
+                    {
+                        Debug.Assert(ReferenceEquals(me, mediaElement1));
+
+                        ContentPanel.Children.Remove(me);
+
+                        me.MediaFailed -= mediaElement1_MediaFailed;
+                        me.MediaEnded -= mediaElement1_MediaEnded;
+                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+                        me.BufferingProgressChanged -= OnBufferingProgressChanged;
+                    }
+
+                    mediaElement1 = null;
+
+                    UpdateState(MediaElementState.Closed);
+                });
+
+            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+
+            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
+
+            _mediaStreamFascadeParameters.MediaManagerParameters.MediaElementManager = _mediaElementManager;
 
             _positionSampler = new DispatcherTimer
                                {
@@ -77,9 +115,9 @@ namespace HlsView
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
-            if (null != _mediaElementManager)
+            if (null != _mediaStreamFascade)
             {
-                var managerState = _tsMediaManager.State;
+                var managerState = _mediaStreamFascade.State;
 
                 if (MediaElementState.Closed == state)
                 {
@@ -148,7 +186,7 @@ namespace HlsView
             return sb.ToString();
         }
 
-        async void play_Click(object sender, RoutedEventArgs e)
+        void play_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("Play clicked");
 
@@ -161,129 +199,23 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            if (null != _playlist)
+            if (null != _mediaStreamFascade)
             {
-                _playlist.Dispose();
-                _playlist = null;
+                _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+                _mediaStreamFascade.DisposeSafe();
             }
 
-            if (null != _tsMediaStreamSource)
-            {
-                _tsMediaStreamSource.Dispose();
-                _tsMediaStreamSource = null;
-            }
+            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, _mediaElementManager.SetSourceAsync)
+                                  {
+                                      Source = new Uri(
+                                          "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                                          //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                                          )
+                                  };
 
-            var segmentsFactory = new SegmentsFactory(_httpClients);
+            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
 
-            var programManager = new ProgramManager(_httpClients, segmentsFactory.CreateStreamSegments)
-                                 {
-                                     Playlists = new[]
-                                                 {
-                                                     new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
-                                                     //new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
-                                                 }
-                                 };
-
-            Program program;
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await programManager.LoadAsync();
-
-                program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    errorBox.Text = "No programs found";
-                    errorBox.Visibility = Visibility.Visible;
-                    playButton.IsEnabled = true;
-
-                    return;
-                }
-
-                subProgram = program.SubPrograms.FirstOrDefault();
-
-                if (null == subProgram)
-                {
-                    errorBox.Text = "No program streams found";
-                    errorBox.Visibility = Visibility.Visible;
-                    playButton.IsEnabled = true;
-
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                errorBox.Text = ex.Message;
-                errorBox.Visibility = Visibility.Visible;
-                playButton.IsEnabled = true;
-
-                return;
-            }
-
-            var programClient = _httpClients.CreatePlaylistClient(program.Url);
-
-            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
-
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                () =>
-                {
-                    var me = new MediaElement
-                             {
-                                 Margin = new Thickness(0)
-                             };
-
-                    me.MediaFailed += mediaElement1_MediaFailed;
-                    me.MediaEnded += mediaElement1_MediaEnded;
-                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
-                    me.BufferingProgressChanged += OnBufferingProgressChanged;
-                    ContentPanel.Children.Add(me);
-
-                    mediaElement1 = me;
-
-                    UpdateState(MediaElementState.Opening);
-
-                    return me;
-                },
-                me =>
-                {
-                    if (null != me)
-                    {
-                        Debug.Assert(ReferenceEquals(me, mediaElement1));
-
-                        ContentPanel.Children.Remove(me);
-
-                        me.MediaFailed -= mediaElement1_MediaFailed;
-                        me.MediaEnded -= mediaElement1_MediaEnded;
-                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
-                        me.BufferingProgressChanged -= OnBufferingProgressChanged;
-                    }
-
-                    mediaElement1 = null;
-
-                    UpdateState(MediaElementState.Closed);
-                });
-
-            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
-
-            if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
-
-            _tsMediaStreamSource = new TsMediaStreamSource();
-
-            var mediaManagerParameters = new MediaManagerParameters
-            {
-                SegmentReaderManager = segmentReaderManager,
-                MediaElementManager = _mediaElementManager,
-                MediaStreamSource = _tsMediaStreamSource
-            };
-
-            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
-
-            _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
-
-            _tsMediaManager.Play();
+            _mediaStreamFascade.Play();
 
             _positionSampler.Start();
         }
@@ -318,15 +250,8 @@ namespace HlsView
         {
             _positionSampler.Stop();
 
-            if (null != _tsMediaManager)
-                _tsMediaManager.Close();
-
-            if (null != _playlist)
-            {
-                var t = _playlist.StopAsync();
-
-                TaskCollector.Default.Add(t, "MainPage.CleanupMedia()");
-            }
+            if (null != _mediaStreamFascade)
+                _mediaStreamFascade.RequestStop();
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)
@@ -379,8 +304,7 @@ namespace HlsView
 
             var position = mediaElement1.Position;
 
-            _tsMediaManager.SeekTarget = position + StepSize;
-
+            _mediaStreamFascade.SeekTarget = position + StepSize; // WP7's MediaElement needs help.
             mediaElement1.Position = position + StepSize;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
@@ -398,7 +322,7 @@ namespace HlsView
             else
                 position -= StepSize;
 
-            _tsMediaManager.SeekTarget = position;
+            _mediaStreamFascade.SeekTarget = position; // WP7's MediaElement needs help.
             mediaElement1.Position = position;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);

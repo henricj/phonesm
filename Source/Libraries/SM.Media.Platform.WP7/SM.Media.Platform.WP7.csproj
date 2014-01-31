@@ -95,6 +95,7 @@
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
     <Compile Include="MediaStreamFascade.cs" />
+    <Compile Include="MediaStreamFascadeParameters.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="PlatformServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -165,6 +165,7 @@
     <Compile Include="M3U8\M3U8TagInstanceExtensions.cs" />
     <Compile Include="M3U8\M3U8Tags.cs" />
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
+    <Compile Include="Segments\SegmentManagerFactories.cs" />
     <Compile Include="Segments\SegmentManagerFactory.cs" />
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />

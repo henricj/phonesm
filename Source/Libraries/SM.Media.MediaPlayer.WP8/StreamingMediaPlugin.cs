@@ -27,8 +27,6 @@
 using System;
 using System.Windows;
 using Microsoft.PlayerFramework;
-using SM.Media.Playlists;
-using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -90,10 +88,9 @@ namespace SM.Media.MediaPlayer
                 if (null != _mediaElement)
                     return _mediaElement;
 
-                var httpClients = HttpClients;
-                var segmentManagerFactory = new SegmentManagerFactory(new PlaylistSegmentManagerFactory(httpClients));
+                var mediaStreamFascadeParameters = new MediaStreamFascadeParameters(HttpClients, () => new TsMediaStreamSource());
 
-                _mediaElement = new MediaElementWrapper(setSourceAsync => new MediaStreamFascade(httpClients, segmentManagerFactory, setSourceAsync));
+                _mediaElement = new MediaElementWrapper(setSourceAsync => new MediaStreamFascade(mediaStreamFascadeParameters, setSourceAsync));
 
                 return _mediaElement;
             }

@@ -27,17 +27,16 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.AAC;
 using SM.Media.Buffering;
 using SM.Media.Configuration;
+using SM.Media.Content;
 using SM.Media.MP3;
 using SM.Media.Segments;
 using SM.Media.Utility;
-using SM.Media.Web;
 using SM.TsParser;
 
 namespace SM.Media
@@ -73,11 +72,11 @@ namespace SM.Media
         #endregion
 
         const int MaxBuffers = 8;
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
         readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
         readonly IBufferingPolicy _bufferingPolicy;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
-        readonly FifoTaskScheduler _fifoTaskScheduler = new FifoTaskScheduler(CancellationToken.None);
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaStreamSource _mediaStreamSource;
         readonly Action<IProgramStreams> _programStreamsHandler;
@@ -87,7 +86,7 @@ namespace SM.Media
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(MediaManagerParameters mediaManagerParameters)
+        public TsMediaManager(IMediaManagerParameters mediaManagerParameters)
         {
             _segmentReaderManager = mediaManagerParameters.SegmentReaderManager;
             _mediaElementManager = mediaManagerParameters.MediaElementManager;
@@ -112,7 +111,7 @@ namespace SM.Media
 
             ResetCancellationToken();
 
-            // Start with a cancelled token (i.e., we are not playing)
+            // Start with a canceled token (i.e., we are not playing)
             _playbackCancellationTokenSource.Cancel();
         }
 
@@ -140,6 +139,9 @@ namespace SM.Media
             { }
 
             using (_closeCancellationTokenSource)
+            { }
+
+            using (_asyncFifoWorker)
             { }
         }
 
@@ -278,7 +280,7 @@ namespace SM.Media
 
                 StartReaders();
 
-                await _mediaElementManager.SetSourceAsync(_mediaStreamSource).ConfigureAwait(false);
+                //await _mediaElementManager.SetSourceAsync(_mediaStreamSource).ConfigureAwait(false);
 
                 return;
             }
@@ -349,81 +351,91 @@ namespace SM.Media
 
             reader.BufferingManager = _bufferingManagerFactory(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples, _bufferingPolicy);
 
-            Action<IProgramStreams> programStreamsHandler = null;
-
             await startReaderTask.ConfigureAwait(false);
 
-            var firstSegment = await reader.SegmentReaders.Manager.Playlist.FirstOrDefaultAsync().ConfigureAwait(false);
+            var contentType = reader.SegmentReaders.Manager.ContentType;
 
-            if (null == firstSegment)
-                throw new FileNotFoundException();
-
-            var ext = firstSegment.Url.GetExtension();
-
-            if (null != ext)
-            {
-                if (string.Equals(ext, ".mp3", StringComparison.OrdinalIgnoreCase))
-                {
-                    var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
-
-                    mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
-
-                    reader.MediaParser = mediaParser;
-
-                    reader.ExpectedStreamCount = 1;
-                }
-                else if (string.Equals(ext, ".aac", StringComparison.OrdinalIgnoreCase))
-                {
-                    var mediaParser = new AacMediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
-
-                    mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
-
-                    reader.MediaParser = mediaParser;
-
-                    reader.ExpectedStreamCount = 1;
-                }
-            }
-
-            if (null == reader.MediaParser)
-            {
-                var tsTimestamp = new TsTimestamp();
-
-                reader.MediaParser = new TsMediaParser(
-                    (streamType, tsDecoder) => new StreamBuffer(streamType, tsDecoder.PesPacketPool.FreePesPacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
-                    tsTimestamp,
-                    mediaStream =>
-                    {
-                        mediaStream.ConfigurationComplete +=
-                            (sender, args) => SendConfigurationComplete(args, localReader);
-                    });
-
-                reader.ExpectedStreamCount = 2;
-
-                if (null == _programStreamsHandler)
-                {
-                    programStreamsHandler = pss =>
-                                            {
-                                                var count = DefaultProgramStreamsHandler(pss);
-
-                                                localReader.ExpectedStreamCount = count;
-                                            };
-                }
-                else
-                {
-                    var localHandler = _programStreamsHandler;
-
-                    programStreamsHandler = pss =>
-                                            {
-                                                localHandler(pss);
-
-                                                localReader.ExpectedStreamCount = pss.Streams.Count(s => !s.BlockStream);
-                                            };
-                }
-            }
-
-            reader.MediaParser.Initialize(programStreamsHandler);
+            InitializeMediaParser(reader, contentType);
 
             return reader;
+        }
+
+        void InitializeMediaParser(ReaderPipeline reader, ContentType contentType)
+        {
+            Debug.WriteLine("TsMediaManager.InitializeMediaParser() for " + contentType);
+
+            if (Equals(ContentTypes.Mp3, contentType))
+                InitializeMp3MediaParser(reader);
+            else if (Equals(ContentTypes.Aac, contentType))
+                InitializeAacMediaParser(reader);
+            else
+                InitializeTsMediaParser(reader);
+        }
+
+        void InitializeAacMediaParser(ReaderPipeline reader)
+        {
+            var mediaParser = new AacMediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+
+            mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
+
+            InitializeMediaParser(reader, mediaParser, 1);
+        }
+
+        void InitializeMp3MediaParser(ReaderPipeline reader)
+        {
+            var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+
+            mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
+
+            InitializeMediaParser(reader, mediaParser, 1);
+        }
+
+        void InitializeTsMediaParser(ReaderPipeline reader)
+        {
+            var tsTimestamp = new TsTimestamp();
+
+            var tsMediaParser = new TsMediaParser(
+                (streamType, tsDecoder) => new StreamBuffer(streamType, tsDecoder.PesPacketPool.FreePesPacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
+                tsTimestamp,
+                mediaStream =>
+                {
+                    mediaStream.ConfigurationComplete +=
+                        (sender, args) => SendConfigurationComplete(args, reader);
+                });
+
+            Action<IProgramStreams> programStreamsHandler;
+
+            if (null == _programStreamsHandler)
+            {
+                programStreamsHandler = pss =>
+                                        {
+                                            var count = DefaultProgramStreamsHandler(pss);
+
+                                            reader.ExpectedStreamCount = count;
+                                        };
+            }
+            else
+            {
+                var localHandler = _programStreamsHandler;
+
+                programStreamsHandler = pss =>
+                                        {
+                                            localHandler(pss);
+
+                                            reader.ExpectedStreamCount = pss.Streams.Count(s => !s.BlockStream);
+                                        };
+            }
+
+            InitializeMediaParser(reader, tsMediaParser, 2, programStreamsHandler);
+        }
+
+        static void InitializeMediaParser(ReaderPipeline reader, IMediaParser mediaParser, int expectedStreamCount, Action<IProgramStreams> programStreamsHandler = null)
+        {
+            reader.MediaParser = mediaParser;
+
+            reader.ExpectedStreamCount = expectedStreamCount;
+
+            reader.MediaParser.Initialize(programStreamsHandler);
         }
 
         static int DefaultProgramStreamsHandler(IProgramStreams pss)
@@ -747,44 +759,36 @@ namespace SM.Media
 
         void StartWork(Action action, CancellationToken cancellationToken, string description)
         {
-            var task = StartWorkAsync(action, cancellationToken);
-
-            TaskCollector.Default.Add(task, description);
+            _asyncFifoWorker.Post(async () => action());
         }
 
         void StartWork(Func<Task> func, CancellationToken cancellationToken, string description)
         {
-            var task = StartWorkAsync(func, cancellationToken);
-
-            TaskCollector.Default.Add(task, description);
-        }
-
-        Task StartWorkAsync(Action action, CancellationToken cancellationToken)
-        {
-            var task = Task.Factory.StartNew(action, cancellationToken, TaskCreationOptions.None, _fifoTaskScheduler);
-
-            return task;
-        }
-
-        Task StartWorkAsync(Func<Task> func, CancellationToken cancellationToken)
-        {
-            var task = Task.Factory.StartNew(func, cancellationToken, TaskCreationOptions.None, _fifoTaskScheduler);
-
-            return task.Unwrap();
+            _asyncFifoWorker.Post(func);
         }
 
         Task<TReturn> StartWorkAsync<TReturn>(Func<Task<TReturn>> func, CancellationToken cancellationToken)
         {
-            var task = Task.Factory.StartNew(func, cancellationToken, TaskCreationOptions.None, _fifoTaskScheduler);
+            var tcs = new TaskCompletionSource<TReturn>();
 
-            return task.Unwrap();
-        }
+            _asyncFifoWorker.PostAsync(() =>
+                                       {
+                                           var task = func();
 
-        Task<TReturn> StartWorkAsync<TReturn>(Func<TReturn> func, CancellationToken cancellationToken)
-        {
-            var task = Task.Factory.StartNew(func, cancellationToken, TaskCreationOptions.None, _fifoTaskScheduler);
+                                           task.ContinueWith(t =>
+                                                             {
+                                                                 if (t.IsCanceled)
+                                                                     tcs.TrySetCanceled();
+                                                                 else if (t.IsFaulted)
+                                                                     tcs.TrySetException(t.Exception);
+                                                                 else
+                                                                     tcs.TrySetResult(t.Result);
+                                                             }, cancellationToken);
 
-            return task;
+                                           return task;
+                                       });
+
+            return tcs.Task;
         }
 
         #region Nested type: ReaderPipeline

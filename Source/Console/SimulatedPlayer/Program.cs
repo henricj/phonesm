@@ -49,7 +49,7 @@ namespace SimulatedPlayer
                 using (var httpClients = new HttpClients(userAgent: userAgent, cookieContainer: cookies))
                 using (var simulator = new Simulator(httpClients))
                 {
-                    simulator.Run().Wait();
+                    simulator.Start();
 
                     Console.WriteLine("Press <enter> to exit");
 

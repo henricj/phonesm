@@ -31,7 +31,17 @@ using SM.TsParser;
 
 namespace SM.Media
 {
-    public class MediaManagerParameters
+    public interface IMediaManagerParameters
+    {
+        ISegmentReaderManager SegmentReaderManager { get; set; }
+        IMediaElementManager MediaElementManager { get; set; }
+        IMediaStreamSource MediaStreamSource { get; set; }
+        MediaManagerParameters.BufferingManagerFactoryDelegate BufferingManagerFactory { get; set; }
+        IBufferingPolicy BufferingPolicy { get; set; }
+        Action<IProgramStreams> ProgramStreamsHandler { get; set; }
+    }
+
+    public class MediaManagerParameters : IMediaManagerParameters
     {
         #region Delegates
 
@@ -46,6 +56,8 @@ namespace SM.Media
             MediaElementManager = new NullMediaElementManager();
         }
 
+        #region IMediaManagerParameters Members
+
         public ISegmentReaderManager SegmentReaderManager { get; set; }
         public IMediaElementManager MediaElementManager { get; set; }
         public IMediaStreamSource MediaStreamSource { get; set; }
@@ -54,5 +66,7 @@ namespace SM.Media
         public IBufferingPolicy BufferingPolicy { get; set; }
 
         public Action<IProgramStreams> ProgramStreamsHandler { get; set; }
+
+        #endregion
     }
 }

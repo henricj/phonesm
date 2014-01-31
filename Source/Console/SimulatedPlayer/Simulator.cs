@@ -25,11 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
 using SM.Media;
-using SM.Media.Playlists;
-using SM.Media.Segments;
 using SM.Media.Web;
 
 namespace SimulatedPlayer
@@ -37,10 +34,8 @@ namespace SimulatedPlayer
     sealed class Simulator : IDisposable
     {
         readonly IHttpClients _httpClients;
-        readonly SegmentsFactory _segmentsFactory;
-        ProgramManager _programManager;
-        SegmentReaderManager _segmentReaderManager;
-        TsMediaManager _tsMediaManager;
+        MediaStreamFascade _mediaStreamFascade;
+        MediaStreamFascadeParameters _mediaStreamFascadeParameters;
 
         public Simulator(IHttpClients httpClients)
         {
@@ -48,69 +43,36 @@ namespace SimulatedPlayer
                 throw new ArgumentNullException("httpClients");
 
             _httpClients = httpClients;
-
-            _segmentsFactory = new SegmentsFactory(_httpClients);
         }
 
         #region IDisposable Members
 
         public void Dispose()
         {
-            using (_tsMediaManager)
+            using (_mediaStreamFascade)
             { }
         }
 
         #endregion
 
-        public async Task Run()
+        public void Start()
         {
-            _programManager = new ProgramManager(_httpClients, _segmentsFactory.CreateStreamSegments)
-                              {
-                                  Playlists = new[]
-                                              {
-                                                  //new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
-                                                  new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
-                                              }
-                              };
-
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await _programManager.LoadAsync().ConfigureAwait(false);
-
-                var program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                    return;
-
-                subProgram = program.SubPrograms.FirstOrDefault();
-
-                if (null == subProgram)
-                    return;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Program load failed: " + ex.Message);
-                return;
-            }
-
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, _segmentsFactory.CreateStreamSegments);
-
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _segmentReaderManager = new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
+            _mediaStreamFascadeParameters = new MediaStreamFascadeParameters(_httpClients, () => new SimulatedMediaStreamSource(mediaElementManager));
 
-            var managerParameters = new MediaManagerParameters
-                                    {
-                                        SegmentReaderManager = _segmentReaderManager,
-                                        MediaElementManager = mediaElementManager,
-                                        MediaStreamSource = new SimulatedMediaStreamSource(mediaElementManager)
-                                    };
+            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, ((IMediaElementManager)mediaElementManager).SetSourceAsync);
 
-            _tsMediaManager = new TsMediaManager(managerParameters);
+            _mediaStreamFascade.Source = new Uri(
+                //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                );
 
-            _tsMediaManager.Play();
+            Thread.Sleep(750);
+
+            _mediaStreamFascade.Play();
+
+            //mediaElementManager.Play();
         }
     }
 }

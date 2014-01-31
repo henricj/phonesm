@@ -31,9 +31,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Content;
 using SM.Media.M3U8;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
@@ -50,6 +52,7 @@ namespace SM.Media.Playlists
         readonly object _segmentLock = new object();
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
         readonly ISubProgram _subProgram;
+        readonly IWebContentTypeDetector _webContentTypeDetector;
         readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         CancellationTokenSource _abortTokenSource;
         int _dynamicStartIndex;
@@ -57,6 +60,7 @@ namespace SM.Media.Playlists
         bool _isDynamicPlaylist;
         bool _isInitialized;
         bool _isRunning;
+        ContentType _playlistType;
         int _readSubListFailureCount;
         SignalTask _readTask;
         ISegment[] _segments;
@@ -64,24 +68,28 @@ namespace SM.Media.Playlists
         int _startSegmentIndex = -1;
         ICachedWebRequest _subPlaylistRequest;
 
-        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, Func<M3U8Parser, IStreamSegments> segmentsFactory)
-            : this(webRequestFactory, program, segmentsFactory, CancellationToken.None)
+        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, ContentType playlistType, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector)
+            : this(webRequestFactory, program, playlistType, segmentsFactory, webContentTypeDetector, CancellationToken.None)
         { }
 
-        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, Func<M3U8Parser, IStreamSegments> segmentsFactory, CancellationToken cancellationToken)
+        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, ContentType playlistType, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector, CancellationToken cancellationToken)
         {
             if (null == webRequestFactory)
                 throw new ArgumentNullException("webRequestFactory");
-
             if (null == program)
                 throw new ArgumentNullException("program");
-
+            if (null == playlistType)
+                throw new ArgumentNullException("playlistType");
             if (segmentsFactory == null)
                 throw new ArgumentNullException("segmentsFactory");
+            if (null == webContentTypeDetector)
+                throw new ArgumentNullException("webContentTypeDetector");
 
             _webRequestFactory = webRequestFactory;
             _subProgram = program;
+            _playlistType = playlistType;
             _segmentsFactory = segmentsFactory;
+            _webContentTypeDetector = webContentTypeDetector;
             _cancellationToken = cancellationToken;
 
             var p = PlaylistSettings.Parameters;
@@ -109,6 +117,12 @@ namespace SM.Media.Playlists
 
         #region ISegmentManager Members
 
+        public Uri Url { get; private set; }
+        public TimeSpan StartPosition { get; private set; }
+        public TimeSpan? Duration { get; private set; }
+        public ContentType ContentType { get; private set; }
+        public IAsyncEnumerable<ISegment> Playlist { get; private set; }
+
         public void Dispose()
         {
             if (0 != Interlocked.Exchange(ref _isDisposed, 1))
@@ -129,12 +143,7 @@ namespace SM.Media.Playlists
             _refreshTimer.Dispose();
         }
 
-        public Uri Url { get; private set; }
-        public TimeSpan StartPosition { get; private set; }
-        public TimeSpan? Duration { get; private set; }
-        public IAsyncEnumerable<ISegment> Playlist { get; private set; }
-
-        public Task StartAsync()
+        public async Task StartAsync()
         {
             ThrowIfDisposed();
 
@@ -159,7 +168,11 @@ namespace SM.Media.Playlists
                 _isRunning = true;
             }
 
-            return CleanupReader(oldReadTask, cancellationTokenSource);
+            await CleanupReader(oldReadTask, cancellationTokenSource).ConfigureAwait(false);
+
+            var segment = await Playlist.FirstOrDefaultAsync().ConfigureAwait(false);
+
+            ContentType = await _webContentTypeDetector.GetContentTypeAsync(segment.Url, _cancellationToken).ConfigureAwait(false);
         }
 
         public Task StopAsync()

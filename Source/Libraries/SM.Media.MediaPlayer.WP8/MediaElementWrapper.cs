@@ -64,7 +64,7 @@ namespace SM.Media.MediaPlayer
         ///     Creates a new instance of the MediaElementWrapper class.
         /// </summary>
         /// <param name="mediaStreamFascadeFactory"></param>
-        public MediaElementWrapper(Func<Func<MediaStreamSource, Task>, MediaStreamFascade> mediaStreamFascadeFactory)
+        public MediaElementWrapper(Func<Func<IMediaStreamSource, Task>, MediaStreamFascade> mediaStreamFascadeFactory)
         {
             if (mediaStreamFascadeFactory == null)
                 throw new ArgumentNullException("mediaStreamFascadeFactory");
@@ -497,13 +497,15 @@ namespace SM.Media.MediaPlayer
             Close();
         }
 
-        public Task SetSourceAsync(MediaStreamSource mediaStreamSource)
+        public Task SetSourceAsync(IMediaStreamSource mediaStreamSource)
         {
             Debug.WriteLine("MediaElementWrapper.SetSourceAsync()");
 
+            var mss = (MediaStreamSource) mediaStreamSource;
+
             return Dispatcher.DispatchAsync(() =>
                                             {
-                                                SetSource(mediaStreamSource);
+                                                SetSource(mss);
 
                                                 var task = StartPlaybackAsync();
 
@@ -550,7 +552,7 @@ namespace SM.Media.MediaPlayer
             if (await TryStartPlaybackAsync().ConfigureAwait(false))
                 return;
 
-            await _mediaStreamFascade.StartPlaybackAsync().ConfigureAwait(false);
+            _mediaStreamFascade.Play();
         }
 
         public void Cleanup()

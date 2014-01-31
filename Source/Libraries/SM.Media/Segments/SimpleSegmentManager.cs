@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SM.Media.Content;
 using SM.Media.Utility;
 
 namespace SM.Media.Segments
@@ -34,6 +35,7 @@ namespace SM.Media.Segments
     public sealed class SimpleSegmentManager : ISegmentManager, IAsyncEnumerable<ISegment>
     {
         static readonly Task<TimeSpan> TimeSpanZeroTask;
+        readonly ContentType _contentType;
         readonly IEnumerable<Uri> _urls;
 
         static SimpleSegmentManager()
@@ -44,8 +46,12 @@ namespace SM.Media.Segments
             TimeSpanZeroTask = tcs.Task;
         }
 
-        public SimpleSegmentManager(IEnumerable<Uri> urls)
+        public SimpleSegmentManager(IEnumerable<Uri> urls, ContentType contentType)
         {
+            if (urls == null)
+                throw new ArgumentNullException("urls");
+
+            _contentType = contentType;
             _urls = urls;
         }
 
@@ -96,6 +102,11 @@ namespace SM.Media.Segments
         public TimeSpan? Duration
         {
             get { return null; }
+        }
+
+        public ContentType ContentType
+        {
+            get { return _contentType; }
         }
 
         public IAsyncEnumerable<ISegment> Playlist

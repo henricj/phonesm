@@ -25,69 +25,61 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.Playlists;
+using SM.Media.Content;
 using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
     public interface ISegmentManagerFactory
     {
-        Task<ISegmentManager> CreateAsync(Uri source, string ext);
+        Task<ISegmentManager> CreateAsync(Uri source, ContentType contentType, CancellationToken cancellationToken);
+        Task<ISegmentManager> CreateAsync(Uri source, CancellationToken cancellationToken);
     }
 
     public class SegmentManagerFactory : ISegmentManagerFactory
     {
-        readonly Dictionary<string, Func<Uri, Task<ISegmentManager>>> _factories =
-            new Dictionary<string, Func<Uri, Task<ISegmentManager>>>(StringComparer.OrdinalIgnoreCase)
-            {
-                { ".mp3", CreateSimple },
-                { ".aac", CreateSimple },
-                { ".ts", CreateSimple }
-            };
+        static readonly Task<ISegmentManager> NoHandler = TaskEx.FromResult(null as ISegmentManager);
+        readonly Func<ContentType, SegmentManagerFactoryDelegate> _factoryFinder;
+        readonly IWebContentTypeDetector _webContentTypeDetector;
 
-        readonly PlaylistSegmentManagerFactory _playlistSegmentManagerFactory;
-
-        public SegmentManagerFactory(PlaylistSegmentManagerFactory playlistSegmentManagerFactory)
+        public SegmentManagerFactory(IWebContentTypeDetector webContentTypeDetector, Func<ContentType, SegmentManagerFactoryDelegate> factoryFinder)
         {
-            _playlistSegmentManagerFactory = playlistSegmentManagerFactory;
+            if (null == webContentTypeDetector)
+                throw new ArgumentNullException("webContentTypeDetector");
+            if (null == factoryFinder)
+                throw new ArgumentNullException("factoryFinder");
 
-            _factories[".m3u8"] = CreatePlaylist;
-            _factories[".m3u"] = CreatePlaylist;
+            _webContentTypeDetector = webContentTypeDetector;
+            _factoryFinder = factoryFinder;
         }
 
         #region ISegmentManagerFactory Members
 
-        public Task<ISegmentManager> CreateAsync(Uri source, string ext)
+        public virtual Task<ISegmentManager> CreateAsync(Uri source, ContentType contentType, CancellationToken cancellationToken)
         {
-            Func<Uri, Task<ISegmentManager>> factory;
-            if (null != ext && _factories.TryGetValue(ext, out factory))
-                return factory(source);
+            if (null == contentType)
+                throw new ArgumentNullException("contentType");
 
-            return CreatePlaylist(source);
+            var factory = _factoryFinder(contentType);
+
+            if (null != factory)
+                return factory(source, contentType, cancellationToken);
+
+            return NoHandler;
+        }
+
+        public virtual async Task<ISegmentManager> CreateAsync(Uri source, CancellationToken cancellationToken)
+        {
+            var contentType = await _webContentTypeDetector.GetContentTypeAsync(source, cancellationToken);
+
+            if (null == contentType)
+                return null;
+
+            return await CreateAsync(source, contentType, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion
-
-        Task<ISegmentManager> CreatePlaylist(Uri source)
-        {
-            return _playlistSegmentManagerFactory.CreatePlaylistSegmentManager(source);
-        }
-
-        static Task<ISegmentManager> CreateSimple(Uri source)
-        {
-            return TaskEx.FromResult(new SimpleSegmentManager(new[] { source }) as ISegmentManager);
-        }
-    }
-
-    public static class SegmentManagerFactoryExtensions
-    {
-        public static Task<ISegmentManager> CreateDefaultAsync(this ISegmentManagerFactory segmentManagerFactory, Uri source, string defaultType = ".m3u8")
-        {
-            var ext = source.GetExtension() ?? defaultType;
-
-            return segmentManagerFactory.CreateAsync(source, ext);
-        }
     }
 }

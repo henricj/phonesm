@@ -26,7 +26,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -35,8 +34,6 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using SM.Media;
-using SM.Media.Playlists;
-using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -63,17 +60,57 @@ namespace NasaTv8
         //}
 
         static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
-        readonly IHttpClients _httpClients;
-        MediaElementManager _mediaElementManager;
-        PlaylistSegmentManager _playlist;
-        ITsMediaManager _tsMediaManager;
-        TsMediaStreamSource _tsMediaStreamSource;
+        readonly MediaElementManager _mediaElementManager;
+        readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
+        MediaStreamFascade _mediaStreamFascade;
 
         public MainPage()
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+
+            _mediaElementManager = new MediaElementManager(Dispatcher,
+                () =>
+                {
+                    var me = new MediaElement
+                             {
+                                 Margin = new Thickness(0)
+                             };
+
+                    me.MediaFailed += mediaElement1_MediaFailed;
+                    me.MediaEnded += mediaElement1_MediaEnded;
+                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
+
+                    ContentPanel.Children.Add(me);
+
+                    mediaElement1 = me;
+
+                    UpdateState(MediaElementState.Opening);
+
+                    return me;
+                },
+                me =>
+                {
+                    if (null != mediaElement1)
+                    {
+                        Debug.Assert(ReferenceEquals(me, mediaElement1));
+
+                        ContentPanel.Children.Remove(me);
+
+                        me.MediaFailed -= mediaElement1_MediaFailed;
+                        me.MediaEnded -= mediaElement1_MediaEnded;
+                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+
+                        mediaElement1 = null;
+                    }
+
+                    UpdateState(MediaElementState.Closed);
+                });
+
+            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
+
+            _mediaStreamFascadeParameters.MediaManagerParameters.MediaElementManager = _mediaElementManager;
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
@@ -117,12 +154,12 @@ namespace NasaTv8
             LayoutRoot.Background.Opacity = 1;
         }
 
-        async void playButton_Click(object sender, EventArgs e)
+        void playButton_Click(object sender, EventArgs e)
         {
             Debug.WriteLine("Play clicked");
 
             // Try to avoid shattering MediaElement's glass jaw.
-            if (MediaElementState.Closed != mediaElement1.CurrentState)
+            if (null != mediaElement1 && MediaElementState.Closed != mediaElement1.CurrentState)
             {
                 CleanupMedia();
 
@@ -131,125 +168,23 @@ namespace NasaTv8
 
             OnPlay();
 
-            if (null != _playlist)
+            if (null != _mediaStreamFascade)
             {
-                _playlist.Dispose();
-                _playlist = null;
+                _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+                _mediaStreamFascade.DisposeSafe();
             }
 
-            if (null != _tsMediaStreamSource)
-            {
-                _tsMediaStreamSource.Dispose();
-                _tsMediaStreamSource = null;
-            }
+            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, _mediaElementManager.SetSourceAsync)
+                                  {
+                                      Source = new Uri(
+                                          "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                                          //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                                          )
+                                  };
 
-            var segmentsFactory = new SegmentsFactory(_httpClients);
+            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
 
-            var programManager = new ProgramManager(_httpClients, segmentsFactory.CreateStreamSegments)
-                                 {
-                                     Playlists = new[] { new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8") }
-                                 };
-            //var programManager = new ProgramManager { Playlists = new[] { new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8") } };
-
-            Program program;
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await programManager.LoadAsync();
-
-                program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    errorBox.Text = "No programs found";
-                    errorBox.Visibility = Visibility.Visible;
-                    playButton.IsEnabled = true;
-
-                    return;
-                }
-
-                subProgram = program.SubPrograms.FirstOrDefault();
-
-                if (null == subProgram)
-                {
-                    errorBox.Text = "No program streams found";
-                    errorBox.Visibility = Visibility.Visible;
-                    playButton.IsEnabled = true;
-
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                errorBox.Text = ex.Message;
-                errorBox.Visibility = Visibility.Visible;
-                playButton.IsEnabled = true;
-
-                return;
-            }
-
-            var programClient = _httpClients.CreatePlaylistClient(program.Url);
-
-            _playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
-
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                () =>
-                {
-                    var me = new MediaElement
-                             {
-                                 Margin = new Thickness(0)
-                             };
-
-                    me.MediaFailed += mediaElement1_MediaFailed;
-                    me.MediaEnded += mediaElement1_MediaEnded;
-                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
-
-                    ContentPanel.Children.Add(me);
-
-                    mediaElement1 = me;
-
-                    UpdateState(MediaElementState.Opening);
-
-                    return me;
-                },
-                me =>
-                {
-                    if (null != mediaElement1)
-                    {
-                        Debug.Assert(ReferenceEquals(me, mediaElement1));
-
-                        ContentPanel.Children.Remove(me);
-
-                        me.MediaFailed -= mediaElement1_MediaFailed;
-                        me.MediaEnded -= mediaElement1_MediaEnded;
-                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
-
-                        mediaElement1 = null;
-                    }
-
-                    UpdateState(MediaElementState.Closed);
-                });
-
-            var segmentReaderManager = new SegmentReaderManager(new[] { _playlist }, _httpClients.CreateSegmentClient);
-
-            if (null != _tsMediaManager)
-                _tsMediaManager.OnStateChange -= TsMediaManagerOnStateChange;
-
-            _tsMediaStreamSource = new TsMediaStreamSource();
-
-            var mediaManagerParameters = new MediaManagerParameters
-            {
-                SegmentReaderManager = segmentReaderManager,
-                MediaElementManager = _mediaElementManager,
-                MediaStreamSource = _tsMediaStreamSource
-            };
-
-            _tsMediaManager = new TsMediaManager(mediaManagerParameters);
-
-            _tsMediaManager.OnStateChange += TsMediaManagerOnStateChange;
-
-            _tsMediaManager.Play();
+            _mediaStreamFascade.Play();
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -264,11 +199,8 @@ namespace NasaTv8
 
         void CleanupMedia()
         {
-            //mediaElement1.Stop();
-            //mediaElement1.Source = null;
-
-            if (null != _tsMediaManager)
-                _tsMediaManager.Close();
+            if (null != _mediaStreamFascade)
+                _mediaStreamFascade.RequestStop();
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)

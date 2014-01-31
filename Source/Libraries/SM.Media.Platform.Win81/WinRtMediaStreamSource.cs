@@ -268,8 +268,21 @@ namespace SM.Media
 
             mediaStreamSource.Starting += MediaStreamSourceOnStarting;
             mediaStreamSource.SampleRequested += MediaStreamSourceOnSampleRequested;
+            mediaStreamSource.Closed += MediaStreamSourceOnClosed;
 
             return mediaStreamSource;
+        }
+
+        void MediaStreamSourceOnClosed(MediaStreamSource sender, MediaStreamSourceClosedEventArgs args)
+        {
+            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() reason: " + args.Request.Reason);
+
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManager has not been initialized");
+
+            mediaManager.CloseMedia();
         }
 
         void MediaStreamSourceOnSampleRequested(MediaStreamSource sender, MediaStreamSourceSampleRequestedEventArgs args)

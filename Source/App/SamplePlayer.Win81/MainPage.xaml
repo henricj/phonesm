@@ -11,7 +11,7 @@
     <Grid x:Name="LayoutRoot"
           Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" MinHeight="50"/>
+            <RowDefinition Height="*" MinHeight="50" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -83,7 +83,8 @@
                           AutoPlay="True"
                           MediaFailed="mediaElement1_MediaFailed"
                           MediaEnded="mediaElement1_MediaEnded"
-                          CurrentStateChanged="mediaElement1_CurrentStateChanged" />
+                          CurrentStateChanged="mediaElement1_CurrentStateChanged"
+                          BufferingProgressChanged="mediaElement1_BufferingProgressChanged" />
         </Grid>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are

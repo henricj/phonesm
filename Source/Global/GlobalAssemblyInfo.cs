@@ -33,10 +33,10 @@ using System.Resources;
 
 [assembly: AssemblyCompany("Henric Jungheim")]
 [assembly: AssemblyProduct("Streaming Media")]
-[assembly: AssemblyCopyright("Copyright © 2011-2013 Henric Jungheim")]
+[assembly: AssemblyCopyright("Copyright © 2011-2014 Henric Jungheim")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: NeutralResourcesLanguage("en")]
+[assembly: NeutralResourcesLanguage("en-US")]
 
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]

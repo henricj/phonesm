@@ -5,7 +5,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 // Copyright (c) 2013 Mikael Koskinen <mikael.koskinen@live.com>
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,101 +26,159 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using Microsoft.Phone.BackgroundAudio;
-using SM.Media.Playlists;
-using SM.Media.Segments;
+using Microsoft.Phone.Info;
+using SM.Media.Buffering;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;
-using IProgramStream = SM.TsParser.IProgramStream;
 
 namespace SM.Media.BackgroundAudioStreamingAgent
 {
     /// <summary>
-    /// A background agent that performs per-track streaming for playback
+    ///     A background agent that performs per-track streaming for playback
     /// </summary>
-    public class AudioTrackStreamer : AudioStreamingAgent, IMediaElementManager
+    public class AudioTrackStreamer : AudioStreamingAgent
     {
-        private AudioStreamer currentStreamer;
-        private TsMediaManager tsMediaManager;
+        MediaStreamFascade _mediaStreamFascade;
+        readonly IMediaStreamFascadeParameters _mediaStreamFascadeParameters;
+        static readonly ApplicationInformation ApplicationInformation = new ApplicationInformation();
 
-        protected async override void OnBeginStreaming(AudioTrack track, AudioStreamer streamer)
+        public AudioTrackStreamer()
         {
-            GlobalPlatformServices.Default = new PlatformServices();
-            currentStreamer = streamer;
+            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
-            var httpClients = new HttpClients();
-            var segmentsFactory = new SegmentsFactory(httpClients);
+            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
 
-            var programManager = new ProgramManager(httpClients, segmentsFactory.CreateStreamSegments)
-                                     {
-                                         Playlists = new[] { new Uri(track.Tag) }
-                                     };
-
-            var programs = await programManager.LoadAsync();
-            var program = programs.Values.First();
-            var subProgram = program.SubPrograms.First();
-
-            var programClient = httpClients.CreatePlaylistClient(program.Url);
-            var playlist = new PlaylistSegmentManager(uri => new CachedWebRequest(uri, programClient), subProgram, segmentsFactory.CreateStreamSegments);
-            var segmentReaderManager = new SegmentReaderManager(new[] { playlist }, httpClients.CreateSegmentClient);
-
-            var tsMediaStreamSource = new TsMediaStreamSource();
-            var mediaManagerParameters = new MediaManagerParameters
-            {
-                SegmentReaderManager = segmentReaderManager,
-                MediaElementManager = this,
-                MediaStreamSource = tsMediaStreamSource,
-                ProgramStreamsHandler = streams =>
+            _mediaStreamFascadeParameters.MediaManagerParameters.ProgramStreamsHandler =
+                streams =>
                 {
-                    IProgramStream firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
+                    var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
 
-                    IEnumerable<IProgramStream> others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
+                    var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
                     foreach (
-                        IProgramStream programStream in others)
+                        var programStream in others)
                         programStream.BlockStream = true;
-                }
-            };
+                };
 
-            tsMediaManager = new TsMediaManager(mediaManagerParameters);
-            tsMediaManager.OnStateChange += TsMediaManagerOnOnStateChange;
-            tsMediaManager.Play();
+            _mediaStreamFascadeParameters.MediaManagerParameters.BufferingPolicy =
+                new DefaultBufferingPolicy
+                {
+                    BytesMinimum = 200 * 1024
+                };
         }
 
-        private void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+#if DEBUG
+        readonly Timer _memoryPoll = new Timer(
+            _ => Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
+                DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB()));
+
+#endif
+
+        [Conditional("DEBUG")]
+        void StartPoll()
+        {
+#if DEBUG
+            Debug.WriteLine("<Limit {0:F}MiB>", DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+            _memoryPoll.Change(TimeSpan.Zero, TimeSpan.FromSeconds(15));
+#endif
+        }
+
+        [Conditional("DEBUG")]
+        void StopPoll()
+        {
+#if DEBUG
+            _memoryPoll.Change(Timeout.Infinite, Timeout.Infinite);
+#endif
+        }
+
+        protected override void OnBeginStreaming(AudioTrack track, AudioStreamer streamer)
+        {
+            try
+            {
+                if (null == GlobalPlatformServices.Default)
+                    GlobalPlatformServices.Default = new PlatformServices();
+
+                if (null == track.Tag)
+                {
+                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() null url");
+
+                    NotifyComplete();
+
+                    return;
+                }
+
+                Uri url;
+                if (!Uri.TryCreate(track.Tag, UriKind.Absolute, out url))
+                {
+                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() invalid url: " + track.Tag);
+
+                    NotifyComplete();
+
+                    return;
+                }
+
+                if (null != _mediaStreamFascade)
+                {
+                    _mediaStreamFascade.StateChange -= TsMediaManagerOnOnStateChange;
+                    _mediaStreamFascade.DisposeSafe();
+                }
+
+                _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, mss => SetSourceAsync(mss, streamer))
+                                      {
+                                          Source = url
+                                      };
+
+                _mediaStreamFascade.StateChange += TsMediaManagerOnOnStateChange;
+
+                _mediaStreamFascade.Play();
+
+                StartPoll();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.OnBeginStreamingAudio() failed: " + ex.Message);
+                NotifyComplete();
+            }
+        }
+
+        void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             var message = string.Format("Media manager state in background agent: {0}, message: {1}", tsMediaManagerStateEventArgs.State,
-                                        tsMediaManagerStateEventArgs.Message);
+                tsMediaManagerStateEventArgs.Message);
             Debug.WriteLine(message);
         }
 
-
         /// <summary>
-        /// Called when the agent request is getting cancelled
-        /// The call to base.OnCancel() is necessary to release the background streaming resources
+        ///     Called when the agent request is getting cancelled
+        ///     The call to base.OnCancel() is necessary to release the background streaming resources
         /// </summary>
         protected override void OnCancel()
         {
+            Debug.WriteLine("AudioTrackStreamer.OnCancel()");
+
+            if (null != _mediaStreamFascade)
+                _mediaStreamFascade.RequestStop();
+
+            StopPoll();
+
             base.OnCancel();
         }
 
-        public Task SetSourceAsync(IMediaStreamSource source)
+        Task SetSourceAsync(IMediaStreamSource source, AudioStreamer streamer)
         {
+            Debug.WriteLine("AudioTrackStreamer.SetSourceAsync()");
+
             var mediaStreamSource = (MediaStreamSource)source;
 
-            currentStreamer.SetSource(mediaStreamSource);
+            streamer.SetSource(mediaStreamSource);
 
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Task CloseAsync()
-        {
-            NotifyComplete();
             return TplTaskExtensions.CompletedTask;
         }
     }

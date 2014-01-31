@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ContentTypes.cs" company="Henric Jungheim">
+//  <copyright file="PlsTrack.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,24 +24,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Collections.Generic;
+using System;
 
-namespace SM.Media.Content
+namespace SM.Media.Pls
 {
-    public static class ContentTypes
+    public class PlsTrack
     {
-        public static readonly ContentType Mp3 = new ContentType("MP3", ContentKind.Audio, ".mp3", "audio/mpeg", new[] { "audio/mpeg3", "audio/x-mpeg-3", "audio/x-mp3" });
-        public static readonly ContentType Aac = new ContentType("AAC", ContentKind.Audio, ".aac", "audio/aac");
-        public static readonly ContentType TransportStream = new ContentType("MPEG-2 Transport Stream", ContentKind.Container, ".ts", "video/MP2T");
-        public static readonly ContentType M3U8 = new ContentType("M3U8 Playlist", ContentKind.Playlist, ".m3u8", "application/vnd.apple.mpegurl", new[] { "application/x-mpegURL" });
-        public static readonly ContentType M3U = new ContentType("M3U Playlist", ContentKind.Playlist, ".m3u", "application/x-mpegURL");
-        public static readonly ContentType Pls = new ContentType("PLS Playlist", ContentKind.Playlist, ".pls", "audio/x-scpls");
-
-        static readonly ContentType[] AllContentTypes = { Mp3, Aac, TransportStream, M3U8, M3U, Pls };
-
-        public static IEnumerable<ContentType> AllTypes
-        {
-            get { return AllContentTypes; }
-        }
+        public string File { get; set; }
+        public string Title { get; set; }
+        public TimeSpan? Length { get; set; }
     }
 }

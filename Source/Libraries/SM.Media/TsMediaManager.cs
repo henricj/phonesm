@@ -96,16 +96,16 @@ namespace SM.Media
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
 
             if (null == _segmentReaderManager)
-                throw new ArgumentNullException("segmentReaderManager");
+                throw new ArgumentException("SegmentReaderManager cannot be null", "mediaManagerParameters");
 
             if (null == _mediaElementManager)
-                throw new ArgumentNullException("mediaElementManager");
+                throw new ArgumentException("MediaElementManager cannot be null", "mediaManagerParameters");
 
             if (null == _mediaStreamSource)
-                throw new ArgumentNullException("mediaStreamSource");
+                throw new ArgumentException("MediaStreamSource cannot be null", "mediaManagerParameters");
 
             if (null == _bufferingManagerFactory)
-                throw new ArgumentException("bufferingManagerFactory");
+                throw new ArgumentException("BufferingManagerFactory cannot be null", "mediaManagerParameters");
 
             _mediaStreamSource.MediaManager = this;
 
@@ -151,13 +151,12 @@ namespace SM.Media
 
         public void OpenMedia()
         {
-            StartWork(() =>
-                      {
-                          State = MediaState.OpenMedia;
+            _asyncFifoWorker.Post(() =>
+                                  {
+                                      State = MediaState.OpenMedia;
 
-                          CheckConfigurationCompleted();
-                      },
-                _closeCancellationTokenSource.Token, "TsMediaManager.OpenMedia");
+                                      CheckConfigurationCompleted();
+                                  });
         }
 
         public void CloseMedia()
@@ -182,12 +181,12 @@ namespace SM.Media
 
         public void Play()
         {
-            StartWork(() => PlayAsync(_segmentReaderManager), _closeCancellationTokenSource.Token, "TsMediaManager.Play");
+            _asyncFifoWorker.Post(() => PlayAsync(_segmentReaderManager));
         }
 
         public void Close()
         {
-            StartWork((Func<Task>)CloseAsync, CancellationToken.None, "TsMediaManager.Close");
+            _asyncFifoWorker.Post(CloseAsync);
         }
 
         public void Pause()
@@ -477,7 +476,7 @@ namespace SM.Media
 
         void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)
         {
-            StartWork(() => ConfigurationComplete(args, reader), _playbackCancellationTokenSource.Token, "TsMediaManager.SendConfigurationComplete");
+            _asyncFifoWorker.Post(() => ConfigurationComplete(args, reader));
         }
 
         void ConfigurationComplete(ConfigurationEventArgs eventArgs, ReaderPipeline reader)
@@ -755,16 +754,6 @@ namespace SM.Media
             StartReaders();
 
             return actualPosition;
-        }
-
-        void StartWork(Action action, CancellationToken cancellationToken, string description)
-        {
-            _asyncFifoWorker.Post(async () => action());
-        }
-
-        void StartWork(Func<Task> func, CancellationToken cancellationToken, string description)
-        {
-            _asyncFifoWorker.Post(func);
         }
 
         Task<TReturn> StartWorkAsync<TReturn>(Func<Task<TReturn>> func, CancellationToken cancellationToken)

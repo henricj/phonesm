@@ -117,7 +117,12 @@ namespace SM.Media
             Debug.WriteLine("TsMediaStreamSource.Dispose()");
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
 
-            _isClosed = true;
+            lock (_stateLock)
+            {
+                _isClosed = true;
+            }
+
+            _drainCompleted.Set();
 
             if (null != _taskScheduler)
                 _taskScheduler.Dispose();
@@ -145,7 +150,9 @@ namespace SM.Media
 
         public void ReportError(string message)
         {
-            Task.Factory.StartNew(() => ErrorOccurred(message), CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
+            var task = Task.Factory.StartNew(() => ErrorOccurred(message), CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
+
+            TaskCollector.Default.Add(task, "TsMediaStreamSource ReportError");
         }
 
         public Task CloseAsync()
@@ -486,20 +493,24 @@ namespace SM.Media
 
             mediaSourceAttributes[MediaSourceAttributesKeys.CanSeek] = canSeek.ToString();
 
-            Task.Factory.StartNew(() =>
-                                  {
-                                      Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
+            var task = Task.Factory.StartNew(() =>
+                                             {
+                                                 Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted ({0} streams)", msd.Count);
 
-                                      foreach (var kv in mediaSourceAttributes)
-                                          Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
+                                                 _taskScheduler.ThrowIfNotOnThread();
 
-                                      ValidateEvent(canSeek
-                                          ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
-                                          : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
-                                      ReportOpenMediaCompleted(mediaSourceAttributes, msd);
+                                                 foreach (var kv in mediaSourceAttributes)
+                                                     Debug.WriteLine("TsMediaStreamSource: ReportOpenMediaCompleted {0} = {1}", kv.Key, kv.Value);
 
-                                      State = canSeek ? SourceState.Seek : SourceState.Play;
-                                  }, CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
+                                                 ValidateEvent(canSeek
+                                                     ? MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted
+                                                     : MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompletedLive);
+                                                 ReportOpenMediaCompleted(mediaSourceAttributes, msd);
+
+                                                 State = canSeek ? SourceState.Seek : SourceState.Play;
+                                             }, CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
+
+            TaskCollector.Default.Add(task, "TsMediaStreamSource CompleteConfigure");
 
             //ReportGetSampleProgress(0);
         }
@@ -646,6 +657,17 @@ namespace SM.Media
 
                 _state = SourceState.Closed;
             }
+
+            var task = Task.Factory.StartNew(CloseMediaHandler, CancellationToken.None, TaskCreationOptions.None, _taskScheduler);
+
+            TaskCollector.Default.Add(task, "TsMediaStreamSource CloseMedia");
+        }
+
+        void CloseMediaHandler()
+        {
+            Debug.WriteLine("TsMediaStreamSource.CloseMedia()");
+
+            _taskScheduler.ThrowIfNotOnThread();
 
             _drainCompleted.Set();
 

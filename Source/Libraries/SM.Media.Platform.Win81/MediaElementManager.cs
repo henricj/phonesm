@@ -34,30 +34,6 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class NoOpMediaElementManager : IMediaElementManager
-    {
-        #region IMediaElementManager Members
-
-        public Task SetSourceAsync(IMediaStreamSource source)
-        {
-            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
-
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Task CloseAsync()
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        #endregion
-
-        public Task Dispatch(Action action)
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-    }
-
     public class MediaElementManager : IMediaElementManager
     {
         readonly Func<MediaElement> _createMediaElement;

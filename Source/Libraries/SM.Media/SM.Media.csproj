@@ -75,6 +75,7 @@
     <Compile Include="AAC\AacDecoderSettings.cs" />
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
+    <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
     <Compile Include="Buffering\BufferingDefaults.cs" />

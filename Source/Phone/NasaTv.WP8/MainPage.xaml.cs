@@ -59,7 +59,7 @@ namespace NasaTv8
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
 
-        static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
+        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly MediaElementManager _mediaElementManager;
         readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
         MediaStreamFascade _mediaStreamFascade;

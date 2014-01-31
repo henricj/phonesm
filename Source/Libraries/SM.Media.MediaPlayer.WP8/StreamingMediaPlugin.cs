@@ -34,7 +34,7 @@ namespace SM.Media.MediaPlayer
 {
     public class StreamingMediaPlugin : IMediaPlugin
     {
-        static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
+        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         IHttpClients _httpClients;
         MediaElementWrapper _mediaElement;
 

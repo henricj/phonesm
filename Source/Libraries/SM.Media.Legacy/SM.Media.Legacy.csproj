@@ -224,6 +224,9 @@
     <Compile Include="..\SM.Media\Segments\SegmentManagerFactory.cs">
       <Link>Segments\SegmentManagerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\ApplicationInformation.cs">
+      <Link>Utility\ApplicationInformation.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\AsyncFifoWorker.cs">
       <Link>Utility\AsyncFifoWorker.cs</Link>
     </Compile>

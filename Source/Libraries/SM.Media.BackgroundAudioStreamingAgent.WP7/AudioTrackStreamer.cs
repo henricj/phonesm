@@ -47,7 +47,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     {
         MediaStreamFascade _mediaStreamFascade;
         readonly IMediaStreamFascadeParameters _mediaStreamFascadeParameters;
-        static readonly ApplicationInformation ApplicationInformation = new ApplicationInformation();
+        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
 
         public AudioTrackStreamer()
         {

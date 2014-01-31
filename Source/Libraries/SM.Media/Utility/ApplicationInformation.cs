@@ -1,10 +1,10 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  <copyright file="ApplicationInformation.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,9 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Diagnostics;
-using System.Xml;
-
 namespace SM.Media.Utility
 {
     public class ApplicationInformation : IApplicationInformation
@@ -34,20 +31,10 @@ namespace SM.Media.Utility
         readonly string _title;
         readonly string _version;
 
-        public ApplicationInformation()
+        public ApplicationInformation(string title, string version)
         {
-            using (var rdr = XmlReader.Create("WMAppManifest.xml",
-                new XmlReaderSettings
-                {
-                    XmlResolver = new XmlXapResolver()
-                }))
-            {
-                if (!rdr.ReadToDescendant("App") || !rdr.IsStartElement())
-                    Debug.WriteLine("Cannot find <App> in WMAppManifest.xml");
-
-                _title = rdr.GetAttribute("Title");
-                _version = rdr.GetAttribute("Version");
-            }
+            _title = title ?? "Unknown";
+            _version = version ?? "0.0";
         }
 
         #region IApplicationInformation Members

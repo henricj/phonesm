@@ -71,7 +71,7 @@ namespace SM.Media.MediaPlayer
 
         Stream _streamSource;
         HttpClients _httpClients;
-        readonly IApplicationInformation _applicationInformation = new ApplicationInformation();
+        readonly IApplicationInformation _applicationInformation = ApplicationInformationFactory.Default;
         MediaStreamFascade _mediaStreamFascade;
         Dispatcher _dispatcher;
 

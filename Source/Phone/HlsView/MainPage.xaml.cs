@@ -42,7 +42,7 @@ namespace HlsView
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
-        static readonly IApplicationInformation ApplicationInformation = new ApplicationInformation();
+        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly IMediaElementManager _mediaElementManager;
         readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
         readonly DispatcherTimer _positionSampler;

@@ -100,6 +100,10 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
         protected override void OnBeginStreaming(AudioTrack track, AudioStreamer streamer)
         {
+            Debug.WriteLine("AudioPlayer.OnBeginStreaming() track.Source {0} track.Tag {1}",
+                null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
+                null == track ? "<no track>" : track.Tag ?? "<none>");
+
             try
             {
                 if (null == GlobalPlatformServices.Default)

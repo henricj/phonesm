@@ -144,98 +144,25 @@ namespace SimulatedPlayer
                     ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                     _mediaElement.ReportSeekCompleted(position.Ticks);
 
-                    Task[] pendingGets;
-
                     lock (_stateLock)
                     {
-                        pendingGets = _pendingGets.ToArray();
-
-                        _pendingGets.Clear();
-
                         _state = State.Play;
                     }
 
-                    foreach (var getCmd in pendingGets)
-                        _asyncFifoWorker.Post(getCmd);
+                    if (0 != _pendingRequests)
+                        _asyncFifoWorker.Post(async () => CheckForSamples());
                 });
         }
 
         public void GetSampleAsync(int streamType)
         {
-            var task = new Task(
-                () =>
-                {
-                    if (streamType < 0)
-                        return;
+            //Debug.WriteLine("SimulatedMediaStreamSource.GetSampleAsync({0}) state {1}", streamType, state);
 
-                    IStreamSource streamSource = null;
+            ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
 
-                    lock (_lock)
-                    {
-                        if (streamType >= _mediaStreams.Count)
-                            return;
+            RequestGet(streamType);
 
-                        streamSource = _mediaStreams[streamType];
-                    }
-
-                    if (null == streamSource)
-                    {
-                        _mediaElement.ReportGetSampleProgress(0);
-                        return;
-                    }
-
-                    var packet = streamSource.GetNextSample();
-
-                    try
-                    {
-                        if (null != packet || streamSource.IsEof)
-                            StreamSampleHandler(streamType, streamSource, packet);
-                    }
-                    finally
-                    {
-                        if (null != packet)
-                            streamSource.FreeSample(packet);
-                    }
-
-                    var completed = null != packet;
-
-                    if (!completed)
-                    {
-                        var current = _pendingRequests;
-
-                        for (; ; )
-                        {
-                            var newFlags = current | (1 << streamType);
-
-                            if (newFlags == current)
-                                break;
-
-                            var existing = Interlocked.CompareExchange(ref _pendingRequests, newFlags, current);
-
-                            if (existing == current)
-                                break;
-
-                            current = existing;
-                        }
-                    }
-                });
-
-            lock (_stateLock)
-            {
-                var state = _state;
-
-                //Debug.WriteLine("SimulatedMediaStreamSource.GetSampleAsync({0}) state {1}", streamType, state);
-
-                ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
-
-                if (State.Play != state)
-                {
-                    Debug.WriteLine("SimulatedMediaStreamSource defer Get({0})", streamType);
-                    _pendingGets.Add(task);
-                }
-                else
-                    _asyncFifoWorker.Post(task);
-            }
+            _asyncFifoWorker.Post(async () => CheckForSamples());
         }
 
         public void CloseMedia()
@@ -260,15 +187,8 @@ namespace SimulatedPlayer
 
         public void CheckForSamples()
         {
-            var requested = Interlocked.Exchange(ref _pendingRequests, 0);
-
-            for (var i = 0; 0 != requested; ++i, requested >>= 1)
-            {
-                if (0 == (requested & 1))
-                    continue;
-
-                GetSampleAsync(i);
-            }
+            if (0 != _pendingRequests)
+                _asyncFifoWorker.Post(HandleSamples);
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
@@ -277,6 +197,94 @@ namespace SimulatedPlayer
         }
 
         #endregion
+
+        void HandleSample(int streamType)
+        {
+            lock (_stateLock)
+            {
+                var state = _state;
+
+                if (State.Play != state)
+                {
+                    Debug.WriteLine("SimulatedMediaStreamSource defer Get({0})", streamType);
+                    RequestGet(streamType);
+
+                    return;
+                }
+            }
+
+            if (streamType < 0)
+                return;
+
+            IStreamSource streamSource = null;
+
+            lock (_lock)
+            {
+                if (streamType >= _mediaStreams.Count)
+                    return;
+
+                streamSource = _mediaStreams[streamType];
+            }
+
+            if (null == streamSource)
+            {
+                _mediaElement.ReportGetSampleProgress(0);
+                return;
+            }
+
+            var packet = streamSource.GetNextSample();
+
+            try
+            {
+                if (null != packet || streamSource.IsEof)
+                    StreamSampleHandler(streamType, streamSource, packet);
+            }
+            finally
+            {
+                if (null != packet)
+                    streamSource.FreeSample(packet);
+            }
+
+            var completed = null != packet;
+
+            if (!completed)
+                RequestGet(streamType);
+        }
+
+        void RequestGet(int streamType)
+        {
+            var current = _pendingRequests;
+
+            for (; ; )
+            {
+                var newFlags = current | (1 << streamType);
+
+                if (newFlags == current)
+                    break;
+
+                var existing = Interlocked.CompareExchange(ref _pendingRequests, newFlags, current);
+
+                if (existing == current)
+                    break;
+
+                current = existing;
+            }
+        }
+
+        Task HandleSamples()
+        {
+            var requested = Interlocked.Exchange(ref _pendingRequests, 0);
+
+            for (var i = 0; 0 != requested; ++i, requested >>= 1)
+            {
+                if (0 == (requested & 1))
+                    continue;
+
+                HandleSample(i);
+            }
+
+            return TplTaskExtensions.CompletedTask;
+        }
 
         bool StreamSampleHandler(int streamType, IStreamSource streamSource, TsPesPacket packet)
         {

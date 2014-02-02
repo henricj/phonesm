@@ -70,9 +70,7 @@ namespace SimulatedPlayer
 
             Thread.Sleep(750);
 
-            _mediaStreamFascade.Play();
-
-            //mediaElementManager.Play();
+            mediaElementManager.Play();
         }
     }
 }

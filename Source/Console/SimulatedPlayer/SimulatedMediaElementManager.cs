@@ -64,11 +64,6 @@ namespace SimulatedPlayer
 
         #region IMediaElementManager Members
 
-        Task IMediaElementManager.CloseAsync()
-        {
-            return Close();
-        }
-
         public Task SetSourceAsync(IMediaStreamSource source)
         {
             Debug.WriteLine("SimulatedMediaElementManager.SetSourceAsync()");
@@ -78,6 +73,16 @@ namespace SimulatedPlayer
             _mediaStreamSource = (ISimulatedMediaStreamSource)source;
 
             _asyncFifoWorker.Post(OpenMedia);
+
+            return TplTaskExtensions.CompletedTask;
+        }
+
+        public Task CloseAsync()
+        {
+            if (null != _mediaStreamSource)
+                _mediaStreamSource.Dispose();
+
+            _mediaStreamSource = null;
 
             return TplTaskExtensions.CompletedTask;
         }
@@ -172,6 +177,8 @@ namespace SimulatedPlayer
                                            if (null != mediaStreamSource)
                                                mediaStreamSource.GetSampleAsync(oldestIndex);
                                        });
+
+                TaskCollector.Default.Add(t, "SimulatedMediaElementManager.ReportGetSampleCompleted");
             }
         }
 
@@ -179,22 +186,12 @@ namespace SimulatedPlayer
         {
             Debug.WriteLine("SimulatedMediaElement.ErrorOccurred({0})", message);
 
-            var task = Close();
+            var task = CloseAsync();
 
             TaskCollector.Default.Add(task, "SimulatedMediaElement.ErrorOccurred");
         }
 
         #endregion
-
-        public Task Close()
-        {
-            if (null != _mediaStreamSource)
-                _mediaStreamSource.Dispose();
-
-            _mediaStreamSource = null;
-
-            return TplTaskExtensions.CompletedTask;
-        }
 
         public Task Dispatch(Action action)
         {
@@ -253,7 +250,11 @@ namespace SimulatedPlayer
 
         public async Task PlayAsync()
         {
-            await Task.Delay((int)(_random.GetRandomNumber() * 250 * 100));
+            await Task.Delay((int)(_random.GetRandomNumber() * 250 + 100));
+
+            var t = PlayMedia();
+
+            TaskCollector.Default.Add(t, "SimulatedMediaElementManager.PlayAsync");
         }
 
         public void Play()

@@ -246,6 +246,9 @@ namespace SamplePlayer.Win81
         {
             Debug.WriteLine("Wake clicked");
 
+            if (Debugger.IsAttached)
+                Debugger.Break();
+
             mediaElement1_CurrentStateChanged(null, null);
         }
 

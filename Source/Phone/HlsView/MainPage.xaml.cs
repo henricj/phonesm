@@ -270,6 +270,9 @@ namespace HlsView
         {
             Debug.WriteLine("Wake clicked");
 
+            if (Debugger.IsAttached)
+                Debugger.Break();
+
             mediaElement1_CurrentStateChanged(null, null);
         }
 

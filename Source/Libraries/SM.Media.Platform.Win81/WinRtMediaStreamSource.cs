@@ -243,7 +243,12 @@ namespace SM.Media
 
         public void RegisterMediaStreamSourceHandler(Action<MediaStreamSource> mssHandler)
         {
+            Debug.WriteLine("WintRtMediaStreamSource.RegisterMediaStreamSourceHandler()");
+
             _mssHandler = mssHandler;
+
+            if (null != MediaManager)
+                MediaManager.OpenMedia();
         }
 
         MediaStreamSource CreateMediaStreamSource()
@@ -252,10 +257,8 @@ namespace SM.Media
 
             if (null != _videoStreamState && null != _audioStreamState)
                 mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor, _audioStreamState.Descriptor);
-
             else if (null != _videoStreamState)
                 mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor);
-
             else if (null != _audioStreamState)
                 mediaStreamSource = new MediaStreamSource(_audioStreamState.Descriptor);
             else

@@ -152,9 +152,16 @@ namespace SM.Media
         {
             Debug.WriteLine("MediaStreamFascade.SetMediaSourceAsync({0})", source);
 
-            await OpenMediaAsync(source).ConfigureAwait(true);
+            try
+            {
+                await OpenMediaAsync(source).ConfigureAwait(true);
 
-            await _setSourceAsync(_mediaStreamSource).ConfigureAwait(false);
+                await _setSourceAsync(_mediaStreamSource).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaStreamFascade.SetMediaSourceAsync({0}) failed: {1}", source, ex.Message);
+            }
         }
 
         public void Play()
@@ -182,8 +189,6 @@ namespace SM.Media
 
                     Debug.Assert(null != _tsMediaManager);
                 }
-
-                _tsMediaManager.Play();
             }
             catch (Exception ex)
             {

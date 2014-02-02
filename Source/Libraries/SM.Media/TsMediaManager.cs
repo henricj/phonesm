@@ -124,6 +124,8 @@ namespace SM.Media
 
         public void Dispose()
         {
+            Debug.WriteLine("TsMediaManager.Dispose()");
+
             if (null != OnStateChange)
                 Debug.WriteLine("TsMediaManager.Dispose(): OnStateChange is not null");
 
@@ -151,21 +153,29 @@ namespace SM.Media
 
         public void OpenMedia()
         {
+            Debug.WriteLine("TsMediaManager.OpenMedia()");
+
             _asyncFifoWorker.Post(() =>
                                   {
+                                      Debug.WriteLine("TsMediaManager.OpenMedia() handler");
+
                                       State = MediaState.OpenMedia;
 
-                                      CheckConfigurationCompleted();
+                                      return OpenMediaAsync(_segmentReaderManager);
                                   });
         }
 
         public void CloseMedia()
         {
+            Debug.WriteLine("TsMediaManager.CloseMedia()");
+
             Close();
         }
 
         public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
         {
+            Debug.WriteLine("TsMediaManager.SeekMediaAsync({0})", position);
+
             return StartWorkAsync(() => SeekAsync(position), _playbackCancellationTokenSource.Token);
         }
 
@@ -181,7 +191,7 @@ namespace SM.Media
 
         public void Play()
         {
-            _asyncFifoWorker.Post(() => PlayAsync(_segmentReaderManager));
+            _asyncFifoWorker.Post(() => OpenMediaAsync(_segmentReaderManager));
         }
 
         public void Close()
@@ -248,10 +258,20 @@ namespace SM.Media
             }
         }
 
-        async Task PlayAsync(ISegmentReaderManager segmentManager)
+        async Task OpenMediaAsync(ISegmentReaderManager segmentManager)
         {
-            if (MediaState.Playing == State || MediaState.Seeking == State)
+            Debug.WriteLine("TsMediaManager.OpenMediaAsync() state " + State);
+
+            if (MediaState.Error == State)
                 await StopAsync().ConfigureAwait(false);
+
+            if (MediaState.OpenMedia != State)
+            {
+                Debug.WriteLine("TsMediaManager.OpenMediaAsync() leaving early " + State);
+                return;
+            }
+
+            State = MediaState.Opening;
 
             _readerManager = segmentManager;
 
@@ -273,19 +293,15 @@ namespace SM.Media
                 foreach (var reader in _readers)
                     reader.QueueWorker.IsEnabled = true;
 
-                State = MediaState.Opening;
-
                 await _readerManager.StartAsync(_playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
                 StartReaders();
-
-                //await _mediaElementManager.SetSourceAsync(_mediaStreamSource).ConfigureAwait(false);
 
                 return;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("TsMediaManager.PlayAsync failed: " + ex.Message);
+                Debug.WriteLine("TsMediaManager.OpenMediaAsync failed: " + ex.Message);
 
                 SetMediaState(MediaState.Error, "Unable to play media");
 
@@ -303,7 +319,7 @@ namespace SM.Media
 
                     if (null != readerException)
                     {
-                        Debug.WriteLine("TsMediaManager.PlayAsync(): reader create failed: " + readerException.Message);
+                        Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader create failed: " + readerException.Message);
                         continue;
                     }
 
@@ -315,7 +331,7 @@ namespace SM.Media
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("TsMediaManager.PlayAsync(): reader cleanup failed: " + ex.Message);
+                        Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader cleanup failed: " + ex.Message);
                     }
                 }
             }

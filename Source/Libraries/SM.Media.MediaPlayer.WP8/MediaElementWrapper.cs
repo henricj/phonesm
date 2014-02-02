@@ -214,12 +214,7 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.Play()");
 
-            //MediaElement.Play();
-
-            var task = StartPlaybackAsync();
-
-            TaskCollector.Default.Add(task, "Play: StartPlaybackWrapperAsync()");
-            // We do not wait for the task to complete.
+            MediaElement.Play();
         }
 
         /// <inheritdoc />
@@ -501,16 +496,9 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.SetSourceAsync()");
 
-            var mss = (MediaStreamSource) mediaStreamSource;
+            var mss = (MediaStreamSource)mediaStreamSource;
 
-            return Dispatcher.DispatchAsync(() =>
-                                            {
-                                                SetSource(mss);
-
-                                                var task = StartPlaybackAsync();
-
-                                                TaskCollector.Default.Add(task, "SetMediaSourceAsync: StartPlaybackAsync()");
-                                            });
+            return Dispatcher.DispatchAsync(() => SetSource(mss));
         }
 
         static readonly MediaElementState[] PlayableStates = { MediaElementState.Paused, MediaElementState.Stopped };

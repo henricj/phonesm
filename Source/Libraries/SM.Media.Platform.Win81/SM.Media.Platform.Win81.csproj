@@ -93,7 +93,7 @@
     <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascadeParameters.cs">
       <Link>MediaStreamFascadeParameters.cs</Link>
     </Compile>
-    <Compile Include="MediaElementManager.cs" />
+    <Compile Include="WinRtMediaElementManager.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Utility\SmDebug.cs" />
     <Compile Include="WinRtMediaStreamSource.cs" />

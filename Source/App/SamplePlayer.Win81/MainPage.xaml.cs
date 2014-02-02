@@ -54,7 +54,7 @@ namespace SamplePlayer.Win81
         {
             InitializeComponent();
 
-            _mediaElementManager = new MediaElementManager(Dispatcher,
+            _mediaElementManager = new WinRtMediaElementManager(Dispatcher,
                 () =>
                 {
                     UpdateState(MediaElementState.Opening);
@@ -157,9 +157,16 @@ namespace SamplePlayer.Win81
         {
             Debug.WriteLine("Play clicked");
 
-            if (null != mediaElement1 && MediaElementState.Paused == mediaElement1.CurrentState)
+            if (null == mediaElement1)
+            {
+                Debug.WriteLine("MainPage.play_Click() mediaElement1 is null");
+                return;
+            }
+
+            if (MediaElementState.Paused == mediaElement1.CurrentState)
             {
                 mediaElement1.Play();
+                
                 return;
             }
 
@@ -174,7 +181,9 @@ namespace SamplePlayer.Win81
                 //"https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
                 );
 
-            _mediaStreamFascade.Play();
+            //_mediaStreamFascade.Play();
+
+            mediaElement1.Play();
 
             _positionSampler.Start();
         }

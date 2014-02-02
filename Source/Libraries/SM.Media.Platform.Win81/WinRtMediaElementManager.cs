@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaElementManager.cs" company="Henric Jungheim">
+//  <copyright file="WinRtMediaElementManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,16 +25,16 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Media;
 using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class MediaElementManager : IMediaElementManager
+    public class WinRtMediaElementManager : IMediaElementManager
     {
         readonly Func<MediaElement> _createMediaElement;
         readonly Action<MediaElement> _destroyMediaElement;
@@ -42,7 +42,7 @@ namespace SM.Media
         MediaElement _mediaElement;
         int _sourceIsSet;
 
-        public MediaElementManager(CoreDispatcher dispatcher, Func<MediaElement> createMediaElement, Action<MediaElement> destroyMediaElement)
+        public WinRtMediaElementManager(CoreDispatcher dispatcher, Func<MediaElement> createMediaElement, Action<MediaElement> destroyMediaElement)
         {
             _dispatcher = dispatcher;
             _createMediaElement = createMediaElement;
@@ -53,6 +53,8 @@ namespace SM.Media
 
         public Task SetSourceAsync(IMediaStreamSource source)
         {
+            Debug.WriteLine("WinRtMediaElementManager.SetSourceAsync()");
+
             var mss = source as WinRtMediaStreamSource;
 
             if (null == mss)
@@ -60,6 +62,8 @@ namespace SM.Media
 
             return Dispatch(() =>
                             {
+                                Debug.WriteLine("WinRtMediaElementManager.SetSourceAsync() handler");
+
                                 source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
 
                                 var wasSet = Interlocked.Exchange(ref _sourceIsSet, 1);
@@ -68,8 +72,6 @@ namespace SM.Media
 
                                 if (null != _mediaElement)
                                 {
-                                    UiThreadCleanup();
-
                                     var mediaElement = _mediaElement;
                                     _mediaElement = null;
 
@@ -84,21 +86,15 @@ namespace SM.Media
 
         public async Task CloseAsync()
         {
-            var wasSet = Interlocked.CompareExchange(ref _sourceIsSet, 2, 1);
+            await Dispatch(() =>
+                           {
+                               var mediaElement = _mediaElement;
+                               _mediaElement = null;
 
-            if (0 != wasSet)
-            {
-                await Dispatch(() =>
-                               {
-                                   UiThreadCleanup();
-
-                                   var mediaElement = _mediaElement;
-                                   _mediaElement = null;
-
+                               if (null != mediaElement)
                                    _destroyMediaElement(mediaElement);
-                               })
-                    .ConfigureAwait(false);
-            }
+                           })
+                .ConfigureAwait(false);
         }
 
         #endregion
@@ -113,36 +109,6 @@ namespace SM.Media
             }
 
             return _dispatcher.RunAsync(CoreDispatcherPriority.Low, () => action()).AsTask();
-        }
-
-        void UiThreadCleanup()
-        {
-            var was2 = Interlocked.CompareExchange(ref _sourceIsSet, 3, 2);
-
-            if (2 != was2 && 3 != was2)
-                return;
-
-            if (null == _mediaElement)
-                return;
-
-            var state = _mediaElement.CurrentState;
-
-            if (MediaElementState.Closed != state && MediaElementState.Stopped != state)
-                _mediaElement.Stop();
-
-            state = _mediaElement.CurrentState;
-
-            //if (MediaElementState.Closed == state || MediaElementState.Stopped == state)
-            _mediaElement.Source = null;
-
-            state = _mediaElement.CurrentState;
-
-            if (MediaElementState.Closed == state || MediaElementState.Stopped == state)
-            {
-                var was3 = Interlocked.Exchange(ref _sourceIsSet, 0);
-
-                SmDebug.Assert(3 == was3);
-            }
         }
     }
 }

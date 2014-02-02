@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="App.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
@@ -46,6 +47,8 @@ namespace HlsView
         {
             // Global handler for uncaught exceptions.
             UnhandledException += Application_UnhandledException;
+
+            TaskScheduler.UnobservedTaskException += Application_UnobservedException;
 
             GlobalPlatformServices.Default = new PlatformServices();
 
@@ -118,11 +121,21 @@ namespace HlsView
         // Code to execute on Unhandled Exceptions
         void Application_UnhandledException(object sender, ApplicationUnhandledExceptionEventArgs e)
         {
+            Debug.WriteLine("*** Unhandled exception: " + e.ExceptionObject.Message);
+
             if (Debugger.IsAttached)
             {
                 // An unhandled exception has occurred; break into the debugger
                 Debugger.Break();
             }
+        }
+
+        void Application_UnobservedException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Debug.WriteLine("*** Unobserved task exception {0}", e.Exception.Message);
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
         }
 
         // Initialize the app's font and flow direction as defined in its localized resource strings.

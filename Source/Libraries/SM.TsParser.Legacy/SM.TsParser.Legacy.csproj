@@ -8,7 +8,7 @@
     <ProjectGuid>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SM.TsParser.Legacy</RootNamespace>
+    <RootNamespace>SM.TsParser</RootNamespace>
     <AssemblyName>SM.TsParser.Legacy</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Profile104</TargetFrameworkProfile>

@@ -275,13 +275,13 @@ namespace SM.Media
                 playlist.CleanupBackground("MediaPlayerSource.CloseMediaAsync playlist");
             }
 
-            var tsMediaStreamSource = _mediaStreamSource;
+            var mediaStreamSource = _mediaStreamSource;
 
-            if (null != tsMediaStreamSource)
+            if (null != mediaStreamSource)
             {
                 _mediaStreamSource = null;
 
-                tsMediaStreamSource.DisposeBackground("MediaPlayerSource.CloseMediaAsync tsMediaStreamSource");
+                mediaStreamSource.DisposeBackground("MediaPlayerSource.CloseMediaAsync tsMediaStreamSource");
             }
 
             if (null != mediaManager)

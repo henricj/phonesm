@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SignalTask.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -211,6 +211,7 @@ namespace SM.Media.Utility
             // code in .Fire() that creates and then starts the task.
             Task task;
             TaskCompletionSource<bool> taskCompletionSource;
+            var isNew = false;
 
             lock (_lock)
             {
@@ -220,12 +221,25 @@ namespace SM.Media.Utility
                     return TplTaskExtensions.CompletedTask;
 
                 if (null == _taskCompletionSource)
+                {
                     _taskCompletionSource = new TaskCompletionSource<bool>();
+                    isNew = true;
+                }
 
                 taskCompletionSource = _taskCompletionSource;
             }
 
-            task.ContinueWith(t => taskCompletionSource.SetResult(true));
+            if (isNew)
+            {
+                task.ContinueWith(
+                    t =>
+                    {
+                        var ok = taskCompletionSource.TrySetResult(true);
+
+                        if (!ok)
+                            Debug.WriteLine("SignalTask.WaitAsync() TrySetResult failed, status: " + taskCompletionSource.Task.Status);
+                    });
+            }
 
             return taskCompletionSource.Task;
         }

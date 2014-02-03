@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TaskCollector.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -81,11 +81,19 @@ namespace SM.Media.Utility
                 var ex = task.Exception;
 
                 if (null != ex)
+                {
                     Debug.WriteLine("TaskCollector.Cleanup() task {0} failed: {1}", description, ex.Message);
+
+                    if (Debugger.IsAttached)
+                        Debugger.Break();
+                }
             }
             catch (Exception ex2)
             {
                 Debug.WriteLine("TaskCollector.Cleanup() cleanup of task {0} failed: {1}", description, ex2.Message);
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
             }
         }
     }

@@ -26,7 +26,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
@@ -40,7 +39,6 @@ namespace SM.Media
         readonly Action<MediaElement> _destroyMediaElement;
         readonly CoreDispatcher _dispatcher;
         MediaElement _mediaElement;
-        int _sourceIsSet;
 
         public WinRtMediaElementManager(CoreDispatcher dispatcher, Func<MediaElement> createMediaElement, Action<MediaElement> destroyMediaElement)
         {
@@ -65,10 +63,6 @@ namespace SM.Media
                                 Debug.WriteLine("WinRtMediaElementManager.SetSourceAsync() handler");
 
                                 source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
-
-                                var wasSet = Interlocked.Exchange(ref _sourceIsSet, 1);
-
-                                SmDebug.Assert(0 == wasSet);
 
                                 if (null != _mediaElement)
                                 {

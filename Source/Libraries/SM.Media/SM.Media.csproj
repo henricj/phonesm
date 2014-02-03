@@ -137,7 +137,6 @@
     <Compile Include="IQueueThrottling.cs" />
     <Compile Include="IMediaParserMediaStream.cs" />
     <Compile Include="IStreamHandler.cs" />
-    <Compile Include="ITsMediaManager.cs" />
     <Compile Include="M3U8\AttributeSupport\ByterangeAttributeInstance.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtIFrameStreamInfSupport.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtMapSupport.cs" />

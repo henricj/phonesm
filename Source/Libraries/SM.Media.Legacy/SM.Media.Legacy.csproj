@@ -303,7 +303,6 @@
     <Compile Include="..\SM.Media\IQueueThrottling.cs" />
     <Compile Include="..\SM.Media\IMediaParserMediaStream.cs" />
     <Compile Include="..\SM.Media\IStreamHandler.cs" />
-    <Compile Include="..\SM.Media\ITsMediaManager.cs" />
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\ByterangeAttributeInstance.cs">
       <Link>M3U8\AttributeSupport</Link>
     </Compile>

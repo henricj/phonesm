@@ -53,7 +53,7 @@ namespace SM.Media
         }
     }
 
-    public sealed class TsMediaManager : ITsMediaManager, IMediaManager, IDisposable
+    public sealed class TsMediaManager : IMediaManager, IDisposable
     {
         #region MediaState enum
 
@@ -120,6 +120,18 @@ namespace SM.Media
             get { return _closeCancellationTokenSource.IsCancellationRequested; }
         }
 
+        public MediaState State
+        {
+            get { return _mediaState; }
+            set { SetMediaState(value, null); }
+        }
+
+        public TimeSpan? SeekTarget
+        {
+            get { return _mediaStreamSource.SeekTarget; }
+            set { _mediaStreamSource.SeekTarget = value; }
+        }
+
         #region IDisposable Members
 
         public void Dispose()
@@ -127,7 +139,14 @@ namespace SM.Media
             Debug.WriteLine("TsMediaManager.Dispose()");
 
             if (null != OnStateChange)
+            {
                 Debug.WriteLine("TsMediaManager.Dispose(): OnStateChange is not null");
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+
+                OnStateChange = null;
+            }
 
             CloseAsync()
                 .Wait();
@@ -181,14 +200,6 @@ namespace SM.Media
 
         #endregion
 
-        #region ITsMediaManager Members
-
-        public MediaState State
-        {
-            get { return _mediaState; }
-            set { SetMediaState(value, null); }
-        }
-
         public void Play()
         {
             _asyncFifoWorker.Post(() => OpenMediaAsync(_segmentReaderManager));
@@ -205,15 +216,7 @@ namespace SM.Media
         public void Resume()
         { }
 
-        public TimeSpan? SeekTarget
-        {
-            get { return _mediaStreamSource.SeekTarget; }
-            set { _mediaStreamSource.SeekTarget = value; }
-        }
-
         public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
-
-        #endregion
 
         void ResetCancellationToken()
         {
@@ -412,11 +415,7 @@ namespace SM.Media
             var tsMediaParser = new TsMediaParser(
                 (streamType, tsDecoder) => new StreamBuffer(streamType, tsDecoder.PesPacketPool.FreePesPacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
                 tsTimestamp,
-                mediaStream =>
-                {
-                    mediaStream.ConfigurationComplete +=
-                        (sender, args) => SendConfigurationComplete(args, reader);
-                });
+                mediaStream => { mediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader); });
 
             Action<IProgramStreams> programStreamsHandler;
 

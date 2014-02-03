@@ -99,7 +99,8 @@ namespace SM.Media
                 _readCancellationSource = null;
             }
 
-            TaskCollector.Default.Add(reader, "CallbackReader.Close");
+            if (null != reader)
+                TaskCollector.Default.Add(reader, "CallbackReader.Close");
 
             if (null != cancellationTokenSource)
                 cancellationTokenSource.Dispose();

@@ -172,6 +172,12 @@ namespace SM.Media.Playlists
 
             var segment = await Playlist.FirstOrDefaultAsync().ConfigureAwait(false);
 
+            if (null == segment)
+            {
+                Debug.WriteLine("PlaylistSegmentManager.StartAsync() no segments found");
+                return;
+            }
+
             ContentType = await _webContentTypeDetector.GetContentTypeAsync(segment.Url, _cancellationToken).ConfigureAwait(false);
         }
 

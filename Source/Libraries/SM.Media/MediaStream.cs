@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.TsParser;
 
@@ -54,6 +55,18 @@ namespace SM.Media
 
         public void Dispose()
         {
+            if (null != ConfigurationComplete)
+            {
+                Debug.WriteLine("MediaStream.Dispose() ConfigurationComplete is not null");
+
+                if (Debugger.IsAttached)
+
+                    ConfigurationComplete = null;
+                Debugger.Break();
+
+                ConfigurationComplete = null;
+            }
+
             _configurator.ConfigurationComplete -= ConfiguratorOnConfigurationComplete;
 
             using (_streamSource as IDisposable)
@@ -78,10 +91,14 @@ namespace SM.Media
 
         void ConfiguratorOnConfigurationComplete(object sender, EventArgs eventArgs)
         {
+            _configurator.ConfigurationComplete -= ConfiguratorOnConfigurationComplete;
+
             var cc = ConfigurationComplete;
 
             if (null == cc)
                 return;
+
+            ConfigurationComplete = null;
 
             cc(this, _configurationEventArgs);
         }

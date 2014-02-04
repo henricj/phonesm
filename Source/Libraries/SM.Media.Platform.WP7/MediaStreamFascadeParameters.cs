@@ -36,6 +36,7 @@ namespace SM.Media
     {
         readonly IHttpClients _httpClients;
         readonly Func<IMediaStreamSource> _mediaStreamSourceFactory;
+        Func<Uri, ICachedWebRequest> _cachedWebRequestFactory;
         IMediaManagerParameters _mediaManagerParameters;
         ISegmentManagerFactory _segmentManagerFactory;
 
@@ -90,6 +91,18 @@ namespace SM.Media
             set { _mediaManagerParameters = value; }
         }
 
+        public Func<Uri, ICachedWebRequest> CachedWebRequestFactory
+        {
+            get
+            {
+                if (null == _cachedWebRequestFactory)
+                    _cachedWebRequestFactory = uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri));
+
+                return _cachedWebRequestFactory;
+            }
+            set { _cachedWebRequestFactory = value; }
+        }
+
         #endregion
 
         protected virtual ISegmentManagerFactory CreateSegmentManagerFactory()
@@ -97,7 +110,7 @@ namespace SM.Media
             var httpHeaderReader = new HttpHeaderReader(_httpClients);
             var contentTypeDetector = new ContentTypeDetector(ContentTypes.AllTypes);
             var webContentTypeDector = new WebContentTypeDetector(httpHeaderReader, contentTypeDetector);
-            var segmentManagerFactories = new SegmentManagerFactories(_httpClients, httpHeaderReader, contentTypeDetector, webContentTypeDector);
+            var segmentManagerFactories = new SegmentManagerFactories(_httpClients, httpHeaderReader, contentTypeDetector, webContentTypeDector, CachedWebRequestFactory);
 
             return new SegmentManagerFactory(webContentTypeDector, segmentManagerFactories.GetFactory);
         }

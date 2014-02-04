@@ -43,9 +43,9 @@ namespace SM.Media.Segments
         readonly PlsSegmentManagerFactory _plsSegmentManagerFactory;
         volatile Dictionary<ContentType, SegmentManagerFactoryDelegate> _factories;
 
-        public SegmentManagerFactories(IHttpClients httpClients, IHttpHeaderReader httpHeaderReader, IContentTypeDetector contentTypeDetector, IWebContentTypeDetector webContentTypeDetector)
+        public SegmentManagerFactories(IHttpClients httpClients, IHttpHeaderReader httpHeaderReader, IContentTypeDetector contentTypeDetector, IWebContentTypeDetector webContentTypeDetector, Func<Uri, ICachedWebRequest> webRequestFactory)
         {
-            _playlistSegmentManagerFactory = new PlaylistSegmentManagerFactory(httpClients, webContentTypeDetector);
+            _playlistSegmentManagerFactory = new PlaylistSegmentManagerFactory(httpClients, webContentTypeDetector, webRequestFactory);
             _plsSegmentManagerFactory = new PlsSegmentManagerFactory(httpClients, httpHeaderReader, contentTypeDetector);
 
             _factories = new Dictionary<ContentType, SegmentManagerFactoryDelegate>

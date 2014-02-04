@@ -44,16 +44,20 @@ namespace SM.Media.Playlists
         readonly IHttpClients _httpClients;
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
         readonly IWebContentTypeDetector _webContentTypeDetector;
+        readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
 
-        public PlaylistSegmentManagerFactory(IHttpClients httpClients, IWebContentTypeDetector webContentTypeDetector)
+        public PlaylistSegmentManagerFactory(IHttpClients httpClients, IWebContentTypeDetector webContentTypeDetector, Func<Uri, ICachedWebRequest> webRequestFactory)
         {
             if (null == httpClients)
                 throw new ArgumentNullException("httpClients");
             if (null == webContentTypeDetector)
                 throw new ArgumentNullException("webContentTypeDetector");
+            if (null == webRequestFactory)
+                throw new ArgumentNullException("webRequestFactory");
 
             _httpClients = httpClients;
             _webContentTypeDetector = webContentTypeDetector;
+            _webRequestFactory = webRequestFactory;
             _segmentsFactory = new SegmentsFactory(_httpClients).CreateStreamSegments;
         }
 
@@ -66,7 +70,7 @@ namespace SM.Media.Playlists
 
             var subProgram = await LoasdSubProgram(programManager).ConfigureAwait(false);
 
-            return new PlaylistSegmentManager(uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri)), subProgram, contentType, _segmentsFactory, _webContentTypeDetector, cancellationToken);
+            return new PlaylistSegmentManager(_webRequestFactory, subProgram, contentType, _segmentsFactory, _webContentTypeDetector, cancellationToken);
         }
 
         static async Task<ISubProgram> LoasdSubProgram(ProgramManager programManager)

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="CachedWebRequest.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
 
-namespace SM.Media
+namespace SM.Media.Web
 {
     public class CachedWebRequest : ICachedWebRequest
     {

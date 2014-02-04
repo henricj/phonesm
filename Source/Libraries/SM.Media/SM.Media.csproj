@@ -75,6 +75,7 @@
     <Compile Include="AAC\AacDecoderSettings.cs" />
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
+    <Compile Include="CallbackReader.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
@@ -82,8 +83,6 @@
     <Compile Include="Buffering\BufferingManager.cs" />
     <Compile Include="Buffering\DefaultBufferingPolicy.cs" />
     <Compile Include="Buffering\IBufferingPolicy.cs" />
-    <Compile Include="CachedWebRequest.cs" />
-    <Compile Include="CallbackReader.cs" />
     <Compile Include="Configuration\AudioFormat.cs" />
     <Compile Include="Ac3\Ac3Configurator.cs" />
     <Compile Include="Ac3\Ac3FrameHeader.cs" />
@@ -230,7 +229,6 @@
     <Compile Include="Utility\IBlockingPool.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
     <Compile Include="Utility\IAsyncEnumerable.cs" />
-    <Compile Include="Utility\IWebRequest.cs" />
     <Compile Include="Utility\MediaStreamFsm.cs" />
     <Compile Include="Utility\PoolBufferInstance.cs" />
     <Compile Include="Utility\QueueWorker.cs" />
@@ -241,11 +239,13 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Web\ApplicationInformationExtensions.cs" />
+    <Compile Include="Web\CachedWebRequest.cs" />
     <Compile Include="Web\HttpClients.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
     <Compile Include="Web\HttpHeaderReader.cs" />
     <Compile Include="Web\HttpParameters.cs" />
     <Compile Include="Web\HttpSettings.cs" />
+    <Compile Include="Web\ICachedWebRequest.cs" />
     <Compile Include="Web\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />

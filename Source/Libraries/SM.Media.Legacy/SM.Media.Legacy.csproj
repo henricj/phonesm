@@ -102,7 +102,6 @@
     <Compile Include="..\SM.Media\Buffering\NullBufferingManager.cs">
       <Link>Buffering\NullBufferingManager.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\CachedWebRequest.cs" />
     <Compile Include="..\SM.Media\CallbackReader.cs" />
     <Compile Include="..\SM.Media\Configuration\AudioFormat.cs">
       <Link>Configuration\AudioFormat.cs</Link>
@@ -263,6 +262,9 @@
     <Compile Include="..\SM.Media\Web\ApplicationInformationExtensions.cs">
       <Link>Web\ApplicationInformationExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\CachedWebRequest.cs">
+      <Link>Web\CachedWebRequest.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpDefaults.cs">
       <Link>Web\HttpDefaults.cs</Link>
     </Compile>
@@ -274,6 +276,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpSettings.cs">
       <Link>Web\HttpSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\ICachedWebRequest.cs">
+      <Link>Web\ICachedWebRequest.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\Rfc2047Encoding.cs">
       <Link>Web\Rfc2047Encoding.cs</Link>
@@ -528,9 +533,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\IAsyncEnumerable.cs">
       <Link>Utility\IAsyncEnumerable.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Utility\IWebRequest.cs">
-      <Link>Utility\IWebRequest.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\MediaStreamFsm.cs">
       <Link>Utility\MediaStreamFsm.cs</Link>

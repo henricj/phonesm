@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IWebRequest.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="ICachedWebRequest.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SM.Media.Utility
+namespace SM.Media.Web
 {
     public interface ICachedWebRequest
     {

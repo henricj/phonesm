@@ -52,8 +52,8 @@ namespace SM.Media.Playlists
         readonly object _segmentLock = new object();
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
         readonly ISubProgram _subProgram;
+        readonly Func<Uri, IWebCache> _webCacheFactory;
         readonly IWebContentTypeDetector _webContentTypeDetector;
-        readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
         CancellationTokenSource _abortTokenSource;
         int _dynamicStartIndex;
         int _isDisposed;
@@ -66,16 +66,12 @@ namespace SM.Media.Playlists
         ISegment[] _segments;
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
-        ICachedWebRequest _subPlaylistRequest;
+        IWebCache _subPlaylistCache;
 
-        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, ContentType playlistType, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector)
-            : this(webRequestFactory, program, playlistType, segmentsFactory, webContentTypeDetector, CancellationToken.None)
-        { }
-
-        public PlaylistSegmentManager(Func<Uri, ICachedWebRequest> webRequestFactory, ISubProgram program, ContentType playlistType, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector, CancellationToken cancellationToken)
+        public PlaylistSegmentManager(Func<Uri, IWebCache> webCacheFactory, ISubProgram program, ContentType playlistType, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector, CancellationToken cancellationToken)
         {
-            if (null == webRequestFactory)
-                throw new ArgumentNullException("webRequestFactory");
+            if (null == webCacheFactory)
+                throw new ArgumentNullException("webCacheFactory");
             if (null == program)
                 throw new ArgumentNullException("program");
             if (null == playlistType)
@@ -85,7 +81,7 @@ namespace SM.Media.Playlists
             if (null == webContentTypeDetector)
                 throw new ArgumentNullException("webContentTypeDetector");
 
-            _webRequestFactory = webRequestFactory;
+            _webCacheFactory = webCacheFactory;
             _subProgram = program;
             _playlistType = playlistType;
             _segmentsFactory = segmentsFactory;
@@ -345,12 +341,12 @@ namespace SM.Media.Playlists
         {
             foreach (var playlist in urls)
             {
-                if (null == _subPlaylistRequest || _subPlaylistRequest.Url != playlist)
-                    _subPlaylistRequest = _webRequestFactory(playlist);
+                if (null == _subPlaylistCache || _subPlaylistCache.Url != playlist)
+                    _subPlaylistCache = _webCacheFactory(playlist);
 
                 CancellationToken.ThrowIfCancellationRequested();
 
-                var parsedPlaylist = await _subPlaylistRequest.ReadAsync(
+                var parsedPlaylist = await _subPlaylistCache.ReadAsync(
                     bytes =>
                     {
                         CancellationToken.ThrowIfCancellationRequested();
@@ -362,12 +358,12 @@ namespace SM.Media.Playlists
 
                         using (var ms = new MemoryStream(bytes))
                         {
-                            parser.Parse(_subPlaylistRequest.RequestUri, ms);
+                            parser.Parse(_subPlaylistCache.RequestUri, ms);
                         }
 
                         return parser;
                     }, CancellationToken)
-                                                              .ConfigureAwait(false);
+                                                            .ConfigureAwait(false);
 
                 if (null != parsedPlaylist)
                     return parsedPlaylist;

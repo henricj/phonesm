@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="CachedWebRequest.cs" company="Henric Jungheim">
+//  <copyright file="WebCache.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -34,7 +34,16 @@ using SM.Media.Utility;
 
 namespace SM.Media.Web
 {
-    public class CachedWebRequest : ICachedWebRequest
+    public interface IWebCache
+    {
+        Uri Url { get; }
+        Uri RequestUri { get; }
+
+        Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
+            where TCached : class;
+    }
+
+    public class WebCache : IWebCache
     {
         static readonly CacheControlHeaderValue NoCacheHeader = new CacheControlHeaderValue
                                                                 {
@@ -50,7 +59,7 @@ namespace SM.Media.Web
         string _noCache;
         Uri _requestUri;
 
-        public CachedWebRequest(Uri url, HttpClient httpClient)
+        public WebCache(Uri url, HttpClient httpClient)
         {
             if (null == url)
                 throw new ArgumentNullException("url");
@@ -62,7 +71,7 @@ namespace SM.Media.Web
             _httpClient = httpClient;
         }
 
-        #region ICachedWebRequest Members
+        #region IWebCache Members
 
         public Uri Url
         {

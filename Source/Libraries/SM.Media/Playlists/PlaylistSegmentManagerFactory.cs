@@ -43,22 +43,22 @@ namespace SM.Media.Playlists
         public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
         readonly IHttpClients _httpClients;
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
+        readonly Func<Uri, IWebCache> _webCacheFactory;
         readonly IWebContentTypeDetector _webContentTypeDetector;
-        readonly Func<Uri, ICachedWebRequest> _webRequestFactory;
 
-        public PlaylistSegmentManagerFactory(IHttpClients httpClients, IWebContentTypeDetector webContentTypeDetector, Func<Uri, ICachedWebRequest> webRequestFactory)
+        public PlaylistSegmentManagerFactory(IHttpClients httpClients, IWebContentTypeDetector webContentTypeDetector, Func<IHttpClients, Uri, IWebCache> webCacheFactory)
         {
             if (null == httpClients)
                 throw new ArgumentNullException("httpClients");
             if (null == webContentTypeDetector)
                 throw new ArgumentNullException("webContentTypeDetector");
-            if (null == webRequestFactory)
-                throw new ArgumentNullException("webRequestFactory");
+            if (null == webCacheFactory)
+                throw new ArgumentNullException("webCacheFactory");
 
             _httpClients = httpClients;
             _webContentTypeDetector = webContentTypeDetector;
-            _webRequestFactory = webRequestFactory;
-            _segmentsFactory = new SegmentsFactory(_httpClients).CreateStreamSegments;
+            _webCacheFactory = url => webCacheFactory(httpClients, url);
+            _segmentsFactory = new SegmentsFactory(httpClients).CreateStreamSegments;
         }
 
         public async Task<ISegmentManager> CreatePlaylistSegmentManager(IEnumerable<Uri> source, ContentType contentType, CancellationToken cancellationToken)
@@ -70,7 +70,7 @@ namespace SM.Media.Playlists
 
             var subProgram = await LoasdSubProgram(programManager).ConfigureAwait(false);
 
-            return new PlaylistSegmentManager(_webRequestFactory, subProgram, contentType, _segmentsFactory, _webContentTypeDetector, cancellationToken);
+            return new PlaylistSegmentManager(_webCacheFactory, subProgram, contentType, _segmentsFactory, _webContentTypeDetector, cancellationToken);
         }
 
         static async Task<ISubProgram> LoasdSubProgram(ProgramManager programManager)

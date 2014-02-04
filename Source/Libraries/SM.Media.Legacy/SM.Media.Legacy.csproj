@@ -262,9 +262,6 @@
     <Compile Include="..\SM.Media\Web\ApplicationInformationExtensions.cs">
       <Link>Web\ApplicationInformationExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\CachedWebRequest.cs">
-      <Link>Web\CachedWebRequest.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Web\HttpDefaults.cs">
       <Link>Web\HttpDefaults.cs</Link>
     </Compile>
@@ -277,14 +274,14 @@
     <Compile Include="..\SM.Media\Web\HttpSettings.cs">
       <Link>Web\HttpSettings.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\ICachedWebRequest.cs">
-      <Link>Web\ICachedWebRequest.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Web\Rfc2047Encoding.cs">
       <Link>Web\Rfc2047Encoding.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\UriExtensions.cs">
       <Link>Web\UriExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebCache.cs">
+      <Link>Web\WebCache.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\WebContentTypeDetector.cs">
       <Link>Web\WebContentTypeDetector.cs</Link>

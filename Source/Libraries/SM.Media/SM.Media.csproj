@@ -239,13 +239,12 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Web\ApplicationInformationExtensions.cs" />
-    <Compile Include="Web\CachedWebRequest.cs" />
+    <Compile Include="Web\WebCache.cs" />
     <Compile Include="Web\HttpClients.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
     <Compile Include="Web\HttpHeaderReader.cs" />
     <Compile Include="Web\HttpParameters.cs" />
     <Compile Include="Web\HttpSettings.cs" />
-    <Compile Include="Web\ICachedWebRequest.cs" />
     <Compile Include="Web\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />

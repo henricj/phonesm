@@ -36,9 +36,9 @@ namespace SM.Media
     {
         readonly IHttpClients _httpClients;
         readonly Func<IMediaStreamSource> _mediaStreamSourceFactory;
-        Func<Uri, ICachedWebRequest> _cachedWebRequestFactory;
         IMediaManagerParameters _mediaManagerParameters;
         ISegmentManagerFactory _segmentManagerFactory;
+        Func<IHttpClients, Uri, IWebCache> _webCacheFactory;
 
         public MediaStreamFascadeParameters(IHttpClients httpClients, Func<IMediaStreamSource> mediaStreamSourceFactory)
         {
@@ -91,16 +91,16 @@ namespace SM.Media
             set { _mediaManagerParameters = value; }
         }
 
-        public Func<Uri, ICachedWebRequest> CachedWebRequestFactory
+        public Func<IHttpClients, Uri, IWebCache> WebCacheFactory
         {
             get
             {
-                if (null == _cachedWebRequestFactory)
-                    _cachedWebRequestFactory = uri => new CachedWebRequest(uri, _httpClients.CreatePlaylistClient(uri));
+                if (null == _webCacheFactory)
+                    _webCacheFactory = (httpClients, uri) => new WebCache(uri, httpClients.CreatePlaylistClient(uri));
 
-                return _cachedWebRequestFactory;
+                return _webCacheFactory;
             }
-            set { _cachedWebRequestFactory = value; }
+            set { _webCacheFactory = value; }
         }
 
         #endregion
@@ -110,7 +110,7 @@ namespace SM.Media
             var httpHeaderReader = new HttpHeaderReader(_httpClients);
             var contentTypeDetector = new ContentTypeDetector(ContentTypes.AllTypes);
             var webContentTypeDector = new WebContentTypeDetector(httpHeaderReader, contentTypeDetector);
-            var segmentManagerFactories = new SegmentManagerFactories(_httpClients, httpHeaderReader, contentTypeDetector, webContentTypeDector, CachedWebRequestFactory);
+            var segmentManagerFactories = new SegmentManagerFactories(_httpClients, httpHeaderReader, contentTypeDetector, webContentTypeDector, WebCacheFactory);
 
             return new SegmentManagerFactory(webContentTypeDector, segmentManagerFactories.GetFactory);
         }

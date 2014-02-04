@@ -520,14 +520,8 @@
     <Compile Include="..\SM.Media\Utility\GlobalPlatformServices.cs">
       <Link>Utility\GlobalPlatformServices.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Utility\HttpWebRequestFactory.cs">
-      <Link>Utility\HttpWebRequestFactory.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Utility\IBlockingPool.cs">
       <Link>Utility\IBlockingPool.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Utility\IHttpWebRequestFactory.cs">
-      <Link>Utility\IHttpWebRequestFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\IPlatformServices.cs">
       <Link>Utility\IPlatformServices.cs</Link>

@@ -227,9 +227,7 @@
     <Compile Include="Utility\PositionStream.cs" />
     <Compile Include="Utility\SignalTask.cs" />
     <Compile Include="Utility\GlobalPlatformServices.cs" />
-    <Compile Include="Utility\HttpWebRequestFactory.cs" />
     <Compile Include="Utility\IBlockingPool.cs" />
-    <Compile Include="Utility\IHttpWebRequestFactory.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
     <Compile Include="Utility\IAsyncEnumerable.cs" />
     <Compile Include="Utility\IWebRequest.cs" />

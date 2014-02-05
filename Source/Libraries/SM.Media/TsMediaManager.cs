@@ -148,6 +148,8 @@ namespace SM.Media
                 OnStateChange = null;
             }
 
+            _mediaStreamSource.MediaManager = null;
+
             CloseAsync()
                 .Wait();
 
@@ -188,7 +190,7 @@ namespace SM.Media
         {
             Debug.WriteLine("TsMediaManager.CloseMedia()");
 
-            Close();
+            _asyncFifoWorker.Post(CloseAsync);
         }
 
         public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
@@ -199,22 +201,6 @@ namespace SM.Media
         }
 
         #endregion
-
-        public void Play()
-        {
-            _asyncFifoWorker.Post(() => OpenMediaAsync(_segmentReaderManager));
-        }
-
-        public void Close()
-        {
-            _asyncFifoWorker.Post(CloseAsync);
-        }
-
-        public void Pause()
-        { }
-
-        public void Resume()
-        { }
 
         public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
 
@@ -257,7 +243,7 @@ namespace SM.Media
             {
                 var startReader = reader.StartAsync(_playbackCancellationTokenSource.Token);
 
-                startReader.ContinueWith(t => Close(), TaskContinuationOptions.OnlyOnFaulted);
+                startReader.ContinueWith(t => CloseMedia(), TaskContinuationOptions.OnlyOnFaulted);
             }
         }
 
@@ -701,7 +687,7 @@ namespace SM.Media
 
         void DisposeReaders()
         {
-            Debug.WriteLine("TsMediaManager.CleanupReaders()");
+            Debug.WriteLine("TsMediaManager.DisposeReaders()");
 
             var readers = _readers;
 
@@ -827,6 +813,13 @@ namespace SM.Media
 
                 using (MediaParser)
                 { }
+
+                CallbackReader = null;
+                QueueWorker = null;
+                BlockingPool = null;
+                MediaParser = null;
+                BufferingManager = null;
+                SegmentReaders = null;
             }
 
             #endregion

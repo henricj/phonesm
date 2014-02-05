@@ -40,6 +40,7 @@ namespace SM.Media
         ISegmentManagerFactory SegmentManagerFactory { get; }
         Func<IMediaStreamSource> MediaStreamSourceFactory { get; }
         IMediaManagerParameters MediaManagerParameters { get; }
+        Func<IHttpClients, Uri, IWebCache> WebCacheFactory { get; }
     }
 
     public sealed class MediaStreamFascade : IDisposable

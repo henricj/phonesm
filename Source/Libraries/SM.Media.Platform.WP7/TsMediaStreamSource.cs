@@ -665,7 +665,7 @@ namespace SM.Media
 
         void CloseMediaHandler()
         {
-            Debug.WriteLine("TsMediaStreamSource.CloseMedia()");
+            Debug.WriteLine("TsMediaStreamSource.CloseMediaHandler()");
 
             _taskScheduler.ThrowIfNotOnThread();
 

@@ -47,13 +47,23 @@ namespace SM.Media.M3U8
         {
             try
             {
+                return Encoding.GetEncoding("Windows-1252");
+            }
+            catch (ArgumentException)
+            {
+                // Nope.
+            }
+
+            try
+            {
                 return Encoding.GetEncoding("iso-8859-1");
             }
             catch (ArgumentException)
             {
                 // Silverlight...?
-                // We could try http://www.hardcodet.net/2010/03/silverlight-text-encoding-class-generator
             }
+
+            // We could try http://www.hardcodet.net/2010/03/silverlight-text-encoding-class-generator
 
             return Encoding.UTF8;
         }

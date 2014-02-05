@@ -77,7 +77,7 @@ namespace SM.Media.M3U8.TagSupport
 
             var duration = decimal.Parse(value, CultureInfo.InvariantCulture);
 
-            if (duration <= 0)
+            if (duration <= 0 && -1 != duration)
                 Debug.WriteLine("*** Invalid #EXTINF duration: " + duration);
             else if (duration > 4 * 60 * 60)
                 Debug.WriteLine("*** Excessive #EXTINF duration?: " + duration);

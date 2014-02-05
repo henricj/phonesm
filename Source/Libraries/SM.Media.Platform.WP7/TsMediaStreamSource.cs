@@ -32,6 +32,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using SM.Media.Configuration;
+using SM.Media.Pes;
 using SM.Media.Utility;
 
 namespace SM.Media
@@ -47,9 +48,10 @@ namespace SM.Media
         readonly object _streamConfigurationLock = new object();
         readonly SingleThreadSignalTaskScheduler _taskScheduler;
 
+        readonly PesStream _pesStream = new PesStream();
         MediaStreamDescription _audioStreamDescription;
         IStreamSource _audioStreamSource;
-        double _bufferingProgress;
+        float _bufferingProgress;
         bool _isClosed;
         int _isDisposed;
         volatile int _pendingOperations;
@@ -60,8 +62,6 @@ namespace SM.Media
         int _streamOpenFlags;
         MediaStreamDescription _videoStreamDescription;
         IStreamSource _videoStreamSource;
-        PacketStreamWrapper _videoStreamWrapper;
-        PacketStreamWrapper _audioStreamWrapper;
 
         public TsMediaStreamSource()
         {
@@ -126,12 +126,6 @@ namespace SM.Media
 
             if (null != _taskScheduler)
                 _taskScheduler.Dispose();
-
-            if (null != _videoStreamWrapper)
-                _videoStreamWrapper.Dispose();
-
-            if (null != _audioStreamWrapper)
-                _audioStreamWrapper.Dispose();
         }
 
         public void Configure(MediaConfiguration configuration)
@@ -235,6 +229,7 @@ namespace SM.Media
                 Debug.WriteLine("TsMediaStreamSource.SeekHandler({0}) completed, actual: {1}", seekTimestamp, position);
 
                 State = SourceState.Play;
+                _bufferingProgress = -1;
             }
             catch (Exception ex)
             {
@@ -287,14 +282,14 @@ namespace SM.Media
                 if (0 != (lastOperation & Operation.Video))
                 {
                     if (null != _videoStreamSource
-                        && !_videoStreamWrapper.GetNextSample(sample => StreamSampleHandler(sample, _videoStreamDescription, canCallReportBufferingProgress)))
+                        && !SendStreamSample(_videoStreamSource, _videoStreamDescription, canCallReportBufferingProgress))
                         RequestOperation(Operation.Video);
                 }
 
                 if (0 != (lastOperation & Operation.Audio))
                 {
                     if (null != _audioStreamSource
-                        && !_audioStreamWrapper.GetNextSample(sample => StreamSampleHandler(sample, _audioStreamDescription, canCallReportBufferingProgress)))
+                        && !SendStreamSample(_audioStreamSource, _audioStreamDescription, canCallReportBufferingProgress))
                         RequestOperation(Operation.Audio);
                 }
             }
@@ -308,46 +303,66 @@ namespace SM.Media
             throw new ObjectDisposedException(GetType().Name);
         }
 
-        bool StreamSampleHandler(IStreamSample streamSample, MediaStreamDescription mediaStreamDescription, bool canCallReportBufferingProgress)
+        bool SendStreamSample(IStreamSource source, MediaStreamDescription mediaStreamDescription, bool canCallReportBufferingProgress)
         {
             _taskScheduler.ThrowIfNotOnThread();
 
-            if (_isClosed || null == streamSample)
+            var packet = source.GetNextSample();
+
+            if (null == packet)
             {
-                SendLastStreamSample(mediaStreamDescription);
+                if (source.IsEof)
+                    return SendLastStreamSample(mediaStreamDescription);
 
-                return true;
-            }
+                if (canCallReportBufferingProgress)
+                {
+                    var progress = source.BufferingProgress;
 
-            var progress = streamSample.BufferingProgress;
+                    if (progress.HasValue)
+                    {
+                        if (Math.Abs(_bufferingProgress - progress.Value) < 0.05)
+                            return false;
 
-            if (progress.HasValue)
-            {
-                if (!canCallReportBufferingProgress || Math.Abs(_bufferingProgress - progress.Value) < 0.05)
-                    return false;
+                        Debug.WriteLine("Sample {0} buffering {1:F2}%", mediaStreamDescription.Type, progress * 100);
 
-                Debug.WriteLine("Sample {0} buffering {1:F2}%", mediaStreamDescription.Type, progress * 100);
+                        _bufferingProgress = progress.Value;
 
-                _bufferingProgress = progress.Value;
-
-                ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
-                ReportGetSampleProgress(progress.Value);
+                        ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+                        ReportGetSampleProgress(progress.Value);
+                    }
+                }
 
                 return false;
             }
 
-            var sample = new MediaStreamSample(mediaStreamDescription, streamSample.Stream, 0, streamSample.Stream.Length, streamSample.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
+            _bufferingProgress = -1;
 
-            //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
+            try
+            {
+                _pesStream.Packet = packet;
 
-            ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
-            ReportGetSampleCompleted(sample);
+                var sample = new MediaStreamSample(mediaStreamDescription, _pesStream, 0, packet.Length,
+                    packet.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
+
+                //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
+
+                ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
+                ReportGetSampleCompleted(sample);
+            }
+            finally
+            {
+                _pesStream.Packet = null;
+
+                source.FreeSample(packet);
+            }
 
             return true;
         }
 
-        void SendLastStreamSample(MediaStreamDescription mediaStreamDescription)
+        bool SendLastStreamSample(MediaStreamDescription mediaStreamDescription)
         {
+            _taskScheduler.ThrowIfNotOnThread();
+
             var sample = new MediaStreamSample(mediaStreamDescription, null, 0, 0, 0, NoMediaSampleAttributes);
 
             Debug.WriteLine("Sample {0} is null", mediaStreamDescription.Type);
@@ -357,6 +372,8 @@ namespace SM.Media
 
             if (CloseStream(mediaStreamDescription.Type))
                 ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
+
+            return true;
         }
 
         void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
@@ -377,13 +394,10 @@ namespace SM.Media
 
             var videoStreamDescription = new MediaStreamDescription(MediaStreamType.Video, msa);
 
-            var packetStreamWrapper = new PacketStreamWrapper(videoSource);
-
             lock (_streamConfigurationLock)
             {
                 _videoStreamSource = videoSource;
                 _videoStreamDescription = videoStreamDescription;
-                _videoStreamWrapper = packetStreamWrapper;
             }
         }
 
@@ -400,13 +414,10 @@ namespace SM.Media
 
             var audioStreamDescription = new MediaStreamDescription(MediaStreamType.Audio, msa);
 
-            var packetStreamWrapper = new PacketStreamWrapper(audioSource);
-
             lock (_streamConfigurationLock)
             {
                 _audioStreamSource = audioSource;
                 _audioStreamDescription = audioStreamDescription;
-                _audioStreamWrapper = packetStreamWrapper;
             }
         }
 
@@ -532,6 +543,8 @@ namespace SM.Media
 
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
+            
+            _bufferingProgress = -1;
 
             mediaManager.OpenMedia();
         }

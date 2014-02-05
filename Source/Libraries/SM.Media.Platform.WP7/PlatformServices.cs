@@ -74,7 +74,7 @@ namespace SM.Media
 
             var seed = new byte[sizeof(int)];
 
-#if WINDOWS_PHONE
+#if WINDOWS_PHONE || SILVERLIGHT
             var rng = new RNGCryptoServiceProvider();
             {
 #else

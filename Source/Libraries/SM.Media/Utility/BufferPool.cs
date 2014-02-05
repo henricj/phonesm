@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="BufferPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -150,8 +150,9 @@ namespace SM.Media.Utility
         public void Clear()
         {
 #if BUFFER_POOL_STATS
-            Debug.Assert(_allocationCount == _freeCount, string.Format("BufferPool.Dispose(): _allocationCount {0} != _freeCount {1}", _allocationCount, _freeCount));
-            Debug.Assert(_actualAllocationBytes == _actualFreeBytes, string.Format("BufferPool.Dispose(): _actualAllocationBytes {0} != _actualFreeBytes {1}", _actualAllocationBytes, _actualFreeBytes));
+            Debug.Assert(_allocationCount == _freeCount && _actualAllocationBytes == _actualFreeBytes,
+                string.Format("BufferPool.Dispose(): _allocationCount {0} == _freeCount {1} && _actualAllocationBytes {2} == _actualFreeBytes {3}",
+                    _allocationCount, _freeCount, _actualAllocationBytes, _actualFreeBytes));
 #endif
 
             foreach (var pool in _pools)
@@ -235,8 +236,9 @@ namespace SM.Media.Utility
                 lock (_pool)
                 {
 #if BUFFER_POOL_STATS
-                    Debug.Assert(_allocationCount == _freeCount, string.Format("BufferSubPool.Dispose(): _allocationCount {0} != _freeCount {1}", _allocationCount, _freeCount));
-                    Debug.Assert(_newAllocationCount == _pool.Count, string.Format("BufferSubPool.Dispose(): _newAllocationCount {0} != _pool.Count {1}", _newAllocationCount, _pool.Count));
+                    Debug.Assert(_allocationCount == _freeCount && _newAllocationCount == _pool.Count,
+                        string.Format("BufferSubPool.Dispose(): _allocationCount {0} == _freeCount {1} && _newAllocationCount {2} == _pool.Count {3}",
+                            _allocationCount, _freeCount, _newAllocationCount, _pool.Count));
 
                     if (_pool.Count != _allocationTracker.Count)
                         Debug.WriteLine("SubPool {0}: Pool size {1} != Tracker {2}", Size, _pool.Count, _allocationTracker.Count);

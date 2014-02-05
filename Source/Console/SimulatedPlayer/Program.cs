@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
 using SM.Media;
@@ -38,7 +39,14 @@ namespace SimulatedPlayer
         static void Main(string[] args)
         {
             GlobalPlatformServices.Default = new PlatformServices();
-            TaskScheduler.UnobservedTaskException += (sender, eventArgs) => Console.WriteLine("*** Unobserved task exception {0}", eventArgs.Exception.Message);
+            TaskScheduler.UnobservedTaskException +=
+                (sender, eventArgs) =>
+                {
+                    Console.WriteLine("*** Unobserved task exception {0}", eventArgs.Exception.Message);
+
+                    if (Debugger.IsAttached)
+                        Debugger.Break();
+                };
 
             try
             {

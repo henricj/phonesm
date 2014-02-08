@@ -342,7 +342,7 @@ namespace SM.Media
                 _pesStream.Packet = packet;
 
                 var sample = new MediaStreamSample(mediaStreamDescription, _pesStream, 0, packet.Length,
-                    packet.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
+                    source.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
 
                 //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
 

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AudioParserBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -69,9 +69,22 @@ namespace SM.Media.Audio
 
         protected void SubmitFrame()
         {
-            if (_index > _startIndex)
+            var length = _index - _startIndex;
+
+            if (length > 0)
             {
-                var packet = _pesPacketPool.CopyPesPacket(_packet, _startIndex, _index - _startIndex);
+                TsPesPacket packet;
+
+                if (_index + 128 >= _packet.Buffer.Length)
+                {
+                    packet = _packet;
+                    _packet = null;
+
+                    packet.Length = length;
+                    packet.Index = _startIndex;
+                }
+                else
+                    packet = _pesPacketPool.CopyPesPacket(_packet, _startIndex, length);
 
                 if (!Position.HasValue)
                     Position = StartPosition;
@@ -103,14 +116,14 @@ namespace SM.Media.Audio
             if (_index + length <= _packet.Buffer.Length)
                 return;
 
-            var newBuffer = CreatePacket(length);
+            var newPacket = CreatePacket(length);
 
             if (_index > _startIndex)
             {
                 // Copy the partial frame to the new buffer.
                 _index -= _startIndex;
 
-                Array.Copy(_packet.Buffer, _startIndex, newBuffer.Buffer, 0, _index);
+                Array.Copy(_packet.Buffer, _startIndex, newPacket.Buffer, 0, _index);
             }
             else
                 _index = 0;
@@ -120,7 +133,7 @@ namespace SM.Media.Audio
             _packet.Length = 0;
             _pesPacketPool.FreePesPacket(_packet);
 
-            _packet = newBuffer;
+            _packet = newPacket;
         }
 
         TsPesPacket CreatePacket(int length)

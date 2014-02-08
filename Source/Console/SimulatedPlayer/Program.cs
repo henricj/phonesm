@@ -68,6 +68,15 @@ namespace SimulatedPlayer
             {
                 Console.WriteLine(ex);
             }
+
+            try
+            {
+                TaskCollector.Default.Wait();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
     }
 }

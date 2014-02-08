@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SM.Media.Utility
@@ -54,6 +55,34 @@ namespace SM.Media.Utility
             }
 
             task.ContinueWith(Cleanup);
+        }
+
+        [Conditional("DEBUG")]
+        public void Wait()
+        {
+            KeyValuePair<Task, string>[] tasks;
+
+            lock (_lock)
+            {
+                tasks = _tasks.ToArray();
+            }
+
+            if (null == tasks || 0 == tasks.Length)
+                return;
+
+            try
+            {
+                TaskEx.WhenAll(tasks.Select(t => t.Key)).Wait();
+            }
+            catch (AggregateException ex)
+            {
+                foreach (var e in ex.InnerExceptions)
+                    Debug.WriteLine("TaskCollector.Wait() Task wait failed: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TaskCollector.Wait() Task wait failed: " + ex.Message);
+            }
         }
 
         void Cleanup(Task task)

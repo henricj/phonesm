@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -54,93 +54,97 @@ namespace SM.Media.AAC
 
                 if (storedLength <= 9)
                 {
-                    var data = buffer[i++];
-
-                    if (0 == storedLength)
-                    {
-                        if (0xff == data)
-                            _packet.Buffer[_index++] = 0xff;
-                    }
-                    else if (1 == storedLength)
-                    {
-                        if (0xf0 == (0xf0 & data))
-                            _packet.Buffer[_index++] = data;
-                        else
-                            _index = _startIndex;
-                    }
-                    else if (storedLength < 9)
-                        _packet.Buffer[_index++] = data;
-                    else
-                    {
-                        _packet.Buffer[_index++] = data;
-
-                        // We now have an AAC header.
-
-                        if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
-                        {
-                            SkipInvalidFrameHeader();
-
-                            continue;
-                        }
-
-                        Debug.Assert(_frameHeader.FrameLength > 7);
-
-                        if (!_isConfigured)
-                        {
-                            _configurationHandler(_frameHeader);
-                            _isConfigured = true;
-                        }
-
-                        // Even better: the frame header is valid.  Now we need some data...
-
-                        EnsureBufferSpace(_frameHeader.FrameLength);
-                    }
+                    ProcessHeader(storedLength, buffer[i++]);
                 }
                 else
                 {
                     // "_frameHeader" has a valid header and we have enough buffer space
                     // for the frame.
 
-                    var completed = _index - _startIndex;
-
-                    Debug.Assert(completed >= 0);
-
-                    var remainingFrameLength = _frameHeader.FrameLength - completed;
-
-                    Debug.Assert(remainingFrameLength >= 0);
-
-                    var remainingBuffer = endOffset - i;
-
-                    Debug.Assert(remainingBuffer >= 0);
-
-                    var copyLength = Math.Min(remainingBuffer, remainingFrameLength);
-
-                    Debug.Assert(copyLength >= 0);
-
-                    if (copyLength > 0)
-                        Array.Copy(buffer, i, _packet.Buffer, _index, copyLength);
-
-                    _index += copyLength;
-                    i += copyLength;
-                    completed += copyLength;
-
-                    Debug.Assert(completed >= 0 && completed == _index - _startIndex);
-                    Debug.Assert(completed <= _frameHeader.FrameLength);
-
-                    if (completed == _frameHeader.FrameLength)
-                    {
-                        // We have a completed AAC frame.
-
-                        if (AacDecoderSettings.Parameters.UseRawAac)
-                        {
-                            var header = _frameHeader.HeaderLength;
-
-                            _startIndex += header;
-                        }
-
-                        SubmitFrame();
-                    }
+                    i += ProcessBody(buffer, i, storedLength, endOffset);
                 }
+            }
+        }
+
+        int ProcessBody(byte[] buffer, int index, int storedLength, int endOffset)
+        {
+            var remainingFrameLength = _frameHeader.FrameLength - storedLength;
+
+            Debug.Assert(remainingFrameLength >= 0);
+
+            var remainingBuffer = endOffset - index;
+
+            Debug.Assert(remainingBuffer >= 0);
+
+            var copyLength = Math.Min(remainingBuffer, remainingFrameLength);
+
+            Debug.Assert(copyLength >= 0);
+
+            if (copyLength > 0)
+                Array.Copy(buffer, index, _packet.Buffer, _index, copyLength);
+
+            _index += copyLength;
+            storedLength += copyLength;
+
+            Debug.Assert(storedLength >= 0 && storedLength == _index - _startIndex);
+            Debug.Assert(storedLength <= _frameHeader.FrameLength);
+
+            if (storedLength == _frameHeader.FrameLength)
+            {
+                // We have a completed AAC frame.
+
+                if (AacDecoderSettings.Parameters.UseRawAac)
+                {
+                    var header = _frameHeader.HeaderLength;
+
+                    _startIndex += header;
+                }
+
+                SubmitFrame();
+            }
+            return copyLength;
+        }
+
+        void ProcessHeader(int storedLength, byte data)
+        {
+            if (0 == storedLength)
+            {
+                if (0xff == data)
+                    _packet.Buffer[_index++] = 0xff;
+            }
+            else if (1 == storedLength)
+            {
+                if (0xf0 == (0xf0 & data))
+                    _packet.Buffer[_index++] = data;
+                else
+                    _index = _startIndex;
+            }
+            else if (storedLength < 9)
+                _packet.Buffer[_index++] = data;
+            else
+            {
+                _packet.Buffer[_index++] = data;
+
+                // We now have an AAC header.
+
+                if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
+                {
+                    SkipInvalidFrameHeader();
+
+                    return;
+                }
+
+                Debug.Assert(_frameHeader.FrameLength > 7);
+
+                if (!_isConfigured)
+                {
+                    _configurationHandler(_frameHeader);
+                    _isConfigured = true;
+                }
+
+                // Even better: the frame header is valid.  Now we need some data...
+
+                EnsureBufferSpace(_frameHeader.FrameLength);
             }
         }
 

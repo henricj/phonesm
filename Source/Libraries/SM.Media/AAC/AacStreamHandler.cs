@@ -79,6 +79,8 @@ namespace SM.Media.AAC
                 _parser.Position = packet.PresentationTimestamp;
                 _parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
 
+                _pesPacketPool.FreePesPacket(packet);
+
                 return;
             }
 

@@ -367,10 +367,24 @@ namespace SM.Media
 
             Debug.WriteLine("Sample {0} is null", mediaStreamDescription.Type);
 
+            var allClosed = CloseStream(mediaStreamDescription.Type);
+
+            if (allClosed)
+            {
+                Debug.WriteLine("TsMediaStreamSource.SendLastStreamSample() All streams closed");
+
+                lock (_stateLock)
+                {
+                    _isClosed = true;
+
+                    _state = SourceState.WaitForClose;
+                }
+            }
+
             ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
             ReportGetSampleCompleted(sample);
 
-            if (CloseStream(mediaStreamDescription.Type))
+            if (allClosed)
                 ValidateEvent(MediaStreamFsm.MediaEvent.StreamsClosed);
 
             return true;
@@ -452,7 +466,7 @@ namespace SM.Media
 
             for (; ; )
             {
-                var newFlags = oldFlags & ~flag;
+                var newFlags = oldFlags | flag;
 
                 if (newFlags == oldFlags)
                     return false;
@@ -460,7 +474,7 @@ namespace SM.Media
                 var flags = Interlocked.CompareExchange(ref _streamClosedFlags, newFlags, oldFlags);
 
                 if (flags == oldFlags)
-                    return oldFlags == _streamOpenFlags;
+                    return newFlags == _streamOpenFlags;
 
                 oldFlags = flags;
             }
@@ -543,7 +557,7 @@ namespace SM.Media
 
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
-            
+
             _bufferingProgress = -1;
 
             mediaManager.OpenMedia();

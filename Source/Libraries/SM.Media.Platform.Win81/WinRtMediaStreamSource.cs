@@ -49,7 +49,7 @@ namespace SM.Media
         int _isDisposed;
         TimeSpan? _seekTarget;
         TimeSpan? _duration;
-        Action<MediaStreamSource> _mssHandler;
+        Action<IMediaSource> _mssHandler;
 
         StreamState _videoStreamState;
         StreamState _audioStreamState;
@@ -241,7 +241,7 @@ namespace SM.Media
             return _drainCompleted.WaitAsync();
         }
 
-        public void RegisterMediaStreamSourceHandler(Action<MediaStreamSource> mssHandler)
+        public void RegisterMediaStreamSourceHandler(Action<IMediaSource> mssHandler)
         {
             Debug.WriteLine("WintRtMediaStreamSource.RegisterMediaStreamSourceHandler()");
 

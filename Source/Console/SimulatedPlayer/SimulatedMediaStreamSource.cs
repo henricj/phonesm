@@ -150,7 +150,7 @@ namespace SimulatedPlayer
                     }
 
                     if (0 != _pendingRequests)
-                        _asyncFifoWorker.Post(async () => CheckForSamples());
+                        _asyncFifoWorker.Post(() => CheckForSamples());
                 });
         }
 
@@ -162,7 +162,7 @@ namespace SimulatedPlayer
 
             RequestGet(streamType);
 
-            _asyncFifoWorker.Post(async () => CheckForSamples());
+            _asyncFifoWorker.Post(() => CheckForSamples());
         }
 
         public void CloseMedia()

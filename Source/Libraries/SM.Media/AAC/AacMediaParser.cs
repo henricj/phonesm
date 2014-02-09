@@ -34,32 +34,25 @@ namespace SM.Media.AAC
 {
     public sealed class AacMediaParser : IMediaParser
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(0x0F);
-        readonly IBufferPool _bufferPool;
+        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.AacStreamType);
         readonly AacConfigurator _configurator = new AacConfigurator();
-        readonly AacFrameHeader _frameHeader = new AacFrameHeader();
         readonly MediaStream _mediaStream;
-        readonly TsPesPacketPool _packetPool;
+        readonly AacParser _parser;
+        readonly TsPesPacketPool _pesPacketPool;
         readonly StreamBuffer _streamBuffer;
-        BufferInstance _bufferEntry;
-        int _index;
-        bool _isConfigured;
-        TimeSpan? _position;
-        int _startIndex;
 
         public AacMediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
-
             if (null == bufferPool)
                 throw new ArgumentNullException("bufferPool");
 
-            _bufferPool = bufferPool;
+            _pesPacketPool = new TsPesPacketPool(bufferPool);
 
-            _packetPool = new TsPesPacketPool(_bufferPool);
+            _streamBuffer = new StreamBuffer(StreamType, _pesPacketPool.FreePesPacket, bufferingManager, checkForSamples);
 
-            _streamBuffer = new StreamBuffer(StreamType, _packetPool.FreePesPacket, bufferingManager, checkForSamples);
+            _parser = new AacParser(_pesPacketPool, _configurator.Configure, SubmitPacket);
 
             _mediaStream = new MediaStream(_configurator, _streamBuffer, null);
         }
@@ -71,14 +64,23 @@ namespace SM.Media.AAC
 
         #region IMediaParser Members
 
+        public bool EnableProcessing { get; set; }
+
+        public TimeSpan StartPosition
+        {
+            get { return _parser.StartPosition; }
+            set { _parser.StartPosition = value; }
+        }
+
         public void Dispose()
         {
             Clear();
-        }
 
-        public void ProcessEndOfData()
-        {
-            _streamBuffer.Enqueue(null);
+            using (_streamBuffer)
+            { }
+
+            using (_pesPacketPool)
+            { }
         }
 
         public void ProcessData(byte[] buffer, int offset, int length)
@@ -86,216 +88,33 @@ namespace SM.Media.AAC
             Debug.Assert(length > 0);
             Debug.Assert(offset + length <= buffer.Length);
 
-            var endOffset = offset + length;
+            _parser.ProcessData(buffer, offset, length);
+        }
 
-            // Make sure there is enough room for the frame header.  We really only need 9 bytes
-            // for the header.
-            EnsureBufferSpace(128);
-
-            for (var i = offset; i < endOffset; )
-            {
-                var storedLength = _index - _startIndex;
-
-                if (storedLength <= 9)
-                {
-                    var data = buffer[i++];
-
-                    if (0 == storedLength)
-                    {
-                        if (0xff == data)
-                            _bufferEntry.Buffer[_index++] = 0xff;
-                    }
-                    else if (1 == storedLength)
-                    {
-                        if (0xf0 == (0xf0 & data))
-                            _bufferEntry.Buffer[_index++] = data;
-                        else
-                            _index = _startIndex;
-                    }
-                    else if (storedLength < 9)
-                        _bufferEntry.Buffer[_index++] = data;
-                    else
-                    {
-                        _bufferEntry.Buffer[_index++] = data;
-
-                        // We now have an AAC header.
-
-                        if (!_frameHeader.Parse(_bufferEntry.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
-                        {
-                            SkipInvalidFrameHeader();
-
-                            continue;
-                        }
-
-                        Debug.Assert(_frameHeader.FrameLength > 7);
-
-                        if (!_isConfigured)
-                        {
-                            _configurator.Configure(_frameHeader);
-                            _isConfigured = true;
-                        }
-
-                        // Even better: the frame header is valid.  Now we need some data...
-
-                        EnsureBufferSpace(_frameHeader.FrameLength);
-                    }
-                }
-                else
-                {
-                    // "_frameHeader" has a valid header and we have enough buffer space
-                    // for the frame.
-
-                    var completed = _index - _startIndex;
-
-                    Debug.Assert(completed >= 0);
-
-                    var remainingFrameLength = _frameHeader.FrameLength - completed;
-
-                    Debug.Assert(remainingFrameLength >= 0);
-
-                    var remainingBuffer = endOffset - i;
-
-                    Debug.Assert(remainingBuffer >= 0);
-
-                    var copyLength = Math.Min(remainingBuffer, remainingFrameLength);
-
-                    Debug.Assert(copyLength >= 0);
-
-                    if (copyLength > 0)
-                        Array.Copy(buffer, i, _bufferEntry.Buffer, _index, copyLength);
-
-                    _index += copyLength;
-                    i += copyLength;
-                    completed += copyLength;
-
-                    Debug.Assert(completed >= 0 && completed == _index - _startIndex);
-                    Debug.Assert(completed <= _frameHeader.FrameLength);
-
-                    if (completed == _frameHeader.FrameLength)
-                    {
-                        // We have a completed AAC frame.
-                        SubmitFrame();
-                    }
-                }
-            }
+        public void ProcessEndOfData()
+        {
+            _streamBuffer.Enqueue(null);
         }
 
         public void FlushBuffers()
         {
-            FreeBuffer();
+            _parser.FlushBuffers();
         }
-
-        public bool EnableProcessing { get; set; }
-        public TimeSpan StartPosition { get; set; }
 
         public void Initialize(Action<IProgramStreams> programstreamsHandler)
         { }
 
         #endregion
 
-        void SubmitFrame()
+        void SubmitPacket(TsPesPacket packet)
         {
-            var packet = _packetPool.AllocatePesPacket(_bufferEntry);
-
-            packet.Index = _startIndex;
-            packet.Length = _index - _startIndex;
-
-            if (AacDecoderSettings.Parameters.UseRawAac)
-            {
-                var header = _frameHeader.HeaderLength;
-
-                packet.Index += header;
-                packet.Length -= header;
-            }
-
-            if (packet.Length > 0)
-            {
-                if (!_position.HasValue)
-                    _position = StartPosition;
-
-                packet.PresentationTimestamp = _position.Value;
-                packet.Duration = _frameHeader.Duration;
-
-                _position += _frameHeader.Duration;
-
-                //Debug.WriteLine("AacMediaParser.SubmitFrame: position {0} duration {1}", _position, _frameHeader.Duration);
-
-                _streamBuffer.Enqueue(packet);
-            }
-            else
-                _packetPool.FreePesPacket(packet);
-
-            _startIndex = _index;
-
-            EnsureBufferSpace(128);
-        }
-
-        void FreeBuffer()
-        {
-            if (null != _bufferEntry)
-            {
-                var bufferEntry = _bufferEntry;
-
-                _bufferEntry = null;
-
-                _bufferPool.Free(bufferEntry);
-            }
-
-            _startIndex = 0;
-            _index = 0;
-        }
-
-        void SkipInvalidFrameHeader()
-        {
-            for (var i = _startIndex + 1; i < _index; ++i)
-            {
-                if (0xff == _bufferEntry.Buffer[i])
-                {
-                    Array.Copy(_bufferEntry.Buffer, i, _bufferEntry.Buffer, _startIndex, _index - i);
-                    _index = i;
-                    return;
-                }
-            }
-
-            _index = 0;
-        }
-
-        void EnsureBufferSpace(int length)
-        {
-            if (null == _bufferEntry)
-            {
-                _bufferEntry = _bufferPool.Allocate(length);
-                _index = 0;
-                _startIndex = 0;
-
-                return;
-            }
-
-            if (_index + length <= _bufferEntry.Buffer.Length)
-                return;
-
-            var newBuffer = _bufferPool.Allocate(length);
-
-            if (_index > _startIndex)
-            {
-                // Copy the partial frame to the new buffer.
-                _index -= _startIndex;
-
-                Array.Copy(_bufferEntry.Buffer, _startIndex, newBuffer.Buffer, 0, _index);
-            }
-            else
-                _index = 0;
-
-            _startIndex = 0;
-
-            _bufferPool.Free(_bufferEntry);
-
-            _bufferEntry = newBuffer;
+            _streamBuffer.Enqueue(packet);
         }
 
         void Clear()
         {
-            _packetPool.Clear();
+            _parser.FlushBuffers();
+            _pesPacketPool.Clear();
         }
     }
 }

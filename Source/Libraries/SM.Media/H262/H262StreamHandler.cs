@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="H262StreamHandler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,18 +27,28 @@
 using System;
 using SM.Media.Pes;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.H262
 {
     class H262StreamHandler : PesStreamHandler
     {
-        readonly Action<TsPesPacket> _nextHandler;
         readonly H262Configurator _configurator;
+        readonly Action<TsPesPacket> _nextHandler;
+        readonly ITsPesPacketPool _pesPacketPool;
         bool _foundframe;
 
-        public H262StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, H262Configurator configurator)
+        public H262StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, H262Configurator configurator)
             : base(pid, streamType)
         {
+            if (null == pesPacketPool)
+                throw new ArgumentNullException("pesPacketPool");
+            if (null == nextHandler)
+                throw new ArgumentNullException("nextHandler");
+            if (null == configurator)
+                throw new ArgumentNullException("configurator");
+
+            _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
             _configurator = configurator;
         }
@@ -49,15 +59,17 @@ namespace SM.Media.H262
 
             if (null == packet)
             {
-                if (null != _nextHandler)
-                    _nextHandler(null);
+                _nextHandler(null);
 
                 return;
             }
 
             // Reject garbage packet
-            if (packet.Length < 7)
+            if (packet.Length < 1)
+            {
+                _pesPacketPool.FreePesPacket(packet);
                 return;
+            }
 
             if (!_foundframe)
             {
@@ -65,8 +77,7 @@ namespace SM.Media.H262
                 _foundframe = true;
             }
 
-            if (null != _nextHandler)
-                _nextHandler(packet);
+            _nextHandler(packet);
         }
     }
 }

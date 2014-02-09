@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaHandlerFactories.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,7 +40,7 @@ namespace SM.Media
             (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new H262Configurator(streamType.Description);
-                var streamHandler = new H262StreamHandler(pid, streamType, nextHandler, configurator);
+                var streamHandler = new H262StreamHandler(tsDecoder.PesPacketPool, pid, streamType, nextHandler, configurator);
 
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };
@@ -67,7 +67,7 @@ namespace SM.Media
             (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new H264Configurator(streamType.Description);
-                var streamHandler = new H264StreamHandler(pid, streamType, nextHandler, configurator);
+                var streamHandler = new H264StreamHandler(tsDecoder.PesPacketPool, pid, streamType, nextHandler, configurator);
 
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };
@@ -76,7 +76,7 @@ namespace SM.Media
             (tsDecoder, pid, streamType, streamBuffer, nextHandler) =>
             {
                 var configurator = new Ac3Configurator(streamType.Description);
-                var streamHandler = new Ac3StreamHandler(pid, streamType, nextHandler, configurator);
+                var streamHandler = new Ac3StreamHandler(tsDecoder.PesPacketPool, pid, streamType, nextHandler, configurator);
 
                 return new MediaStream(configurator, streamBuffer, streamHandler.PacketHandler);
             };

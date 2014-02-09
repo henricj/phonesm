@@ -32,5 +32,7 @@ namespace SM.Media.H264
     {
         IEnumerable<byte> SpsBytes { get; set; }
         IEnumerable<byte> PpsBytes { get; set; }
+
+        bool IsConfigured { get; }
     }
 }

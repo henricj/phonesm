@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="H264StreamHandler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 using System;
 using SM.Media.Pes;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.H264
 {
@@ -35,12 +36,22 @@ namespace SM.Media.H264
         readonly IH264ConfiguratorSink _configuratorSink;
         readonly Action<TsPesPacket> _nextHandler;
         readonly NalUnitParser _parser;
+        readonly ITsPesPacketPool _pesPacketPool;
         readonly RbspDecoder _rbspDecoder = new RbspDecoder();
         INalParser _currentParser;
+        bool _isConfigured;
 
-        public H264StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IH264ConfiguratorSink configuratorSink)
+        public H264StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IH264ConfiguratorSink configuratorSink)
             : base(pid, streamType)
         {
+            if (null == pesPacketPool)
+                throw new ArgumentNullException("pesPacketPool");
+            if (null == nextHandler)
+                throw new ArgumentNullException("nextHandler");
+            if (null == configuratorSink)
+                throw new ArgumentNullException("configuratorSink");
+
+            _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
             _configuratorSink = configuratorSink;
 
@@ -76,15 +87,31 @@ namespace SM.Media.H264
         {
             base.PacketHandler(packet);
 
-            _parser.Reset();
-
             if (null == packet)
-                _parser.Parse(null, 0, 0); // Propagate end-of-stream
-            else
+            {
+                _nextHandler(null);
+
+                return;
+            }
+
+            // Reject garbage packet
+            if (packet.Length < 1)
+            {
+                _pesPacketPool.FreePesPacket(packet);
+
+                return;
+            } 
+            
+            if (!_isConfigured)
+            {
+                _parser.Reset();
+
                 _parser.Parse(packet.Buffer, packet.Index, packet.Length);
 
-            if (null != _nextHandler)
-                _nextHandler(packet);
+                _isConfigured = _configuratorSink.IsConfigured;
+            }
+
+            _nextHandler(packet);
         }
     }
 }

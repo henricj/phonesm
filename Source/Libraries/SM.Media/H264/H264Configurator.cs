@@ -91,6 +91,8 @@ namespace SM.Media.H264
             }
         }
 
+        public bool IsConfigured { get; private set; }
+
         public string VideoFourCc
         {
             get { return "H264"; }
@@ -169,6 +171,8 @@ namespace SM.Media.H264
 
             if (null == _spsBytes || null == _ppsBytes)
                 return;
+
+            IsConfigured = true;
 
             var handler = ConfigurationComplete;
 

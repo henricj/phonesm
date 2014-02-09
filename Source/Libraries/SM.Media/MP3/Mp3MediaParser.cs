@@ -34,22 +34,25 @@ namespace SM.Media.MP3
 {
     sealed class Mp3MediaParser : IMediaParser
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(0x03);
+        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Mp3Iso11172);
         readonly Mp3Configurator _configurator = new Mp3Configurator();
         readonly MediaStream _mediaStream;
         readonly Mp3Parser _parser;
+        readonly TsPesPacketPool _pesPacketPool;
         readonly StreamBuffer _streamBuffer;
 
         public Mp3MediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
+            if (null == bufferPool)
+                throw new ArgumentNullException("bufferPool");
 
-            var pesPacketPool = new TsPesPacketPool(bufferPool);
+            _pesPacketPool = new TsPesPacketPool(bufferPool);
 
-            _streamBuffer = new StreamBuffer(StreamType, pesPacketPool.FreePesPacket, bufferingManager, checkForSamples);
+            _streamBuffer = new StreamBuffer(StreamType, _pesPacketPool.FreePesPacket, bufferingManager, checkForSamples);
 
-            _parser = new Mp3Parser(pesPacketPool, _configurator.Configure, SubmitPacket);
+            _parser = new Mp3Parser(_pesPacketPool, _configurator.Configure, SubmitPacket);
 
             _mediaStream = new MediaStream(_configurator, _streamBuffer, null);
         }
@@ -61,10 +64,7 @@ namespace SM.Media.MP3
 
         #region IMediaParser Members
 
-        public void Dispose()
-        {
-            Clear();
-        }
+        public bool EnableProcessing { get; set; }
 
         public TimeSpan StartPosition
         {
@@ -72,9 +72,15 @@ namespace SM.Media.MP3
             set { _parser.StartPosition = value; }
         }
 
-        public void ProcessEndOfData()
+        public void Dispose()
         {
-            _streamBuffer.Enqueue(null);
+            Clear();
+
+            using (_streamBuffer)
+            { }
+
+            using (_pesPacketPool)
+            { }
         }
 
         public void ProcessData(byte[] buffer, int offset, int length)
@@ -85,12 +91,15 @@ namespace SM.Media.MP3
             _parser.ProcessData(buffer, offset, length);
         }
 
+        public void ProcessEndOfData()
+        {
+            _streamBuffer.Enqueue(null);
+        }
+
         public void FlushBuffers()
         {
             _parser.FlushBuffers();
         }
-
-        public bool EnableProcessing { get; set; }
 
         public void Initialize(Action<IProgramStreams> programstreamsHandler)
         { }
@@ -105,6 +114,7 @@ namespace SM.Media.MP3
         void Clear()
         {
             _parser.FlushBuffers();
+            _pesPacketPool.Clear();
         }
     }
 }

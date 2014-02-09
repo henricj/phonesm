@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AacStreamHandler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="Ac3StreamHandler.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@ using System;
 using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.Ac3
 {
@@ -35,11 +36,20 @@ namespace SM.Media.Ac3
     {
         readonly IFrameParser _configurator;
         readonly Action<TsPesPacket> _nextHandler;
+        readonly ITsPesPacketPool _pesPacketPool;
         bool _foundframe;
 
-        public Ac3StreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IFrameParser configurator)
+        public Ac3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IFrameParser configurator)
             : base(pid, streamType)
         {
+            if (null == pesPacketPool)
+                throw new ArgumentNullException("pesPacketPool");
+            if (null == nextHandler)
+                throw new ArgumentNullException("nextHandler");
+            if (null == configurator)
+                throw new ArgumentNullException("configurator");
+
+            _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
             _configurator = configurator;
         }
@@ -50,21 +60,23 @@ namespace SM.Media.Ac3
 
             if (null == packet)
             {
-                if (null != _nextHandler)
-                    _nextHandler(null);
+                _nextHandler(null);
 
                 return;
             }
 
             // Reject garbage packet
-            if (packet.Length < 7)
+            if (packet.Length < 1)
+            {
+                _pesPacketPool.FreePesPacket(packet);
+
                 return;
+            }
 
             if (!_foundframe)
                 _foundframe = _configurator.Parse(packet.Buffer, packet.Index, packet.Length);
 
-            if (null != _nextHandler)
-                _nextHandler(packet);
+            _nextHandler(packet);
         }
     }
 }

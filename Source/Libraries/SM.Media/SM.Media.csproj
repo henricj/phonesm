@@ -75,7 +75,16 @@
     <Compile Include="AAC\AacDecoderSettings.cs" />
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
+    <Compile Include="Builder\IBuilder.cs" />
+    <Compile Include="Builder\IBuilderHandle.cs" />
     <Compile Include="CallbackReader.cs" />
+    <Compile Include="MediaStreamFascadeBase.cs" />
+    <Compile Include="MediaStreamFascadeParameters.cs" />
+    <Compile Include="MediaStreamFascadeSetting.cs" />
+    <Compile Include="Playlists\PlaylistSegmentManagerDefaults.cs" />
+    <Compile Include="Playlists\PlaylistSegmentManagerParameters.cs" />
+    <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
+    <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
@@ -164,7 +173,7 @@
     <Compile Include="M3U8\M3U8TagInstanceExtensions.cs" />
     <Compile Include="M3U8\M3U8Tags.cs" />
     <Compile Include="M3U8\M3U8ValueAttribute.cs" />
-    <Compile Include="Segments\SegmentManagerFactories.cs" />
+    <Compile Include="Segments\SegmentManagerFactoryFinder.cs" />
     <Compile Include="Segments\SegmentManagerFactory.cs" />
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
@@ -173,7 +182,10 @@
     <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
     <Compile Include="Utility\ResettableParameters.cs" />
-    <Compile Include="Utility\SingleUseTaskTimer.cs" />
+    <Compile Include="Utility\SingleUseTaskTimer.cs">
+      <SubType>
+      </SubType>
+    </Compile>
     <Compile Include="Utility\IStopClose.cs" />
     <Compile Include="Utility\StopCloseExtensions.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
@@ -248,6 +260,7 @@
     <Compile Include="Web\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />
+    <Compile Include="Web\WebCacheFactory.cs" />
     <Compile Include="Web\WebContentTypeDetector.cs" />
   </ItemGroup>
   <ItemGroup>

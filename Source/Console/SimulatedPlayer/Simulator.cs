@@ -25,17 +25,28 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using SM.Media;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SimulatedPlayer
 {
     sealed class Simulator : IDisposable
     {
+        static readonly string[] Sources =
+        {
+            "http://www.npr.org/streams/mp3/nprlive24.pls",
+            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
+            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
+            null,
+            "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
+        };
+
         readonly IHttpClients _httpClients;
         MediaStreamFascade _mediaStreamFascade;
-        MediaStreamFascadeParameters _mediaStreamFascadeParameters;
+        int _count;
 
         public Simulator(IHttpClients httpClients)
         {
@@ -59,9 +70,9 @@ namespace SimulatedPlayer
         {
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _mediaStreamFascadeParameters = new MediaStreamFascadeParameters(_httpClients, () => new SimulatedMediaStreamSource(mediaElementManager));
+            _mediaStreamFascade = new MediaStreamFascade(_httpClients, ((IMediaElementManager)mediaElementManager).SetSourceAsync);
 
-            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, ((IMediaElementManager)mediaElementManager).SetSourceAsync);
+            _mediaStreamFascade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
 
             _mediaStreamFascade.Source = new Uri(
                 //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
@@ -71,6 +82,30 @@ namespace SimulatedPlayer
             Thread.Sleep(750);
 
             mediaElementManager.Play();
+
+            return;
+
+            var timer = new Timer(_ =>
+                                  {
+                                      GC.Collect();
+                                      GC.WaitForPendingFinalizers();
+                                      GC.Collect();
+
+                                      var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+
+                                      var source = Sources[_count];
+
+                                      Debug.WriteLine("Switching to {0} (GC {1:F3} MiB)", source, gcMemory);
+
+                                      var url = null == source ? null : new Uri(source);
+
+                                      _mediaStreamFascade.Source = url;
+
+                                      if (++_count >= Sources.Length)
+                                          _count = 0;
+                                  });
+
+            timer.Change(TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
         }
     }
 }

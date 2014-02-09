@@ -24,8 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-//#define STREAM_SWITCHING
-
 using System;
 using System.Diagnostics;
 using System.Text;
@@ -34,7 +32,6 @@ using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
-using Microsoft.Phone.Info;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -46,6 +43,7 @@ namespace HlsView
 #if STREAM_SWITCHING
         static readonly string[] Sources =
         {
+            "http://www.npr.org/streams/mp3/nprlive24.pls",
             "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
             "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
             null,
@@ -59,10 +57,10 @@ namespace HlsView
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly IMediaElementManager _mediaElementManager;
-        readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
         readonly DispatcherTimer _positionSampler;
-        MediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
+        readonly IHttpClients _httpClients;
 
         // Constructor
         public MainPage()
@@ -78,11 +76,7 @@ namespace HlsView
                 },
                 me => UpdateState(MediaElementState.Closed));
 
-            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
-
-            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
-
-            _mediaStreamFascadeParameters.MediaManagerParameters.MediaElementManager = _mediaElementManager;
+            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
             _positionSampler = new DispatcherTimer
                                {
@@ -242,7 +236,9 @@ namespace HlsView
             if (null != _mediaStreamFascade)
                 return;
 
-            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, _mediaElementManager.SetSourceAsync);
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
+
+            _mediaStreamFascade.SetParameter(_mediaElementManager);
 
             _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
         }
@@ -310,8 +306,7 @@ namespace HlsView
         {
             Debug.WriteLine("Stop clicked");
 
-            if (null != mediaElement1)
-                mediaElement1.Stop();
+            StopMedia();
         }
 
         void wakeButton_Click(object sender, RoutedEventArgs e)

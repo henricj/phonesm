@@ -39,11 +39,17 @@ using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
+    public interface IPlaylistSegmentManagerParameters
+    {
+        Func<M3U8Parser, bool> IsDynamicPlaylist { get; set; }
+    }
+
     public class PlaylistSegmentManager : ISegmentManager
     {
         readonly CancellationToken _cancellationToken;
         readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
         readonly TimeSpan _excessiveDuration;
+        readonly Func<M3U8Parser, bool> _isDynamicPlaylistPolicy;
         readonly TimeSpan _maximumReload;
         readonly TimeSpan _minimumReload;
         readonly TimeSpan _minimumRetry;
@@ -52,7 +58,7 @@ namespace SM.Media.Playlists
         readonly object _segmentLock = new object();
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
         readonly ISubProgram _subProgram;
-        readonly Func<Uri, IWebCache> _webCacheFactory;
+        readonly IWebCacheFactory _webCacheFactory;
         readonly IWebContentTypeDetector _webContentTypeDetector;
         CancellationTokenSource _abortTokenSource;
         int _dynamicStartIndex;
@@ -68,24 +74,25 @@ namespace SM.Media.Playlists
         int _startSegmentIndex = -1;
         IWebCache _subPlaylistCache;
 
-        public PlaylistSegmentManager(Func<Uri, IWebCache> webCacheFactory, ISubProgram program, ContentType playlistType, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector, CancellationToken cancellationToken)
+        public PlaylistSegmentManager(IPlaylistSegmentManagerParameters parameters, ISubProgram program, ContentType playlistType, 
+            IWebCacheFactory webCacheFactory, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector,
+            CancellationToken cancellationToken)
         {
-            if (null == webCacheFactory)
-                throw new ArgumentNullException("webCacheFactory");
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
             if (null == program)
                 throw new ArgumentNullException("program");
             if (null == playlistType)
                 throw new ArgumentNullException("playlistType");
-            if (segmentsFactory == null)
-                throw new ArgumentNullException("segmentsFactory");
-            if (null == webContentTypeDetector)
-                throw new ArgumentNullException("webContentTypeDetector");
+            if (null == parameters.IsDynamicPlaylist)
+                throw new ArgumentException("WebCacheFactory cannot be null", "parameters");
 
             _webCacheFactory = webCacheFactory;
             _subProgram = program;
             _playlistType = playlistType;
             _segmentsFactory = segmentsFactory;
             _webContentTypeDetector = webContentTypeDetector;
+            _isDynamicPlaylistPolicy = parameters.IsDynamicPlaylist;
             _cancellationToken = cancellationToken;
 
             var p = PlaylistSettings.Parameters;
@@ -342,7 +349,7 @@ namespace SM.Media.Playlists
             foreach (var playlist in urls)
             {
                 if (null == _subPlaylistCache || _subPlaylistCache.Url != playlist)
-                    _subPlaylistCache = _webCacheFactory(playlist);
+                    _subPlaylistCache = await _webCacheFactory.CreateAsync(playlist).ConfigureAwait(false);
 
                 CancellationToken.ThrowIfCancellationRequested();
 
@@ -474,7 +481,7 @@ namespace SM.Media.Playlists
 
             var segments0 = segments;
 
-            var isDynamicPlayist = null == parser.GlobalTags.Tag(M3U8Tags.ExtXEndList);
+            var isDynamicPlayist = _isDynamicPlaylistPolicy(parser);
 
             Duration = isDynamicPlayist ? null : GetDuration(segments);
 

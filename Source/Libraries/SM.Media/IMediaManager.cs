@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,8 +31,13 @@ namespace SM.Media
 {
     public interface IMediaManager
     {
+        TimeSpan? SeekTarget { get; set; }
+        TsMediaManager.MediaState State { get; set; }
+        IMediaStreamSource MediaStreamSource { get; }
         void OpenMedia();
         void CloseMedia();
         Task<TimeSpan> SeekMediaAsync(TimeSpan position);
+        event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+        Task CloseAsync();
     }
 }

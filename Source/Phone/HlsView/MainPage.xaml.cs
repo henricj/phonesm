@@ -41,11 +41,22 @@ namespace HlsView
 {
     public partial class MainPage : PhoneApplicationPage
     {
+        static readonly string[] Sources =
+        {
+            "http://www.npr.org/streams/mp3/nprlive24.pls",
+            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
+            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
+            null,
+            "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
+        };
+
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly IMediaElementManager _mediaElementManager;
-        readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
         readonly DispatcherTimer _positionSampler;
+        readonly DispatcherTimer _timer;
+        int _count;
+        readonly HttpClients _httpClients;
         MediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
 
@@ -93,17 +104,49 @@ namespace HlsView
                     UpdateState(MediaElementState.Closed);
                 });
 
-            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
-
-            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
-
-            _mediaStreamFascadeParameters.MediaManagerParameters.MediaElementManager = _mediaElementManager;
+            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
             _positionSampler = new DispatcherTimer
                                {
                                    Interval = TimeSpan.FromMilliseconds(75)
                                };
             _positionSampler.Tick += OnPositionSamplerOnTick;
+
+#if false
+            _timer = new DispatcherTimer();
+
+            _timer.Tick += (sender, args) =>
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+
+                var source = Uris[_count];
+
+                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
+                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+
+                _mediaStreamFascade.Source = source;
+
+                if (++_count >= Uris.Length)
+                    _count = 0;
+            };
+
+            //_timer.Tick += (sender, args) =>
+            //               {
+            //                   Debug.WriteLine("Stopping player");
+
+            //                   player.Stop();
+            //               };
+
+            _timer.Interval = TimeSpan.FromSeconds(20);
+
+            _timer.Start();
+#endif
         }
 
         void OnBufferingProgressChanged(object sender, RoutedEventArgs routedEventArgs)
@@ -205,17 +248,28 @@ namespace HlsView
                 _mediaStreamFascade.DisposeSafe();
             }
 
-            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, _mediaElementManager.SetSourceAsync)
-                                  {
-                                      Source = new Uri(
-                                          "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                                          //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                                          )
-                                  };
+            try
+            {
+                _mediaStreamFascade = new MediaStreamFascade(_httpClients, _mediaElementManager.SetSourceAsync)
+                              {
+                                  Source = new Uri(
+                                      "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                                      //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                                      )
+                              };
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+                _mediaStreamFascade.SetParameter(_mediaElementManager);
 
-            _mediaStreamFascade.Play();
+                _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+
+                _mediaStreamFascade.Play();
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage Play failed: " + ex.Message);
+                return;
+            }
 
             _positionSampler.Start();
         }

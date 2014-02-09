@@ -52,7 +52,7 @@ namespace SM.Media.MediaPlayer
     /// </remarks>
     public sealed class MediaElementWrapper : ContentControl, IMediaElement
     {
-        readonly MediaStreamFascade _mediaStreamFascade;
+        readonly IMediaStreamFascade _mediaStreamFascade;
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace SM.Media.MediaPlayer
         ///     Creates a new instance of the MediaElementWrapper class.
         /// </summary>
         /// <param name="mediaStreamFascadeFactory"></param>
-        public MediaElementWrapper(Func<Func<IMediaStreamSource, Task>, MediaStreamFascade> mediaStreamFascadeFactory)
+        public MediaElementWrapper(Func<Func<IMediaStreamSource, Task>, IMediaStreamFascade> mediaStreamFascadeFactory)
         {
             if (mediaStreamFascadeFactory == null)
                 throw new ArgumentNullException("mediaStreamFascadeFactory");

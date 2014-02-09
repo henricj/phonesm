@@ -87,12 +87,14 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFascadeParameters.cs">
+      <Link>DefaultMediaStreamFascadeParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascade.cs">
       <Link>MediaStreamFascade.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascadeParameters.cs">
-      <Link>MediaStreamFascadeParameters.cs</Link>
-    </Compile>
+    <Compile Include="TsMediaManagerBuilder.cs" />
+    <Compile Include="TsMediaModule.cs" />
     <Compile Include="WinRtMediaElementManager.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Utility\SmDebug.cs" />
@@ -102,6 +104,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SM.Media.Builder\SM.Media.Builder.csproj">
+      <Project>{e7ddfad9-00bd-4f60-8873-4a34b80e9acb}</Project>
+      <Name>SM.Media.Builder</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SM.Media\SM.Media.csproj">
       <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
       <Name>SM.Media</Name>
@@ -119,6 +125,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Autofac">
+      <HintPath>..\..\packages\Autofac.3.3.0\lib\portable-win+net40+sl50+wp8\Autofac.dll</HintPath>
+    </Reference>
     <Reference Include="System.Net.Http.Extensions, Version=2.2.18.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Microsoft.Net.Http.2.2.18\lib\win8\System.Net.Http.Extensions.dll</HintPath>

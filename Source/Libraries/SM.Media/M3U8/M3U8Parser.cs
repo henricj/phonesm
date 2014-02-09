@@ -86,7 +86,14 @@ namespace SM.Media.M3U8
                     first = false;
 
                     if (line != "#EXTM3U")
+                    {
+                        var d = lines as IDisposable;
+
+                        if (null != d)
+                            d.Dispose();
+
                         return;
+                    }
 
                     continue;
                 }

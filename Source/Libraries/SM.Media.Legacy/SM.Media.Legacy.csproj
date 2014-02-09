@@ -102,6 +102,12 @@
     <Compile Include="..\SM.Media\Buffering\NullBufferingManager.cs">
       <Link>Buffering\NullBufferingManager.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Builder\IBuilder.cs">
+      <Link>Builder\IBuilder.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Builder\IBuilderHandle.cs">
+      <Link>Builder\IBuilderHandle.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\CallbackReader.cs" />
     <Compile Include="..\SM.Media\Configuration\AudioFormat.cs">
       <Link>Configuration\AudioFormat.cs</Link>
@@ -168,6 +174,15 @@
     <Compile Include="..\SM.Media\MediaManagerParameters.cs">
       <Link>MediaManagerParameters.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\MediaStreamFascadeBase.cs">
+      <Link>MediaStreamFascadeBase.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaStreamFascadeParameters.cs">
+      <Link>MediaStreamFascadeParameters.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaStreamFascadeSetting.cs">
+      <Link>MediaStreamFascadeSetting.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3FrameHeader.cs">
       <Link>MP3\Mp3FrameHeader.cs</Link>
     </Compile>
@@ -193,8 +208,14 @@
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManager.cs">
       <Link>Playlists\PlaylistSegmentManager.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerDefaults.cs">
+      <Link>Playlists\PlaylistSegmentManagerDefaults.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerFactory.cs">
       <Link>Playlists\PlaylistSegmentManagerFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerParameters.cs">
+      <Link>Playlists\PlaylistSegmentManagerParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSettings.cs">
       <Link>Playlists\PlaylistSettings.cs</Link>
@@ -217,11 +238,17 @@
     <Compile Include="..\SM.Media\Pls\PlsTrack.cs">
       <Link>Pls\PlsTrack.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Segments\SegmentManagerFactories.cs">
-      <Link>Segments\SegmentManagerFactories.cs</Link>
+    <Compile Include="..\SM.Media\Segments\ISegmentManagerFactoryInstance.cs">
+      <Link>Segments\ISegmentManagerFactoryInstance.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Segments\SegmentManagerFactory.cs">
       <Link>Segments\SegmentManagerFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Segments\SegmentManagerFactoryFinder.cs">
+      <Link>Segments\SegmentManagerFactoryFinder.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Segments\SimpleSegmentManagerFactory.cs">
+      <Link>Segments\SimpleSegmentManagerFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\ApplicationInformation.cs">
       <Link>Utility\ApplicationInformation.cs</Link>
@@ -282,6 +309,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Web\WebCache.cs">
       <Link>Web\WebCache.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebCacheFactory.cs">
+      <Link>Web\WebCacheFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\WebContentTypeDetector.cs">
       <Link>Web\WebContentTypeDetector.cs</Link>

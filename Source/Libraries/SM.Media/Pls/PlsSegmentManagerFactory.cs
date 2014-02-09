@@ -40,8 +40,10 @@ using SM.Media.Web;
 
 namespace SM.Media.Pls
 {
-    public class PlsSegmentManagerFactory
+    public class PlsSegmentManagerFactory : ISegmentManagerFactoryInstance
     {
+        static readonly ICollection<ContentType> Types = new[] { ContentTypes.Pls };
+
         readonly IContentTypeDetector _contentTypeDetector;
         readonly IHttpHeaderReader _headerReader;
         readonly IHttpClients _httpClients;
@@ -60,7 +62,14 @@ namespace SM.Media.Pls
             _contentTypeDetector = contentTypeDetector;
         }
 
-        public async Task<ISegmentManager> CreateSegmentManager(IEnumerable<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        #region ISegmentManagerFactoryInstance Members
+
+        public ICollection<ContentType> KnownContentTypes
+        {
+            get { return Types; }
+        }
+
+        public async Task<ISegmentManager> CreateAsync(IEnumerable<Uri> source, ContentType contentType, CancellationToken cancellationToken)
         {
             var httpClient = _httpClients.RootPlaylistClient;
             var pls = new PlsParser();
@@ -71,7 +80,7 @@ namespace SM.Media.Pls
 
                 var localUrl = url;
 
-                var segmentManager = await retry.CallAsync(() => ReadPlaylist(localUrl, httpClient, pls, cancellationToken), cancellationToken);
+                var segmentManager = await retry.CallAsync(() => ReadPlaylistAsync(localUrl, httpClient, pls, cancellationToken), cancellationToken);
 
                 if (null != segmentManager)
                     return segmentManager;
@@ -80,7 +89,9 @@ namespace SM.Media.Pls
             return null;
         }
 
-        async Task<ISegmentManager> CreateManager(PlsParser pls, Uri playlistUri, CancellationToken cancellationToken)
+        #endregion
+
+        async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, Uri playlistUri, CancellationToken cancellationToken)
         {
             var tracks = pls.Tracks;
 
@@ -137,7 +148,7 @@ namespace SM.Media.Pls
             }
         }
 
-        async Task<ISegmentManager> ReadPlaylist(Uri url, HttpClient httpClient, PlsParser pls, CancellationToken cancellationToken)
+        async Task<ISegmentManager> ReadPlaylistAsync(Uri url, HttpClient httpClient, PlsParser pls, CancellationToken cancellationToken)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
@@ -154,7 +165,7 @@ namespace SM.Media.Pls
                 if (!ret)
                     return null;
 
-                return await CreateManager(pls, response.RequestMessage.RequestUri, cancellationToken).ConfigureAwait(false);
+                return await CreateManagerAsync(pls, response.RequestMessage.RequestUri, cancellationToken).ConfigureAwait(false);
             }
         }
     }

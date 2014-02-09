@@ -33,11 +33,6 @@ namespace SM.Media
 {
     public interface IMediaManagerParameters
     {
-        ISegmentReaderManager SegmentReaderManager { get; set; }
-        IMediaElementManager MediaElementManager { get; set; }
-        IMediaStreamSource MediaStreamSource { get; set; }
-        MediaManagerParameters.BufferingManagerFactoryDelegate BufferingManagerFactory { get; set; }
-        IBufferingPolicy BufferingPolicy { get; set; }
         Action<IProgramStreams> ProgramStreamsHandler { get; set; }
     }
 
@@ -45,25 +40,11 @@ namespace SM.Media
     {
         #region Delegates
 
-        public delegate IBufferingManager BufferingManagerFactoryDelegate(ISegmentManagerReaders readers, IQueueThrottling queueThrottling, Action checkForSamples, IBufferingPolicy bufferingPolicy);
+        public delegate IBufferingManager BufferingManagerFactoryDelegate(ISegmentManagerReaders readers, IQueueThrottling queueThrottling, Action checkForSamples);
 
         #endregion
 
-        public MediaManagerParameters()
-        {
-            BufferingManagerFactory = BufferingDefaults.CreateBufferingManager;
-            BufferingPolicy = new DefaultBufferingPolicy();
-            MediaElementManager = new NullMediaElementManager();
-        }
-
         #region IMediaManagerParameters Members
-
-        public ISegmentReaderManager SegmentReaderManager { get; set; }
-        public IMediaElementManager MediaElementManager { get; set; }
-        public IMediaStreamSource MediaStreamSource { get; set; }
-
-        public BufferingManagerFactoryDelegate BufferingManagerFactory { get; set; }
-        public IBufferingPolicy BufferingPolicy { get; set; }
 
         public Action<IProgramStreams> ProgramStreamsHandler { get; set; }
 

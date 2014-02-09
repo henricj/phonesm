@@ -45,32 +45,34 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     /// </summary>
     public class AudioTrackStreamer : AudioStreamingAgent
     {
-        MediaStreamFascade _mediaStreamFascade;
-        readonly IMediaStreamFascadeParameters _mediaStreamFascadeParameters;
+        readonly IBufferingPolicy _bufferingPolicy;
+        readonly IHttpClients _httpClients;
+        readonly IMediaManagerParameters _mediaManagerParameters;
+        IMediaStreamFascade _mediaStreamFascade;
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
 
         public AudioTrackStreamer()
         {
-            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
-            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
+            _mediaManagerParameters = new MediaManagerParameters
+                                      {
+                                          ProgramStreamsHandler =
+                                              streams =>
+                                              {
+                                                  var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
 
-            _mediaStreamFascadeParameters.MediaManagerParameters.ProgramStreamsHandler =
-                streams =>
-                {
-                    var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
+                                                  var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
+                                                  foreach (
+                                                      var programStream in others)
+                                                      programStream.BlockStream = true;
+                                              }
+                                      };
 
-                    var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
-                    foreach (
-                        var programStream in others)
-                        programStream.BlockStream = true;
-                };
-
-            _mediaStreamFascadeParameters.MediaManagerParameters.BufferingPolicy =
-                new DefaultBufferingPolicy
-                {
-                    BytesMinimum = 200 * 1024
-                };
+            _bufferingPolicy = new DefaultBufferingPolicy
+                               {
+                                   BytesMinimum = 200 * 1024
+                               };
         }
 
 #if DEBUG
@@ -109,7 +111,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 if (null == GlobalPlatformServices.Default)
                     GlobalPlatformServices.Default = new PlatformServices();
 
-                if (null == track.Tag)
+                if (null == track || null == track.Tag)
                 {
                     Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() null url");
 
@@ -134,10 +136,13 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                     _mediaStreamFascade.DisposeSafe();
                 }
 
-                _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, mss => SetSourceAsync(mss, streamer))
-                                      {
-                                          Source = url
-                                      };
+                _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, mss => SetSourceAsync(mss, streamer));
+
+                _mediaStreamFascade.Source = url;
+
+                _mediaStreamFascade.SetParameter(_bufferingPolicy);
+
+                _mediaStreamFascade.SetParameter(_mediaManagerParameters);
 
                 _mediaStreamFascade.StateChange += TsMediaManagerOnOnStateChange;
 

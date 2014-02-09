@@ -41,10 +41,10 @@ namespace SM.Media.Segments
     public class SegmentManagerFactory : ISegmentManagerFactory
     {
         static readonly Task<ISegmentManager> NoHandler = TaskEx.FromResult(null as ISegmentManager);
-        readonly Func<ContentType, SegmentManagerFactoryDelegate> _factoryFinder;
+        readonly ISegmentManagerFactoryFinder _factoryFinder;
         readonly IWebContentTypeDetector _webContentTypeDetector;
 
-        public SegmentManagerFactory(IWebContentTypeDetector webContentTypeDetector, Func<ContentType, SegmentManagerFactoryDelegate> factoryFinder)
+        public SegmentManagerFactory(IWebContentTypeDetector webContentTypeDetector, ISegmentManagerFactoryFinder factoryFinder)
         {
             if (null == webContentTypeDetector)
                 throw new ArgumentNullException("webContentTypeDetector");
@@ -62,10 +62,10 @@ namespace SM.Media.Segments
             if (null == contentType)
                 throw new ArgumentNullException("contentType");
 
-            var factory = _factoryFinder(contentType);
+            var factory = _factoryFinder.GetFactory(contentType);
 
             if (null != factory)
-                return factory(source, contentType, cancellationToken);
+                return factory.CreateAsync(new[] { source }, contentType, cancellationToken);
 
             return NoHandler;
         }

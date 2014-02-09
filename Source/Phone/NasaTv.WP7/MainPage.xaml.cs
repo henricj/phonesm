@@ -42,16 +42,17 @@ namespace NasaTv
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
+        readonly HttpClients _httpClients;
         readonly MediaElementManager _mediaElementManager;
-        readonly MediaStreamFascadeParameters _mediaStreamFascadeParameters;
-        MediaStreamFascade _mediaStreamFascade;
+        readonly MediaManagerParameters _mediaManagerParameters;
+        IMediaStreamFascade _mediaStreamFascade;
 
         // Constructor
         public MainPage()
         {
             InitializeComponent();
 
-            var httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
             _mediaElementManager = new MediaElementManager(Dispatcher,
                 () =>
@@ -90,10 +91,6 @@ namespace NasaTv
 
                     UpdateState(MediaElementState.Closed);
                 });
-
-            _mediaStreamFascadeParameters = MediaStreamFascadeParameters.Create<TsMediaStreamSource>(httpClients);
-
-            _mediaStreamFascadeParameters.MediaManagerParameters.MediaElementManager = _mediaElementManager;
 
             foreach (ApplicationBarIconButton ib in ApplicationBar.Buttons)
             {
@@ -146,13 +143,14 @@ namespace NasaTv
                 _mediaStreamFascade.DisposeSafe();
             }
 
-            _mediaStreamFascade = new MediaStreamFascade(_mediaStreamFascadeParameters, _mediaElementManager.SetSourceAsync)
-                                  {
-                                      Source = new Uri(
-                                          "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                                          //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                                          )
-                                  };
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
+
+            _mediaStreamFascade.SetParameter(_mediaElementManager);
+
+            _mediaStreamFascade.Source = new Uri(
+                "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                );
 
             _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
 

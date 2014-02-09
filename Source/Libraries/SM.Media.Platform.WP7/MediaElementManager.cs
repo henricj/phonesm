@@ -74,7 +74,10 @@ namespace SM.Media
 
                                 _mediaElement = _createMediaElement();
 
-                                _mediaElement.SetSource((MediaStreamSource)source);
+                                if (null != _mediaElement)
+                                    _mediaElement.SetSource((MediaStreamSource)source);
+                                else
+                                    Debug.WriteLine("MediaElementManager.SetSourceAsync() null media element");
                             });
         }
 
@@ -91,7 +94,8 @@ namespace SM.Media
                                    var mediaElement = _mediaElement;
                                    _mediaElement = null;
 
-                                   _destroyMediaElement(mediaElement);
+                                   if (null != mediaElement)
+                                       _destroyMediaElement(mediaElement);
                                })
                     .ConfigureAwait(false);
             }

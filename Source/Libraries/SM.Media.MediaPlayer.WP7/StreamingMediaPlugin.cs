@@ -569,7 +569,6 @@ namespace SM.Media.MediaPlayer
 
                 _httpClients = new HttpClients(userAgent: _applicationInformation.CreateUserAgent());
 
-                var mediaStreamFascadeParameters = new MediaStreamFascadeParameters(_httpClients, () => new TsMediaStreamSource());
 
                 InitializeStreamingMediaElement();
                 IsLoaded = true;
@@ -578,7 +577,7 @@ namespace SM.Media.MediaPlayer
 
                 _dispatcher = MediaElement.Dispatcher;
 
-                _mediaStreamFascade = new MediaStreamFascade(mediaStreamFascadeParameters, SetSourceAsync);
+                _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, SetSourceAsync);
             }
             catch (Exception ex)
             {

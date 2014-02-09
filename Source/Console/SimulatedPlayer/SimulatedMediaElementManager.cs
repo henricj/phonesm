@@ -117,7 +117,7 @@ namespace SimulatedPlayer
                 return;
             }
 
-            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1} ({2}/{3})", streamType, streamSource.PresentationTimestamp, packet.PresentationTimestamp, packet.DecodeTimestamp);
+            //Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1} ({2}/{3})", streamType, streamSource.PresentationTimestamp, packet.PresentationTimestamp, packet.DecodeTimestamp);
 
             var timestamp = packet.PresentationTimestamp;
             var oldestTimestamp = TimeSpan.MaxValue;
@@ -211,7 +211,10 @@ namespace SimulatedPlayer
         {
             var random = _random.GetRandomNumbers(4);
 
-            await Task.Delay((int)(50 * (1 + random[3]))).ConfigureAwait(false);
+            do
+            {
+                await Task.Delay((int) (50 * (1 + random[3]))).ConfigureAwait(false);
+            } while (null == _mediaStreamSource);
 
             var taskActions = new List<Func<Task>>();
 

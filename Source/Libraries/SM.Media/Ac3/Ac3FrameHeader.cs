@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Ac3FrameHeader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,8 @@ namespace SM.Media.Ac3
 {
     sealed class Ac3FrameHeader
     {
+        static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(32);
+
         static readonly int[] SamplingFrequencyTable =
         {
             48000,
@@ -92,11 +94,7 @@ namespace SM.Media.Ac3
 
         public TimeSpan Duration
         {
-            get
-            {
-                throw new NotImplementedException();
-                //return TimeSpan.FromSeconds(1024.0 / SamplingFrequency); 
-            }
+            get { return FrameDuration; }
         }
 
         public bool Parse(byte[] buffer, int index, int length, bool verbose = false)
@@ -105,14 +103,14 @@ namespace SM.Media.Ac3
 
             var lastIndex = index + length;
 
-            if (length < 7)
+            if (length < 5)
                 return false;
 
             for (; ; )
             {
                 for (; ; )
                 {
-                    if (index + 7 > lastIndex)
+                    if (index + 5 > lastIndex)
                         return false;
 
                     var frameSync1 = buffer[index++];
@@ -121,7 +119,7 @@ namespace SM.Media.Ac3
                         break;
                 }
 
-                if (index + 6 > lastIndex)
+                if (index + 4 > lastIndex)
                     return false;
 
                 var frameSync2 = buffer[index++];
@@ -146,8 +144,11 @@ namespace SM.Media.Ac3
 
             var frameCode = GetFrameCode(frmsizcod);
 
-            if (null != frameCode)
-                Bitrate = 1000 * frameCode.Bitrate;
+            if (null == frameCode)
+                return false;
+
+            Bitrate = 1000 * frameCode.Bitrate;
+            FrameLength = frameCode.GetFrameSize(fscod);
 
             if (string.IsNullOrEmpty(Name))
                 Name = string.Format("AC-3 {0}kHz", SamplingFrequency / 1000.0);
@@ -191,18 +192,18 @@ namespace SM.Media.Ac3
                 Code = code;
                 Bitrate = bitrate;
 
-                _frame = new[] { f32k, f44k, f48k };
+                _frame = new[] { f48k, f44k, f32k };
             }
 
             public byte Code { get; private set; }
             public short Bitrate { get; private set; }
 
-            public short GetFrameSize(int fscod)
+            public int GetFrameSize(int fscod)
             {
                 if (fscod < 0 || fscod >= _frame.Length)
                     throw new ArgumentOutOfRangeException("fscod");
 
-                return _frame[fscod];
+                return 2 * _frame[fscod];
             }
         }
 

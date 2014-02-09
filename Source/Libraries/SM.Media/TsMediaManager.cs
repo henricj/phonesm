@@ -31,6 +31,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.AAC;
+using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Configuration;
 using SM.Media.Content;
@@ -76,10 +77,10 @@ namespace SM.Media
         readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
-        readonly Func<Task<ISegmentReaderManager>> _readerManagerFactory;
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaStreamSource _mediaStreamSource;
         readonly Action<IProgramStreams> _programStreamsHandler;
+        readonly Func<Task<ISegmentReaderManager>> _readerManagerFactory;
         MediaState _mediaState;
         CancellationTokenSource _playbackCancellationTokenSource;
         ISegmentReaderManager _readerManager;
@@ -114,20 +115,6 @@ namespace SM.Media
         {
             get { return _closeCancellationTokenSource.IsCancellationRequested; }
         }
-
-        public MediaState State
-        {
-            get { return _mediaState; }
-            set { SetMediaState(value, null); }
-        }
-
-        public TimeSpan? SeekTarget
-        {
-            get { return _mediaStreamSource.SeekTarget; }
-            set { _mediaStreamSource.SeekTarget = value; }
-        }
-
-        public IMediaStreamSource MediaStreamSource { get { return _mediaStreamSource; }}
 
         #region IDisposable Members
 
@@ -164,6 +151,23 @@ namespace SM.Media
 
         #region IMediaManager Members
 
+        public MediaState State
+        {
+            get { return _mediaState; }
+            set { SetMediaState(value, null); }
+        }
+
+        public TimeSpan? SeekTarget
+        {
+            get { return _mediaStreamSource.SeekTarget; }
+            set { _mediaStreamSource.SeekTarget = value; }
+        }
+
+        public IMediaStreamSource MediaStreamSource
+        {
+            get { return _mediaStreamSource; }
+        }
+
         public void OpenMedia()
         {
             Debug.WriteLine("TsMediaManager.OpenMedia()");
@@ -194,9 +198,121 @@ namespace SM.Media
             return StartWorkAsync(() => SeekAsync(position), token);
         }
 
-        #endregion
-
         public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+
+        public async Task CloseAsync()
+        {
+            Debug.WriteLine("TsMediaManager.CloseAsync()");
+
+            if (IsClosed)
+                return;
+
+            State = MediaState.Closing;
+
+            _closeCancellationTokenSource.Cancel();
+
+            Task stopPlaylistTask = null;
+
+            var readerManager = _readerManager;
+
+            if (null != readerManager)
+            {
+                Debug.WriteLine("TsMediaManager.CloseAsync() calling readerManager.StopAsync()");
+
+                _readerManager = null;
+
+                stopPlaylistTask = readerManager.StopAsync();
+            }
+
+            var mss = _mediaStreamSource;
+
+            Task drainTask = null;
+
+            if (null != mss)
+            {
+                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaStreamSource.CloseAsync()");
+
+                drainTask = mss.CloseAsync();
+            }
+
+            string error = null;
+
+            if (null != _readers && _readers.Length > 0)
+            {
+                try
+                {
+                    await CloseReadersAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("TsMediaManager.CloseAsync: " + ex.Message);
+                    error = "Close failed: " + ex.Message;
+                }
+            }
+
+            if (null != stopPlaylistTask)
+            {
+                try
+                {
+                    await stopPlaylistTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // This is normal...
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("TsMediaManager.CloseAsync() stop failed: " + ex.Message);
+                }
+            }
+
+            try
+            {
+                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaElementManager.CloseAsync()");
+
+                await _mediaElementManager.CloseAsync().ConfigureAwait(false);
+
+                Debug.WriteLine("TsMediaManager.CloseAsync() returned from _mediaElementManager.CloseAsync()");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TsMediaManager.CloseAsync() media element manager CloseAsync failed: " + ex.Message);
+            }
+
+            if (null != drainTask)
+            {
+                try
+                {
+                    Debug.WriteLine("TsMediaManager.CloseAsync() waiting for _mediaStreamSource.CloseAsync()");
+
+                    await drainTask.ConfigureAwait(false);
+
+                    Debug.WriteLine("TsMediaManager.CloseAsync() finished _mediaStreamSource.CloseAsync()");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("TsMediaManager.CloseAsync() drain failed: " + ex.Message);
+                }
+            }
+
+            if (null != mss)
+                mss.MediaManager = null;
+
+            if (null != _readers && _readers.Length > 0)
+                DisposeReaders();
+
+            if (null != readerManager)
+                readerManager.DisposeSafe();
+
+            if (null == error)
+                State = MediaState.Closed;
+            else
+                SetMediaState(MediaState.Error, error);
+
+            Debug.WriteLine("TsMediaManager.CloseAsync() completed");
+        }
+
+        #endregion
 
         void ResetCancellationToken()
         {
@@ -372,6 +488,8 @@ namespace SM.Media
                 InitializeMp3MediaParser(reader);
             else if (Equals(ContentTypes.Aac, contentType))
                 InitializeAacMediaParser(reader);
+            else if (Equals(ContentTypes.Ac3, contentType))
+                InitializeAc3MediaParser(reader);
             else
                 InitializeTsMediaParser(reader);
         }
@@ -379,6 +497,15 @@ namespace SM.Media
         void InitializeAacMediaParser(ReaderPipeline reader)
         {
             var mediaParser = new AacMediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+
+            mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
+
+            InitializeMediaParser(reader, mediaParser, 1);
+        }
+
+        void InitializeAc3MediaParser(ReaderPipeline reader)
+        {
+            var mediaParser = new Ac3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -542,118 +669,6 @@ namespace SM.Media
             var tasks = _readers.Select(reader => reader.StopAsync());
 
             await TaskEx.WhenAll(tasks).ConfigureAwait(false);
-        }
-
-        public async Task CloseAsync()
-        {
-            Debug.WriteLine("TsMediaManager.CloseAsync()");
-
-            if (IsClosed)
-                return;
-
-            State = MediaState.Closing;
-
-            _closeCancellationTokenSource.Cancel();
-
-            Task stopPlaylistTask = null;
-
-            var readerManager = _readerManager;
-
-            if (null != readerManager)
-            {
-                Debug.WriteLine("TsMediaManager.CloseAsync() calling readerManager.StopAsync()");
-
-                _readerManager = null;
-
-                stopPlaylistTask = readerManager.StopAsync();
-            }
-
-            var mss = _mediaStreamSource;
-
-            Task drainTask = null;
-
-            if (null != mss)
-            {
-                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaStreamSource.CloseAsync()");
-
-                drainTask = mss.CloseAsync();
-            }
-
-            string error = null;
-
-            if (null != _readers && _readers.Length > 0)
-            {
-                try
-                {
-                    await CloseReadersAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("TsMediaManager.CloseAsync: " + ex.Message);
-                    error = "Close failed: " + ex.Message;
-                }
-            }
-
-            if (null != stopPlaylistTask)
-            {
-                try
-                {
-                    await stopPlaylistTask.ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // This is normal...
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("TsMediaManager.CloseAsync() stop failed: " + ex.Message);
-                }
-            }
-            
-            try
-            {
-                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaElementManager.CloseAsync()");
-
-                await _mediaElementManager.CloseAsync().ConfigureAwait(false);
-
-                Debug.WriteLine("TsMediaManager.CloseAsync() returned from _mediaElementManager.CloseAsync()");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("TsMediaManager.CloseAsync() media element manager CloseAsync failed: " + ex.Message);
-            }
-
-            if (null != drainTask)
-            {
-                try
-                {
-                    Debug.WriteLine("TsMediaManager.CloseAsync() waiting for _mediaStreamSource.CloseAsync()");
-
-                    await drainTask.ConfigureAwait(false);
-
-                    Debug.WriteLine("TsMediaManager.CloseAsync() finished _mediaStreamSource.CloseAsync()");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("TsMediaManager.CloseAsync() drain failed: " + ex.Message);
-                }
-            }
-
-            if (null != mss)
-                mss.MediaManager = null;
-
-            if (null != _readers && _readers.Length > 0)
-                DisposeReaders();
-
-            if (null != readerManager)
-                readerManager.DisposeSafe();
-
-            if (null == error)
-                State = MediaState.Closed;
-            else
-                SetMediaState(MediaState.Error, error);
-
-            Debug.WriteLine("TsMediaManager.CloseAsync() completed");
         }
 
         async Task CloseReadersAsync()

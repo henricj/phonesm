@@ -37,6 +37,7 @@ namespace SM.Media.Segments
         static readonly ICollection<ContentType> Types = new[]
                                                          {
                                                              ContentTypes.Aac,
+                                                             ContentTypes.Ac3,
                                                              ContentTypes.Mp3,
                                                              ContentTypes.TransportStream
                                                          };

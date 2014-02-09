@@ -34,7 +34,7 @@ namespace SM.Media.Ac3
 {
     public sealed class Ac3MediaParser : IMediaParser
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(0x0F);
+        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Ac3StreamType);
         readonly IBufferPool _bufferPool;
         readonly Ac3Configurator _configurator = new Ac3Configurator();
         readonly Ac3FrameHeader _frameHeader = new Ac3FrameHeader();
@@ -73,11 +73,14 @@ namespace SM.Media.Ac3
 
         public void Dispose()
         {
+            FreeBuffer();
             Clear();
         }
 
         public void ProcessEndOfData()
         {
+            FreeBuffer();
+
             _streamBuffer.Enqueue(null);
         }
 
@@ -88,7 +91,7 @@ namespace SM.Media.Ac3
 
             var endOffset = offset + length;
 
-            // Make sure there is enough room for the frame header.  We really only need 9 bytes
+            // Make sure there is enough room for the frame header.  We really only need 5 bytes
             // for the header.
             EnsureBufferSpace(128);
 
@@ -96,7 +99,7 @@ namespace SM.Media.Ac3
             {
                 var storedLength = _index - _startIndex;
 
-                if (storedLength <= 9)
+                if (storedLength <= 4)
                 {
                     var data = buffer[i++];
 
@@ -112,7 +115,7 @@ namespace SM.Media.Ac3
                         else
                             _index = _startIndex;
                     }
-                    else if (storedLength < 9)
+                    else if (storedLength < 4)
                         _bufferEntry.Buffer[_index++] = data;
                     else
                     {

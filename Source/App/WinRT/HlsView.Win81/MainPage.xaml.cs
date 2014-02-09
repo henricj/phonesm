@@ -292,7 +292,7 @@ namespace HlsView
             Debug.WriteLine("Stop clicked");
 
             if (null != mediaElement1)
-                mediaElement1.Stop();
+                mediaElement1.Source = null;
         }
 
         void wakeButton_Click(object sender, RoutedEventArgs e)

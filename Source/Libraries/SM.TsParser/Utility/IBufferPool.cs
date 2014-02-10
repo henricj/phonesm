@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IBufferPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,9 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+
 namespace SM.TsParser.Utility
 {
-    public interface IBufferPool
+    public interface IBufferPool : IDisposable
     {
         BufferInstance Allocate(int minSize);
         void Free(BufferInstance bufferInstance);

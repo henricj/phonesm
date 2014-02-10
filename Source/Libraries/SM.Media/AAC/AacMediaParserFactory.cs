@@ -36,8 +36,8 @@ namespace SM.Media.AAC
     {
         static readonly ContentType[] Types = { ContentTypes.Aac };
 
-        public AacMediaParserFactory(Func<IBufferPool> poolFactory)
-            : base((bufferingManager, checkForSamples) => new AacMediaParser(bufferingManager, poolFactory(), checkForSamples))
+        public AacMediaParserFactory(Func<ITsPesPacketPool> poolFactory)
+            : base((bufferingManager, checkForSamples) => new AacMediaParser(poolFactory()))
         { }
 
         public override ICollection<ContentType> KnownContentTypes

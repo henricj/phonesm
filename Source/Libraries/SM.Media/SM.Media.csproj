@@ -77,6 +77,9 @@
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
     <Compile Include="Ac3\Ac3MediaParserFactory.cs" />
+    <Compile Include="Ac3\Ac3Parser.cs" />
+    <Compile Include="Audio\AudioMediaParser.cs" />
+    <Compile Include="Audio\IAudioParser.cs" />
     <Compile Include="Buffering\BufferingManagerFactory.cs" />
     <Compile Include="Builder\IBuilder.cs" />
     <Compile Include="Builder\IBuilderHandle.cs" />
@@ -84,6 +87,7 @@
     <Compile Include="Content\ContentServiceFactoryFinder.cs" />
     <Compile Include="Content\IContentServiceFactoryInstance.cs" />
     <Compile Include="MediaParser\IMediaParserFactoryInstance.cs" />
+    <Compile Include="MediaParser\MediaParserBase.cs" />
     <Compile Include="MediaParser\MediaParserFactory.cs" />
     <Compile Include="MediaParser\MediaParserFactoryBase.cs" />
     <Compile Include="MediaParser\MediaParserFactoryFinder.cs" />

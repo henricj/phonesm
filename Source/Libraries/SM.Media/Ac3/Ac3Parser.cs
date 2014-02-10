@@ -1,10 +1,10 @@
-// -----------------------------------------------------------------------
-//  <copyright file="Mp3Parser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+﻿// -----------------------------------------------------------------------
+//  <copyright file="Ac3Parser.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,12 +30,12 @@ using SM.Media.Audio;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
-namespace SM.Media.MP3
+namespace SM.Media.Ac3
 {
-    public sealed class Mp3Parser : AudioParserBase
+    public sealed class Ac3Parser : AudioParserBase
     {
-        public Mp3Parser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
-            : base(new Mp3FrameHeader(), pesPacketPool, configurationHandler, submitPacket)
+        public Ac3Parser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
+            : base(new Ac3FrameHeader(), pesPacketPool, configurationHandler, submitPacket)
         { }
 
         public override void ProcessData(byte[] buffer, int offset, int length)
@@ -45,7 +45,7 @@ namespace SM.Media.MP3
 
             var endOffset = offset + length;
 
-            // Make sure there is enough room for the frame header.  We really only need 4 bytes
+            // Make sure there is enough room for the frame header.  We really only need 5 bytes
             // for the header.
             EnsureBufferSpace(128);
 
@@ -53,29 +53,29 @@ namespace SM.Media.MP3
             {
                 var storedLength = _index - _startIndex;
 
-                if (storedLength < 4)
+                if (storedLength <= 4)
                 {
                     var data = buffer[i++];
 
                     if (0 == storedLength)
                     {
-                        if (0xff == data)
-                            _packet.Buffer[_index++] = 0xff;
+                        if (0x0b == data)
+                            _packet.Buffer[_index++] = 0x0b;
                     }
                     else if (1 == storedLength)
                     {
-                        if (0xe0 == (0xe0 & data))
+                        if (0x77 == data)
                             _packet.Buffer[_index++] = data;
                         else
                             _index = _startIndex;
                     }
-                    else if (2 == storedLength)
+                    else if (storedLength < 4)
                         _packet.Buffer[_index++] = data;
-                    else if (3 == storedLength)
+                    else
                     {
                         _packet.Buffer[_index++] = data;
 
-                        // We now have an MP3 header.
+                        // We now have an AC3 header.
 
                         if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
                         {
@@ -84,18 +84,17 @@ namespace SM.Media.MP3
                             continue;
                         }
 
-                        Debug.Assert(_frameHeader.FrameLength > 4);
+                        Debug.Assert(_frameHeader.FrameLength > 7);
 
                         if (!_isConfigured)
                         {
                             _configurationHandler(_frameHeader);
-
                             _isConfigured = true;
                         }
 
                         // Even better: the frame header is valid.  Now we need some data...
 
-                        EnsureBufferSpace(_frameHeader.FrameLength - 4);
+                        EnsureBufferSpace(_frameHeader.FrameLength);
                     }
                 }
                 else
@@ -117,7 +116,7 @@ namespace SM.Media.MP3
 
                     if (_index - _startIndex == _frameHeader.FrameLength)
                     {
-                        // We have a completed MP3 frame.
+                        // We have a completed AC3 frame.
                         SubmitFrame();
                     }
                 }
@@ -126,31 +125,17 @@ namespace SM.Media.MP3
 
         void SkipInvalidFrameHeader()
         {
-            if (0xff == _packet.Buffer[_startIndex + 1] &&
-                0xe0 == (0xe0 & _packet.Buffer[_startIndex + 2]))
+            for (var i = _startIndex + 1; i < _index; ++i)
             {
-                // _bufferEntry.Buffer[_startIndex] is already 0xff
-                _packet.Buffer[_startIndex + 1] = _packet.Buffer[_startIndex + 2];
-                _packet.Buffer[_startIndex + 2] = _packet.Buffer[_startIndex + 3];
-
-                _index = _startIndex + 3;
+                if (0xff == _packet.Buffer[i])
+                {
+                    Array.Copy(_packet.Buffer, i, _packet.Buffer, _startIndex, _index - i);
+                    _index = i;
+                    return;
+                }
             }
-            else if (0xff == _packet.Buffer[_startIndex + 2] &&
-                     0xe0 == (0xe0 & _packet.Buffer[_startIndex + 3]))
-            {
-                // _bufferEntry.Buffer[_startIndex] is already 0xff
-                _packet.Buffer[_startIndex + 1] = _packet.Buffer[_startIndex + 3];
 
-                _index = _startIndex + 2;
-            }
-            else if (0xff == _packet.Buffer[_startIndex + 3])
-            {
-                // _bufferEntry.Buffer[_startIndex] is already 0xff
-
-                _index = _startIndex + 1;
-            }
-            else
-                _index = 0;
+            _index = 0;
         }
     }
 }

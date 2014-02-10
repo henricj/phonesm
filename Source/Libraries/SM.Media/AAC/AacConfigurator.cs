@@ -31,7 +31,7 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.AAC
 {
-    sealed class AacConfigurator : IAudioConfigurationSource, IFrameParser
+    public sealed class AacConfigurator : IAudioConfigurationSource, IFrameParser
     {
         readonly AacFrameHeader _frameHeader = new AacFrameHeader();
 

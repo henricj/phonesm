@@ -25,17 +25,19 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Threading;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.Audio
 {
-    abstract class AudioParserBase
+    public abstract class AudioParserBase : IAudioParser
     {
         protected readonly IAudioFrameHeader _frameHeader;
         protected Action<IAudioFrameHeader> _configurationHandler;
         protected int _index;
         protected bool _isConfigured;
+        int _isDisposed;
         protected TsPesPacket _packet;
         protected ITsPesPacketPool _pesPacketPool;
         TimeSpan? _position;
@@ -66,6 +68,20 @@ namespace SM.Media.Audio
             get { return _position; }
             set { _position = value; }
         }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            Dispose(true);
+
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
 
         protected void SubmitFrame()
         {
@@ -167,5 +183,13 @@ namespace SM.Media.Audio
         }
 
         public abstract void ProcessData(byte[] buffer, int offset, int length);
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing)
+                return;
+
+            FreeBuffer();
+        }
     }
 }

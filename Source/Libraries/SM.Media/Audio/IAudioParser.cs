@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IMediaParser.cs" company="Henric Jungheim">
+//  <copyright file="IAudioParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,17 +25,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.TsParser;
 
-namespace SM.Media.MediaParser
+namespace SM.Media.Audio
 {
-    public interface IMediaParser : IDisposable
+    public interface IAudioParser : IDisposable
     {
-        bool EnableProcessing { get; set; }
         TimeSpan StartPosition { get; set; }
-        void ProcessEndOfData();
-        void ProcessData(byte[] buffer, int offset, int length);
+        TimeSpan? Position { get; set; }
         void FlushBuffers();
-        void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IMediaParserMediaStream> mediaParserStreamHandler, Action<IProgramStreams> programStreamsHandler = null);
+        void ProcessData(byte[] buffer, int offset, int length);
     }
 }

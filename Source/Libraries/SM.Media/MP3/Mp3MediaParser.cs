@@ -24,98 +24,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Diagnostics;
-using SM.Media.Buffering;
-using SM.Media.MediaParser;
+using SM.Media.Audio;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
-    public sealed class Mp3MediaParser : IMediaParser
+    public sealed class Mp3MediaParser : AudioMediaParser<Mp3Parser, Mp3Configurator>
     {
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Mp3Iso11172);
-        readonly Mp3Configurator _configurator = new Mp3Configurator();
-        readonly MediaStream _mediaStream;
-        readonly Mp3Parser _parser;
-        readonly TsPesPacketPool _pesPacketPool;
-        readonly StreamBuffer _streamBuffer;
 
-        public Mp3MediaParser(IBufferingManager bufferingManager, IBufferPool bufferPool, Action checkForSamples)
+        public Mp3MediaParser(ITsPesPacketPool pesPacketPool)
+            : base(pesPacketPool, StreamType, new Mp3Configurator())
         {
-            if (null == bufferingManager)
-                throw new ArgumentNullException("bufferingManager");
-            if (null == bufferPool)
-                throw new ArgumentNullException("bufferPool");
-
-            _pesPacketPool = new TsPesPacketPool(bufferPool);
-
-            _streamBuffer = new StreamBuffer(StreamType, _pesPacketPool.FreePesPacket, bufferingManager, checkForSamples);
-
-            _parser = new Mp3Parser(_pesPacketPool, _configurator.Configure, SubmitPacket);
-
-            _mediaStream = new MediaStream(_configurator, _streamBuffer, null);
-        }
-
-        public IMediaParserMediaStream MediaStream
-        {
-            get { return _mediaStream; }
-        }
-
-        #region IMediaParser Members
-
-        public bool EnableProcessing { get; set; }
-
-        public TimeSpan StartPosition
-        {
-            get { return _parser.StartPosition; }
-            set { _parser.StartPosition = value; }
-        }
-
-        public void Dispose()
-        {
-            Clear();
-
-            using (_streamBuffer)
-            { }
-
-            using (_pesPacketPool)
-            { }
-        }
-
-        public void ProcessData(byte[] buffer, int offset, int length)
-        {
-            Debug.Assert(length > 0);
-            Debug.Assert(length <= buffer.Length);
-
-            _parser.ProcessData(buffer, offset, length);
-        }
-
-        public void ProcessEndOfData()
-        {
-            _streamBuffer.Enqueue(null);
-        }
-
-        public void FlushBuffers()
-        {
-            _parser.FlushBuffers();
-        }
-
-        public void Initialize(Action<IProgramStreams> programstreamsHandler)
-        { }
-
-        #endregion
-
-        void SubmitPacket(TsPesPacket packet)
-        {
-            _streamBuffer.Enqueue(packet);
-        }
-
-        void Clear()
-        {
-            _parser.FlushBuffers();
-            _pesPacketPool.Clear();
+            Parser = new Mp3Parser(pesPacketPool, Configurator.Configure, SubmitPacket);
         }
     }
 }

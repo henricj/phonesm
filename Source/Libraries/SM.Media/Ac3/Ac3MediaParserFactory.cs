@@ -36,8 +36,8 @@ namespace SM.Media.Ac3
     {
         static readonly ContentType[] Types = { ContentTypes.Ac3 };
 
-        public Ac3MediaParserFactory(Func<IBufferPool> poolFactory)
-            : base((bufferingManager, checkForSamples) => new Ac3MediaParser(bufferingManager, poolFactory(), checkForSamples))
+        public Ac3MediaParserFactory(Func<ITsPesPacketPool> poolFactory)
+            : base((bufferingManager, checkForSamples) => new Ac3MediaParser(poolFactory()))
         { }
 
         public override ICollection<ContentType> KnownContentTypes

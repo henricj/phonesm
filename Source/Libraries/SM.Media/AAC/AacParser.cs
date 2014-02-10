@@ -32,7 +32,7 @@ using SM.TsParser.Utility;
 
 namespace SM.Media.AAC
 {
-    sealed class AacParser : AudioParserBase
+    public sealed class AacParser : AudioParserBase
     {
         public AacParser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
             : base(new AacFrameHeader(), pesPacketPool, configurationHandler, submitPacket)
@@ -53,9 +53,7 @@ namespace SM.Media.AAC
                 var storedLength = _index - _startIndex;
 
                 if (storedLength <= 9)
-                {
                     ProcessHeader(storedLength, buffer[i++]);
-                }
                 else
                 {
                     // "_frameHeader" has a valid header and we have enough buffer space

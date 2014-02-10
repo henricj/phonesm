@@ -43,26 +43,22 @@ namespace SM.Media
         #endregion
 
         readonly BufferPool _bufferPool;
-        readonly Action<IMediaParserMediaStream> _mediaParserStreamHandler;
+        Action<IMediaParserMediaStream> _mediaParserStreamHandler;
         readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
         readonly object _mediaStreamsLock = new object();
         readonly PesHandlers _pesHandlers;
-        readonly Func<TsStreamType, TsDecoder, StreamBuffer> _streamBufferFactory;
+        Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> _streamBufferFactory;
         readonly List<Action<TimeSpan>> _timestampOffsetHandlers = new List<Action<TimeSpan>>();
         readonly TsDecoder _tsDecoder;
         readonly ITsTimestamp _tsTimemestamp;
 
-        public TsMediaParser(Func<TsStreamType, TsDecoder, StreamBuffer> streamBufferFactory, ITsTimestamp tsTimemestamp, Action<IMediaParserMediaStream> mediaParserStreamHandler, Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory = null)
+        public TsMediaParser(ITsTimestamp tsTimemestamp)
         {
-            if (streamBufferFactory == null)
-                throw new ArgumentNullException("streamBufferFactory");
             if (tsTimemestamp == null)
                 throw new ArgumentNullException("tsTimemestamp");
 
-            _streamBufferFactory = streamBufferFactory;
             _tsTimemestamp = tsTimemestamp;
-
-            if (null == handlerFactory)
+            Func<uint, TsStreamType, Action<TsPesPacket>> handlerFactory;
             {
                 var phf = new PesHandlerFactory();
 
@@ -72,8 +68,6 @@ namespace SM.Media
             }
 
             _pesHandlers = new PesHandlers(handlerFactory);
-
-            _mediaParserStreamHandler = mediaParserStreamHandler;
 
             _bufferPool = new BufferPool(new DefaultBufferPoolParameters
                                          {
@@ -131,8 +125,15 @@ namespace SM.Media
             _bufferPool.Dispose();
         }
 
-        public void Initialize(Action<IProgramStreams> programStreamsHandler = null)
+        public void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IMediaParserMediaStream> mediaParserStreamHandler,
+            Action<IProgramStreams> programStreamsHandler = null)
         {
+            if (streamBufferFactory == null)
+                throw new ArgumentNullException("streamBufferFactory");
+
+            _streamBufferFactory = streamBufferFactory;
+            _mediaParserStreamHandler = mediaParserStreamHandler;
+
             //Clear(Decoder.Initialize);
             Decoder.Initialize(programStreamsHandler);
         }
@@ -200,7 +201,7 @@ namespace SM.Media
 
         Action<TsPesPacket> CreatePacketHandler(PacketHandlerFactory streamHandlerFactory, uint pid, TsStreamType streamType)
         {
-            var streamBuffer = _streamBufferFactory(streamType, _tsDecoder);
+            var streamBuffer = _streamBufferFactory(streamType, _tsDecoder.PesPacketPool.FreePesPacket);
 
             var localStreamBuffer = streamBuffer;
 

@@ -28,10 +28,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using SM.Media.Audio;
 
 namespace SM.Media.Ac3
 {
-    sealed class Ac3FrameHeader
+    sealed class Ac3FrameHeader : IAudioFrameHeader
     {
         static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(32);
 
@@ -85,10 +86,18 @@ namespace SM.Media.Ac3
                 new FrameCode(37, 640, 1920, 1394, 1280)
             }.ToDictionary(v => v.Code);
 
-        public int SamplingFrequency { get; private set; }
         public int Bitrate { get; private set; }
 
+        #region IAudioFrameHeader Members
+
+        public int SamplingFrequency { get; private set; }
+
         public int FrameLength { get; private set; }
+
+        public int HeaderLength
+        {
+            get { return 5; }
+        }
 
         public string Name { get; private set; }
 
@@ -162,6 +171,8 @@ namespace SM.Media.Ac3
 #endif
             return true;
         }
+
+        #endregion
 
         int GetSamplingFrequency(int samplingIndex)
         {

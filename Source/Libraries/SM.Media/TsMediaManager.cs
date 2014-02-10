@@ -76,7 +76,6 @@ namespace SM.Media
 
         const int MaxBuffers = 8;
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
-        readonly Func<IBufferPool> _bufferPoolFactory;
         readonly IBufferPoolParameters _bufferPoolParameters;
         readonly IBufferingManagerFactory _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
@@ -84,6 +83,7 @@ namespace SM.Media
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaParserFactory _mediaParserFactory;
         readonly IMediaStreamSource _mediaStreamSource;
+        readonly Func<ITsPesPacketPool> _poolFactory;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly Func<Task<ISegmentReaderManager>> _readerManagerFactory;
         MediaState _mediaState;
@@ -92,7 +92,7 @@ namespace SM.Media
         ReaderPipeline[] _readers;
 
         public TsMediaManager(Func<Task<ISegmentReaderManager>> readerManagerFactory, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource,
-            IBufferPoolParameters bufferPoolParameters, Func<IBufferPool> bufferPoolFactory,
+            IBufferPoolParameters bufferPoolParameters, Func<ITsPesPacketPool> poolFactory,
             IBufferingManagerFactory bufferingManagerFactory, IMediaManagerParameters mediaManagerParameters,
             IMediaParserFactory mediaParserFactory)
         {
@@ -109,7 +109,7 @@ namespace SM.Media
             _mediaElementManager = mediaElementManager;
             _mediaStreamSource = mediaStreamSource;
             _bufferPoolParameters = bufferPoolParameters;
-            _bufferPoolFactory = bufferPoolFactory;
+            _poolFactory = poolFactory;
             _bufferingManagerFactory = bufferingManagerFactory;
             _mediaParserFactory = mediaParserFactory;
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
@@ -514,10 +514,9 @@ namespace SM.Media
             _bufferPoolParameters.BaseSize = 64 * 1024;
             _bufferPoolParameters.Pools = 2;
 
-            var bufferPool = _bufferPoolFactory();
-            //var bufferPool = new BufferPool(new DefaultBufferPoolParameters { BaseSize = 64 * 1024, Pools = 2 });
+            var bufferPool = _poolFactory();
 
-            var mediaParser = new AacMediaParser(reader.BufferingManager, bufferPool, _mediaStreamSource.CheckForSamples);
+            var mediaParser = new AacMediaParser(bufferPool);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -529,10 +528,9 @@ namespace SM.Media
             _bufferPoolParameters.BaseSize = 64 * 1024;
             _bufferPoolParameters.Pools = 2;
 
-            var bufferPool = _bufferPoolFactory();
-            //var bufferPool = new BufferPool(new DefaultBufferPoolParameters { BaseSize = 64 * 1024, Pools = 2 });
+            var bufferPool = _poolFactory();
 
-            var mediaParser = new Ac3MediaParser(reader.BufferingManager, bufferPool, _mediaStreamSource.CheckForSamples);
+            var mediaParser = new Ac3MediaParser(bufferPool);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -544,9 +542,9 @@ namespace SM.Media
             _bufferPoolParameters.BaseSize = 64 * 1024;
             _bufferPoolParameters.Pools = 2;
 
-            var bufferPool = _bufferPoolFactory();
+            var bufferPool = _poolFactory();
 
-            var mediaParser = new Mp3MediaParser(reader.BufferingManager, bufferPool, _mediaStreamSource.CheckForSamples);
+            var mediaParser = new Mp3MediaParser(bufferPool);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -557,10 +555,7 @@ namespace SM.Media
         {
             var tsTimestamp = new TsTimestamp();
 
-            var tsMediaParser = new TsMediaParser(
-                (streamType, tsDecoder) => new StreamBuffer(streamType, tsDecoder.PesPacketPool.FreePesPacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
-                tsTimestamp,
-                mediaStream => { mediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader); });
+            var tsMediaParser = new TsMediaParser(tsTimestamp);
 
             Action<IProgramStreams> programStreamsHandler;
 
@@ -588,13 +583,16 @@ namespace SM.Media
             InitializeMediaParser(reader, tsMediaParser, 2, programStreamsHandler);
         }
 
-        static void InitializeMediaParser(ReaderPipeline reader, IMediaParser mediaParser, int expectedStreamCount, Action<IProgramStreams> programStreamsHandler = null)
+        void InitializeMediaParser(ReaderPipeline reader, IMediaParser mediaParser, int expectedStreamCount, Action<IProgramStreams> programStreamsHandler = null)
         {
             reader.MediaParser = mediaParser;
 
             reader.ExpectedStreamCount = expectedStreamCount;
 
-            reader.MediaParser.Initialize(programStreamsHandler);
+            reader.MediaParser.Initialize(
+                (streamType, freePacket) => new StreamBuffer(streamType, freePacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
+                mediaStream => { mediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader); },
+                programStreamsHandler);
         }
 
         static int DefaultProgramStreamsHandler(IProgramStreams pss)

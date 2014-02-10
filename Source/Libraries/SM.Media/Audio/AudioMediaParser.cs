@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AacMediaParser.cs" company="Henric Jungheim">
+//  <copyright file="AudioMediaParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,20 +24,56 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.Audio;
+using System;
+using System.Diagnostics;
+using SM.Media.Configuration;
+using SM.Media.MediaParser;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
-namespace SM.Media.AAC
+namespace SM.Media.Audio
 {
-    public sealed class AacMediaParser : AudioMediaParser<AacParser, AacConfigurator>
+    public abstract class AudioMediaParser<TParser, TConfigurator> : MediaParserBase<TConfigurator>
+        where TParser : class, IAudioParser
+        where TConfigurator : IConfigurationSource
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.AacStreamType);
+        protected TParser Parser;
 
-        public AacMediaParser(ITsPesPacketPool pesPacketPool)
-            : base(pesPacketPool, StreamType, new AacConfigurator())
+        protected AudioMediaParser(ITsPesPacketPool pesPacketPool, TsStreamType streamType, TConfigurator configurator)
+            : base(pesPacketPool, streamType, configurator)
         {
-            Parser = new AacParser(pesPacketPool, Configurator.Configure, SubmitPacket);
+            if (null == pesPacketPool)
+                throw new ArgumentNullException("pesPacketPool");
+        }
+
+        public override TimeSpan StartPosition
+        {
+            get { return Parser.StartPosition; }
+            set { Parser.StartPosition = value; }
+        }
+
+        public override void ProcessData(byte[] buffer, int offset, int length)
+        {
+            Debug.Assert(length > 0);
+            Debug.Assert(offset + length <= buffer.Length);
+
+            Parser.ProcessData(buffer, offset, length);
+        }
+
+        public override void FlushBuffers()
+        {
+            Parser.FlushBuffers();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                using (Parser)
+                { }
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

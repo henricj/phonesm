@@ -84,11 +84,20 @@
     <Compile Include="..\SM.Media\Ac3\Ac3MediaParserFactory.cs">
       <Link>Ac3\Ac3MediaParserFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Ac3\Ac3Parser.cs">
+      <Link>Ac3\Ac3Parser.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\AudioMediaParser.cs">
+      <Link>Audio\AudioMediaParser.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Audio\AudioParserBase.cs">
       <Link>Audio\AudioParserBase.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Audio\IAudioFrameHeader.cs">
       <Link>Audio\IAudioFrameHeader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\IAudioParser.cs">
+      <Link>Audio\IAudioParser.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Buffering\BufferingDefaults.cs">
       <Link>Buffering\BufferingDefaults.cs</Link>
@@ -201,6 +210,9 @@
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\IMediaStreamSource.cs">
       <Link>MediaParser\IMediaStreamSource.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaParserBase.cs">
+      <Link>MediaParser\MediaParserBase.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\MediaParserFactory.cs">
       <Link>MediaParser\MediaParserFactory.cs</Link>

@@ -36,8 +36,8 @@ namespace SM.Media.MP3
     {
         static readonly ContentType[] Types = { ContentTypes.Mp3 };
 
-        public Mp3MediaParserFactory(Func<IBufferPool> poolFactory)
-            : base((bufferingManager, checkForSamples) => new Mp3MediaParser(bufferingManager, poolFactory(), checkForSamples))
+        public Mp3MediaParserFactory(Func<ITsPesPacketPool> poolFactory)
+            : base((bufferingManager, checkForSamples) => new Mp3MediaParser(poolFactory()))
         { }
 
         public override ICollection<ContentType> KnownContentTypes

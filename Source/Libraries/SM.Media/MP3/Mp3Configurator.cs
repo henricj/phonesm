@@ -31,7 +31,7 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
 {
-    sealed class Mp3Configurator : IAudioConfigurationSource, IFrameParser
+    public sealed class Mp3Configurator : IAudioConfigurationSource, IFrameParser
     {
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly MpegLayer3WaveFormat _waveFormat = new MpegLayer3WaveFormat();

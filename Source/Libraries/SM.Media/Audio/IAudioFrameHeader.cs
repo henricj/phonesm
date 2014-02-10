@@ -28,7 +28,7 @@ using System;
 
 namespace SM.Media.Audio
 {
-    interface IAudioFrameHeader
+    public interface IAudioFrameHeader
     {
         int SamplingFrequency { get; }
         int FrameLength { get; }

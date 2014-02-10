@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Ac3Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,11 +25,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.Audio;
 using SM.Media.Configuration;
 
 namespace SM.Media.Ac3
 {
-    sealed class Ac3Configurator : IAudioConfigurationSource, IFrameParser
+    public sealed class Ac3Configurator : IAudioConfigurationSource, IFrameParser
     {
         readonly Ac3FrameHeader _frameHeader = new Ac3FrameHeader();
 
@@ -76,10 +77,12 @@ namespace SM.Media.Ac3
 
         #endregion
 
-        public void Configure(Ac3FrameHeader frameHeader)
+        public void Configure(IAudioFrameHeader frameHeader)
         {
+            var ac3FrameHeader = (Ac3FrameHeader)frameHeader;
+
             Name = frameHeader.Name;
-            Bitrate = frameHeader.Bitrate;
+            Bitrate = ac3FrameHeader.Bitrate;
             SamplingFrequency = frameHeader.SamplingFrequency;
 
             var h = ConfigurationComplete;

@@ -71,20 +71,32 @@
     <Compile Include="AAC\AacFrameHeader.cs" />
     <Compile Include="AAC\AacMediaParser.cs" />
     <Compile Include="AAC\AacDecoderParameters.cs" />
+    <Compile Include="AAC\AacMediaParserFactory.cs" />
     <Compile Include="AAC\AacParser.cs" />
     <Compile Include="AAC\AacDecoderSettings.cs" />
     <Compile Include="AAC\AacStreamHandler.cs" />
     <Compile Include="AAC\AacConfigurator.cs" />
+    <Compile Include="Ac3\Ac3MediaParserFactory.cs" />
+    <Compile Include="Buffering\BufferingManagerFactory.cs" />
     <Compile Include="Builder\IBuilder.cs" />
     <Compile Include="Builder\IBuilderHandle.cs" />
     <Compile Include="CallbackReader.cs" />
+    <Compile Include="Content\ContentServiceFactoryFinder.cs" />
+    <Compile Include="Content\IContentServiceFactoryInstance.cs" />
+    <Compile Include="MediaParser\IMediaParserFactoryInstance.cs" />
+    <Compile Include="MediaParser\MediaParserFactory.cs" />
+    <Compile Include="MediaParser\MediaParserFactoryBase.cs" />
+    <Compile Include="MediaParser\MediaParserFactoryFinder.cs" />
+    <Compile Include="MediaParser\MediaParserParameters.cs" />
     <Compile Include="MediaStreamFascadeBase.cs" />
     <Compile Include="MediaStreamFascadeParameters.cs" />
     <Compile Include="MediaStreamFascadeSetting.cs" />
+    <Compile Include="MP3\Mp3MediaParserFactory.cs" />
     <Compile Include="Playlists\PlaylistSegmentManagerDefaults.cs" />
     <Compile Include="Playlists\PlaylistSegmentManagerParameters.cs" />
     <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
+    <Compile Include="Content\IContentServiceFactory.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
@@ -105,8 +117,8 @@
     <Compile Include="H262\H262StreamHandler.cs" />
     <Compile Include="IMediaElementManager.cs" />
     <Compile Include="IMediaManager.cs" />
-    <Compile Include="IMediaParser.cs" />
-    <Compile Include="IMediaStreamSource.cs" />
+    <Compile Include="MediaParser\IMediaParser.cs" />
+    <Compile Include="MediaParser\IMediaStreamSource.cs" />
     <Compile Include="ITsTimestamp.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />
@@ -143,7 +155,7 @@
     <Compile Include="Configuration\IVideoConfigurationSource.cs" />
     <Compile Include="Buffering\IBufferingManager.cs" />
     <Compile Include="IQueueThrottling.cs" />
-    <Compile Include="IMediaParserMediaStream.cs" />
+    <Compile Include="MediaParser\IMediaParserMediaStream.cs" />
     <Compile Include="IStreamHandler.cs" />
     <Compile Include="M3U8\AttributeSupport\ByterangeAttributeInstance.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtIFrameStreamInfSupport.cs" />
@@ -299,6 +311,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" />

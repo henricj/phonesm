@@ -33,6 +33,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.PlayerFramework;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;

@@ -26,6 +26,7 @@
 
 using System;
 using System.Threading.Tasks;
+using SM.Media.MediaParser;
 
 namespace SM.Media
 {

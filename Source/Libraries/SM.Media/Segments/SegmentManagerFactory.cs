@@ -25,61 +25,24 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using SM.Media.Content;
 using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactory
-    {
-        Task<ISegmentManager> CreateAsync(Uri source, ContentType contentType, CancellationToken cancellationToken);
-        Task<ISegmentManager> CreateAsync(Uri source, CancellationToken cancellationToken);
-    }
+    public interface ISegmentManagerFactory : IContentServiceFactory<ISegmentManager, IEnumerable<Uri>>
+    { }
 
-    public class SegmentManagerFactory : ISegmentManagerFactory
+    public class SegmentManagerFactory : ContentServiceFactory<ISegmentManager, IEnumerable<Uri>>, ISegmentManagerFactory
     {
-        static readonly Task<ISegmentManager> NoHandler = TaskEx.FromResult(null as ISegmentManager);
-        readonly ISegmentManagerFactoryFinder _factoryFinder;
-        readonly IWebContentTypeDetector _webContentTypeDetector;
-
         public SegmentManagerFactory(IWebContentTypeDetector webContentTypeDetector, ISegmentManagerFactoryFinder factoryFinder)
+            : base(webContentTypeDetector, factoryFinder)
+        { }
+
+        protected override IEnumerable<Uri> Sources(IEnumerable<Uri> parameter)
         {
-            if (null == webContentTypeDetector)
-                throw new ArgumentNullException("webContentTypeDetector");
-            if (null == factoryFinder)
-                throw new ArgumentNullException("factoryFinder");
-
-            _webContentTypeDetector = webContentTypeDetector;
-            _factoryFinder = factoryFinder;
+            return parameter;
         }
-
-        #region ISegmentManagerFactory Members
-
-        public virtual Task<ISegmentManager> CreateAsync(Uri source, ContentType contentType, CancellationToken cancellationToken)
-        {
-            if (null == contentType)
-                throw new ArgumentNullException("contentType");
-
-            var factory = _factoryFinder.GetFactory(contentType);
-
-            if (null != factory)
-                return factory.CreateAsync(new[] { source }, contentType, cancellationToken);
-
-            return NoHandler;
-        }
-
-        public virtual async Task<ISegmentManager> CreateAsync(Uri source, CancellationToken cancellationToken)
-        {
-            var contentType = await _webContentTypeDetector.GetContentTypeAsync(source, cancellationToken);
-
-            if (null == contentType)
-                return null;
-
-            return await CreateAsync(source, contentType, cancellationToken).ConfigureAwait(false);
-        }
-
-        #endregion
     }
 }

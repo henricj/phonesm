@@ -26,15 +26,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using SM.Media.Content;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactoryInstance
-    {
-        ICollection<ContentType> KnownContentTypes { get; }
-        Task<ISegmentManager> CreateAsync(IEnumerable<Uri> source, ContentType contentType, CancellationToken cancellationToken);
-    }
+    public interface ISegmentManagerFactoryInstance : IContentServiceFactoryInstance<ISegmentManager, IEnumerable<Uri>>
+    { }
 }

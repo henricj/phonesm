@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SM.Media.MediaParser;
 using SM.Media.Pes;
 using SM.Media.Utility;
 using SM.TsParser;
@@ -74,7 +75,11 @@ namespace SM.Media
 
             _mediaParserStreamHandler = mediaParserStreamHandler;
 
-            _bufferPool = new BufferPool(5 * 64 * 1024, 2);
+            _bufferPool = new BufferPool(new DefaultBufferPoolParameters
+                                         {
+                                             BaseSize = 5 * 64 * 1024,
+                                             Pools = 2
+                                         });
 
             _tsDecoder = new TsDecoder(_bufferPool, _pesHandlers.GetPesHandler);
         }

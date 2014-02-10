@@ -35,10 +35,12 @@ using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Configuration;
 using SM.Media.Content;
+using SM.Media.MediaParser;
 using SM.Media.MP3;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media
 {
@@ -74,10 +76,13 @@ namespace SM.Media
 
         const int MaxBuffers = 8;
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
-        readonly MediaManagerParameters.BufferingManagerFactoryDelegate _bufferingManagerFactory;
+        readonly Func<IBufferPool> _bufferPoolFactory;
+        readonly IBufferPoolParameters _bufferPoolParameters;
+        readonly IBufferingManagerFactory _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly IMediaElementManager _mediaElementManager;
+        readonly IMediaParserFactory _mediaParserFactory;
         readonly IMediaStreamSource _mediaStreamSource;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly Func<Task<ISegmentReaderManager>> _readerManagerFactory;
@@ -86,7 +91,10 @@ namespace SM.Media
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(Func<Task<ISegmentReaderManager>> readerManagerFactory, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource, MediaManagerParameters.BufferingManagerFactoryDelegate bufferingManagerFactory, IMediaManagerParameters mediaManagerParameters)
+        public TsMediaManager(Func<Task<ISegmentReaderManager>> readerManagerFactory, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource,
+            IBufferPoolParameters bufferPoolParameters, Func<IBufferPool> bufferPoolFactory,
+            IBufferingManagerFactory bufferingManagerFactory, IMediaManagerParameters mediaManagerParameters,
+            IMediaParserFactory mediaParserFactory)
         {
             if (null == readerManagerFactory)
                 throw new ArgumentNullException("readerManagerFactory");
@@ -100,7 +108,10 @@ namespace SM.Media
             _readerManagerFactory = readerManagerFactory;
             _mediaElementManager = mediaElementManager;
             _mediaStreamSource = mediaStreamSource;
+            _bufferPoolParameters = bufferPoolParameters;
+            _bufferPoolFactory = bufferPoolFactory;
             _bufferingManagerFactory = bufferingManagerFactory;
+            _mediaParserFactory = mediaParserFactory;
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
 
             _mediaStreamSource.MediaManager = this;
@@ -469,20 +480,24 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = _bufferingManagerFactory(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples);
+            reader.BufferingManager = _bufferingManagerFactory.Create(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples);
 
             await startReaderTask.ConfigureAwait(false);
 
             var contentType = reader.SegmentReaders.Manager.ContentType;
 
-            InitializeMediaParser(reader, contentType);
+            await InitializeMediaParser(reader, contentType).ConfigureAwait(false);
 
             return reader;
         }
 
-        void InitializeMediaParser(ReaderPipeline reader, ContentType contentType)
+        async Task InitializeMediaParser(ReaderPipeline reader, ContentType contentType)
         {
             Debug.WriteLine("TsMediaManager.InitializeMediaParser() for " + contentType);
+
+            var mediaParserParameters = new MediaParserParameters(reader.BufferingManager, _mediaStreamSource.CheckForSamples);
+
+            var mp = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, CancellationToken.None).ConfigureAwait(false);
 
             if (Equals(ContentTypes.Mp3, contentType))
                 InitializeMp3MediaParser(reader);
@@ -496,7 +511,13 @@ namespace SM.Media
 
         void InitializeAacMediaParser(ReaderPipeline reader)
         {
-            var mediaParser = new AacMediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+            _bufferPoolParameters.BaseSize = 64 * 1024;
+            _bufferPoolParameters.Pools = 2;
+
+            var bufferPool = _bufferPoolFactory();
+            //var bufferPool = new BufferPool(new DefaultBufferPoolParameters { BaseSize = 64 * 1024, Pools = 2 });
+
+            var mediaParser = new AacMediaParser(reader.BufferingManager, bufferPool, _mediaStreamSource.CheckForSamples);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -505,7 +526,13 @@ namespace SM.Media
 
         void InitializeAc3MediaParser(ReaderPipeline reader)
         {
-            var mediaParser = new Ac3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+            _bufferPoolParameters.BaseSize = 64 * 1024;
+            _bufferPoolParameters.Pools = 2;
+
+            var bufferPool = _bufferPoolFactory();
+            //var bufferPool = new BufferPool(new DefaultBufferPoolParameters { BaseSize = 64 * 1024, Pools = 2 });
+
+            var mediaParser = new Ac3MediaParser(reader.BufferingManager, bufferPool, _mediaStreamSource.CheckForSamples);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 
@@ -514,7 +541,12 @@ namespace SM.Media
 
         void InitializeMp3MediaParser(ReaderPipeline reader)
         {
-            var mediaParser = new Mp3MediaParser(reader.BufferingManager, new BufferPool(64 * 1024, 2), _mediaStreamSource.CheckForSamples);
+            _bufferPoolParameters.BaseSize = 64 * 1024;
+            _bufferPoolParameters.Pools = 2;
+
+            var bufferPool = _bufferPoolFactory();
+
+            var mediaParser = new Mp3MediaParser(reader.BufferingManager, bufferPool, _mediaStreamSource.CheckForSamples);
 
             mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
 

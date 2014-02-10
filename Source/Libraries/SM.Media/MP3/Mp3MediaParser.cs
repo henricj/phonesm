@@ -27,12 +27,13 @@
 using System;
 using System.Diagnostics;
 using SM.Media.Buffering;
+using SM.Media.MediaParser;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
-    sealed class Mp3MediaParser : IMediaParser
+    public sealed class Mp3MediaParser : IMediaParser
     {
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Mp3Iso11172);
         readonly Mp3Configurator _configurator = new Mp3Configurator();

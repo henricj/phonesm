@@ -31,6 +31,7 @@ using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.AAC;
 using SM.Media.Buffering;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 
 namespace AacDump
@@ -46,7 +47,7 @@ namespace AacDump
             {
                 IStreamSource streamSource = null;
 
-                using (var parser = new AacMediaParser(new NullBufferingManager(), new BufferPool(64 * 1024, 2),
+                using (var parser = new AacMediaParser(new NullBufferingManager(), new BufferPool(new DefaultBufferPoolParameters { BaseSize = 64 * 1024, Pools = 2}),
                     () =>
                     {
                         if (null == streamSource)

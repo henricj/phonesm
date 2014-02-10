@@ -52,7 +52,7 @@ namespace SM.Media
 
                                 return async () =>
                                              {
-                                                 var playlist = await segmentManagerFactory.CreateAsync(Source, CancellationToken.None).ConfigureAwait(false);
+                                                 var playlist = await segmentManagerFactory.CreateAsync(new[] { Source }, CancellationToken.None).ConfigureAwait(false);
 
                                                  return new SegmentReaderManager(new[] { playlist }, clients.CreateSegmentClient);
                                              };

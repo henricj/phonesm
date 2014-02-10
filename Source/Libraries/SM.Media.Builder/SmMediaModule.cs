@@ -25,12 +25,18 @@
 // DEALINGS IN THE SOFTWARE.
 
 using Autofac;
+using SM.Media.AAC;
+using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Content;
+using SM.Media.MediaParser;
+using SM.Media.MP3;
 using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
+using SM.TsParser.Utility;
 
 namespace SM.Media
 {
@@ -48,21 +54,27 @@ namespace SM.Media
             builder.RegisterType<SegmentManagerFactory>().As<ISegmentManagerFactory>().SingleInstance();
             builder.RegisterType<NullMediaElementManager>().As<IMediaElementManager>().SingleInstance();
 
-            builder.Register<MediaManagerParameters.BufferingManagerFactoryDelegate>(
-                ctx =>
-                {
-                    var bufferingPolicy = ctx.Resolve<IBufferingPolicy>();
-
-                    return (readers, queueThrottling, reportBufferingChange) =>
-                        new BufferingManager(queueThrottling, reportBufferingChange, bufferingPolicy);
-                })
-                   .SingleInstance();
+            builder.RegisterType<TsPesPacketPool>().As<ITsPesPacketPool>().InstancePerLifetimeScope();
+            builder.RegisterType<BufferPool>().As<IBufferPool>().InstancePerLifetimeScope();
+            builder.RegisterType<DefaultBufferPoolParameters>().As<IBufferPoolParameters>().InstancePerLifetimeScope();
+            builder.RegisterType<BufferingManagerFactory>().As<IBufferingManagerFactory>().InstancePerLifetimeScope();
 
             builder.RegisterType<WebCacheFactory>().As<IWebCacheFactory>().SingleInstance();
 
             builder.RegisterType<SimpleSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<PlaylistSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<PlsSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
+
+            builder.RegisterType<MediaParserFactoryFinder>().As<IMediaParserFactoryFinder>().SingleInstance();
+            builder.RegisterType<MediaParserFactory>().As<IMediaParserFactory>().SingleInstance();
+
+            builder.RegisterType<AacMediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
+            builder.RegisterType<Ac3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
+            builder.RegisterType<Mp3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
+
+            builder.RegisterType<AacMediaParser>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<Ac3MediaParser>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<Mp3MediaParser>().AsSelf().InstancePerLifetimeScope();
 
             builder.RegisterType<MediaManagerParameters>().As<IMediaManagerParameters>().SingleInstance();
             builder.RegisterType<PlaylistSegmentManagerParameters>().As<IPlaylistSegmentManagerParameters>().SingleInstance();

@@ -27,77 +27,28 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using SM.Media.Content;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactoryFinder
+    public interface ISegmentManagerFactoryFinder : IContentServiceFactoryFinder<ISegmentManager, IEnumerable<Uri>>
     {
-        ISegmentManagerFactoryInstance GetFactory(ContentType contentType);
         void Register(ContentType contentType, ISegmentManagerFactoryInstance factory);
-        void Deregister(ContentType contentType);
     }
 
-    public class SegmentManagerFactoryFinder : ISegmentManagerFactoryFinder
+    public class SegmentManagerFactoryFinder : ContentServiceFactoryFinder<ISegmentManager, IEnumerable<Uri>>, ISegmentManagerFactoryFinder
     {
-        volatile Dictionary<ContentType, ISegmentManagerFactoryInstance> _factories;
-
         public SegmentManagerFactoryFinder(IEnumerable<ISegmentManagerFactoryInstance> factoryInstances)
-        {
-            _factories = factoryInstances
-                .SelectMany(fi => fi.KnownContentTypes,
-                    (fi, contentType) => new
-                                         {
-                                             ContentType = contentType,
-                                             Instance = fi
-                                         })
-                .ToDictionary(v => v.ContentType, v => v.Instance);
-        }
+            : base(factoryInstances.OfType<IContentServiceFactoryInstance<ISegmentManager, IEnumerable<Uri>>>())
+        { }
 
         #region ISegmentManagerFactoryFinder Members
 
-        public ISegmentManagerFactoryInstance GetFactory(ContentType contentType)
-        {
-            ISegmentManagerFactoryInstance factory;
-
-            if (_factories.TryGetValue(contentType, out factory))
-                return factory;
-
-            return null;
-        }
-
         public void Register(ContentType contentType, ISegmentManagerFactoryInstance factory)
         {
-            SafeChangeFactories(factories => factories[contentType] = factory);
-        }
-
-        public void Deregister(ContentType contentType)
-        {
-            SafeChangeFactories(factories => factories.Remove(contentType));
+            Register(contentType, (IContentServiceFactoryInstance<ISegmentManager, IEnumerable<Uri>>)factory);
         }
 
         #endregion
-
-        void SafeChangeFactories(Action<Dictionary<ContentType, ISegmentManagerFactoryInstance>> changeAction)
-        {
-            var oldFactories = _factories;
-
-            for (; ; )
-            {
-                var newFactories = new Dictionary<ContentType, ISegmentManagerFactoryInstance>(oldFactories);
-
-                changeAction(newFactories);
-
-#pragma warning disable 420
-                var factories = Interlocked.CompareExchange(ref _factories, newFactories, oldFactories);
-#pragma warning restore 420
-
-                if (oldFactories == factories)
-                    return;
-
-                oldFactories = factories;
-            }
-        }
     }
 }

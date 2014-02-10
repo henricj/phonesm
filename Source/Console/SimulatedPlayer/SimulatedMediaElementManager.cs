@@ -31,6 +31,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.TsParser;
 
@@ -213,7 +214,7 @@ namespace SimulatedPlayer
 
             do
             {
-                await Task.Delay((int) (50 * (1 + random[3]))).ConfigureAwait(false);
+                await Task.Delay((int)(50 * (1 + random[3]))).ConfigureAwait(false);
             } while (null == _mediaStreamSource);
 
             var taskActions = new List<Func<Task>>();

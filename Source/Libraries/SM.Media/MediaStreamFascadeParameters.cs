@@ -27,6 +27,7 @@
 using System;
 using System.Threading.Tasks;
 using SM.Media.Buffering;
+using SM.Media.MediaParser;
 using SM.Media.Web;
 
 namespace SM.Media

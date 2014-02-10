@@ -28,6 +28,7 @@ using System;
 using Ninject.Activation;
 using Ninject.Modules;
 using SM.Media.Builder;
+using SM.Media.MediaParser;
 
 namespace SM.Media
 {

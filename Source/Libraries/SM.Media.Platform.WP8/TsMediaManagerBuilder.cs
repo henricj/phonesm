@@ -35,7 +35,7 @@ using SM.Media.Web;
 
 namespace SM.Media
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager> 
+    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
     {
         static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule() };
 
@@ -51,11 +51,11 @@ namespace SM.Media
                     var clients = ctx.Resolve<IHttpClients>();
 
                     return async () =>
-                    {
-                        var playlist = await segmentManagerFactory.CreateAsync(Source, CancellationToken.None).ConfigureAwait(false);
+                                 {
+                                     var playlist = await segmentManagerFactory.CreateAsync(new[] { Source }, CancellationToken.None).ConfigureAwait(false);
 
-                        return new SegmentReaderManager(new[] { playlist }, clients.CreateSegmentClient);
-                    };
+                                     return new SegmentReaderManager(new[] { playlist }, clients.CreateSegmentClient);
+                                 };
                 });
         }
 

@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using Autofac;
+using SM.Media.MediaParser;
 
 namespace SM.Media
 {

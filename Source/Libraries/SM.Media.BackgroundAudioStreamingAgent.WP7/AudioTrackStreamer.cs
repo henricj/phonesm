@@ -34,6 +34,7 @@ using System.Windows.Media;
 using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;

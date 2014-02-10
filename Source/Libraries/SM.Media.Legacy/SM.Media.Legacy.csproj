@@ -69,6 +69,9 @@
     <Compile Include="..\SM.Media\AAC\AacMediaParser.cs">
       <Link>AAC\AacMediaParser.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\AAC\AacMediaParserFactory.cs">
+      <Link>AAC\AacMediaParserFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\AAC\AacParser.cs">
       <Link>AAC\AacParser.cs</Link>
     </Compile>
@@ -77,6 +80,9 @@
     </Compile>
     <Compile Include="..\SM.Media\AAC\AacConfigurator.cs">
       <Link>AAC\AacConfigurator.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Ac3\Ac3MediaParserFactory.cs">
+      <Link>Ac3\Ac3MediaParserFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Audio\AudioParserBase.cs">
       <Link>Audio\AudioParserBase.cs</Link>
@@ -89,6 +95,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Buffering\BufferingManager.cs">
       <Link>Buffering\BufferingManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Buffering\BufferingManagerFactory.cs">
+      <Link>Buffering\BufferingManagerFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Buffering\DefaultBufferingPolicy.cs">
       <Link>Buffering\DefaultBufferingPolicy.cs</Link>
@@ -127,6 +136,9 @@
     <Compile Include="..\SM.Media\Content\ContentKind.cs">
       <Link>Content\ContentKind.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Content\ContentServiceFactoryFinder.cs">
+      <Link>Content\ContentServiceFactoryFinder.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Content\ContentType.cs">
       <Link>Content\ContentType.cs</Link>
     </Compile>
@@ -136,6 +148,12 @@
     <Compile Include="..\SM.Media\Content\ContentTypes.cs">
       <Link>Content\ContentTypes.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Content\IContentServiceFactory.cs">
+      <Link>Content\IContentServiceFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Content\IContentServiceFactoryInstance.cs">
+      <Link>Content\IContentServiceFactoryInstance.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\H262\H262Configurator.cs">
       <Link>H262\H262Configurator.cs</Link>
     </Compile>
@@ -144,8 +162,6 @@
     </Compile>
     <Compile Include="..\SM.Media\IMediaElementManager.cs" />
     <Compile Include="..\SM.Media\IMediaManager.cs" />
-    <Compile Include="..\SM.Media\IMediaParser.cs" />
-    <Compile Include="..\SM.Media\IMediaStreamSource.cs" />
     <Compile Include="..\SM.Media\ITsTimestamp.cs" />
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtKeySupport.cs">
       <Link>M3U8\AttributeSupport</Link>
@@ -174,6 +190,30 @@
     <Compile Include="..\SM.Media\MediaManagerParameters.cs">
       <Link>MediaManagerParameters.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\MediaParser\IMediaParser.cs">
+      <Link>MediaParser\IMediaParser.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\IMediaParserFactoryInstance.cs">
+      <Link>MediaParser\IMediaParserFactoryInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\IMediaParserMediaStream.cs">
+      <Link>MediaParser\IMediaParserMediaStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\IMediaStreamSource.cs">
+      <Link>MediaParser\IMediaStreamSource.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaParserFactory.cs">
+      <Link>MediaParser\MediaParserFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaParserFactoryBase.cs">
+      <Link>MediaParser\MediaParserFactoryBase.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaParserFactoryFinder.cs">
+      <Link>MediaParser\MediaParserFactoryFinder.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaParserParameters.cs">
+      <Link>MediaParser\MediaParserParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\MediaStreamFascadeBase.cs">
       <Link>MediaStreamFascadeBase.cs</Link>
     </Compile>
@@ -188,6 +228,9 @@
     </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3MediaParser.cs">
       <Link>MP3\Mp3MediaParser.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MP3\Mp3MediaParserFactory.cs">
+      <Link>MP3\Mp3MediaParserFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3Parser.cs">
       <Link>MP3\Mp3Parser.cs</Link>
@@ -333,7 +376,6 @@
       <Link>Configuration\IVideoConfigurationSource.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\IQueueThrottling.cs" />
-    <Compile Include="..\SM.Media\IMediaParserMediaStream.cs" />
     <Compile Include="..\SM.Media\IStreamHandler.cs" />
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\ByterangeAttributeInstance.cs">
       <Link>M3U8\AttributeSupport</Link>

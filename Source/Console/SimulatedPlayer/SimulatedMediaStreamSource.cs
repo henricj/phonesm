@@ -30,6 +30,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.TsParser;
 
@@ -41,7 +42,6 @@ namespace SimulatedPlayer
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
-        readonly List<Task> _pendingGets = new List<Task>();
         readonly object _stateLock = new object();
         bool _isClosed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();

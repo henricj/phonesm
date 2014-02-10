@@ -1,5 +1,5 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="ISimulatedMediaStreamSource.cs" company="Henric Jungheim">
+// -----------------------------------------------------------------------
+//  <copyright file="IMediaParser.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,15 +24,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.MediaParser;
+using System;
+using SM.TsParser;
 
-namespace SimulatedPlayer
+namespace SM.Media.MediaParser
 {
-    interface ISimulatedMediaStreamSource : IMediaStreamSource
+    public interface IMediaParser : IDisposable
     {
-        void OpenMediaAsync();
-        void SeekAsync(long seekToTime);
-        void GetSampleAsync(int streamType);
-        void CloseMedia();
+        bool EnableProcessing { get; set; }
+        TimeSpan StartPosition { get; set; }
+        void ProcessEndOfData();
+        void ProcessData(byte[] buffer, int offset, int length);
+        void FlushBuffers();
+        void Initialize(Action<IProgramStreams> programStreamsHandler = null);
     }
 }

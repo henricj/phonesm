@@ -29,6 +29,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 
 namespace SM.Media

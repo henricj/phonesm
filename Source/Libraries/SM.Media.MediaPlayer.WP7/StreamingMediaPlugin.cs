@@ -39,6 +39,7 @@ using Microsoft.SilverlightMediaFramework.Plugins;
 using Microsoft.SilverlightMediaFramework.Plugins.Metadata;
 using Microsoft.SilverlightMediaFramework.Plugins.Primitives;
 using Microsoft.SilverlightMediaFramework.Utilities.Extensions;
+using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -72,7 +73,7 @@ namespace SM.Media.MediaPlayer
         Stream _streamSource;
         HttpClients _httpClients;
         readonly IApplicationInformation _applicationInformation = ApplicationInformationFactory.Default;
-        MediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFascade _mediaStreamFascade;
         Dispatcher _dispatcher;
 
         #region Events

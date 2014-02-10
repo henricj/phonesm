@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="IMediaParserMediaStream.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,17 +25,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.TsParser;
+using SM.Media.Configuration;
 
-namespace SM.Media
+namespace SM.Media.MediaParser
 {
-    public interface IMediaParser : IDisposable
+    public interface IMediaParserMediaStream : IDisposable
     {
-        bool EnableProcessing { get; set; }
-        TimeSpan StartPosition { get; set; }
-        void ProcessEndOfData();
-        void ProcessData(byte[] buffer, int offset, int length);
-        void FlushBuffers();
-        void Initialize(Action<IProgramStreams> programStreamsHandler = null);
+        event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
     }
 }

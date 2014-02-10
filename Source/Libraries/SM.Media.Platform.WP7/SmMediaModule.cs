@@ -29,13 +29,19 @@ using Ninject;
 using Ninject.Activation;
 using Ninject.Modules;
 using Ninject.Parameters;
+using SM.Media.AAC;
+using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Builder;
 using SM.Media.Content;
+using SM.Media.MediaParser;
+using SM.Media.MP3;
 using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
+using SM.TsParser.Utility;
 
 namespace SM.Media
 {
@@ -51,30 +57,41 @@ namespace SM.Media
         {
             var scope = Scope;
 
-            var b = Bind<IMediaManager>().To<TsMediaManager>();
-
-            if (null != scope)
-                b.InScope(scope);
+            Bind<IMediaManager>().To<TsMediaManager>().InScope(scope);
 
             Bind<IHttpHeaderReader>().To<HttpHeaderReader>().InSingletonScope();
             Bind<IContentTypeDetector>().ToConstant(new ContentTypeDetector(ContentTypes.AllTypes));
             Bind<IWebContentTypeDetector>().To<WebContentTypeDetector>().InSingletonScope();
+
             Bind<ISegmentManagerFactoryFinder>().To<SegmentManagerFactoryFinder>().InSingletonScope();
             Bind<ISegmentManagerFactory>().To<SegmentManagerFactory>().InSingletonScope();
             Bind<IMediaElementManager>().To<NullMediaElementManager>().InSingletonScope();
-            Bind<MediaManagerParameters.BufferingManagerFactoryDelegate>().ToMethod(
-                ctx =>
-                {
-                    var bufferingPolicy = ctx.Kernel.Get<IBufferingPolicy>();
 
-                    return (readers, queueThrottling, reportBufferingChange) =>
-                        new BufferingManager(queueThrottling, reportBufferingChange, bufferingPolicy);
-                });
-            Bind<Func<Uri, IWebCache>>().ToMethod(ctx => url => ctx.Kernel.Get<WebCache>(new ConstructorArgument("url", url, false)));
+            Bind<ITsPesPacketPool>().To<TsPesPacketPool>().InScope(scope);
+            Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
+            Bind<IBufferPool>().To<BufferPool>().InScope(scope);
+            Bind<Func<IBufferPool>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferPool>());
 
-            Bind<ISegmentManagerFactoryInstance>().To<SimpleSegmentManagerFactory>();
-            Bind<ISegmentManagerFactoryInstance>().To<PlaylistSegmentManagerFactory>();
-            Bind<ISegmentManagerFactoryInstance>().To<PlsSegmentManagerFactory>();
+            Bind<IBufferingManagerFactory>().To<BufferingManagerFactory>().InScope(scope);
+
+            Bind<IWebCacheFactory>().To<WebCacheFactory>().InSingletonScope();
+
+            Bind<ISegmentManagerFactoryInstance>().To<SimpleSegmentManagerFactory>().InSingletonScope();
+            Bind<ISegmentManagerFactoryInstance>().To<PlaylistSegmentManagerFactory>().InSingletonScope();
+            Bind<ISegmentManagerFactoryInstance>().To<PlsSegmentManagerFactory>().InSingletonScope();
+
+            Bind<IMediaParserFactoryFinder>().To<MediaParserFactoryFinder>().InSingletonScope();
+            Bind<IMediaParserFactory>().To<MediaParserFactory>().InSingletonScope();
+
+            Bind<IMediaParserFactoryInstance>().To<AacMediaParserFactory>().InSingletonScope();
+            Bind<IMediaParserFactoryInstance>().To<Ac3MediaParserFactory>().InSingletonScope();
+            Bind<IMediaParserFactoryInstance>().To<Mp3MediaParserFactory>().InSingletonScope();
+
+            //Bind<MediaParserFactoryBase<AacMediaParser>.FactoryDelegate>()
+            //    .ToMethod(ctx =>
+            //        (bufferingManager, checkForSamples) =>
+            //            ctx.Kernel.Get<AacMediaParser>(new ConstructorArgument("bufferingManager", bufferingManager), new ConstructorArgument("checkForSamples", checkForSamples)))
+            //    .InSingletonScope();
 
             Bind<IMediaManagerParameters>().To<MediaManagerParameters>().InSingletonScope();
             Bind<IPlaylistSegmentManagerParameters>().To<PlaylistSegmentManagerParameters>().InSingletonScope();

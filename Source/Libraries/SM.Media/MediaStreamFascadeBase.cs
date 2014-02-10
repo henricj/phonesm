@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaStreamFascade.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamFascadeBase.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -30,6 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.Builder;
+using SM.Media.MediaParser;
 using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;

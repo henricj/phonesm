@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using SM.Media.Buffering;
+using SM.Media.MediaParser;
 using SM.TsParser;
 using SM.TsParser.Utility;
 

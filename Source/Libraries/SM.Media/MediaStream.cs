@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using SM.Media.Configuration;
+using SM.Media.MediaParser;
 using SM.TsParser;
 
 namespace SM.Media

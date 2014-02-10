@@ -32,7 +32,30 @@ using SM.TsParser.Utility;
 
 namespace SM.Media.Utility
 {
-    public sealed class BufferPool : IBufferPool, IDisposable
+    public interface IBufferPoolParameters
+    {
+        int BaseSize { get; set; }
+        int Pools { get; set; }
+    }
+
+    public class DefaultBufferPoolParameters : IBufferPoolParameters
+    {
+        public DefaultBufferPoolParameters()
+        {
+            BaseSize = 64 * 1024;
+            Pools = 3;
+        }
+
+        #region IBufferPoolParameters Members
+
+        public int BaseSize { get; set; }
+
+        public int Pools { get; set; }
+
+        #endregion
+    }
+
+    public sealed class BufferPool : IBufferPool
     {
         readonly BufferSubPool[] _pools;
         int _isDisposed;
@@ -45,11 +68,14 @@ namespace SM.Media.Utility
         int _nonPoolAllocationCount;
 #endif
 
-        public BufferPool(int baseSize, int pools)
+        public BufferPool(IBufferPoolParameters bufferPoolParameters)
         {
-            _pools = new BufferSubPool[pools];
+            if (null == bufferPoolParameters)
+                throw new ArgumentNullException("bufferPoolParameters");
 
-            var size = baseSize;
+            _pools = new BufferSubPool[bufferPoolParameters.Pools];
+
+            var size = bufferPoolParameters.BaseSize;
             for (var i = 0; i < _pools.Length; ++i)
             {
                 _pools[i] = new BufferSubPool(size);
@@ -262,6 +288,15 @@ namespace SM.Media.Utility
             public void Dispose()
             {
                 Clear();
+            }
+
+            public override string ToString()
+            {
+#if BUFFER_POOL_STATS
+                return string.Format("Pool {0}k ({1} free of {2})", Size * (1 / 1024.0), _freeCount, _newAllocationCount);
+#else
+                return string.Format("Pool {0}k", Size * (1 / 1024.0));
+#endif
             }
         }
 

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsPesPacketPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,18 +57,24 @@ namespace SM.TsParser.Utility
         {
             var bufferEntry = _bufferPool.Allocate(minSize);
 
-            return AllocatePesPacket(bufferEntry);
+            var packet = AllocatePacketWithOwnedBuffer(bufferEntry);
+
+#if DEBUG
+            //Debug.WriteLine("Allocate PES Packet({0}) Index {1} Length {2} Time {3} MinSize {4} {5}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, minSize, packet.BufferEntry);
+#endif
+
+            return packet;
         }
 
         public TsPesPacket AllocatePesPacket(BufferInstance bufferEntry)
         {
-            var packet = _packetPool.Allocate();
-
             bufferEntry.Reference();
 
-            packet.BufferEntry = bufferEntry;
+            var packet = AllocatePacketWithOwnedBuffer(bufferEntry);
 
-            packet.Clear();
+#if DEBUG
+            //Debug.WriteLine("Allocate PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, packet.BufferEntry);
+#endif
 
             return packet;
         }
@@ -84,17 +90,21 @@ namespace SM.TsParser.Utility
             if (length < 0 || index + length > packet.Index + packet.Length)
                 throw new ArgumentOutOfRangeException("length");
 
+#if DEBUG
+            //Debug.WriteLine("Copy from PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, packet.BufferEntry);
+#endif
+
             Debug.Assert(packet.Index >= 0);
             Debug.Assert(packet.Index + packet.Length <= packet.Buffer.Length);
 
-            var clone = _packetPool.Allocate();
-
-            clone.BufferEntry = packet.BufferEntry;
-
-            clone.BufferEntry.Reference();
+            var clone = AllocatePesPacket(packet.BufferEntry);
 
             clone.Index = index;
             clone.Length = length;
+
+#if DEBUG
+            //Debug.WriteLine("Copy to PES Packet({0}) Index {1} Length {2} Time {3} {4}", clone.PacketId, clone.Index, clone.Length, clone.PresentationTimestamp, clone.BufferEntry);
+#endif
 
             return clone;
         }
@@ -102,7 +112,7 @@ namespace SM.TsParser.Utility
         public void FreePesPacket(TsPesPacket packet)
         {
 #if DEBUG
-            //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.Timestamp, packet.BufferEntry);
+            //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, packet.BufferEntry);
 #endif
 
             var buffer = packet.BufferEntry;
@@ -129,6 +139,17 @@ namespace SM.TsParser.Utility
         }
 
         #endregion
+
+        TsPesPacket AllocatePacketWithOwnedBuffer(BufferInstance bufferEntry)
+        {
+            var packet = _packetPool.Allocate();
+
+            packet.BufferEntry = bufferEntry;
+
+            packet.Clear();
+
+            return packet;
+        }
 
         public void Clear()
         {

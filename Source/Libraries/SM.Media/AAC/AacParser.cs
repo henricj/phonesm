@@ -100,6 +100,7 @@ namespace SM.Media.AAC
 
                 SubmitFrame();
             }
+
             return copyLength;
         }
 

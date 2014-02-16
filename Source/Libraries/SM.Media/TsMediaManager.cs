@@ -30,17 +30,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.AAC;
-using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Configuration;
 using SM.Media.Content;
 using SM.Media.MediaParser;
-using SM.Media.MP3;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.TsParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media
 {
@@ -75,25 +71,26 @@ namespace SM.Media
         #endregion
 
         const int MaxBuffers = 8;
-        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
-        readonly IBufferPoolParameters _bufferPoolParameters;
-        readonly IBufferingManagerFactory _bufferingManagerFactory;
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
+        readonly Func<IBufferingManager> _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
+        readonly object _lock = new object();
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaParserFactory _mediaParserFactory;
         readonly IMediaStreamSource _mediaStreamSource;
-        readonly Func<ITsPesPacketPool> _poolFactory;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly Func<Task<ISegmentReaderManager>> _readerManagerFactory;
+        readonly SignalTask _reportStateTask;
+        int _isDisposed;
         MediaState _mediaState;
+        string _mediaStateMessage;
         CancellationTokenSource _playbackCancellationTokenSource;
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
         public TsMediaManager(Func<Task<ISegmentReaderManager>> readerManagerFactory, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource,
-            IBufferPoolParameters bufferPoolParameters, Func<ITsPesPacketPool> poolFactory,
-            IBufferingManagerFactory bufferingManagerFactory, IMediaManagerParameters mediaManagerParameters,
+            Func<IBufferingManager> bufferingManagerFactory, IMediaManagerParameters mediaManagerParameters,
             IMediaParserFactory mediaParserFactory)
         {
             if (null == readerManagerFactory)
@@ -108,8 +105,6 @@ namespace SM.Media
             _readerManagerFactory = readerManagerFactory;
             _mediaElementManager = mediaElementManager;
             _mediaStreamSource = mediaStreamSource;
-            _bufferPoolParameters = bufferPoolParameters;
-            _poolFactory = poolFactory;
             _bufferingManagerFactory = bufferingManagerFactory;
             _mediaParserFactory = mediaParserFactory;
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
@@ -120,6 +115,8 @@ namespace SM.Media
 
             // Start with a canceled token (i.e., we are not playing)
             _playbackCancellationTokenSource.Cancel();
+
+            _reportStateTask = new SignalTask(ReportState);
         }
 
         bool IsClosed
@@ -132,6 +129,9 @@ namespace SM.Media
         public void Dispose()
         {
             Debug.WriteLine("TsMediaManager.Dispose()");
+
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
 
             if (null != OnStateChange)
             {
@@ -154,6 +154,7 @@ namespace SM.Media
             using (_closeCancellationTokenSource)
             { }
 
+            using (_reportStateTask)
             using (_asyncFifoWorker)
             { }
         }
@@ -165,7 +166,7 @@ namespace SM.Media
         public MediaState State
         {
             get { return _mediaState; }
-            set { SetMediaState(value, null); }
+            private set { SetMediaState(value, null); }
         }
 
         public TimeSpan? SeekTarget
@@ -197,7 +198,25 @@ namespace SM.Media
         {
             Debug.WriteLine("TsMediaManager.CloseMedia()");
 
-            _asyncFifoWorker.Post(CloseAsync);
+            // Is this an unavoidable race or yet another
+            // symptom of the unsystematic way the pipeline
+            // lifetime is managed?  We catch them for "CloseMedia()"
+            // since closing something that is (hopefully) already
+            // closed should probably return rather than causing the
+            // app to exit.  At any rate, the state of the object
+            // at return is what the caller asked for (closed).
+            try
+            {
+                _asyncFifoWorker.Post(CloseAsync);
+            }
+            catch (OperationCanceledException ex)
+            {
+                Debug.WriteLine("TsMediaManager.CloseMedia() operation cancelled exception: " + ex.Message);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Debug.WriteLine("TsMediaManager.CloseMedia() object disposed exception: " + ex.Message);
+            }
         }
 
         public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
@@ -325,6 +344,34 @@ namespace SM.Media
 
         #endregion
 
+        Task ReportState()
+        {
+            MediaState state;
+            string message;
+
+            lock (_lock)
+            {
+                state = _mediaState;
+                message = _mediaStateMessage;
+                _mediaStateMessage = null;
+            }
+
+            var handlers = OnStateChange;
+
+            if (null != handlers)
+                handlers(this, new TsMediaManagerStateEventArgs(state, message));
+
+            if (null != message)
+            {
+                var mss = _mediaStreamSource;
+
+                if (null != mss)
+                    mss.ReportError(message);
+            }
+
+            return TplTaskExtensions.CompletedTask;
+        }
+
         void ResetCancellationToken()
         {
             if (null != _playbackCancellationTokenSource && !_playbackCancellationTokenSource.IsCancellationRequested)
@@ -339,23 +386,18 @@ namespace SM.Media
 
         void SetMediaState(MediaState state, string message)
         {
-            if (state == _mediaState)
-                return;
-
-            _mediaState = state;
-
-            var handlers = OnStateChange;
-
-            if (null == handlers)
-                return;
-
-            handlers(this, new TsMediaManagerStateEventArgs(state, message));
-
-            if (MediaState.Error == state)
+            lock (_lock)
             {
-                if (null != _mediaStreamSource)
-                    _mediaStreamSource.ReportError(message);
+                if (state == _mediaState)
+                    return;
+
+                _mediaState = state;
+
+                if (null != message)
+                    _mediaStateMessage = message;
             }
+
+            _reportStateTask.Fire();
         }
 
         void StartReaders()
@@ -480,11 +522,16 @@ namespace SM.Media
 
             reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
 
-            reader.BufferingManager = _bufferingManagerFactory.Create(segmentManagerReaders, reader.QueueWorker, _mediaStreamSource.CheckForSamples);
+            reader.BufferingManager = _bufferingManagerFactory();
+
+            reader.BufferingManager.Initialize(reader.QueueWorker, () => _mediaStreamSource.CheckForSamples());
 
             await startReaderTask.ConfigureAwait(false);
 
             var contentType = reader.SegmentReaders.Manager.ContentType;
+
+            if (null == contentType)
+                throw new NotSupportedException("Unknown content type");
 
             await InitializeMediaParser(reader, contentType).ConfigureAwait(false);
 
@@ -497,151 +544,23 @@ namespace SM.Media
 
             var mediaParserParameters = new MediaParserParameters(reader.BufferingManager, _mediaStreamSource.CheckForSamples);
 
-            var mp = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, CancellationToken.None).ConfigureAwait(false);
+            var mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, CancellationToken.None).ConfigureAwait(false);
 
-            if (Equals(ContentTypes.Mp3, contentType))
-                InitializeMp3MediaParser(reader);
-            else if (Equals(ContentTypes.Aac, contentType))
-                InitializeAacMediaParser(reader);
-            else if (Equals(ContentTypes.Ac3, contentType))
-                InitializeAc3MediaParser(reader);
-            else
-                InitializeTsMediaParser(reader);
-        }
+            if (null == mediaParser)
+                throw new NotSupportedException("Unsupported content type: " + contentType);
 
-        void InitializeAacMediaParser(ReaderPipeline reader)
-        {
-            _bufferPoolParameters.BaseSize = 64 * 1024;
-            _bufferPoolParameters.Pools = 2;
-
-            var bufferPool = _poolFactory();
-
-            var mediaParser = new AacMediaParser(bufferPool);
-
-            mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
-
-            InitializeMediaParser(reader, mediaParser, 1);
-        }
-
-        void InitializeAc3MediaParser(ReaderPipeline reader)
-        {
-            _bufferPoolParameters.BaseSize = 64 * 1024;
-            _bufferPoolParameters.Pools = 2;
-
-            var bufferPool = _poolFactory();
-
-            var mediaParser = new Ac3MediaParser(bufferPool);
-
-            mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
-
-            InitializeMediaParser(reader, mediaParser, 1);
-        }
-
-        void InitializeMp3MediaParser(ReaderPipeline reader)
-        {
-            _bufferPoolParameters.BaseSize = 64 * 1024;
-            _bufferPoolParameters.Pools = 2;
-
-            var bufferPool = _poolFactory();
-
-            var mediaParser = new Mp3MediaParser(bufferPool);
-
-            mediaParser.MediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader);
-
-            InitializeMediaParser(reader, mediaParser, 1);
-        }
-
-        void InitializeTsMediaParser(ReaderPipeline reader)
-        {
-            var tsTimestamp = new TsTimestamp();
-
-            var tsMediaParser = new TsMediaParser(tsTimestamp);
-
-            Action<IProgramStreams> programStreamsHandler;
-
-            if (null == _programStreamsHandler)
-            {
-                programStreamsHandler = pss =>
-                                        {
-                                            var count = DefaultProgramStreamsHandler(pss);
-
-                                            reader.ExpectedStreamCount = count;
-                                        };
-            }
-            else
-            {
-                var localHandler = _programStreamsHandler;
-
-                programStreamsHandler = pss =>
-                                        {
-                                            localHandler(pss);
-
-                                            reader.ExpectedStreamCount = pss.Streams.Count(s => !s.BlockStream);
-                                        };
-            }
-
-            InitializeMediaParser(reader, tsMediaParser, 2, programStreamsHandler);
-        }
-
-        void InitializeMediaParser(ReaderPipeline reader, IMediaParser mediaParser, int expectedStreamCount, Action<IProgramStreams> programStreamsHandler = null)
-        {
             reader.MediaParser = mediaParser;
 
-            reader.ExpectedStreamCount = expectedStreamCount;
+            mediaParser.ConfigurationComplete += (s, e) => ConfigurationComplete(reader);
 
             reader.MediaParser.Initialize(
                 (streamType, freePacket) => new StreamBuffer(streamType, freePacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
-                mediaStream => { mediaStream.ConfigurationComplete += (sender, args) => SendConfigurationComplete(args, reader); },
-                programStreamsHandler);
+                _programStreamsHandler);
         }
 
-        static int DefaultProgramStreamsHandler(IProgramStreams pss)
+        void ConfigurationComplete(ReaderPipeline reader)
         {
-            var hasAudio = false;
-            var hasVideo = false;
-            var count = 0;
-
-            foreach (var stream in pss.Streams)
-            {
-                switch (stream.StreamType.Contents)
-                {
-                    case TsStreamType.StreamContents.Audio:
-                        if (hasAudio)
-                            stream.BlockStream = true;
-                        else
-                        {
-                            hasAudio = true;
-                            ++count;
-                        }
-                        break;
-                    case TsStreamType.StreamContents.Video:
-                        if (hasVideo)
-                            stream.BlockStream = true;
-                        else
-                        {
-                            hasVideo = true;
-                            ++count;
-                        }
-                        break;
-                    default:
-                        stream.BlockStream = true;
-                        break;
-                }
-            }
-
-            return count;
-        }
-
-        void SendConfigurationComplete(ConfigurationEventArgs args, ReaderPipeline reader)
-        {
-            _asyncFifoWorker.Post(() => ConfigurationComplete(args, reader));
-        }
-
-        void ConfigurationComplete(ConfigurationEventArgs eventArgs, ReaderPipeline reader)
-        {
-            ++reader.CompletedStreamCount;
-
-            _configurationEvents.Enqueue(eventArgs);
+            reader.IsConfigured = true;
 
             CheckConfigurationCompleted();
         }
@@ -653,7 +572,7 @@ namespace SM.Media
             if (MediaState.Opening != state && MediaState.OpenMedia != state)
                 return;
 
-            if (null == _readers || _readers.Any(r => r.ExpectedStreamCount != r.CompletedStreamCount))
+            if (null == _readers || _readers.Any(r => !r.IsConfigured))
                 return;
 
             var configuration = new MediaConfiguration
@@ -661,27 +580,46 @@ namespace SM.Media
                                     Duration = _readerManager.Duration
                                 };
 
-            while (_configurationEvents.Count > 0)
+            foreach (var mediaStream in _readers.SelectMany(r => r.MediaParser.MediaStreams))
             {
-                var args = _configurationEvents.Dequeue();
+                var configurationSource = mediaStream.ConfigurationSource;
 
-                var video = args.ConfigurationSource as IVideoConfigurationSource;
+                var video = configurationSource as IVideoConfigurationSource;
 
                 if (null != video)
                 {
-                    configuration.VideoConfiguration = video;
-                    configuration.VideoStream = args.StreamSource;
+                    if (null != configuration.Video)
+                    {
+                        Debug.WriteLine("TsMediaManager.CheckConfigurationCompleted() multiple video streams");
+                        continue;
+                    }
+
+                    configuration.Video = mediaStream;
+
+                    //configuration.VideoConfiguration = video;
+                    //configuration.VideoStream = mediaStream.StreamSource;
 
                     continue;
                 }
 
-                var audio = args.ConfigurationSource as IAudioConfigurationSource;
+                var audio = configurationSource as IAudioConfigurationSource;
 
-                if (null == audio)
+                if (null != audio)
+                {
+                    if (null != configuration.Audio)
+                    {
+                        Debug.WriteLine("TsMediaManager.CheckConfigurationCompleted() multiple audio streams");
+                        continue;
+                    }
+
+                    configuration.Audio = mediaStream;
+                    //configuration.AudioConfiguration = audio;
+                    //configuration.AudioStream = mediaStream.StreamSource;
+
                     continue;
+                }
 
-                configuration.AudioConfiguration = audio;
-                configuration.AudioStream = args.StreamSource;
+                Debug.WriteLine("TsMediaManager.CheckConfigurationCompleted() unexpected media stream");
             }
 
             _mediaStreamSource.Configure(configuration);
@@ -838,12 +776,12 @@ namespace SM.Media
             public BlockingPool<WorkBuffer> BlockingPool;
             public IBufferingManager BufferingManager;
             public CallbackReader CallbackReader;
-            public int CompletedStreamCount;
-            public int ExpectedStreamCount;
             public IMediaParser MediaParser;
             public QueueWorker<WorkBuffer> QueueWorker;
             public ISegmentManagerReaders SegmentReaders;
             int _isDisposed;
+
+            public bool IsConfigured { get; set; }
 
             #region IDisposable Members
 

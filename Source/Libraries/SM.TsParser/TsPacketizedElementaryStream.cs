@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsPacketizedElementaryStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,8 +35,9 @@ namespace SM.TsParser
         const int DefaultPacketSize = 4096;
         const int SystemClockHz = 90000;
         const double PtsTo100ns = TimeSpan.TicksPerSecond / (double)SystemClockHz;
-        readonly TsDecoder _decoder;
+        readonly IBufferPool _bufferPool;
         readonly Action<TsPesPacket> _handler;
+        readonly ITsPesPacketPool _pesPacketPool;
         readonly TsStreamType _streamType;
         BufferInstance _bufferEntry;
         int _index;
@@ -46,14 +47,20 @@ namespace SM.TsParser
         int _startIndex;
         byte _streamId;
 
-        public TsPacketizedElementaryStream(TsDecoder decoder, TsStreamType streamType, uint pid)
+        public TsPacketizedElementaryStream(IBufferPool bufferPool, ITsPesPacketPool pesPacketPool, Action<TsPesPacket> packetHandler, TsStreamType streamType, uint pid)
         {
-            _decoder = decoder;
+            if (null == bufferPool)
+                throw new ArgumentNullException("bufferPool");
+            if (null == pesPacketPool)
+                throw new ArgumentNullException("pesPacketPool");
+
+            _bufferPool = bufferPool;
+            _pesPacketPool = pesPacketPool;
 
             _streamType = streamType;
             _pid = pid;
 
-            _handler = _decoder.CreatePesHandler(pid, _streamType);
+            _handler = packetHandler;
         }
 
         public void Add(TsPacket packet)
@@ -84,11 +91,11 @@ namespace SM.TsParser
                         if (_index < _bufferEntry.Buffer.Length / 2)
                             newLength *= 2;
 
-                        var newBuffer = _decoder.AllocateBuffer(newLength);
+                        var newBuffer = _bufferPool.Allocate(newLength);
 
                         Array.Copy(_bufferEntry.Buffer, _startIndex, newBuffer.Buffer, 0, _index - _startIndex);
 
-                        _decoder.FreeBuffer(_bufferEntry);
+                        _bufferPool.Free(_bufferEntry);
 
                         _bufferEntry = newBuffer;
 
@@ -106,7 +113,7 @@ namespace SM.TsParser
 
             if (null == packet && null != _bufferEntry)
             {
-                _decoder.FreeBuffer(_bufferEntry);
+                _bufferPool.Free(_bufferEntry);
                 _bufferEntry = null;
             }
 
@@ -150,13 +157,13 @@ namespace SM.TsParser
             // If we still have a buffer, make sure the size is reasonable.
             if (null != _bufferEntry && _bufferEntry.Buffer.Length - _startIndex < bufferLength)
             {
-                _decoder.FreeBuffer(_bufferEntry);
+                _bufferPool.Free(_bufferEntry);
                 _bufferEntry = null;
             }
 
             if (null == _bufferEntry)
             {
-                _bufferEntry = _decoder.AllocateBuffer(bufferLength);
+                _bufferEntry = _bufferPool.Allocate(bufferLength);
                 _startIndex = 0;
             }
 
@@ -345,7 +352,7 @@ namespace SM.TsParser
             Debug.Assert(index >= 0);
             Debug.Assert(index + length <= _bufferEntry.Buffer.Length);
 
-            var pes = _decoder.PesPacketPool.AllocatePesPacket(_bufferEntry);
+            var pes = _pesPacketPool.AllocatePesPacket(_bufferEntry);
 
             pes.Index = index;
             pes.Length = length;
@@ -413,7 +420,7 @@ namespace SM.TsParser
 
             if (null != _bufferEntry)
             {
-                _decoder.FreeBuffer(_bufferEntry);
+                _bufferPool.Free(_bufferEntry);
                 _bufferEntry = null;
             }
         }

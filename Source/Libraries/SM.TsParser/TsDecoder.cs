@@ -27,36 +27,40 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using SM.TsParser.Utility;
 
 namespace SM.TsParser
 {
-    public sealed class TsDecoder : IDisposable
+    public interface ITsDecoder : IDisposable
     {
-        readonly IBufferPool _bufferPool;
+        bool EnableProcessing { get; set; }
+        void ParseEnd();
+        void Parse(byte[] buffer, int offset, int length);
+        void Initialize(Func<TsStreamType, uint, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler);
+        void FlushBuffers();
+    }
+
+    public sealed class TsDecoder : ITsDecoder
+    {
         readonly byte[] _destinationArray;
         readonly Dictionary<uint, Action<TsPacket>> _packetHandlers = new Dictionary<uint, Action<TsPacket>>();
         readonly int _packetSize;
-        readonly Func<uint, TsStreamType, Action<TsPesPacket>> _pesHandlerFactory;
         readonly TsPacket _tsPacket = new TsPacket();
-        readonly TsPesPacketPool _tsPesPacketPool;
         int _destinationLength;
         volatile bool _enableProcessing = true;
+        Func<TsStreamType, uint, TsPacketizedElementaryStream> _pesStreamFactory;
         TsProgramAssociationTable _programAssociationTable;
         int _tsIndex;
 
-        public TsDecoder(IBufferPool bufferPool, Func<uint, TsStreamType, Action<TsPesPacket>> pesHandlerFactory, int packetSize = -1)
+        public TsDecoder()
         {
-            _bufferPool = bufferPool;
-
-            _tsPesPacketPool = new TsPesPacketPool(_bufferPool);
-
-            _pesHandlerFactory = pesHandlerFactory;
-
-            _packetSize = packetSize < 100 ? TsPacket.PacketSize : packetSize;
+            _packetSize = TsPacket.PacketSize;
 
             _destinationArray = new byte[_packetSize * 174];
         }
+
+        public Action<TsPacket> PacketMonitor { get; set; }
+
+        #region ITsDecoder Members
 
         public bool EnableProcessing
         {
@@ -64,55 +68,18 @@ namespace SM.TsParser
             set { _enableProcessing = value; }
         }
 
-        public Action<TsPacket> PacketMonitor { get; set; }
-
-        public ITsPesPacketPool PesPacketPool
-        {
-            get { return _tsPesPacketPool; }
-        }
-
-        #region IDisposable Members
-
         public void Dispose()
         {
             Clear();
-
-            using (_tsPesPacketPool)
-            { }
         }
 
-        #endregion
-
-        internal void RegisterHandler(uint pid, Action<TsPacket> handler)
+        public void Initialize(Func<TsStreamType, uint, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler = null)
         {
-            _packetHandlers[pid] = handler;
-        }
+            if (pesStreamFactory == null)
+                throw new ArgumentNullException("pesStreamFactory");
 
-        internal void UnregisterHandler(uint pid)
-        {
-            _packetHandlers.Remove(pid);
-        }
+            _pesStreamFactory = pesStreamFactory;
 
-        public Action<TsPesPacket> CreatePesHandler(uint pid, TsStreamType streamType)
-        {
-            if (null == _pesHandlerFactory)
-                return null;
-
-            return _pesHandlerFactory(pid, streamType);
-        }
-
-        internal BufferInstance AllocateBuffer(int bufferSize)
-        {
-            return _bufferPool.Allocate(bufferSize);
-        }
-
-        internal void FreeBuffer(BufferInstance buffer)
-        {
-            _bufferPool.Free(buffer);
-        }
-
-        public void Initialize(Action<IProgramStreams> programStreamsHandler = null)
-        {
             Clear();
 
             // Bootstrap with the program association handler
@@ -123,39 +90,10 @@ namespace SM.TsParser
             _tsIndex = 0;
         }
 
-        void Clear()
-        {
-            if (null != _programAssociationTable)
-            {
-                _programAssociationTable.Clear();
-                _programAssociationTable = null;
-            }
-
-            _packetHandlers.Clear();
-            _destinationLength = 0;
-        }
-
         public void FlushBuffers()
         {
             _programAssociationTable.FlushBuffers();
             _destinationLength = 0;
-        }
-
-        bool ParseBuffer()
-        {
-            var i = 0;
-            while (_destinationLength >= _packetSize)
-            {
-                ParsePacket(_destinationArray, i);
-
-                i += _packetSize;
-                _destinationLength -= _packetSize;
-            }
-
-            if (_destinationLength > 0)
-                Array.Copy(_destinationArray, i, _destinationArray, 0, _destinationLength);
-
-            return 0 == _destinationLength;
         }
 
         public void ParseEnd()
@@ -223,6 +161,52 @@ namespace SM.TsParser
             // Store any remainder
             if (_destinationLength > 0)
                 Array.Copy(buffer, i, _destinationArray, 0, _destinationLength);
+        }
+
+        #endregion
+
+        internal void RegisterHandler(uint pid, Action<TsPacket> handler)
+        {
+            _packetHandlers[pid] = handler;
+        }
+
+        internal void UnregisterHandler(uint pid)
+        {
+            _packetHandlers.Remove(pid);
+        }
+
+        internal TsPacketizedElementaryStream CreateStream(TsStreamType streamType, uint pid)
+        {
+            return _pesStreamFactory(streamType, pid);
+        }
+
+        void Clear()
+        {
+            if (null != _programAssociationTable)
+            {
+                _programAssociationTable.Clear();
+                _programAssociationTable = null;
+            }
+
+            _packetHandlers.Clear();
+            _destinationLength = 0;
+        }
+
+        bool ParseBuffer()
+        {
+            var i = 0;
+            while (_destinationLength >= _packetSize)
+            {
+                ParsePacket(_destinationArray, i);
+
+                i += _packetSize;
+                _destinationLength -= _packetSize;
+            }
+
+            if (_destinationLength > 0)
+                Array.Copy(_destinationArray, i, _destinationArray, 0, _destinationLength);
+
+            return 0 == _destinationLength;
         }
 
         bool ParsePacket(byte[] buffer, int offset)

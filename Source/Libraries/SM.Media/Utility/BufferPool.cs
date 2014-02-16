@@ -42,8 +42,8 @@ namespace SM.Media.Utility
     {
         public DefaultBufferPoolParameters()
         {
-            BaseSize = 64 * 1024;
-            Pools = 3;
+            BaseSize = 5 * 64 * 1024;
+            Pools = 2;
         }
 
         #region IBufferPoolParameters Members
@@ -140,8 +140,6 @@ namespace SM.Media.Utility
 #if DEBUG
             //Debug.WriteLine("Allocated Buffer {0}", bufferEntry);
 #endif
-
-            //Debug.Assert(1 == bufferEntry._allocationCount);
 
             return bufferEntry;
         }
@@ -307,7 +305,7 @@ namespace SM.Media.Utility
             if (0 != Interlocked.Exchange(ref _isDisposed, 1))
                 return;
 
-            Clear();
+             Clear();
 
             if (null != _pools)
             {

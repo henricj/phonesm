@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="IContentServiceFactory.cs" company="Henric Jungheim">
+//  <copyright file="ContentServiceFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,33 +25,26 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.Web;
 
 namespace SM.Media.Content
 {
     public interface IContentServiceFactory<TService, TParameter>
     {
         Task<TService> CreateAsync(TParameter parameter, ContentType contentType, CancellationToken cancellationToken);
-        Task<TService> CreateAsync(TParameter parameter, CancellationToken cancellationToken);
     }
 
     public abstract class ContentServiceFactory<TService, TParameter> : IContentServiceFactory<TService, TParameter>
     {
         static readonly Task<TService> NoHandler = TaskEx.FromResult(default(TService));
         readonly IContentServiceFactoryFinder<TService, TParameter> _factoryFinder;
-        readonly IWebContentTypeDetector _webContentTypeDetector;
 
-        public ContentServiceFactory(IWebContentTypeDetector webContentTypeDetector, IContentServiceFactoryFinder<TService, TParameter> factoryFinder)
+        protected ContentServiceFactory(IContentServiceFactoryFinder<TService, TParameter> factoryFinder)
         {
-            if (null == webContentTypeDetector)
-                throw new ArgumentNullException("webContentTypeDetector");
             if (null == factoryFinder)
                 throw new ArgumentNullException("factoryFinder");
 
-            _webContentTypeDetector = webContentTypeDetector;
             _factoryFinder = factoryFinder;
         }
 
@@ -70,28 +63,6 @@ namespace SM.Media.Content
             return NoHandler;
         }
 
-        public virtual async Task<TService> CreateAsync(TParameter parameter, CancellationToken cancellationToken)
-        {
-            var sources = Sources(parameter);
-
-            if (null == sources)
-                return default(TService);
-
-            foreach (var source in sources)
-            {
-                var contentType = await _webContentTypeDetector.GetContentTypeAsync(source, cancellationToken);
-
-                if (null == contentType)
-                    return default(TService);
-
-                return await CreateAsync(parameter, contentType, cancellationToken).ConfigureAwait(false);
-            }
-
-            return default(TService);
-        }
-
         #endregion
-
-        protected abstract IEnumerable<Uri> Sources(TParameter parameter);
     }
 }

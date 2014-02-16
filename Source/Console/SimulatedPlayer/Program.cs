@@ -67,6 +67,9 @@ namespace SimulatedPlayer
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
             }
 
             try
@@ -76,6 +79,9 @@ namespace SimulatedPlayer
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
             }
         }
     }

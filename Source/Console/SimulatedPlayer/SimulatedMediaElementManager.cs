@@ -39,7 +39,7 @@ namespace SimulatedPlayer
 {
     sealed class SimulatedMediaElementManager : IMediaElementManager, ISimulatedMediaElement, IDisposable
     {
-        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly object _lock = new object();
         // _mediaStreamFsm must not be readonly.  Member functions would then operate on *copies* of the value
         // rather than this field (since it is a value type).

@@ -38,7 +38,7 @@ namespace SimulatedPlayer
 {
     class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {
-        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
@@ -70,20 +70,20 @@ namespace SimulatedPlayer
             return CloseAsync();
         }
 
-        public void Configure(MediaConfiguration configuration)
+        public void Configure(IMediaConfiguration configuration)
         {
             lock (_lock)
             {
-                if (null != configuration.VideoConfiguration)
+                if (null != configuration.Video)
                 {
-                    _mediaStreams.Add(configuration.VideoStream);
+                    _mediaStreams.Add(configuration.Video.StreamSource);
 
                     var streamType = _mediaStreams.Count - 1;
                 }
 
-                if (null != configuration.AudioConfiguration)
+                if (null != configuration.Audio)
                 {
-                    _mediaStreams.Add(configuration.AudioStream);
+                    _mediaStreams.Add(configuration.Audio.StreamSource);
 
                     var streamType = _mediaStreams.Count - 1;
                 }

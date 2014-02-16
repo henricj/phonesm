@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
 using SM.TsParser.Utility;
@@ -33,7 +34,7 @@ namespace SM.Media.H264
 {
     public sealed class H264StreamHandler : PesStreamHandler
     {
-        readonly IH264ConfiguratorSink _configuratorSink;
+        readonly H264Configurator _configurator;
         readonly Action<TsPesPacket> _nextHandler;
         readonly NalUnitParser _parser;
         readonly ITsPesPacketPool _pesPacketPool;
@@ -41,21 +42,24 @@ namespace SM.Media.H264
         INalParser _currentParser;
         bool _isConfigured;
 
-        public H264StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IH264ConfiguratorSink configuratorSink)
+        public H264StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
         {
             if (null == pesPacketPool)
                 throw new ArgumentNullException("pesPacketPool");
             if (null == nextHandler)
                 throw new ArgumentNullException("nextHandler");
-            if (null == configuratorSink)
-                throw new ArgumentNullException("configuratorSink");
 
             _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
-            _configuratorSink = configuratorSink;
+            _configurator = new H264Configurator(streamType.Description);
 
             _parser = new NalUnitParser(ResolveHandler);
+        }
+
+        public override IConfigurationSource Configurator
+        {
+            get { return _configurator; }
         }
 
         NalUnitParser.ParserStateHandler ResolveHandler(byte arg)
@@ -65,11 +69,11 @@ namespace SM.Media.H264
             switch (nal_unit_type)
             {
                 case 7: // SPS
-                    _rbspDecoder.CompletionHandler = buffer => { _configuratorSink.SpsBytes = buffer; };
+                    _rbspDecoder.CompletionHandler = buffer => { _configurator.SpsBytes = buffer; };
                     _currentParser = _rbspDecoder;
                     break;
                 case 8: // PPS
-                    _rbspDecoder.CompletionHandler = buffer => { _configuratorSink.PpsBytes = buffer; };
+                    _rbspDecoder.CompletionHandler = buffer => { _configurator.PpsBytes = buffer; };
                     _currentParser = _rbspDecoder;
                     break;
                 default:
@@ -100,15 +104,15 @@ namespace SM.Media.H264
                 _pesPacketPool.FreePesPacket(packet);
 
                 return;
-            } 
-            
+            }
+
             if (!_isConfigured)
             {
                 _parser.Reset();
 
                 _parser.Parse(packet.Buffer, packet.Index, packet.Length);
 
-                _isConfigured = _configuratorSink.IsConfigured;
+                _isConfigured = _configurator.IsConfigured;
             }
 
             _nextHandler(packet);

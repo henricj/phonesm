@@ -34,24 +34,27 @@ namespace SM.Media.Ac3
 {
     public class Ac3StreamHandler : PesStreamHandler
     {
-        readonly IFrameParser _configurator;
+        readonly Ac3Configurator _configurator;
         readonly Action<TsPesPacket> _nextHandler;
         readonly ITsPesPacketPool _pesPacketPool;
         bool _foundframe;
 
-        public Ac3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, IFrameParser configurator)
+        public Ac3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
         {
             if (null == pesPacketPool)
                 throw new ArgumentNullException("pesPacketPool");
             if (null == nextHandler)
                 throw new ArgumentNullException("nextHandler");
-            if (null == configurator)
-                throw new ArgumentNullException("configurator");
 
             _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
-            _configurator = configurator;
+            _configurator = new Ac3Configurator(streamType.Description);
+        }
+
+        public override IConfigurationSource Configurator
+        {
+            get { return _configurator; }
         }
 
         public override void PacketHandler(TsPesPacket packet)

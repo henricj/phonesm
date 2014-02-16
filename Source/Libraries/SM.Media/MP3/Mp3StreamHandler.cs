@@ -26,39 +26,42 @@
 
 using System;
 using System.Diagnostics;
-using SM.Media.Audio;
+using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
-    class Mp3StreamHandler : PesStreamHandler
+    public class Mp3StreamHandler : PesStreamHandler
     {
         const bool UseParser = false; // Have Mp3Parser parse the stream and submit frames to the OS.
-        readonly Action<IAudioFrameHeader> _configurator;
+        readonly Mp3Configurator _configurator;
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
         readonly Action<TsPesPacket> _nextHandler;
         readonly Mp3Parser _parser;
         readonly ITsPesPacketPool _pesPacketPool;
         bool _foundFrame;
 
-        public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, Action<IAudioFrameHeader> configurator)
+        public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
         {
             if (pesPacketPool == null)
                 throw new ArgumentNullException("pesPacketPool");
             if (nextHandler == null)
                 throw new ArgumentNullException("nextHandler");
-            if (configurator == null)
-                throw new ArgumentNullException("configurator");
 
             _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
-            _configurator = configurator;
+            _configurator = new Mp3Configurator(streamType.Description);
 
             if (UseParser)
-                _parser = new Mp3Parser(pesPacketPool, _configurator, _nextHandler);
+                _parser = new Mp3Parser(pesPacketPool, _configurator.Configure, _nextHandler);
+        }
+
+        public override IConfigurationSource Configurator
+        {
+            get { return _configurator; }
         }
 
         public override void PacketHandler(TsPesPacket packet)
@@ -96,7 +99,7 @@ namespace SM.Media.MP3
             {
                 if (_frameHeader.Parse(packet.Buffer, packet.Index, packet.Length, true))
                 {
-                    _configurator(_frameHeader);
+                    _configurator.Configure(_frameHeader);
                     _foundFrame = true;
                 }
             }
@@ -136,7 +139,7 @@ namespace SM.Media.MP3
                 {
                     _foundFrame = true;
 
-                    _configurator(_frameHeader);
+                    _configurator.Configure(_frameHeader);
                 }
 
                 Debug.Assert(_frameHeader.MarkerIndex.HasValue);

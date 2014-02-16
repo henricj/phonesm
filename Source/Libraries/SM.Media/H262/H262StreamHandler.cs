@@ -25,32 +25,36 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.H262
 {
-    class H262StreamHandler : PesStreamHandler
+    public class H262StreamHandler : PesStreamHandler
     {
         readonly H262Configurator _configurator;
         readonly Action<TsPesPacket> _nextHandler;
         readonly ITsPesPacketPool _pesPacketPool;
         bool _foundframe;
 
-        public H262StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, H262Configurator configurator)
+        public H262StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
         {
             if (null == pesPacketPool)
                 throw new ArgumentNullException("pesPacketPool");
             if (null == nextHandler)
                 throw new ArgumentNullException("nextHandler");
-            if (null == configurator)
-                throw new ArgumentNullException("configurator");
 
             _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
-            _configurator = configurator;
+            _configurator = new H262Configurator(streamType.Description);
+        }
+
+        public override IConfigurationSource Configurator
+        {
+            get { return _configurator; }
         }
 
         public override void PacketHandler(TsPesPacket packet)

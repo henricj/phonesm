@@ -25,38 +25,41 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Audio;
+using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.AAC
 {
-    class AacStreamHandler : PesStreamHandler
+    public class AacStreamHandler : PesStreamHandler
     {
-        readonly Action<IAudioFrameHeader> _configurator;
+        readonly AacConfigurator _configurator;
         readonly AacFrameHeader _frameHeader = new AacFrameHeader();
         readonly Action<TsPesPacket> _nextHandler;
         readonly AacParser _parser;
         readonly ITsPesPacketPool _pesPacketPool;
         bool _isConfigured;
 
-        public AacStreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler, Action<IAudioFrameHeader> configurator)
+        public AacStreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
         {
             if (pesPacketPool == null)
                 throw new ArgumentNullException("pesPacketPool");
             if (nextHandler == null)
                 throw new ArgumentNullException("nextHandler");
-            if (configurator == null)
-                throw new ArgumentNullException("configurator");
 
             _pesPacketPool = pesPacketPool;
             _nextHandler = nextHandler;
-            _configurator = configurator;
+            _configurator = new AacConfigurator(streamType.Description);
 
             if (AacDecoderSettings.Parameters.UseParser)
-                _parser = new AacParser(pesPacketPool, configurator, _nextHandler);
+                _parser = new AacParser(pesPacketPool, _configurator.Configure, _nextHandler);
+        }
+
+        public override IConfigurationSource Configurator
+        {
+            get { return _configurator; }
         }
 
         public override void PacketHandler(TsPesPacket packet)
@@ -96,7 +99,7 @@ namespace SM.Media.AAC
                 if (_frameHeader.Parse(packet.Buffer, packet.Index, packet.Length, true))
                 {
                     _isConfigured = true;
-                    _configurator(_frameHeader);
+                    _configurator.Configure(_frameHeader);
                 }
             }
 

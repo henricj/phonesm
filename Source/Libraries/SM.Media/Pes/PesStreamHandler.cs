@@ -25,20 +25,25 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics;
+using SM.Media.Configuration;
 using SM.TsParser;
 
 namespace SM.Media.Pes
 {
-    public class PesStreamHandler
+    public abstract class PesStreamHandler : IPesStreamHandler
     {
         protected readonly uint Pid;
         protected readonly TsStreamType StreamType;
 
-        public PesStreamHandler(uint pid, TsStreamType streamType)
+        protected PesStreamHandler(uint pid, TsStreamType streamType)
         {
             StreamType = streamType;
             Pid = pid;
         }
+
+        public abstract IConfigurationSource Configurator { get; }
+
+        #region IPesStreamHandler Members
 
         public virtual void PacketHandler(TsPesPacket packet)
         {
@@ -58,5 +63,7 @@ namespace SM.Media.Pes
             }
 #pragma warning restore 162
         }
+
+        #endregion
     }
 }

@@ -29,13 +29,17 @@ using SM.Media.AAC;
 using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Content;
+using SM.Media.H262;
+using SM.Media.H264;
 using SM.Media.MediaParser;
 using SM.Media.MP3;
+using SM.Media.Pes;
 using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media
@@ -57,7 +61,6 @@ namespace SM.Media
             builder.RegisterType<TsPesPacketPool>().As<ITsPesPacketPool>().InstancePerLifetimeScope();
             builder.RegisterType<BufferPool>().As<IBufferPool>().InstancePerLifetimeScope();
             builder.RegisterType<DefaultBufferPoolParameters>().As<IBufferPoolParameters>().InstancePerLifetimeScope();
-            builder.RegisterType<BufferingManagerFactory>().As<IBufferingManagerFactory>().InstancePerLifetimeScope();
 
             builder.RegisterType<WebCacheFactory>().As<IWebCacheFactory>().SingleInstance();
 
@@ -71,14 +74,35 @@ namespace SM.Media
             builder.RegisterType<AacMediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<Ac3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<Mp3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
+            builder.RegisterType<TsMediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
 
-            builder.RegisterType<AacMediaParser>().AsSelf().InstancePerLifetimeScope();
-            builder.RegisterType<Ac3MediaParser>().AsSelf().InstancePerLifetimeScope();
-            builder.RegisterType<Mp3MediaParser>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<AacMediaParser>().AsSelf();
+            builder.RegisterType<Ac3MediaParser>().AsSelf();
+            builder.RegisterType<Mp3MediaParser>().AsSelf();
+            builder.RegisterType<TsMediaParser>().AsSelf();
+
+            builder.RegisterType<AacStreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();
+            builder.RegisterType<Ac3StreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();
+            builder.RegisterType<H262StreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();
+            builder.RegisterType<H264StreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();
+            builder.RegisterType<Mp3StreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();
+
+            builder.RegisterType<PesHandlerFactory>().As<IPesHandlerFactory>().SingleInstance();
+
+            builder.RegisterType<PesStreamFactoryFinder>().As<IPesStreamFactoryFinder>().SingleInstance();
+            builder.RegisterType<PesStreamFactory>().As<IPesStreamFactory>().SingleInstance();
+            builder.RegisterType<PesStreamParameters>().AsSelf();
+
+            builder.RegisterType<TsDecoder>().As<ITsDecoder>();
+            builder.RegisterType<TsTimestamp>().As<ITsTimestamp>();
+            builder.RegisterType<PesHandlers>().As<IPesHandlers>();
 
             builder.RegisterType<MediaManagerParameters>().As<IMediaManagerParameters>().SingleInstance();
             builder.RegisterType<PlaylistSegmentManagerParameters>().As<IPlaylistSegmentManagerParameters>().SingleInstance();
             builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerLifetimeScope();
+
+            //builder.RegisterType<BufferingManagerFactory>().As<IBufferingManagerFactory>().InstancePerLifetimeScope();
+            builder.RegisterType<BufferingManager>().As<IBufferingManager>();
         }
     }
 }

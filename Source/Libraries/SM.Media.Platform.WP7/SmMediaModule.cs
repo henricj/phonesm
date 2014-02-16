@@ -34,13 +34,17 @@ using SM.Media.Ac3;
 using SM.Media.Buffering;
 using SM.Media.Builder;
 using SM.Media.Content;
+using SM.Media.H262;
+using SM.Media.H264;
 using SM.Media.MediaParser;
 using SM.Media.MP3;
+using SM.Media.Pes;
 using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media
@@ -68,11 +72,9 @@ namespace SM.Media
             Bind<IMediaElementManager>().To<NullMediaElementManager>().InSingletonScope();
 
             Bind<ITsPesPacketPool>().To<TsPesPacketPool>().InScope(scope);
-            Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
             Bind<IBufferPool>().To<BufferPool>().InScope(scope);
+            Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
             Bind<Func<IBufferPool>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferPool>());
-
-            Bind<IBufferingManagerFactory>().To<BufferingManagerFactory>().InScope(scope);
 
             Bind<IWebCacheFactory>().To<WebCacheFactory>().InSingletonScope();
 
@@ -86,16 +88,33 @@ namespace SM.Media
             Bind<IMediaParserFactoryInstance>().To<AacMediaParserFactory>().InSingletonScope();
             Bind<IMediaParserFactoryInstance>().To<Ac3MediaParserFactory>().InSingletonScope();
             Bind<IMediaParserFactoryInstance>().To<Mp3MediaParserFactory>().InSingletonScope();
+            Bind<IMediaParserFactoryInstance>().To<TsMediaParserFactory>().InSingletonScope();
 
-            //Bind<MediaParserFactoryBase<AacMediaParser>.FactoryDelegate>()
-            //    .ToMethod(ctx =>
-            //        (bufferingManager, checkForSamples) =>
-            //            ctx.Kernel.Get<AacMediaParser>(new ConstructorArgument("bufferingManager", bufferingManager), new ConstructorArgument("checkForSamples", checkForSamples)))
-            //    .InSingletonScope();
+            Bind<Func<AacMediaParser>>().ToMethod(ctx => () => ctx.Kernel.Get<AacMediaParser>());
+            Bind<Func<Ac3MediaParser>>().ToMethod(ctx => () => ctx.Kernel.Get<Ac3MediaParser>());
+            Bind<Func<Mp3MediaParser>>().ToMethod(ctx => () => ctx.Kernel.Get<Mp3MediaParser>());
+            Bind<Func<TsMediaParser>>().ToMethod(ctx => () => ctx.Kernel.Get<TsMediaParser>());
+
+            Bind<IPesStreamFactoryInstance>().To<AacStreamHandlerFactory>().InScope(scope);
+            Bind<IPesStreamFactoryInstance>().To<Ac3StreamHandlerFactory>().InScope(scope);
+            Bind<IPesStreamFactoryInstance>().To<H262StreamHandlerFactory>().InScope(scope);
+            Bind<IPesStreamFactoryInstance>().To<H264StreamHandlerFactory>().InScope(scope);
+            Bind<IPesStreamFactoryInstance>().To<Mp3StreamHandlerFactory>().InScope(scope);
+
+            Bind<IPesHandlerFactory>().To<PesHandlerFactory>().InSingletonScope();
+
+            Bind<IPesStreamFactoryFinder>().To<PesStreamFactoryFinder>().InSingletonScope();
+            Bind<IPesStreamFactory>().To<PesStreamFactory>().InSingletonScope();
+
+            Bind<ITsDecoder>().To<TsDecoder>();
+            Bind<ITsTimestamp>().To<TsTimestamp>();
+            Bind<IPesHandlers>().To<PesHandlers>();
 
             Bind<IMediaManagerParameters>().To<MediaManagerParameters>().InSingletonScope();
             Bind<IPlaylistSegmentManagerParameters>().To<PlaylistSegmentManagerParameters>().InSingletonScope();
             Bind<IBufferingPolicy>().To<DefaultBufferingPolicy>();
+            Bind<IBufferingManager>().To<BufferingManager>();
+            Bind<Func<IBufferingManager>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferingManager>());
         }
     }
 }

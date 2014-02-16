@@ -24,10 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
 using SM.Media.Content;
-using SM.Media.Web;
 
 namespace SM.Media.MediaParser
 {
@@ -36,13 +33,8 @@ namespace SM.Media.MediaParser
 
     public class MediaParserFactory : ContentServiceFactory<IMediaParser, IMediaParserParameters>, IMediaParserFactory
     {
-        public MediaParserFactory(IWebContentTypeDetector webContentTypeDetector, IMediaParserFactoryFinder factoryFinder)
-            : base(webContentTypeDetector, factoryFinder)
+        public MediaParserFactory(IMediaParserFactoryFinder factoryFinder)
+            : base(factoryFinder)
         { }
-
-        protected override IEnumerable<Uri> Sources(IMediaParserParameters parameter)
-        {
-            throw new NotSupportedException();
-        }
     }
 }

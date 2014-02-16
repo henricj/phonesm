@@ -42,9 +42,9 @@ namespace SM.Media.MediaParser
 
         #endregion
 
-        readonly FactoryDelegate _parserFactory;
+        readonly Func<TMediaParser> _parserFactory;
 
-        protected MediaParserFactoryBase(FactoryDelegate parserFactory)
+        protected MediaParserFactoryBase(Func<TMediaParser> parserFactory)
         {
             if (null == parserFactory)
                 throw new ArgumentNullException("parserFactory");
@@ -58,7 +58,7 @@ namespace SM.Media.MediaParser
 
         public Task<IMediaParser> CreateAsync(IMediaParserParameters parameter, ContentType contentType, CancellationToken cancellationToken)
         {
-            var mediaParser = _parserFactory(parameter.BufferingManager, parameter.CheckForSamples);
+            var mediaParser = _parserFactory();
 
             return TaskEx.FromResult<IMediaParser>(mediaParser);
         }

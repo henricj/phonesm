@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="BufferingManagerFactory.cs" company="Henric Jungheim">
+//  <copyright file="TsMediaParserFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,34 +25,23 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Segments;
+using System.Collections.Generic;
+using SM.Media.Content;
+using SM.Media.MediaParser;
 
-namespace SM.Media.Buffering
+namespace SM.Media
 {
-    public interface IBufferingManagerFactory
+    public class TsMediaParserFactory : MediaParserFactoryBase<TsMediaParser>
     {
-        IBufferingManager Create(ISegmentManagerReaders readers, IQueueThrottling queueThrottling, Action checkForSamples);
-    }
+        static readonly ContentType[] Types = { ContentTypes.TransportStream };
 
-    public class BufferingManagerFactory : IBufferingManagerFactory
-    {
-        readonly IBufferingPolicy _bufferingPolicy;
+        public TsMediaParserFactory(Func<TsMediaParser> factory)
+            : base(factory)
+        { }
 
-        public BufferingManagerFactory(IBufferingPolicy bufferingPolicy)
+        public override ICollection<ContentType> KnownContentTypes
         {
-            if (null == bufferingPolicy)
-                throw new ArgumentNullException("bufferingPolicy");
-
-            _bufferingPolicy = bufferingPolicy;
+            get { return Types; }
         }
-
-        #region IBufferingManagerFactory Members
-
-        public IBufferingManager Create(ISegmentManagerReaders readers, IQueueThrottling queueThrottling, Action checkForSamples)
-        {
-            return new BufferingManager(queueThrottling, checkForSamples, _bufferingPolicy);
-        }
-
-        #endregion
     }
 }

@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using SM.Media.Content;
 using SM.Media.MediaParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media.AAC
 {
@@ -36,8 +35,8 @@ namespace SM.Media.AAC
     {
         static readonly ContentType[] Types = { ContentTypes.Aac };
 
-        public AacMediaParserFactory(Func<ITsPesPacketPool> poolFactory)
-            : base((bufferingManager, checkForSamples) => new AacMediaParser(poolFactory()))
+        public AacMediaParserFactory(Func<AacMediaParser> factory)
+            : base(factory)
         { }
 
         public override ICollection<ContentType> KnownContentTypes

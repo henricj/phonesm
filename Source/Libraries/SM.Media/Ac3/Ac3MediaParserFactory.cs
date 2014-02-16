@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using SM.Media.Content;
 using SM.Media.MediaParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media.Ac3
 {
@@ -36,8 +35,8 @@ namespace SM.Media.Ac3
     {
         static readonly ContentType[] Types = { ContentTypes.Ac3 };
 
-        public Ac3MediaParserFactory(Func<ITsPesPacketPool> poolFactory)
-            : base((bufferingManager, checkForSamples) => new Ac3MediaParser(poolFactory()))
+        public Ac3MediaParserFactory(Func<Ac3MediaParser> factory)
+            : base(factory)
         { }
 
         public override ICollection<ContentType> KnownContentTypes

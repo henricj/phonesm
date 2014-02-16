@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using SM.Media.Content;
 using SM.Media.MediaParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
@@ -36,8 +35,8 @@ namespace SM.Media.MP3
     {
         static readonly ContentType[] Types = { ContentTypes.Mp3 };
 
-        public Mp3MediaParserFactory(Func<ITsPesPacketPool> poolFactory)
-            : base((bufferingManager, checkForSamples) => new Mp3MediaParser(poolFactory()))
+        public Mp3MediaParserFactory(Func<Mp3MediaParser> factory)
+            : base(factory)
         { }
 
         public override ICollection<ContentType> KnownContentTypes

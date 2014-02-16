@@ -81,11 +81,17 @@
     <Compile Include="..\SM.Media\AAC\AacConfigurator.cs">
       <Link>AAC\AacConfigurator.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\AAC\AacStreamHandlerFactory.cs">
+      <Link>AAC\AacStreamHandlerFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Ac3\Ac3MediaParserFactory.cs">
       <Link>Ac3\Ac3MediaParserFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Ac3\Ac3Parser.cs">
       <Link>Ac3\Ac3Parser.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Ac3\Ac3StreamHandlerFactory.cs">
+      <Link>Ac3\Ac3StreamHandlerFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Audio\AudioMediaParser.cs">
       <Link>Audio\AudioMediaParser.cs</Link>
@@ -99,14 +105,8 @@
     <Compile Include="..\SM.Media\Audio\IAudioParser.cs">
       <Link>Audio\IAudioParser.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Buffering\BufferingDefaults.cs">
-      <Link>Buffering\BufferingDefaults.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Buffering\BufferingManager.cs">
       <Link>Buffering\BufferingManager.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Buffering\BufferingManagerFactory.cs">
-      <Link>Buffering\BufferingManagerFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Buffering\DefaultBufferingPolicy.cs">
       <Link>Buffering\DefaultBufferingPolicy.cs</Link>
@@ -142,11 +142,26 @@
     <Compile Include="..\SM.Media\Ac3\Ac3StreamHandler.cs">
       <Link>Ac3\Ac3StreamHandler.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Configuration\ConfiguratorBase.cs">
+      <Link>Configuration\ConfiguratorBase.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Configuration\NullConfigurator.cs">
+      <Link>Configuration\NullConfigurator.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Content\ContentKind.cs">
       <Link>Content\ContentKind.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Content\ContentServiceFactory.cs">
+      <Link>Content\ContentServiceFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Content\ContentServiceFactoryBase.cs">
+      <Link>Content\ContentServiceFactoryBase.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Content\ContentServiceFactoryFinder.cs">
       <Link>Content\ContentServiceFactoryFinder.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Content\ContentServiceFactoryInstance.cs">
+      <Link>Content\ContentServiceFactoryInstance.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Content\ContentType.cs">
       <Link>Content\ContentType.cs</Link>
@@ -157,9 +172,6 @@
     <Compile Include="..\SM.Media\Content\ContentTypes.cs">
       <Link>Content\ContentTypes.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Content\IContentServiceFactory.cs">
-      <Link>Content\IContentServiceFactory.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Content\IContentServiceFactoryInstance.cs">
       <Link>Content\IContentServiceFactoryInstance.cs</Link>
     </Compile>
@@ -169,32 +181,122 @@
     <Compile Include="..\SM.Media\H262\H262StreamHandler.cs">
       <Link>H262\H262StreamHandler.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\H262\H262StreamHandlerFactory.cs">
+      <Link>H262\H262StreamHandlerFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\H264\H264StreamHandlerFactory.cs">
+      <Link>H264\H264StreamHandlerFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\IMediaElementManager.cs" />
     <Compile Include="..\SM.Media\IMediaManager.cs" />
     <Compile Include="..\SM.Media\ITsTimestamp.cs" />
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ByterangeAttributeInstance.cs">
+      <Link>M3U8\AttributeSupport\ByterangeAttributeInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\CsvStringsAttributeInstance.cs">
+      <Link>M3U8\AttributeSupport\CsvStringsAttributeInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtIFrameStreamInfSupport.cs">
+      <Link>M3U8\AttributeSupport\ExtIFrameStreamInfSupport.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtKeySupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
+      <Link>M3U8\AttributeSupport\ExtKeySupport.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtMapSupport.cs">
+      <Link>M3U8\AttributeSupport\ExtMapSupport.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtMediaSupport.cs">
+      <Link>M3U8\AttributeSupport\ExtMediaSupport.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtStreamInfSupport.cs">
+      <Link>M3U8\AttributeSupport\ExtStreamInfSupport.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs">
-      <Link>M3U8\AttributeSupport</Link>
+      <Link>M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ByterangeTag.cs">
-      <Link>M3U8\TagSupport</Link>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\M3U8AttributeParserSupport.cs">
+      <Link>M3U8\AttributeSupport\M3U8AttributeParserSupport.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\M3U8AttributeSupport.cs">
+      <Link>M3U8\AttributeSupport\M3U8AttributeSupport.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\M3U8AttributeValueInstance.cs">
+      <Link>M3U8\AttributeSupport\M3U8AttributeValueInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ResolutionAttributeInstance.cs">
+      <Link>M3U8\AttributeSupport\ResolutionAttributeInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\AttributeSupport\StringAttributeInstance.cs">
+      <Link>M3U8\AttributeSupport\StringAttributeInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8Attribute.cs">
+      <Link>M3U8\M3U8Attribute.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8AttributeInstance.cs">
+      <Link>M3U8\M3U8AttributeInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8AttributeTag.cs">
+      <Link>M3U8\M3U8AttributeTag.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8Parser.cs">
+      <Link>M3U8\M3U8Parser.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8ParserExtensions.cs">
+      <Link>M3U8\M3U8ParserExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8Tag.cs">
+      <Link>M3U8\M3U8Tag.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8TagExtensions.cs">
+      <Link>M3U8\M3U8TagExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8TagInstance.cs">
+      <Link>M3U8\M3U8TagInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8TagInstanceExtensions.cs">
+      <Link>M3U8\M3U8TagInstanceExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8Tags.cs">
+      <Link>M3U8\M3U8Tags.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\M3U8ValueAttribute.cs">
+      <Link>M3U8\M3U8ValueAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\AttributesTagInstance.cs">
+      <Link>M3U8\TagSupport\AttributesTagInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\ByterangeTagInstance.cs">
+      <Link>M3U8\TagSupport\ByterangeTagInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\ExtinfTagInstance.cs">
+      <Link>M3U8\TagSupport\ExtinfTagInstance.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\M3U8\TagSupport\ExtKeyTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
+      <Link>M3U8\TagSupport\ExtKeyTagInstance.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\M3U8\TagSupport\ExtStreamInfTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
+      <Link>M3U8\TagSupport\ExtStreamInfTagInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ByterangeTag.cs">
+      <Link>M3U8\TagSupport\M3U8ByterangeTag.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ExtInfTag.cs">
+      <Link>M3U8\TagSupport\M3U8ExtInfTag.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ExtKeyTag.cs">
-      <Link>M3U8\TagSupport</Link>
+      <Link>M3U8\TagSupport\M3U8ExtKeyTag.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ExtStreamInfTag.cs">
-      <Link>M3U8\TagSupport</Link>
+      <Link>M3U8\TagSupport\M3U8ExtStreamInfTag.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ValueTag.cs">
-      <Link>M3U8\TagSupport</Link>
+      <Link>M3U8\TagSupport\M3U8ValueTag.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\MapTagInstance.cs">
+      <Link>M3U8\TagSupport\MapTagInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\M3U8\TagSupport\ValueTagInstance.cs">
+      <Link>M3U8\TagSupport\ValueTagInstance.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaManagerParameters.cs">
       <Link>MediaManagerParameters.cs</Link>
@@ -210,6 +312,9 @@
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\IMediaStreamSource.cs">
       <Link>MediaParser\IMediaStreamSource.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaConfiguration.cs">
+      <Link>MediaParser\MediaConfiguration.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\MediaParserBase.cs">
       <Link>MediaParser\MediaParserBase.cs</Link>
@@ -247,10 +352,27 @@
     <Compile Include="..\SM.Media\MP3\Mp3Parser.cs">
       <Link>MP3\Mp3Parser.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\MP3\Mp3StreamHandlerFactory.cs">
+      <Link>MP3\Mp3StreamHandlerFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\NullMediaElementManager.cs">
       <Link>NullMediaElementManager.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\PacketStreamWrapper.cs" />
+    <Compile Include="..\SM.Media\Pes\DefaultPesStreamHandler.cs">
+      <Link>Pes\DefaultPesStreamHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Pes\IPesStreamFactoryInstance.cs">
+      <Link>Pes\IPesStreamFactoryInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Pes\PesStreamFactory.cs">
+      <Link>Pes\PesStreamFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Pes\PesStreamFactoryBase.cs">
+      <Link>Pes\PesStreamFactoryBase.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Pes\PesStreamFactoryFinder.cs">
+      <Link>Pes\PesStreamFactoryFinder.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\IProgramManager.cs">
       <Link>Playlists\IProgramManager.cs</Link>
     </Compile>
@@ -304,6 +426,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Segments\SimpleSegmentManagerFactory.cs">
       <Link>Segments\SimpleSegmentManagerFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TsMediaParserFactory.cs">
+      <Link>TsMediaParserFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\ApplicationInformation.cs">
       <Link>Utility\ApplicationInformation.cs</Link>
@@ -388,91 +513,6 @@
       <Link>Configuration\IVideoConfigurationSource.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\IQueueThrottling.cs" />
-    <Compile Include="..\SM.Media\IStreamHandler.cs" />
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ByterangeAttributeInstance.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtIFrameStreamInfSupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtMapSupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\CsvStringsAttributeInstance.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtMediaSupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ExtStreamInfSupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\M3U8AttributeParserSupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\M3U8AttributeSupport.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\M3U8AttributeValueInstance.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\ResolutionAttributeInstance.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\AttributeSupport\StringAttributeInstance.cs">
-      <Link>M3U8\AttributeSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\ByterangeTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\ExtinfTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\M3U8ExtInfTag.cs">
-      <Link>M3U8\TagSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\MapTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\AttributesTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\TagSupport\ValueTagInstance.cs">
-      <Link>M3U8\TagSupport</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8Attribute.cs">
-      <Link>M3U8\M3U8Attribute.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8AttributeInstance.cs">
-      <Link>M3U8\M3U8AttributeInstance.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8AttributeTag.cs">
-      <Link>M3U8\M3U8AttributeTag.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8Parser.cs">
-      <Link>M3U8\M3U8Parser.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8ParserExtensions.cs">
-      <Link>M3U8\M3U8ParserExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8Tag.cs">
-      <Link>M3U8\M3U8Tag.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8TagExtensions.cs">
-      <Link>M3U8\M3U8TagExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8TagInstance.cs">
-      <Link>M3U8\M3U8TagInstance.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8TagInstanceExtensions.cs">
-      <Link>M3U8\M3U8TagInstanceExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8Tags.cs">
-      <Link>M3U8\M3U8Tags.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\M3U8\M3U8ValueAttribute.cs">
-      <Link>M3U8\M3U8ValueAttribute.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Segments\SegmentReader.cs">
       <Link>Segments\SegmentReader.cs</Link>
     </Compile>
@@ -585,7 +625,6 @@
       <Link>Segments\SimpleSegmentManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\StreamBuffer.cs" />
-    <Compile Include="..\SM.Media\TsMediaHandlerFactories.cs" />
     <Compile Include="..\SM.Media\TsMediaManager.cs" />
     <Compile Include="..\SM.Media\TsTimestamp.cs" />
     <Compile Include="..\SM.Media\Utility\AsyncManualResetEvent.cs">

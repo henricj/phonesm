@@ -29,13 +29,14 @@ using SM.TsParser;
 
 namespace SM.Media.Buffering
 {
-    public interface IBufferingManager
+    public interface IBufferingManager : IDisposable
     {
         double BufferingProgress { get; }
         bool IsBuffering { get; }
         IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
         void Flush();
         bool IsSeekAlreadyBuffered(TimeSpan position);
+        void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange);
     }
 
     public interface IBufferingQueue

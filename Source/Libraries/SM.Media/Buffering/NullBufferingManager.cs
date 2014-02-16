@@ -28,7 +28,7 @@ using System;
 
 namespace SM.Media.Buffering
 {
-    public class NullBufferingManager : IBufferingManager
+    public sealed class NullBufferingManager : IBufferingManager
     {
         static readonly IBufferingQueue Queue = new NullBufferingQueue();
 
@@ -56,6 +56,12 @@ namespace SM.Media.Buffering
         {
             return true;
         }
+
+        public void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange)
+        { }
+
+        public void Dispose()
+        { }
 
         #endregion
 

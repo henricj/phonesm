@@ -33,37 +33,33 @@ using SM.TsParser;
 
 namespace SM.Media.Buffering
 {
-    public class BufferingManager : IBufferingManager
+    public sealed class BufferingManager : IBufferingManager
     {
         static readonly TimeSpan SeekEndTolerance = TimeSpan.FromMilliseconds(256);
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly IBufferingPolicy _bufferingPolicy;
         readonly object _lock = new object();
-        readonly IQueueThrottling _queueThrottling;
         readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
         readonly SignalTask _reportingTask;
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
         double _bufferingProgress;
         volatile int _isBuffering = 1;
+        IQueueThrottling _queueThrottling;
+        Action _reportBufferingChange;
         int _totalBufferedStart;
 
-        public BufferingManager(IQueueThrottling queueThrottling, Action reportBufferingChange, IBufferingPolicy bufferingPolicy)
+        public BufferingManager(IBufferingPolicy bufferingPolicy)
         {
-            if (null == queueThrottling)
-                throw new ArgumentNullException("queueThrottling");
-            if (reportBufferingChange == null)
-                throw new ArgumentNullException("reportBufferingChange");
             if (bufferingPolicy == null)
                 throw new ArgumentNullException("bufferingPolicy");
 
-            _queueThrottling = queueThrottling;
             _bufferingPolicy = bufferingPolicy;
 
             _reportingTask = new SignalTask(() =>
                                             {
-                                                reportBufferingChange();
+                                                _reportBufferingChange();
 
                                                 return TplTaskExtensions.CompletedTask;
                                             }, CancellationToken.None);
@@ -137,6 +133,17 @@ namespace SM.Media.Buffering
 
         #region IBufferingManager Members
 
+        public void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange)
+        {
+            if (null == queueThrottling)
+                throw new ArgumentNullException("queueThrottling");
+            if (reportBufferingChange == null)
+                throw new ArgumentNullException("reportBufferingChange");
+
+            _queueThrottling = queueThrottling;
+            _reportBufferingChange = reportBufferingChange;
+        }
+
         public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
         {
             if (null == managedBuffer)
@@ -204,6 +211,9 @@ namespace SM.Media.Buffering
                 }
             }
         }
+
+        public void Dispose()
+        { }
 
         #endregion
 

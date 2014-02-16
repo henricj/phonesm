@@ -44,10 +44,18 @@ namespace SM.Media.Utility
             _signalTask = new SignalTask(Worker, cancellationToken);
         }
 
+        public AsyncFifoWorker()
+        {
+            _signalTask = new SignalTask(Worker);
+        }
+
         #region IDisposable Members
 
         public void Dispose()
         {
+            if (!Close())
+                return;
+
             using (_signalTask)
             { }
         }
@@ -94,17 +102,43 @@ namespace SM.Media.Utility
                 _workQueue.Enqueue(workFunc);
             }
 
-            _signalTask.Fire();
+            try
+            {
+                _signalTask.Fire();
+            }
+            catch (ObjectDisposedException)
+            {
+                Func<Task>[] pendingWork;
+                lock (_lock)
+                {
+                    pendingWork = _workQueue.ToArray();
+                }
+
+                if (pendingWork.Length > 0)
+                    Debug.WriteLine("AsyncFifoWorker.Post() object disposed but there are still {0} pending", pendingWork.Length);
+
+                throw;
+            }
         }
 
         public Task CloseAsync()
         {
+            Close();
+
+            return _signalTask.WaitAsync();
+        }
+
+        bool Close()
+        {
             lock (_lock)
             {
+                if (_isClosed)
+                    return false;
+
                 _isClosed = true;
             }
 
-            return _signalTask.WaitAsync();
+            return true;
         }
     }
 

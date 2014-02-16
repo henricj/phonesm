@@ -35,7 +35,7 @@ namespace SM.Media.Utility
     {
         readonly Func<Task> _handler;
         readonly object _lock = new object();
-        readonly CancellationTokenSource _token;
+        readonly CancellationTokenSource _cancellationTokenSource;
         bool _isDisposed;
         bool _isPending;
         Task _task;
@@ -44,13 +44,23 @@ namespace SM.Media.Utility
         int _callCounter;
 #endif
 
+        public SignalTask(Func<Task> handler)
+        {
+            if (handler == null)
+                throw new ArgumentNullException("handler");
+
+            _handler = handler;
+            _cancellationTokenSource = new CancellationTokenSource();
+        }
+
         public SignalTask(Func<Task> handler, CancellationToken token)
         {
             if (handler == null)
                 throw new ArgumentNullException("handler");
 
             _handler = handler;
-            _token = CancellationTokenSource.CreateLinkedTokenSource(token);
+            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
+            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
         }
 
         public bool IsActive
@@ -72,11 +82,15 @@ namespace SM.Media.Utility
 
             lock (_lock)
             {
+                if (_isDisposed)
+                    return;
+
                 _isDisposed = true;
                 task = _task;
             }
 
-            _token.Cancel();
+            if (!_cancellationTokenSource.IsCancellationRequested)
+                _cancellationTokenSource.Cancel();
 
             if (null == task)
                 return;
@@ -90,7 +104,7 @@ namespace SM.Media.Utility
                 Debug.WriteLine("SignalTask.Dispose(): " + ex.Message);
             }
 
-            _token.Dispose();
+            _cancellationTokenSource.Dispose();
         }
 
         #endregion
@@ -105,7 +119,7 @@ namespace SM.Media.Utility
                 if (_isDisposed)
                     throw new ObjectDisposedException(GetType().FullName);
 
-                if (_isPending || _token.IsCancellationRequested)
+                if (_isPending || _cancellationTokenSource.IsCancellationRequested)
                     return;
 
                 _isPending = true;
@@ -113,7 +127,7 @@ namespace SM.Media.Utility
                 if (null != _task)
                     return;
 
-                task = new Task<Task>(CallHandlerAsync, _token.Token
+                task = new Task<Task>(CallHandlerAsync, _cancellationTokenSource.Token
 #if SM_MEDIA_LEGACY
                     );
 #else
@@ -161,7 +175,7 @@ namespace SM.Media.Utility
                 {
                     lock (_lock)
                     {
-                        if (!_isPending || _isDisposed || _token.IsCancellationRequested)
+                        if (!_isPending || _isDisposed || _cancellationTokenSource.IsCancellationRequested)
                         {
                             _task = null;
 

@@ -25,8 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Buffering;
-using SM.Media.Segments;
 using SM.TsParser;
 
 namespace SM.Media
@@ -38,12 +36,6 @@ namespace SM.Media
 
     public class MediaManagerParameters : IMediaManagerParameters
     {
-        #region Delegates
-
-        public delegate IBufferingManager BufferingManagerFactoryDelegate(ISegmentManagerReaders readers, IQueueThrottling queueThrottling, Action checkForSamples);
-
-        #endregion
-
         #region IMediaManagerParameters Members
 
         public Action<IProgramStreams> ProgramStreamsHandler { get; set; }

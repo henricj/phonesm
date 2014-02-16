@@ -129,13 +129,13 @@ namespace SM.Media
                 _taskScheduler.Dispose();
         }
 
-        public void Configure(MediaConfiguration configuration)
+        public void Configure(IMediaConfiguration configuration)
         {
-            if (null != configuration.AudioConfiguration)
-                ConfigureAudioStream(configuration.AudioConfiguration, configuration.AudioStream);
+            if (null != configuration.Audio)
+                ConfigureAudioStream(configuration.Audio);
 
-            if (null != configuration.VideoConfiguration)
-                ConfigureVideoStream(configuration.VideoConfiguration, configuration.VideoStream);
+            if (null != configuration.Video)
+                ConfigureVideoStream(configuration.Video);
 
             lock (_streamConfigurationLock)
             {
@@ -391,8 +391,10 @@ namespace SM.Media
             return true;
         }
 
-        void ConfigureVideoStream(IVideoConfigurationSource configurationSource, IStreamSource videoSource)
+        void ConfigureVideoStream(IMediaParserMediaStream video)
         {
+            var configurationSource = (IVideoConfigurationSource)video.ConfigurationSource;
+
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
             msa[MediaStreamAttributeKeys.VideoFourCC] = configurationSource.VideoFourCc;
@@ -411,13 +413,15 @@ namespace SM.Media
 
             lock (_streamConfigurationLock)
             {
-                _videoStreamSource = videoSource;
+                _videoStreamSource = video.StreamSource;
                 _videoStreamDescription = videoStreamDescription;
             }
         }
 
-        void ConfigureAudioStream(IAudioConfigurationSource configurationSource, IStreamSource audioSource)
+        void ConfigureAudioStream(IMediaParserMediaStream audio)
         {
+            var configurationSource = (IAudioConfigurationSource)audio.ConfigurationSource;
+
             var msa = new Dictionary<MediaStreamAttributeKeys, string>();
 
             var cpd = configurationSource.CodecPrivateData;
@@ -431,7 +435,7 @@ namespace SM.Media
 
             lock (_streamConfigurationLock)
             {
-                _audioStreamSource = audioSource;
+                _audioStreamSource = audio.StreamSource;
                 _audioStreamDescription = audioStreamDescription;
             }
         }

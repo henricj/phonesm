@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IMediaStreamSource.cs" company="Henric Jungheim">
+//  <copyright file="MediaConfiguration.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,20 +25,26 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading.Tasks;
-using SM.Media.Utility;
 
 namespace SM.Media.MediaParser
 {
-    public interface IMediaStreamSource : IDisposable
+    public interface IMediaConfiguration
     {
-        TimeSpan? SeekTarget { get; set; }
-        IMediaManager MediaManager { get; set; }
-        Task CloseAsync();
-        void Configure(IMediaConfiguration configuration);
-        void ReportError(string message);
-        void CheckForSamples();
+        TimeSpan? Duration { get; }
+        IMediaParserMediaStream Audio { get; }
+        IMediaParserMediaStream Video { get; }
+    }
 
-        void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
+    public class MediaConfiguration : IMediaConfiguration
+    {
+        #region IMediaConfiguration Members
+
+        public TimeSpan? Duration { get; set; }
+
+        public IMediaParserMediaStream Audio { get; set; }
+
+        public IMediaParserMediaStream Video { get; set; }
+
+        #endregion
     }
 }

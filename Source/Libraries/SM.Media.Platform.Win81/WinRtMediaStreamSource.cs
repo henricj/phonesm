@@ -89,13 +89,21 @@ namespace SM.Media
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
         }
 
-        public void Configure(MediaConfiguration configuration)
+        public void Configure(IMediaConfiguration configuration)
         {
-            if (null != configuration.AudioConfiguration)
-                _audioStreamState = new StreamState("Audio", configuration.AudioStream, CreateAudioDescriptor(configuration.AudioConfiguration));
+            if (null != configuration.Audio)
+            {
+                var descriptor = CreateAudioDescriptor((IAudioConfigurationSource)configuration.Audio.ConfigurationSource);
 
-            if (null != configuration.VideoConfiguration)
-                _videoStreamState = new StreamState("Video", configuration.VideoStream, CreateVideoDescriptor(configuration.VideoConfiguration));
+                _audioStreamState = new StreamState("Audio", configuration.Audio.StreamSource, descriptor);
+            }
+
+            if (null != configuration.Video)
+            {
+                var descriptor = CreateVideoDescriptor((IVideoConfigurationSource)configuration.Video.ConfigurationSource);
+
+                _videoStreamState = new StreamState("Video", configuration.Video.StreamSource, descriptor);
+            }
 
             lock (_streamConfigurationLock)
             {

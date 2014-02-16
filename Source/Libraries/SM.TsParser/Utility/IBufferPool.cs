@@ -32,7 +32,5 @@ namespace SM.TsParser.Utility
     {
         BufferInstance Allocate(int minSize);
         void Free(BufferInstance bufferInstance);
-
-        void Clear();
     }
 }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsStreamType.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,12 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace SM.TsParser
 {
-    public class TsStreamType
+    public class TsStreamType : IEquatable<TsStreamType>
     {
         #region StreamContents enum
 
@@ -131,6 +132,18 @@ namespace SM.TsParser
         public string Description { get; private set; }
         public string FileExtension { get; private set; }
 
+        #region IEquatable<TsStreamType> Members
+
+        public bool Equals(TsStreamType other)
+        {
+            if (ReferenceEquals(null, other))
+                return false;
+
+            return StreamType == other.StreamType;
+        }
+
+        #endregion
+
         public static TsStreamType FindStreamType(byte streamType)
         {
             TsStreamType value;
@@ -156,6 +169,21 @@ namespace SM.TsParser
             }
 
             return value;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as TsStreamType);
+        }
+
+        public override int GetHashCode()
+        {
+            return StreamType;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("0x{0:x2}/{1}/{2}", StreamType, Contents, Description);
         }
     }
 }

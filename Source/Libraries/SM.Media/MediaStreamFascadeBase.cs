@@ -51,7 +51,7 @@ namespace SM.Media
 
     public class MediaStreamFascadeBase : IMediaStreamFascade
     {
-        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker(CancellationToken.None);
+        readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly IBuilder<IMediaManager> _mediaManagerBuilder;
         readonly Func<IMediaStreamSource, Task> _setSourceAsync;
         int _isDisposed;

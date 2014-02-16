@@ -74,7 +74,7 @@ namespace SM.Media.Playlists
         int _startSegmentIndex = -1;
         IWebCache _subPlaylistCache;
 
-        public PlaylistSegmentManager(IPlaylistSegmentManagerParameters parameters, ISubProgram program, ContentType playlistType, 
+        public PlaylistSegmentManager(IPlaylistSegmentManagerParameters parameters, ISubProgram program, ContentType playlistType,
             IWebCacheFactory webCacheFactory, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector,
             CancellationToken cancellationToken)
         {
@@ -178,7 +178,8 @@ namespace SM.Media.Playlists
             if (null == segment)
             {
                 Debug.WriteLine("PlaylistSegmentManager.StartAsync() no segments found");
-                return;
+
+                throw new FileNotFoundException("Unable to find the first segment");
             }
 
             ContentType = await _webContentTypeDetector.GetContentTypeAsync(segment.Url, _cancellationToken).ConfigureAwait(false);

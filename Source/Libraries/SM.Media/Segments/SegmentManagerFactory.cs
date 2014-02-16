@@ -26,23 +26,45 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
     public interface ISegmentManagerFactory : IContentServiceFactory<ISegmentManager, IEnumerable<Uri>>
-    { }
+    {
+        Task<ISegmentManager> CreateAsync(ICollection<Uri> sources, CancellationToken cancellationToken);
+    }
 
     public class SegmentManagerFactory : ContentServiceFactory<ISegmentManager, IEnumerable<Uri>>, ISegmentManagerFactory
     {
-        public SegmentManagerFactory(IWebContentTypeDetector webContentTypeDetector, ISegmentManagerFactoryFinder factoryFinder)
-            : base(webContentTypeDetector, factoryFinder)
-        { }
+        readonly IWebContentTypeDetector _webContentTypeDetector;
 
-        protected override IEnumerable<Uri> Sources(IEnumerable<Uri> parameter)
+        public SegmentManagerFactory(ISegmentManagerFactoryFinder factoryFinder, IWebContentTypeDetector webContentTypeDetector)
+            : base(factoryFinder)
         {
-            return parameter;
+            _webContentTypeDetector = webContentTypeDetector;
         }
+
+        #region ISegmentManagerFactory Members
+
+        public async Task<ISegmentManager> CreateAsync(ICollection<Uri> sources, CancellationToken cancellationToken)
+        {
+            foreach (var source in sources)
+            {
+                var contentType = await _webContentTypeDetector.GetContentTypeAsync(source, cancellationToken).ConfigureAwait(false);
+
+                if (null == contentType)
+                    continue;
+
+                return await CreateAsync(sources, contentType, cancellationToken).ConfigureAwait(false);
+            }
+
+            return null;
+        }
+
+        #endregion
     }
 }

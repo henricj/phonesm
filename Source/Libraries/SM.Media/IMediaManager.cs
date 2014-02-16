@@ -33,7 +33,7 @@ namespace SM.Media
     public interface IMediaManager
     {
         TimeSpan? SeekTarget { get; set; }
-        TsMediaManager.MediaState State { get; set; }
+        TsMediaManager.MediaState State { get; }
         IMediaStreamSource MediaStreamSource { get; }
         void OpenMedia();
         void CloseMedia();

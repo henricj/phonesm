@@ -60,6 +60,9 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="MediaDump.cs" />
+    <Compile Include="MediaDumpBase.cs" />
+    <Compile Include="PesCopyHandlerFactory.cs" />
     <Compile Include="PesStreamCopyHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

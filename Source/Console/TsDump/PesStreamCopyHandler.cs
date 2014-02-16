@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PesStreamCopyHandler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
 
@@ -37,10 +38,11 @@ namespace TsDump
     sealed class PesStreamCopyHandler : PesStreamHandler, IDisposable
     {
         static readonly byte[] FakeBuffer = new byte[0];
+        readonly IConfigurationSource _configurator = new NullConfigurator();
         readonly HashAlgorithm _hash = SHA256.Create();
         readonly Action<TsPesPacket> _nextHandler;
         readonly Stream _stream;
-        byte[] StreamHash;
+        byte[] _streamHash;
         TimeSpan _timestamp;
 
         public PesStreamCopyHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
@@ -50,6 +52,11 @@ namespace TsDump
 
             if (!string.IsNullOrWhiteSpace(streamType.FileExtension))
                 _stream = File.Create(string.Format("TS_PID{0}{1}", pid, streamType.FileExtension));
+        }
+
+        public override IConfigurationSource Configurator
+        {
+            get { return _configurator; }
         }
 
         #region IDisposable Members
@@ -78,13 +85,13 @@ namespace TsDump
 
                 _hash.TransformFinalBlock(FakeBuffer, 0, 0);
 
-                StreamHash = _hash.Hash;
+                _streamHash = _hash.Hash;
 
                 Console.WriteLine("PID{0} {1}: {2}", Pid, StreamType.Contents, StreamType.Description);
                 Console.WriteLine("Hash:");
 
                 var count = 0;
-                foreach (var b in StreamHash)
+                foreach (var b in _streamHash)
                 {
                     Console.Write(b.ToString("x2"));
                     ++count;
@@ -115,9 +122,6 @@ namespace TsDump
                 if (null != t)
                     t.Wait();
             }
-
-            if (null == packet)
-                return;
 
             var h = _nextHandler;
 

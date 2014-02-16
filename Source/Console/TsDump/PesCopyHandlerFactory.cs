@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Program.cs" company="Henric Jungheim">
+//  <copyright file="PesCopyHandlerFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,60 +25,20 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
-using SM.Media.Utility;
+using SM.Media.Pes;
 using SM.TsParser;
 
 namespace TsDump
 {
-    static class Program
+    sealed class PesCopyHandlerFactory : IPesHandlerFactory
     {
-        static void Main(string[] args)
+        #region IPesHandlerFactory Members
+
+        public PesStreamHandler CreateHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
         {
-            if (args.Length < 1)
-                return;
-
-            try
-            {
-                foreach (var arg in args)
-                {
-                    Console.WriteLine("Reading {0}", arg);
-
-                    using (var mediadump = new MediaDump(ProgramStreamsHandler))
-                    {
-                        mediadump.ReadAsync(arg).Wait();
-
-                        mediadump.CloseAsync().Wait();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-            }
-
-            try
-            {
-                TaskCollector.Default.Wait();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-            }
+            return new PesStreamCopyHandler(pid, streamType, nextHandler);
         }
 
-        static void ProgramStreamsHandler(IProgramStreams programStreams)
-        {
-            Console.WriteLine("Program: " + programStreams.ProgramNumber);
-
-            foreach (var s in programStreams.Streams)
-                Console.WriteLine("   {0}({1}): {2}", s.StreamType.Contents, s.Pid, s.StreamType.Description);
-        }
+        #endregion
     }
 }

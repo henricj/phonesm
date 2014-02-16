@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="Program.cs" company="Henric Jungheim">
+//  <copyright file="MediaDump.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,60 +25,35 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
-using SM.Media.Utility;
+using SM.Media;
+using SM.Media.Pes;
 using SM.TsParser;
 
 namespace TsDump
 {
-    static class Program
+    sealed class MediaDump : MediaDumpBase
     {
-        static void Main(string[] args)
+        readonly IPesHandlers _pesHandlers;
+
+        public MediaDump(Action<IProgramStreams> programStreamsHandler)
+            : base(programStreamsHandler)
         {
-            if (args.Length < 1)
-                return;
+            _pesHandlers = new PesHandlers(new PesCopyHandlerFactory());
 
-            try
-            {
-                foreach (var arg in args)
-                {
-                    Console.WriteLine("Reading {0}", arg);
+            var tsDecoder = new TsDecoder();
 
-                    using (var mediadump = new MediaDump(ProgramStreamsHandler))
-                    {
-                        mediadump.ReadAsync(arg).Wait();
-
-                        mediadump.CloseAsync().Wait();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-            }
-
-            try
-            {
-                TaskCollector.Default.Wait();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-            }
+            Parser = new TsMediaParser(tsDecoder, PacketPool, BufferPool, new TsTimestamp(), _pesHandlers);
         }
 
-        static void ProgramStreamsHandler(IProgramStreams programStreams)
+        protected override void Dispose(bool disposing)
         {
-            Console.WriteLine("Program: " + programStreams.ProgramNumber);
+            if (disposing)
+            {
+                using (_pesHandlers)
+                { }
+            }
 
-            foreach (var s in programStreams.Streams)
-                Console.WriteLine("   {0}({1}): {2}", s.StreamType.Contents, s.Pid, s.StreamType.Description);
+            base.Dispose(disposing);
         }
     }
 }

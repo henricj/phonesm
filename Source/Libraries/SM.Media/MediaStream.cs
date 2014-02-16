@@ -25,83 +25,39 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
-using SM.TsParser;
 
 namespace SM.Media
 {
-    public sealed class MediaStream : IMediaParserMediaStream, IStreamHandler
+    public sealed class MediaStream : IMediaParserMediaStream
     {
-        readonly ConfigurationEventArgs _configurationEventArgs;
         readonly IConfigurationSource _configurator;
-        readonly Action<TsPesPacket> _packetHandler;
         readonly IStreamSource _streamSource;
 
-        public MediaStream(IConfigurationSource configurator, IStreamSource streamSource, Action<TsPesPacket> packetHandler)
+        public MediaStream(IConfigurationSource configurator, IStreamSource streamSource)
         {
-            _streamSource = streamSource;
+            if (null == configurator)
+                throw new ArgumentNullException("configurator");
+            if (null == streamSource)
+                throw new ArgumentNullException("streamSource");
+
             _configurator = configurator;
-            _packetHandler = packetHandler;
-
-            configurator.ConfigurationComplete += ConfiguratorOnConfigurationComplete;
-
-            _configurationEventArgs = new ConfigurationEventArgs(configurator, _streamSource);
+            _streamSource = streamSource;
         }
 
         #region IMediaParserMediaStream Members
-
-        public event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
-
-        public void Dispose()
-        {
-            if (null != ConfigurationComplete)
-            {
-                Debug.WriteLine("MediaStream.Dispose() ConfigurationComplete is not null");
-
-                if (Debugger.IsAttached)
-
-                    ConfigurationComplete = null;
-                Debugger.Break();
-
-                ConfigurationComplete = null;
-            }
-
-            _configurator.ConfigurationComplete -= ConfiguratorOnConfigurationComplete;
-
-            using (_streamSource as IDisposable)
-            { }
-        }
-
-        #endregion
-
-        #region IStreamHandler Members
 
         public IConfigurationSource ConfigurationSource
         {
             get { return _configurator; }
         }
 
-        public Action<TsPesPacket> PacketHandler
+        public IStreamSource StreamSource
         {
-            get { return _packetHandler; }
+            get { return _streamSource; }
         }
 
         #endregion
-
-        void ConfiguratorOnConfigurationComplete(object sender, EventArgs eventArgs)
-        {
-            _configurator.ConfigurationComplete -= ConfiguratorOnConfigurationComplete;
-
-            var cc = ConfigurationComplete;
-
-            if (null == cc)
-                return;
-
-            ConfigurationComplete = null;
-
-            cc(this, _configurationEventArgs);
-        }
     }
 }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,17 +24,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using SM.Media.Audio;
 using SM.Media.Configuration;
 using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
 {
-    public sealed class Mp3Configurator : IAudioConfigurationSource, IFrameParser
+    public sealed class Mp3Configurator : ConfiguratorBase, IAudioConfigurationSource, IFrameParser
     {
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
-        readonly MpegLayer3WaveFormat _waveFormat = new MpegLayer3WaveFormat();
 
         public Mp3Configurator(string streamDescription = null)
         {
@@ -43,11 +41,6 @@ namespace SM.Media.MP3
 
         #region IAudioConfigurationSource Members
 
-        public string CodecPrivateData { get; private set; }
-        public string Name { get; private set; }
-        public string StreamDescription { get; private set; }
-        public int? Bitrate { get; private set; }
-
         public AudioFormat Format
         {
             get { return AudioFormat.Mp3; }
@@ -55,8 +48,6 @@ namespace SM.Media.MP3
 
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
-
-        public event EventHandler ConfigurationComplete;
 
         #endregion
 
@@ -86,24 +77,24 @@ namespace SM.Media.MP3
         {
             var mp3FrameHeader = (Mp3FrameHeader)frameHeader;
 
-            _waveFormat.nChannels = (ushort)mp3FrameHeader.Channels;
-            _waveFormat.nSamplesPerSec = (uint)frameHeader.SamplingFrequency;
-            _waveFormat.nAvgBytesPerSec = (uint)mp3FrameHeader.Bitrate / 8;
-            _waveFormat.nBlockSize = (ushort)frameHeader.FrameLength;
+            var waveFormat = new MpegLayer3WaveFormat
+                             {
+                                 nChannels = (ushort)mp3FrameHeader.Channels,
+                                 nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
+                                 nAvgBytesPerSec = (uint)mp3FrameHeader.Bitrate / 8,
+                                 nBlockSize = (ushort)frameHeader.FrameLength
+                             };
 
-            var cpd = _waveFormat.ToCodecPrivateData();
+            var cpd = waveFormat.ToCodecPrivateData();
 
             CodecPrivateData = cpd;
 
-            Channels = _waveFormat.nChannels;
+            Channels = waveFormat.nChannels;
             SamplingFrequency = frameHeader.SamplingFrequency;
             Bitrate = mp3FrameHeader.Bitrate;
             Name = frameHeader.Name;
 
-            var h = ConfigurationComplete;
-
-            if (null != h)
-                h(this, EventArgs.Empty);
+            SetConfigured();
         }
     }
 }

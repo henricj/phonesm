@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IConfigurationSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="NullConfigurator.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,14 +28,37 @@ using System;
 
 namespace SM.Media.Configuration
 {
-    public interface IConfigurationSource
+    public sealed class NullConfigurator : IConfigurationSource
     {
-        string CodecPrivateData { get; }
-        string Name { get; }
-        string StreamDescription { get; }
-        int? Bitrate { get; }
+        #region IConfigurationSource Members
 
-        bool IsConfigured { get; }
-        event EventHandler ConfigurationComplete;
+        public string CodecPrivateData
+        {
+            get { return null; }
+        }
+
+        public string Name
+        {
+            get { return "Unknown"; }
+        }
+
+        public string StreamDescription
+        {
+            get { return null; }
+        }
+
+        public int? Bitrate
+        {
+            get { return null; }
+        }
+
+        public bool IsConfigured
+        {
+            get { return true; }
+        }
+
+        public event EventHandler ConfigurationComplete;
+
+        #endregion
     }
 }

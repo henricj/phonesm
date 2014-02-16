@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="H262Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,13 +24,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Diagnostics;
 using SM.Media.Configuration;
 
 namespace SM.Media.H262
 {
-    sealed class H262Configurator : IVideoConfigurationSource, IFrameParser
+    public sealed class H262Configurator : ConfiguratorBase, IVideoConfigurationSource, IFrameParser
     {
         public H262Configurator(string streamDescription = null)
         {
@@ -55,13 +54,6 @@ namespace SM.Media.H262
 
         #region IVideoConfigurationSource Members
 
-        public string CodecPrivateData { get; private set; }
-        public string Name { get; private set; }
-        public string StreamDescription { get; private set; }
-        public int? Bitrate { get; private set; }
-
-        public event EventHandler ConfigurationComplete;
-
         public string VideoFourCc
         {
             get { return "MP2V"; }
@@ -79,11 +71,7 @@ namespace SM.Media.H262
 #if DEBUG
             Debug.WriteLine("Configuration " + Name);
 #endif
-
-            var h = ConfigurationComplete;
-
-            if (null != h)
-                h(this, EventArgs.Empty);
+            SetConfigured();
         }
     }
 }

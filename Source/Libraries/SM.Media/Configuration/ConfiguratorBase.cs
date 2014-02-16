@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IConfigurationSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="ConfiguratorBase.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,17 +25,45 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Threading;
 
 namespace SM.Media.Configuration
 {
-    public interface IConfigurationSource
+    public class ConfiguratorBase : IConfigurationSource
     {
-        string CodecPrivateData { get; }
-        string Name { get; }
-        string StreamDescription { get; }
-        int? Bitrate { get; }
+        int _isConfigured;
 
-        bool IsConfigured { get; }
-        event EventHandler ConfigurationComplete;
+        #region IConfigurationSource Members
+
+        public virtual string CodecPrivateData { get; protected set; }
+
+        public string Name { get; protected set; }
+        public string StreamDescription { get; protected set; }
+
+        public int? Bitrate { get; protected set; }
+
+        public bool IsConfigured
+        {
+            get { return 0 != _isConfigured; }
+        }
+
+        public event EventHandler ConfigurationComplete;
+
+        #endregion
+
+        protected void SetConfigured()
+        {
+            // Does ARM need memory barriers ("interlocked" is what's available in a PCL)?
+            Interlocked.Exchange(ref _isConfigured, 1);
+
+            var configurationComplete = ConfigurationComplete;
+
+            if (null == configurationComplete)
+                return;
+
+            ConfigurationComplete = null;
+
+            configurationComplete(this, EventArgs.Empty);
+        }
     }
 }

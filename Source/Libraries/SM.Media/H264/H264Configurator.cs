@@ -29,10 +29,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using SM.Media.Configuration;
 
 namespace SM.Media.H264
 {
-    sealed class H264Configurator : IH264Configuration
+    sealed class H264Configurator : ConfiguratorBase, IH264Configuration
     {
         static readonly uint[] ProfileIdcHasChromaFormat
             = new[]
@@ -91,8 +92,6 @@ namespace SM.Media.H264
             }
         }
 
-        public bool IsConfigured { get; private set; }
-
         public string VideoFourCc
         {
             get { return "H264"; }
@@ -101,13 +100,7 @@ namespace SM.Media.H264
         public int? Height { get; private set; }
         public int? Width { get; private set; }
 
-        public int? Bitrate { get; private set; }
-        public string Name { get; private set; }
-        public string StreamDescription { get; private set; }
-
-        public event EventHandler ConfigurationComplete;
-
-        public string CodecPrivateData
+        public override string CodecPrivateData
         {
             get
             {
@@ -172,14 +165,7 @@ namespace SM.Media.H264
             if (null == _spsBytes || null == _ppsBytes)
                 return;
 
-            IsConfigured = true;
-
-            var handler = ConfigurationComplete;
-
-            if (null == handler)
-                return;
-
-            handler(this, EventArgs.Empty);
+            SetConfigured();
         }
 
         void ParseScalingList(H264Bitstream r, int sizeOfScalingList)

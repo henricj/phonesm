@@ -55,6 +55,10 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="..\TsDump\MediaDumpBase.cs">
+      <Link>MediaDumpBase.cs</Link>
+    </Compile>
+    <Compile Include="MediaDump.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

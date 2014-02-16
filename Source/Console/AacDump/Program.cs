@@ -25,13 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
-using System.Net.Http;
-using System.Threading.Tasks;
-using SM.Media;
-using SM.Media.AAC;
-using SM.Media.Buffering;
-using SM.Media.MediaParser;
+using System.Diagnostics;
 using SM.Media.Utility;
 
 namespace AacDump
@@ -45,104 +39,34 @@ namespace AacDump
 
             try
             {
-                IStreamSource streamSource = null;
-
-                using (var parser = new AacMediaParser(new NullBufferingManager(), new BufferPool(new DefaultBufferPoolParameters { BaseSize = 64 * 1024, Pools = 2}),
-                    () =>
-                    {
-                        if (null == streamSource)
-                            return;
-
-                        for (; ; )
-                        {
-                            var packet = streamSource.GetNextSample();
-
-                            if (null == packet)
-                            {
-                                if (streamSource.IsEof)
-                                { }
-
-                                return;
-                            }
-
-                            Console.WriteLine("{0} {1} {2}", packet.PresentationTimestamp, packet.Duration, packet.Length);
-
-                            for (var i = 0; i < packet.Length; ++i)
-                            {
-                                if (i > 0 && 0 == (i & 0x03))
-                                    Console.Write(0 == (i & 0x1f) ? '\n' : ' ');
-
-                                Console.Write(packet.Buffer[packet.Index + i].ToString("x2"));
-                            }
-
-                            Console.WriteLine();
-
-                            streamSource.FreeSample(packet);
-                        }
-                    }))
+                foreach (var arg in args)
                 {
-                    parser.MediaStream.ConfigurationComplete += (sender, eventArgs) => streamSource = eventArgs.StreamSource;
+                    Console.WriteLine("Reading {0}", arg);
 
-                    foreach (var arg in args)
+                    using (var dump = new MediaDump())
                     {
-                        Console.WriteLine("Reading {0}", arg);
-
-                        ReadAsync(arg, parser).Wait();
+                        dump.ReadAsync(arg).Wait();
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
             }
-        }
 
-        static Task<Stream> OpenAsync(string path)
-        {
-            var uri = new Uri(path, UriKind.RelativeOrAbsolute);
-
-            if (uri.IsAbsoluteUri)
-                return new HttpClient().GetStreamAsync(uri);
-
-            Stream s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 16384, true);
-
-            return Task.FromResult(s);
-        }
-
-        static async Task ReadAsync(string arg, IMediaParser parser)
-        {
-            var buffer = new byte[16 * 1024];
-
-            using (var f = await OpenAsync(arg).ConfigureAwait(false))
+            try
             {
-                parser.Initialize();
+                TaskCollector.Default.Wait();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
 
-                var index = 0;
-                var eof = false;
-                var thresholdSize = buffer.Length - buffer.Length / 4;
-
-                while (!eof)
-                {
-                    do
-                    {
-                        var length = await f.ReadAsync(buffer, index, buffer.Length - index).ConfigureAwait(false);
-
-                        if (length < 1)
-                        {
-                            eof = true;
-                            break;
-                        }
-
-                        index += length;
-                    } while (index < thresholdSize);
-
-                    if (index > 0)
-                        parser.ProcessData(buffer, 0, index);
-
-                    index = 0;
-                }
-
-                parser.ProcessEndOfData();
+                if (Debugger.IsAttached)
+                    Debugger.Break();
             }
         }
     }

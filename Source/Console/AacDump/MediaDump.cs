@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="BufferingDefaults.cs" company="Henric Jungheim">
+//  <copyright file="MediaDump.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,16 +24,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.Media.Segments;
+using SM.Media.AAC;
+using TsDump;
 
-namespace SM.Media.Buffering
+namespace AacDump
 {
-    public static class BufferingDefaults
+    sealed class MediaDump : MediaDumpBase
     {
-        public static IBufferingManager CreateBufferingManager(ISegmentManagerReaders segmentManagerReaders, IQueueThrottling queueThrottling, Action bufferingChange, IBufferingPolicy bufferingPolicy)
+        public MediaDump()
+            : base(null)
         {
-            return new BufferingManager(queueThrottling, bufferingChange, bufferingPolicy);
+            Parser = new AacMediaParser(PacketPool);
         }
     }
 }

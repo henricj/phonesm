@@ -24,13 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using SM.Media.Configuration;
 
 namespace SM.Media.MediaParser
 {
-    public interface IMediaParserMediaStream : IDisposable
+    public interface IMediaParserMediaStream
     {
-        event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
+        IConfigurationSource ConfigurationSource { get; }
+        IStreamSource StreamSource { get; }
     }
 }

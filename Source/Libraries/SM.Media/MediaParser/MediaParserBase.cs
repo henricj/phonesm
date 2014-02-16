@@ -25,6 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using SM.Media.Configuration;
 using SM.TsParser;
@@ -39,7 +41,7 @@ namespace SM.Media.MediaParser
         readonly ITsPesPacketPool _pesPacketPool;
         readonly TsStreamType _streamType;
         int _isDisposed;
-        IMediaParserMediaStream _mediaStream;
+        ICollection<IMediaParserMediaStream> _mediaStreams;
         StreamBuffer _streamBuffer;
 
         protected MediaParserBase(ITsPesPacketPool pesPacketPool, TsStreamType streamType, TConfigurator configurator)
@@ -48,17 +50,14 @@ namespace SM.Media.MediaParser
                 throw new ArgumentNullException("pesPacketPool");
             if (null == streamType)
                 throw new ArgumentNullException("streamType");
-            if (null == configurator)
+            if (ReferenceEquals(default(TConfigurator), configurator))
                 throw new ArgumentNullException("configurator");
 
             _pesPacketPool = pesPacketPool;
             _streamType = streamType;
             _configurator = configurator;
-        }
 
-        public IMediaParserMediaStream MediaStream
-        {
-            get { return _mediaStream; }
+            _configurator.ConfigurationComplete += OnConfigurationComplete;
         }
 
         protected TConfigurator Configurator
@@ -78,8 +77,14 @@ namespace SM.Media.MediaParser
             GC.SuppressFinalize(this);
         }
 
+        public ICollection<IMediaParserMediaStream> MediaStreams
+        {
+            get { return _mediaStreams; }
+        }
+
         public bool EnableProcessing { get; set; }
         public virtual TimeSpan StartPosition { get; set; }
+        public event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
 
         public virtual void ProcessEndOfData()
         {
@@ -92,24 +97,43 @@ namespace SM.Media.MediaParser
 
         public abstract void FlushBuffers();
 
-        public void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IMediaParserMediaStream> mediaParserStreamHandler, Action<IProgramStreams> programStreamsHandler = null)
+        public void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
         {
             if (streamBufferFactory == null)
                 throw new ArgumentNullException("streamBufferFactory");
 
             _streamBuffer = streamBufferFactory(_streamType, _pesPacketPool.FreePesPacket);
 
-            _mediaStream = new MediaStream(_configurator, _streamBuffer, null);
-
-            mediaParserStreamHandler(_mediaStream);
+            _mediaStreams = new[] { new MediaStream(_configurator, _streamBuffer) };
         }
 
         #endregion
+
+        void OnConfigurationComplete(object sender, EventArgs eventArgs)
+        {
+            _configurator.ConfigurationComplete -= OnConfigurationComplete;
+
+            var occ = ConfigurationComplete;
+
+            if (null == occ)
+                return;
+
+            occ(this, new ConfigurationEventArgs(_configurator, _streamBuffer));
+        }
 
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing)
                 return;
+
+            if (!Equals(default(TConfigurator), _configurator))
+                _configurator.ConfigurationComplete -= OnConfigurationComplete;
+
+            if (null != ConfigurationComplete)
+            {
+                Debug.WriteLine("MediaParserBase<>.Dispose(bool) ConfigurationComplete event is still subscribed");
+                ConfigurationComplete = null;
+            }
 
             using (_streamBuffer)
             { }

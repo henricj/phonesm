@@ -25,17 +25,21 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using SM.Media.Configuration;
 using SM.TsParser;
 
 namespace SM.Media.MediaParser
 {
     public interface IMediaParser : IDisposable
     {
+        ICollection<IMediaParserMediaStream> MediaStreams { get; }
         bool EnableProcessing { get; set; }
         TimeSpan StartPosition { get; set; }
+        event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
         void ProcessEndOfData();
         void ProcessData(byte[] buffer, int offset, int length);
         void FlushBuffers();
-        void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IMediaParserMediaStream> mediaParserStreamHandler, Action<IProgramStreams> programStreamsHandler = null);
+        void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null);
     }
 }

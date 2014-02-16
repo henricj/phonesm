@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.Media.Pes;

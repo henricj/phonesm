@@ -53,8 +53,10 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="IPesStreamHandler.cs" />
     <Compile Include="IProgramStream.cs" />
     <Compile Include="IProgramStreams.cs" />
+    <Compile Include="PesStreamParameters.cs" />
     <Compile Include="ProgramStreams.cs" />
     <Compile Include="TsPacketizedElementaryStream.cs" />
     <Compile Include="TsPesPacket.cs" />

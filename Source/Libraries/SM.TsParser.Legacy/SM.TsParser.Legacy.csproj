@@ -51,8 +51,14 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="..\SM.TsParser\IPesStreamHandler.cs">
+      <Link>IPesStreamHandler.cs</Link>
+    </Compile>
     <Compile Include="..\SM.TsParser\IProgramStream.cs" />
     <Compile Include="..\SM.TsParser\IProgramStreams.cs" />
+    <Compile Include="..\SM.TsParser\PesStreamParameters.cs">
+      <Link>PesStreamParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.TsParser\ProgramStreams.cs" />
     <Compile Include="..\SM.TsParser\TsPacketizedElementaryStream.cs" />
     <Compile Include="..\SM.TsParser\TsPesPacket.cs" />

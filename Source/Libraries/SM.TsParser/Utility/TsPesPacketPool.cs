@@ -29,7 +29,7 @@ using System.Diagnostics;
 
 namespace SM.TsParser.Utility
 {
-    public sealed class TsPesPacketPool : IDisposable, ITsPesPacketPool
+    public sealed class TsPesPacketPool : ITsPesPacketPool
     {
         readonly IBufferPool _bufferPool;
         readonly ObjectPool<TsPesPacket> _packetPool = new ObjectPool<TsPesPacket>();
@@ -42,17 +42,13 @@ namespace SM.TsParser.Utility
             _bufferPool = bufferPool;
         }
 
-        #region IDisposable Members
+        #region ITsPesPacketPool Members
 
         public void Dispose()
         {
             using (_packetPool)
             { }
         }
-
-        #endregion
-
-        #region ITsPesPacketPool Members
 
         public TsPesPacket AllocatePesPacket(int minSize)
         {

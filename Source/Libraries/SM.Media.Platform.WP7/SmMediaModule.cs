@@ -28,7 +28,6 @@ using System;
 using Ninject;
 using Ninject.Activation;
 using Ninject.Modules;
-using Ninject.Parameters;
 using SM.Media.AAC;
 using SM.Media.Ac3;
 using SM.Media.Buffering;
@@ -103,6 +102,8 @@ namespace SM.Media
             Bind<IPesStreamFactoryInstance>().To<Mp3StreamHandlerFactory>().InScope(scope);
 
             Bind<IPesHandlerFactory>().To<PesHandlerFactory>().InSingletonScope();
+
+            Bind<Func<PesStreamParameters>>().ToMethod(ctx => () => ctx.Kernel.Get<PesStreamParameters>());
 
             Bind<IPesStreamFactoryFinder>().To<PesStreamFactoryFinder>().InSingletonScope();
             Bind<IPesStreamFactory>().To<PesStreamFactory>().InSingletonScope();

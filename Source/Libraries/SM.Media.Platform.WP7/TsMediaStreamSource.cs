@@ -685,6 +685,9 @@ namespace SM.Media
 
             lock (_stateLock)
             {
+                if (_isClosed)
+                    return;
+
                 _isClosed = true;
 
                 _state = SourceState.Closed;
@@ -706,7 +709,10 @@ namespace SM.Media
             var mediaManager = MediaManager;
 
             if (null == mediaManager)
-                throw new InvalidOperationException("MediaManager has not been initialized");
+            {
+                Debug.WriteLine("TsMediaStreamSource.CloseMediaHandler() null media manager");
+                return;
+            }
 
             mediaManager.CloseMedia();
         }

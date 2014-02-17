@@ -48,10 +48,9 @@ namespace HlsView
 #if STREAM_SWITCHING
         static readonly string[] Sources =
         {
-            "http://www.npr.org/streams/mp3/nprlive24.pls",
-            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
+            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
             null,
-            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
         };
 
         readonly DispatcherTimer _timer;
@@ -138,8 +137,9 @@ namespace HlsView
                                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
                                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               if (null != _mediaStreamFascade)
-                                   _mediaStreamFascade.Source = null == source ? null : new Uri(source);
+                               InitializeMediaStream();
+
+                               _mediaStreamFascade.Source = null == source ? null : new Uri(source);
                            };
 
             //_timer.Tick += (sender, args) =>

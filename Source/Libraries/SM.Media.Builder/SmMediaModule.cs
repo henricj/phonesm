@@ -102,7 +102,6 @@ namespace SM.Media
             builder.RegisterType<PlaylistSegmentManagerParameters>().As<IPlaylistSegmentManagerParameters>().SingleInstance();
             builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerLifetimeScope();
 
-            //builder.RegisterType<BufferingManagerFactory>().As<IBufferingManagerFactory>().InstancePerLifetimeScope();
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();
         }
     }

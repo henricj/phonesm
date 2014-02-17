@@ -41,7 +41,7 @@ namespace SM.Media
     public sealed class TsMediaStreamSource : MediaStreamSource, IMediaStreamSource
     {
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
-        readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent();
+        readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
@@ -53,7 +53,7 @@ namespace SM.Media
         MediaStreamDescription _audioStreamDescription;
         IStreamSource _audioStreamSource;
         float _bufferingProgress;
-        bool _isClosed;
+        bool _isClosed = true;
         int _isDisposed;
         volatile int _pendingOperations;
         TimeSpan _pendingSeekTarget;
@@ -563,6 +563,15 @@ namespace SM.Media
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
 
+            lock (_stateLock)
+            {
+                _isClosed = false;
+
+                _state = SourceState.Open;
+            }
+
+            _drainCompleted.Reset();
+
             _bufferingProgress = -1;
 
             mediaManager.OpenMedia();
@@ -685,9 +694,6 @@ namespace SM.Media
 
             lock (_stateLock)
             {
-                if (_isClosed)
-                    return;
-
                 _isClosed = true;
 
                 _state = SourceState.Closed;

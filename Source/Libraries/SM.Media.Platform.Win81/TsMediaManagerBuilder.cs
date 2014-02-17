@@ -24,13 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Autofac;
 using Autofac.Core;
 using SM.Media.Builder;
-using SM.Media.Segments;
 using SM.Media.Web;
 
 namespace SM.Media
@@ -43,22 +38,6 @@ namespace SM.Media
             : base(Modules)
         {
             RegisterSingleton(httpClients);
-
-            ContainerBuilder.Register<Func<Task<ISegmentReaderManager>>>(
-                ctx =>
-                {
-                    var segmentManagerFactory = ctx.Resolve<ISegmentManagerFactory>();
-                    var clients = ctx.Resolve<IHttpClients>();
-
-                    return async () =>
-                                 {
-                                     var playlist = await segmentManagerFactory.CreateAsync(new[] { Source }, CancellationToken.None).ConfigureAwait(false);
-
-                                     return new SegmentReaderManager(new[] { playlist }, clients.CreateSegmentClient);
-                                 };
-                });
         }
-
-        public Uri Source { get; set; }
     }
 }

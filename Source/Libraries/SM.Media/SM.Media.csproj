@@ -113,6 +113,7 @@
     <Compile Include="Playlists\PlaylistSegmentManagerDefaults.cs" />
     <Compile Include="Playlists\PlaylistSegmentManagerParameters.cs" />
     <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
+    <Compile Include="Segments\SegmentReaderManagerFactory.cs" />
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
     <Compile Include="Content\ContentServiceFactory.cs" />
     <Compile Include="TsMediaParserFactory.cs" />

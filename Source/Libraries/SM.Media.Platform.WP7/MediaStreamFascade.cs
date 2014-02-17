@@ -28,7 +28,6 @@ using System;
 using System.Threading.Tasks;
 using SM.Media.Builder;
 using SM.Media.MediaParser;
-using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media
@@ -38,30 +37,6 @@ namespace SM.Media
         public MediaStreamFascade(IHttpClients httpClients, Func<IMediaStreamSource, Task> setSourceAsync)
             : base(CreateBuilder(httpClients), setSourceAsync)
         { }
-
-        public override Uri Source
-        {
-            get { return base.Source; }
-            set
-            {
-                // TODO: This is just plain evil...
-
-                var tsMediaManagerBuilder = (TsMediaManagerBuilder)Builder;
-
-                tsMediaManagerBuilder.Source = value;
-
-                base.Source = value;
-            }
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            var tsMediaManagerBuilder = (TsMediaManagerBuilder)Builder;
-
-            tsMediaManagerBuilder.DisposeSafe();
-        }
 
         static IBuilder<IMediaManager> CreateBuilder(IHttpClients httpClients)
         {

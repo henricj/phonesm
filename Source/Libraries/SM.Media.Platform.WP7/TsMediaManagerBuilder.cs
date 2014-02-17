@@ -24,13 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Ninject;
 using Ninject.Modules;
 using SM.Media.Builder;
-using SM.Media.Segments;
 using SM.Media.Web;
 
 namespace SM.Media
@@ -43,22 +38,6 @@ namespace SM.Media
             : base(Modules)
         {
             Kernel.Bind<IHttpClients>().ToConstant(httpClients);
-
-            Kernel.Bind<Func<Task<ISegmentReaderManager>>>()
-                  .ToMethod(ctx =>
-                            {
-                                var segmentManagerFactory = ctx.Kernel.Get<ISegmentManagerFactory>();
-                                var clients = ctx.Kernel.Get<IHttpClients>();
-
-                                return async () =>
-                                             {
-                                                 var playlist = await segmentManagerFactory.CreateAsync(new[] { Source }, CancellationToken.None).ConfigureAwait(false);
-
-                                                 return new SegmentReaderManager(new[] { playlist }, clients.CreateSegmentClient);
-                                             };
-                            });
         }
-
-        public Uri Source { get; set; }
     }
 }

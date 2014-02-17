@@ -74,14 +74,13 @@ namespace SM.Media
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly Func<IBufferingManager> _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
-        readonly Queue<ConfigurationEventArgs> _configurationEvents = new Queue<ConfigurationEventArgs>();
         readonly object _lock = new object();
         readonly IMediaElementManager _mediaElementManager;
         readonly IMediaParserFactory _mediaParserFactory;
         readonly IMediaStreamSource _mediaStreamSource;
         readonly Action<IProgramStreams> _programStreamsHandler;
-        readonly Func<Task<ISegmentReaderManager>> _readerManagerFactory;
         readonly SignalTask _reportStateTask;
+        readonly ISegmentReaderManagerFactory _segmentReaderManagerFactory;
         int _isDisposed;
         MediaState _mediaState;
         string _mediaStateMessage;
@@ -89,12 +88,12 @@ namespace SM.Media
         ISegmentReaderManager _readerManager;
         ReaderPipeline[] _readers;
 
-        public TsMediaManager(Func<Task<ISegmentReaderManager>> readerManagerFactory, IMediaElementManager mediaElementManager, IMediaStreamSource mediaStreamSource,
-            Func<IBufferingManager> bufferingManagerFactory, IMediaManagerParameters mediaManagerParameters,
-            IMediaParserFactory mediaParserFactory)
+        public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory, IMediaElementManager mediaElementManager,
+            IMediaStreamSource mediaStreamSource, Func<IBufferingManager> bufferingManagerFactory,
+            IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory)
         {
-            if (null == readerManagerFactory)
-                throw new ArgumentNullException("readerManagerFactory");
+            if (null == segmentReaderManagerFactory)
+                throw new ArgumentNullException("segmentReaderManagerFactory");
             if (null == mediaElementManager)
                 throw new ArgumentNullException("mediaElementManager");
             if (null == mediaStreamSource)
@@ -102,7 +101,7 @@ namespace SM.Media
             if (null == bufferingManagerFactory)
                 throw new ArgumentNullException("bufferingManagerFactory");
 
-            _readerManagerFactory = readerManagerFactory;
+            _segmentReaderManagerFactory = segmentReaderManagerFactory;
             _mediaElementManager = mediaElementManager;
             _mediaStreamSource = mediaStreamSource;
             _bufferingManagerFactory = bufferingManagerFactory;
@@ -179,6 +178,8 @@ namespace SM.Media
         {
             get { return _mediaStreamSource; }
         }
+
+        public ICollection<Uri> Source { get; set; }
 
         public void OpenMedia()
         {
@@ -433,7 +434,7 @@ namespace SM.Media
 
             try
             {
-                _readerManager = await _readerManagerFactory().ConfigureAwait(false);
+                _readerManager = await _segmentReaderManagerFactory.CreateAsync(Source.ToArray(), _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
                 readerTasks = _readerManager.SegmentManagerReaders
                                             .Select(CreateReaderPipeline)
@@ -596,9 +597,6 @@ namespace SM.Media
 
                     configuration.Video = mediaStream;
 
-                    //configuration.VideoConfiguration = video;
-                    //configuration.VideoStream = mediaStream.StreamSource;
-
                     continue;
                 }
 
@@ -613,8 +611,6 @@ namespace SM.Media
                     }
 
                     configuration.Audio = mediaStream;
-                    //configuration.AudioConfiguration = audio;
-                    //configuration.AudioStream = mediaStream.StreamSource;
 
                     continue;
                 }

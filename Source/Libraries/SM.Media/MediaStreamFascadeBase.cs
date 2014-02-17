@@ -59,7 +59,7 @@ namespace SM.Media
         ISegmentManager _playlist;
         Uri _source;
 
-        public MediaStreamFascadeBase(IBuilder<IMediaManager> mediaManagerBuilder, Func<IMediaStreamSource, Task> setSourceAsync)
+        protected MediaStreamFascadeBase(IBuilder<IMediaManager> mediaManagerBuilder, Func<IMediaStreamSource, Task> setSourceAsync)
         {
             if (mediaManagerBuilder == null)
                 throw new ArgumentNullException("mediaManagerBuilder");
@@ -161,6 +161,8 @@ namespace SM.Media
 
             CleanupMediaManager();
 
+            _mediaManagerBuilder.DisposeSafe();
+
             _asyncFifoWorker.Dispose();
         }
 
@@ -244,6 +246,8 @@ namespace SM.Media
             _source = source;
 
             _mediaManager = _mediaManagerBuilder.Create();
+
+            _mediaManager.Source = new[] { source };
 
             _mediaManager.OnStateChange += MediaManagerOnStateChange;
         }

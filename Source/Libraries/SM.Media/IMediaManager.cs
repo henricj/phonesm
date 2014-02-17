@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using SM.Media.MediaParser;
 
@@ -35,6 +36,7 @@ namespace SM.Media
         TimeSpan? SeekTarget { get; set; }
         TsMediaManager.MediaState State { get; }
         IMediaStreamSource MediaStreamSource { get; }
+        ICollection<Uri> Source { get; set; }
         void OpenMedia();
         void CloseMedia();
         Task<TimeSpan> SeekMediaAsync(TimeSpan position);

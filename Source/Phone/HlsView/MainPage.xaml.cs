@@ -24,8 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+//#define STREAM_SWITCHING
+
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -33,6 +36,7 @@ using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
+using Microsoft.Phone.Info;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -41,24 +45,28 @@ namespace HlsView
 {
     public partial class MainPage : PhoneApplicationPage
     {
+#if STREAM_SWITCHING
         static readonly string[] Sources =
         {
             "http://www.npr.org/streams/mp3/nprlive24.pls",
             "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
-            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
             null,
-            "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
+            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
         };
+
+        readonly DispatcherTimer _timer;
+        int _count;
+#endif // STREAM_SWITCHING
 
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
+        readonly HttpClients _httpClients;
         readonly IMediaElementManager _mediaElementManager;
         readonly DispatcherTimer _positionSampler;
-        readonly DispatcherTimer _timer;
-        int _count;
-        readonly HttpClients _httpClients;
         MediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
+        static readonly MediaElementState[] NotStopStates = { MediaElementState.Closed, MediaElementState.Stopped };
+        static readonly MediaElementState[] PlayStates = { MediaElementState.Closed, MediaElementState.Paused, MediaElementState.Stopped };
 
         // Constructor
         public MainPage()
@@ -112,29 +120,27 @@ namespace HlsView
                                };
             _positionSampler.Tick += OnPositionSamplerOnTick;
 
-#if false
+#if STREAM_SWITCHING
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
-            {
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
+                           {
+                               GC.Collect();
+                               GC.WaitForPendingFinalizers();
+                               GC.Collect();
 
-                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                               var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                var source = Uris[_count];
+                               var source = Sources[_count++ % Sources.Length];
 
-                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
-                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
-                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
+                                   DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                                   DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
+                                   DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                _mediaStreamFascade.Source = source;
-
-                if (++_count >= Uris.Length)
-                    _count = 0;
-            };
+                               if (null != _mediaStreamFascade)
+                                   _mediaStreamFascade.Source = null == source ? null : new Uri(source);
+                           };
 
             //_timer.Tick += (sender, args) =>
             //               {
@@ -146,12 +152,7 @@ namespace HlsView
             _timer.Interval = TimeSpan.FromSeconds(20);
 
             _timer.Start();
-#endif
-        }
-
-        void OnBufferingProgressChanged(object sender, RoutedEventArgs routedEventArgs)
-        {
-            mediaElement1_CurrentStateChanged(sender, routedEventArgs);
+#endif // STREAM_SWITCHING
         }
 
         void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
@@ -181,24 +182,20 @@ namespace HlsView
             else
                 MediaStateBox.Text = state.ToString();
 
-            if (MediaElementState.Closed == state)
-            {
-                playButton.IsEnabled = true;
-                stopButton.IsEnabled = false;
-            }
-            else if (MediaElementState.Paused == state)
-            {
-                playButton.IsEnabled = true;
-                stopButton.IsEnabled = true;
-            }
-            else
-                stopButton.IsEnabled = true;
+            stopButton.IsEnabled = !NotStopStates.Contains(state);
+            playButton.IsEnabled = PlayStates.Contains(state);
+
+            OnPositionSamplerOnTick(null, null);
         }
 
         void OnPositionSamplerOnTick(object o, EventArgs ea)
         {
-            if (null == mediaElement1 || MediaElementState.Playing != mediaElement1.CurrentState)
+            if (null == mediaElement1 || (MediaElementState.Playing != mediaElement1.CurrentState && MediaElementState.Paused != mediaElement1.CurrentState))
+            {
+                PositionBox.Text = "--:--:--.--";
+
                 return;
+            }
 
             var positionSample = mediaElement1.Position;
 
@@ -242,28 +239,16 @@ namespace HlsView
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            if (null != _mediaStreamFascade)
-            {
-                _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
-                _mediaStreamFascade.DisposeSafe();
-            }
-
             try
             {
-                _mediaStreamFascade = new MediaStreamFascade(_httpClients, _mediaElementManager.SetSourceAsync)
-                              {
-                                  Source = new Uri(
-                                      "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                                      //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                                      )
-                              };
+                InitializeMediaStream();
 
-                _mediaStreamFascade.SetParameter(_mediaElementManager);
-
-                _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+                _mediaStreamFascade.Source = new Uri(
+                    "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                    //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                    );
 
                 _mediaStreamFascade.Play();
-
             }
             catch (Exception ex)
             {
@@ -272,6 +257,44 @@ namespace HlsView
             }
 
             _positionSampler.Start();
+        }
+
+        void InitializeMediaStream()
+        {
+            if (null != _mediaStreamFascade)
+                return;
+
+            _mediaStreamFascade = new MediaStreamFascade(_httpClients, _mediaElementManager.SetSourceAsync);
+
+            _mediaStreamFascade.SetParameter(_mediaElementManager);
+
+            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+        }
+
+        void StopMedia()
+        {
+            _positionSampler.Stop();
+
+            if (null != mediaElement1)
+                mediaElement1.Source = null;
+        }
+
+        void CloseMedia()
+        {
+            StopMedia();
+
+            if (null == _mediaStreamFascade)
+                return;
+
+            var mediaStreamFascade = _mediaStreamFascade;
+
+            _mediaStreamFascade = null;
+
+            mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+
+            // Don't block the cleanup in case someone is mashing the play button.
+            // It could deadlock.
+            mediaStreamFascade.DisposeBackground("MainPage CloseMedia");
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
@@ -295,29 +318,23 @@ namespace HlsView
             errorBox.Text = e.ErrorException.Message;
             errorBox.Visibility = Visibility.Visible;
 
-            CleanupMedia();
+            CloseMedia();
 
             playButton.IsEnabled = true;
         }
 
-        void CleanupMedia()
-        {
-            _positionSampler.Stop();
-
-            if (null != _mediaStreamFascade)
-                _mediaStreamFascade.RequestStop();
-        }
-
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)
         {
-            CleanupMedia();
+            Debug.WriteLine("MainPage MediaEnded");
+
+            StopMedia();
         }
 
         void stopButton_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("Stop clicked");
 
-            CleanupMedia();
+            StopMedia();
         }
 
         void wakeButton_Click(object sender, RoutedEventArgs e)
@@ -334,7 +351,7 @@ namespace HlsView
         {
             base.OnNavigatedFrom(e);
 
-            CleanupMedia();
+            CloseMedia();
 
             if (null != _mediaElementManager)
             {
@@ -346,6 +363,8 @@ namespace HlsView
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+
+            CloseMedia();
 
             if (null != _mediaElementManager)
             {
@@ -383,6 +402,11 @@ namespace HlsView
             mediaElement1.Position = position;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
+        }
+
+        void OnBufferingProgressChanged(object sender, RoutedEventArgs routedEventArgs)
+        {
+            mediaElement1_CurrentStateChanged(sender, routedEventArgs);
         }
     }
 }

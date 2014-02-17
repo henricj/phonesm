@@ -32,8 +32,7 @@ namespace SM.Media.Builder
 {
     public abstract class BuilderHandleBase : INotifyWhenDisposed
     {
-        // ReSharper disable once StaticFieldInGenericType
-        protected static readonly EventArgs NullEventArgs = new EventArgs();
+        static readonly EventArgs NullEventArgs = new EventArgs();
         int _isDisposed;
 
         #region INotifyWhenDisposed Members
@@ -54,8 +53,11 @@ namespace SM.Media.Builder
 
         #endregion
 
-        public virtual void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
+            if (!disposing)
+                return;
+
             IsDisposed = true;
 
             var disposed = Disposed;

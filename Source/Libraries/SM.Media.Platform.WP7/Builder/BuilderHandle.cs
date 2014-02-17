@@ -56,10 +56,13 @@ namespace SM.Media.Builder
 
         #endregion
 
-        public override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
-            if (Equals(default(TBuild), _instance))
-                _builder.Release(_instance);
+            if (disposing)
+            {
+                if (Equals(default(TBuild), _instance))
+                    _builder.Release(_instance);
+            }
 
             base.Dispose(disposing);
         }

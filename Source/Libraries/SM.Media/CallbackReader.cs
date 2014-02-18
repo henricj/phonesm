@@ -40,6 +40,7 @@ namespace SM.Media
         readonly object _readerLock = new object();
         readonly IAsyncEnumerable<ISegmentReader> _segmentReaders;
         bool _isClosed;
+        int _isDisposed;
         CancellationTokenSource _readCancellationSource;
         int _readCount;
         bool _readerRunning;
@@ -68,7 +69,12 @@ namespace SM.Media
         /// </summary>
         public void Dispose()
         {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
             Dispose(true);
+
+            GC.SuppressFinalize(this);
         }
 
         #endregion
@@ -116,7 +122,7 @@ namespace SM.Media
             StopAsync().Wait();
         }
 
-        protected async Task ReadAsync(CancellationToken cancellationToken)
+        protected virtual async Task ReadAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -130,7 +136,7 @@ namespace SM.Media
 
                         Debug.WriteLine("++++ Starting {0} at {1}.  Total memory: {2:F} MiB", segmentReader, start, GC.GetTotalMemory(false).BytesToMiB());
 
-                        await ReadSegment(segmentReader, cancellationToken).ConfigureAwait(false);
+                        await ReadSegmentAsync(segmentReader, cancellationToken).ConfigureAwait(false);
 
                         var complete = DateTimeOffset.Now;
 
@@ -149,7 +155,7 @@ namespace SM.Media
             }
         }
 
-        async Task ReadSegment(ISegmentReader segmentReader, CancellationToken cancellationToken)
+        protected virtual async Task ReadSegmentAsync(ISegmentReader segmentReader, CancellationToken cancellationToken)
         {
             WorkBuffer buffer = null;
 
@@ -184,7 +190,7 @@ namespace SM.Media
             }
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public virtual Task StartAsync(CancellationToken cancellationToken)
         {
             CancellationTokenSource oldCancellationTokenSource = null;
             Task readerTask;
@@ -215,7 +221,7 @@ namespace SM.Media
             return readerTask;
         }
 
-        public async Task StopAsync()
+        public virtual async Task StopAsync()
         {
             Task reader;
             CancellationTokenSource cancellationTokenSource;

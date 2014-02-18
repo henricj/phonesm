@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Web;
@@ -58,6 +59,9 @@ namespace SM.Media.Segments
         public async Task<ISegmentReaderManager> CreateAsync(ICollection<Uri> source, CancellationToken cancellationToken)
         {
             var playlist = await _segmentManagerFactory.CreateAsync(source, cancellationToken).ConfigureAwait(false);
+
+            if (null == playlist)
+                throw new FileNotFoundException("Unable to create playlist");
 
             return new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
         }

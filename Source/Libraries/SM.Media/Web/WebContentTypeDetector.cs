@@ -53,9 +53,9 @@ namespace SM.Media.Web
 
         public async Task<ContentType> GetContentTypeAsync(Uri url, CancellationToken cancellationToken)
         {
-            var contentTypes = _contentTypeDetector.GetContentType(url);
+            var contentTypes = _contentTypeDetector.GetContentType(url).Take(2).ToArray();
 
-            var contentType = contentTypes.SingleOrDefault();
+            var contentType = 1 == contentTypes.Length ? contentTypes[0] : null;
 
             if (null != contentType)
             {
@@ -69,9 +69,9 @@ namespace SM.Media.Web
             if (null == headers)
                 return null;
 
-            contentTypes = _contentTypeDetector.GetContentType(url, headers.Item2);
+            contentTypes = _contentTypeDetector.GetContentType(headers.Item1, headers.Item3).Take(2).ToArray();
 
-            contentType = contentTypes.SingleOrDefault();
+            contentType = 1 == contentTypes.Length ? contentTypes[0] : null;
 
             if (null != contentType)
                 Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url header {0} type {1}", url, contentType);

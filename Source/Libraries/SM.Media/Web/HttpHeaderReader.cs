@@ -36,7 +36,7 @@ namespace SM.Media.Web
 {
     public interface IHttpHeaderReader
     {
-        Task<Tuple<HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(Uri source, bool tryHead, CancellationToken cancellationToken);
+        Task<Tuple<Uri, HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(Uri source, bool tryHead, CancellationToken cancellationToken);
     }
 
     public class HttpHeaderReader : IHttpHeaderReader
@@ -50,7 +50,7 @@ namespace SM.Media.Web
 
         #region IHttpHeaderReader Members
 
-        public virtual async Task<Tuple<HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(Uri source, bool tryHead, CancellationToken cancellationToken)
+        public virtual async Task<Tuple<Uri, HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(Uri source, bool tryHead, CancellationToken cancellationToken)
         {
             using (var httpClient = _httpClients.CreateSegmentClient(source))
             {
@@ -87,7 +87,7 @@ namespace SM.Media.Web
 
         #endregion
 
-        protected virtual Task<Tuple<HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(HttpClient httpClient, HttpMethod method, Uri source, CancellationToken cancellationToken)
+        protected virtual Task<Tuple<Uri, HttpResponseHeaders, HttpContentHeaders>> GetHeadersAsync(HttpClient httpClient, HttpMethod method, Uri source, CancellationToken cancellationToken)
         {
             return new Retry(2, 200, RetryPolicy.IsWebExceptionRetryable)
                 .CallAsync(
@@ -98,7 +98,7 @@ namespace SM.Media.Web
                             var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
                             if (response.IsSuccessStatusCode)
-                                return Tuple.Create(response.Headers, response.Content.Headers);
+                                return Tuple.Create(request.RequestUri, response.Headers, response.Content.Headers);
                         }
 
                         return null;

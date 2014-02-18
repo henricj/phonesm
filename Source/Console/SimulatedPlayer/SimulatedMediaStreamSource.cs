@@ -98,7 +98,7 @@ namespace SimulatedPlayer
 
         public void ReportError(string message)
         {
-            Debug.WriteLine("SimulatedMediaStreamSource.ReportError({0})", message);
+            Debug.WriteLine("SimulatedMediaStreamSource.ReportError(): " + message);
 
             _mediaElement.ErrorOccurred(message);
         }

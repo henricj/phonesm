@@ -209,6 +209,7 @@
     <Compile Include="Utility\AsyncFifoWorker.cs" />
     <Compile Include="Utility\DisposeExtensions.cs" />
     <Compile Include="Utility\ByteConversion.cs" />
+    <Compile Include="Utility\ExceptionExtensions.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
     <Compile Include="Utility\ResettableParameters.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs">

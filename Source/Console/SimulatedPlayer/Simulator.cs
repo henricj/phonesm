@@ -45,8 +45,8 @@ namespace SimulatedPlayer
         };
 
         readonly IHttpClients _httpClients;
-        MediaStreamFascade _mediaStreamFascade;
         int _count;
+        IMediaStreamFascade _mediaStreamFascade;
 
         public Simulator(IHttpClients httpClients)
         {

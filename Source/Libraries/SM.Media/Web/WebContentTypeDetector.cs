@@ -59,7 +59,7 @@ namespace SM.Media.Web
 
             if (null != contentType)
             {
-                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url ext {0} type {1}", url, contentType);
+                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url ext \"{0}\" type {1}", url, contentType);
 
                 return contentType;
             }
@@ -74,9 +74,9 @@ namespace SM.Media.Web
             contentType = 1 == contentTypes.Length ? contentTypes[0] : null;
 
             if (null != contentType)
-                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url header {0} type {1}", url, contentType);
+                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url header \"{0}\" type {1}", url, contentType);
             else
-                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url {0} unknown type", url);
+                Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url \"{0}\" unknown type", url);
 
             return contentType;
         }

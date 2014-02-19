@@ -251,7 +251,7 @@ namespace SM.Media
 
             if (null != readerManager)
             {
-                Debug.WriteLine("TsMediaManager.CloseAsync() calling readerManager.StopAsync()");
+                //Debug.WriteLine("TsMediaManager.CloseAsync() calling readerManager.StopAsync()");
 
                 _readerManager = null;
 
@@ -264,7 +264,7 @@ namespace SM.Media
 
             if (null != mss)
             {
-                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaStreamSource.CloseAsync()");
+                //Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaStreamSource.CloseAsync()");
 
                 drainTask = mss.CloseAsync();
             }
@@ -302,11 +302,11 @@ namespace SM.Media
 
             try
             {
-                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaElementManager.CloseAsync()");
+                //Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaElementManager.CloseAsync()");
 
                 await _mediaElementManager.CloseAsync().ConfigureAwait(false);
 
-                Debug.WriteLine("TsMediaManager.CloseAsync() returned from _mediaElementManager.CloseAsync()");
+                //Debug.WriteLine("TsMediaManager.CloseAsync() returned from _mediaElementManager.CloseAsync()");
             }
             catch (Exception ex)
             {
@@ -317,11 +317,11 @@ namespace SM.Media
             {
                 try
                 {
-                    Debug.WriteLine("TsMediaManager.CloseAsync() waiting for _mediaStreamSource.CloseAsync()");
+                    //Debug.WriteLine("TsMediaManager.CloseAsync() waiting for _mediaStreamSource.CloseAsync()");
 
                     await drainTask.ConfigureAwait(false);
 
-                    Debug.WriteLine("TsMediaManager.CloseAsync() finished _mediaStreamSource.CloseAsync()");
+                    //Debug.WriteLine("TsMediaManager.CloseAsync() finished _mediaStreamSource.CloseAsync()");
                 }
                 catch (Exception ex)
                 {
@@ -461,7 +461,7 @@ namespace SM.Media
 
                 SetMediaState(MediaState.Error, "Unable to play media");
 
-                exception = new AggregateException(ex);
+                exception = new AggregateException(ex.Message, ex);
             }
 
             if (null == _readers && null != readerTasks)
@@ -640,7 +640,7 @@ namespace SM.Media
 
         async Task CloseReadersAsync()
         {
-            Debug.WriteLine("TsMediaManager.CloseAsync() closing readers");
+            //Debug.WriteLine("TsMediaManager.CloseAsync() closing readers");
 
             try
             {
@@ -669,36 +669,21 @@ namespace SM.Media
                 Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
             }
 
-            Debug.WriteLine("TsMediaManager.CloseAsync() readers closed");
+            //Debug.WriteLine("TsMediaManager.CloseAsync() readers closed");
         }
 
         void DisposeReaders()
         {
-            Debug.WriteLine("TsMediaManager.DisposeReaders()");
+            //Debug.WriteLine("TsMediaManager.DisposeReaders()");
 
             var readers = _readers;
 
             _readers = null;
 
-            var task = TaskEx.Run(() =>
-                                  {
-                                      foreach (var reader in readers)
-                                      {
-                                          try
-                                          {
-                                              using (reader)
-                                              { }
-                                          }
-                                          catch (Exception ex)
-                                          {
-                                              Debug.WriteLine("TsMediaManager.CleanupReaders(): dispose of reader failed: " + ex.Message);
-                                          }
-                                      }
-                                  });
+            foreach (var reader in readers)
+                reader.DisposeBackground("TsMediaManager dispose reader");
 
-            TaskCollector.Default.Add(task, "TsMediaManager dispose readers");
-
-            Debug.WriteLine("TsMediaManager.CleanupReaders() completed");
+            //Debug.WriteLine("TsMediaManager.DisposeReaders() completed");
         }
 
         bool IsSeekInRange(TimeSpan position)

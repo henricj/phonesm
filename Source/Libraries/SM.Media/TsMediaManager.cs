@@ -179,6 +179,9 @@ namespace SM.Media
             get { return _mediaStreamSource; }
         }
 
+        /// <inheritdoc />
+        public ContentType ContentType { get; set; }
+
         public ICollection<Uri> Source { get; set; }
 
         public void OpenMedia()
@@ -434,7 +437,7 @@ namespace SM.Media
 
             try
             {
-                _readerManager = await _segmentReaderManagerFactory.CreateAsync(Source.ToArray(), _playbackCancellationTokenSource.Token).ConfigureAwait(false);
+                _readerManager = await _segmentReaderManagerFactory.CreateAsync(Source.ToArray(), ContentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
                 readerTasks = _readerManager.SegmentManagerReaders
                                             .Select(CreateReaderPipeline)

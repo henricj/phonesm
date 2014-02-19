@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SM.Media.Content;
 using SM.Media.MediaParser;
 
 namespace SM.Media
@@ -36,6 +37,14 @@ namespace SM.Media
         TimeSpan? SeekTarget { get; set; }
         TsMediaManager.MediaState State { get; }
         IMediaStreamSource MediaStreamSource { get; }
+
+        /// <summary>
+        ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
+        ///     The type will be detected if null.  Set this value before setting <see cref="Source" />.
+        /// </summary>
+        /// <seealso cref="SM.Media.Content.ContentTypes" />
+        ContentType ContentType { get; set; }
+
         ICollection<Uri> Source { get; set; }
         void OpenMedia();
         void CloseMedia();

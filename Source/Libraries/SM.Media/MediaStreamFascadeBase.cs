@@ -30,6 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.Builder;
+using SM.Media.Content;
 using SM.Media.MediaParser;
 using SM.Media.Playlists;
 using SM.Media.Segments;
@@ -39,10 +40,18 @@ namespace SM.Media
 {
     public interface IMediaStreamFascade : IDisposable
     {
+        /// <summary>
+        ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
+        ///     The type will be detected if null. Set this value before setting <see cref="Source" />.
+        /// </summary>
+        /// <seealso cref="SM.Media.Content.ContentTypes" />
+        ContentType ContentType { get; set; }
+
         Uri Source { get; set; }
         TimeSpan? SeekTarget { get; set; }
         TsMediaManager.MediaState State { get; }
         IBuilder<IMediaManager> Builder { get; }
+
         event EventHandler<TsMediaManagerStateEventArgs> StateChange;
         void Play();
         void RequestStop();
@@ -81,6 +90,9 @@ namespace SM.Media
 
             GC.SuppressFinalize(this);
         }
+
+        /// <inheritdoc />
+        public ContentType ContentType { get; set; }
 
         public virtual Uri Source
         {
@@ -248,6 +260,7 @@ namespace SM.Media
             _mediaManager = _mediaManagerBuilder.Create();
 
             _mediaManager.Source = new[] { source };
+            _mediaManager.ContentType = ContentType;
 
             _mediaManager.OnStateChange += MediaManagerOnStateChange;
         }

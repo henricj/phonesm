@@ -75,6 +75,13 @@ namespace SimulatedPlayer
 
             _asyncFifoWorker.Post(OpenMedia);
 
+            if (null != _mediaStreamSource)
+            {
+                var t = PlayMedia();
+
+                TaskCollector.Default.Add(t, "SimulatedMediaElementManager.SetSourceAsync");
+            }
+
             return TplTaskExtensions.CompletedTask;
         }
 
@@ -212,17 +219,17 @@ namespace SimulatedPlayer
         {
             var random = _random.GetRandomNumbers(4);
 
-            do
-            {
-                await Task.Delay((int)(50 * (1 + random[3]))).ConfigureAwait(false);
-            } while (null == _mediaStreamSource);
+            await Task.Delay((int)(50 * (1 + random[0]))).ConfigureAwait(false);
+
+            if (null == _mediaStreamSource)
+                return;
 
             var taskActions = new List<Func<Task>>();
 
             Func<Task> t =
                 async () =>
                 {
-                    await Task.Delay((int)(30 * (1 + random[0]))).ConfigureAwait(false);
+                    await Task.Delay((int)(30 * (1 + random[1]))).ConfigureAwait(false);
 
                     _mediaStreamSource.SeekAsync(0);
                 };
@@ -231,7 +238,7 @@ namespace SimulatedPlayer
 
             t = async () =>
                       {
-                          await Task.Delay((int)(30 * (1 + random[0]))).ConfigureAwait(false);
+                          await Task.Delay((int)(30 * (1 + random[2]))).ConfigureAwait(false);
 
                           _mediaStreamSource.GetSampleAsync(0);
                       };
@@ -240,7 +247,7 @@ namespace SimulatedPlayer
 
             t = async () =>
                       {
-                          await Task.Delay((int)(30 * (1 + random[0]))).ConfigureAwait(false);
+                          await Task.Delay((int)(30 * (1 + random[3]))).ConfigureAwait(false);
 
                           _mediaStreamSource.GetSampleAsync(1);
                       };
@@ -252,13 +259,9 @@ namespace SimulatedPlayer
             await Task.WhenAll(taskActions.Select(Task.Run)).ConfigureAwait(false);
         }
 
-        public async Task PlayAsync()
+        async Task PlayAsync()
         {
             await Task.Delay((int)(_random.GetRandomNumber() * 250 + 100));
-
-            var t = PlayMedia();
-
-            TaskCollector.Default.Add(t, "SimulatedMediaElementManager.PlayAsync");
         }
 
         public void Play()

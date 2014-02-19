@@ -192,7 +192,7 @@ namespace SimulatedPlayer
 
         void ISimulatedMediaElement.ErrorOccurred(string message)
         {
-            Debug.WriteLine("SimulatedMediaElement.ErrorOccurred({0})", message);
+            Debug.WriteLine("SimulatedMediaElement.ErrorOccurred({0})", (object)message);
 
             var task = CloseAsync();
 

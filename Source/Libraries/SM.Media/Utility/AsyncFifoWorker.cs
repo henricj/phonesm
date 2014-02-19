@@ -84,7 +84,7 @@ namespace SM.Media.Utility
                 { }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("AsyncFifoWorker.Worker() work should not throw exceptions: " + ex.Message);
+                    Debug.WriteLine("AsyncFifoWorker.Worker() work should not throw exceptions: " + ex.ExtendedMessage());
                 }
             }
         }

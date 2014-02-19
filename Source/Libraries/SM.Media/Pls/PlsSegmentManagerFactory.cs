@@ -121,9 +121,9 @@ namespace SM.Media.Pls
                 return null;
             }
 
-            DumpIcy(headers.Item2);
+            DumpIcy(headers.ResponseHeaders);
 
-            var contentType = _contentTypeDetector.GetContentType(headers.Item1, headers.Item3).SingleOrDefault();
+            var contentType = _contentTypeDetector.GetContentType(headers.Url, headers.ContentHeaders).SingleOrDefault();
 
             if (null == contentType)
             {

@@ -69,7 +69,7 @@ namespace SM.Media.Web
             if (null == headers)
                 return null;
 
-            contentTypes = _contentTypeDetector.GetContentType(headers.Item1, headers.Item3).Take(2).ToArray();
+            contentTypes = _contentTypeDetector.GetContentType(headers.Url, headers.ContentHeaders).Take(2).ToArray();
 
             contentType = 1 == contentTypes.Length ? contentTypes[0] : null;
 

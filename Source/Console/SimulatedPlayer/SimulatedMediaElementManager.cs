@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.MediaParser;
@@ -73,11 +72,11 @@ namespace SimulatedPlayer
 
             _mediaStreamSource = (ISimulatedMediaStreamSource)source;
 
-            _asyncFifoWorker.Post(OpenMedia);
+            _asyncFifoWorker.Post(OpenMediaAsync);
 
             if (null != _mediaStreamSource)
             {
-                var t = PlayMedia();
+                var t = PlayMediaAsync();
 
                 TaskCollector.Default.Add(t, "SimulatedMediaElementManager.SetSourceAsync");
             }
@@ -87,6 +86,8 @@ namespace SimulatedPlayer
 
         public Task CloseAsync()
         {
+            Debug.WriteLine("SimulatedMediaElementManager.CloseAsync()");
+
             if (null != _mediaStreamSource)
                 _mediaStreamSource.Dispose();
 
@@ -103,7 +104,7 @@ namespace SimulatedPlayer
         {
             Debug.WriteLine("SimulatedMediaElementManager.ReportOpenMediaCompleted()");
 
-            _asyncFifoWorker.Post(PlayMedia);
+            _asyncFifoWorker.Post(PlayMediaAsync);
         }
 
         public void ReportSeekCompleted(long ticks)
@@ -125,7 +126,7 @@ namespace SimulatedPlayer
                 return;
             }
 
-            //Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1} ({2}/{3})", streamType, streamSource.PresentationTimestamp, packet.PresentationTimestamp, packet.DecodeTimestamp);
+            Debug.WriteLine("SimulatedMediaElementManager.ReportGetSampleCompleted({0}) at {1} ({2}/{3})", streamType, streamSource.PresentationTimestamp, packet.PresentationTimestamp, packet.DecodeTimestamp);
 
             var timestamp = packet.PresentationTimestamp;
             var oldestTimestamp = TimeSpan.MaxValue;
@@ -208,15 +209,19 @@ namespace SimulatedPlayer
             return TplTaskExtensions.CompletedTask;
         }
 
-        async Task OpenMedia()
+        async Task OpenMediaAsync()
         {
+            Debug.WriteLine("SimulatedMediaElementManager.OpenMediaAsync()");
+
             await Task.Delay(100).ConfigureAwait(false);
 
             _mediaStreamSource.OpenMediaAsync();
         }
 
-        async Task PlayMedia()
+        async Task PlayMediaAsync()
         {
+            Debug.WriteLine("SimulatedMediaElementManager.PlayMediaAsync()");
+
             var random = _random.GetRandomNumbers(4);
 
             await Task.Delay((int)(50 * (1 + random[0]))).ConfigureAwait(false);

@@ -158,6 +158,9 @@ namespace SM.Media.Playlists
 
             lock (_segmentLock)
             {
+                if (_isRunning)
+                    return;
+
                 if (_abortTokenSource.IsCancellationRequested)
                 {
                     cancellationTokenSource = _abortTokenSource;
@@ -467,13 +470,13 @@ namespace SM.Media.Playlists
 
             try
             {
-                var programs = await _programManager.LoadAsync().ConfigureAwait(false);
+                var programs = await _programManager.LoadAsync(_cancellationToken).ConfigureAwait(false);
 
                 var program = programs.Values.FirstOrDefault();
 
                 if (null == program)
                 {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): program not found");
+                    Debug.WriteLine("PlaylistSegmentManager.SetMediaSource(): program not found");
                     throw new FileNotFoundException("Unable to load program");
                 }
 
@@ -481,13 +484,13 @@ namespace SM.Media.Playlists
 
                 if (null == subProgram)
                 {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): no sub programs found");
+                    Debug.WriteLine("PlaylistSegmentManager.SetMediaSource(): no sub programs found");
                     throw new FileNotFoundException("Unable to load program stream");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaElementWrapper.SetMediaSource(): unable to load playlist: " + ex.Message);
+                Debug.WriteLine("PlaylistSegmentManager.SetMediaSource(): unable to load playlist: " + ex.Message);
                 throw;
             }
 

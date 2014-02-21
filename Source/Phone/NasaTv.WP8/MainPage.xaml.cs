@@ -234,7 +234,7 @@ namespace NasaTv8
         {
             Debug.WriteLine("Tapped");
 
-            var state = mediaElement1.CurrentState;
+            var state = null == mediaElement1 ? MediaElementState .Closed : mediaElement1.CurrentState;
 
             if (MediaElementState.Closed == state)
             {

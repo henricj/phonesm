@@ -33,12 +33,12 @@ using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactory : IContentServiceFactory<ISegmentManager, IEnumerable<Uri>>
+    public interface ISegmentManagerFactory : IContentServiceFactory<ISegmentManager, ICollection<Uri>>
     {
         Task<ISegmentManager> CreateAsync(ICollection<Uri> sources, CancellationToken cancellationToken);
     }
 
-    public class SegmentManagerFactory : ContentServiceFactory<ISegmentManager, IEnumerable<Uri>>, ISegmentManagerFactory
+    public class SegmentManagerFactory : ContentServiceFactory<ISegmentManager, ICollection<Uri>>, ISegmentManagerFactory
     {
         readonly IWebContentTypeDetector _webContentTypeDetector;
 

@@ -31,22 +31,22 @@ using SM.Media.Content;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactoryFinder : IContentServiceFactoryFinder<ISegmentManager, IEnumerable<Uri>>
+    public interface ISegmentManagerFactoryFinder : IContentServiceFactoryFinder<ISegmentManager, ICollection<Uri>>
     {
         void Register(ContentType contentType, ISegmentManagerFactoryInstance factory);
     }
 
-    public class SegmentManagerFactoryFinder : ContentServiceFactoryFinder<ISegmentManager, IEnumerable<Uri>>, ISegmentManagerFactoryFinder
+    public class SegmentManagerFactoryFinder : ContentServiceFactoryFinder<ISegmentManager, ICollection<Uri>>, ISegmentManagerFactoryFinder
     {
         public SegmentManagerFactoryFinder(IEnumerable<ISegmentManagerFactoryInstance> factoryInstances)
-            : base(factoryInstances.OfType<IContentServiceFactoryInstance<ISegmentManager, IEnumerable<Uri>>>())
+            : base(factoryInstances.OfType<IContentServiceFactoryInstance<ISegmentManager, ICollection<Uri>>>())
         { }
 
         #region ISegmentManagerFactoryFinder Members
 
         public void Register(ContentType contentType, ISegmentManagerFactoryInstance factory)
         {
-            Register(contentType, (IContentServiceFactoryInstance<ISegmentManager, IEnumerable<Uri>>)factory);
+            Register(contentType, (IContentServiceFactoryInstance<ISegmentManager, ICollection<Uri>>)factory);
         }
 
         #endregion

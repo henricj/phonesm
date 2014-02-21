@@ -46,7 +46,7 @@ namespace SM.Media.Playlists
 
         #region IProgramManager Members
 
-        public IEnumerable<Uri> Playlists { get; set; }
+        public ICollection<Uri> Playlists { get; set; }
 
         public async Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken)
         {

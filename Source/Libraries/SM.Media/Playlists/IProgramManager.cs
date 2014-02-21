@@ -33,7 +33,7 @@ namespace SM.Media.Playlists
 {
     public interface IProgramManager : IDisposable
     {
-        IEnumerable<Uri> Playlists { get; set; }
+        ICollection<Uri> Playlists { get; }
 
         Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken);
     }

@@ -69,7 +69,7 @@ namespace SM.Media.Pls
             get { return Types; }
         }
 
-        public async Task<ISegmentManager> CreateAsync(IEnumerable<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        public async Task<ISegmentManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
         {
             var httpClient = _httpClients.RootPlaylistClient;
             var pls = new PlsParser();

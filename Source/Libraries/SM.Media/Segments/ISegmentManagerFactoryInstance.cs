@@ -30,6 +30,6 @@ using SM.Media.Content;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactoryInstance : IContentServiceFactoryInstance<ISegmentManager, IEnumerable<Uri>>
+    public interface ISegmentManagerFactoryInstance : IContentServiceFactoryInstance<ISegmentManager, ICollection<Uri>>
     { }
 }

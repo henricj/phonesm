@@ -49,7 +49,7 @@ namespace SM.Media.Segments
             get { return Types; }
         }
 
-        public Task<ISegmentManager> CreateAsync(IEnumerable<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        public Task<ISegmentManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
         {
             return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(source, contentType));
         }

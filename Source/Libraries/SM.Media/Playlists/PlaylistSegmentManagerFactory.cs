@@ -80,7 +80,9 @@ namespace SM.Media.Playlists
 
             var subProgram = await LoasdSubProgram(programManager).ConfigureAwait(false);
 
-            return new PlaylistSegmentManager(_parameters, subProgram, contentType, _webCacheFactory, _segmentsFactory, _webContentTypeDetector, cancellationToken);
+            var segmentManager = new PlaylistSegmentManager(_parameters, programManager, contentType, _webCacheFactory, _segmentsFactory, _webContentTypeDetector, cancellationToken);
+
+            return segmentManager;
         }
 
         #endregion

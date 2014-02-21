@@ -53,11 +53,11 @@ namespace SM.Media.Playlists
         readonly TimeSpan _maximumReload;
         readonly TimeSpan _minimumReload;
         readonly TimeSpan _minimumRetry;
+        readonly IProgramManager _programManager;
         readonly TaskTimer _refreshTimer = new TaskTimer();
         readonly List<ISegment> _segmentList = new List<ISegment>();
         readonly object _segmentLock = new object();
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
-        readonly ISubProgram _subProgram;
         readonly IWebCacheFactory _webCacheFactory;
         readonly IWebContentTypeDetector _webContentTypeDetector;
         CancellationTokenSource _abortTokenSource;
@@ -73,22 +73,23 @@ namespace SM.Media.Playlists
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
         IWebCache _subPlaylistCache;
+        ISubProgram _subProgram;
 
-        public PlaylistSegmentManager(IPlaylistSegmentManagerParameters parameters, ISubProgram program, ContentType playlistType,
+        public PlaylistSegmentManager(IPlaylistSegmentManagerParameters parameters, IProgramManager programManager, ContentType playlistType,
             IWebCacheFactory webCacheFactory, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector,
             CancellationToken cancellationToken)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
-            if (null == program)
-                throw new ArgumentNullException("program");
+            if (null == programManager)
+                throw new ArgumentNullException("programManager");
             if (null == playlistType)
                 throw new ArgumentNullException("playlistType");
             if (null == parameters.IsDynamicPlaylist)
                 throw new ArgumentException("WebCacheFactory cannot be null", "parameters");
 
             _webCacheFactory = webCacheFactory;
-            _subProgram = program;
+            _programManager = programManager;
             _playlistType = playlistType;
             _segmentsFactory = segmentsFactory;
             _webContentTypeDetector = webContentTypeDetector;
@@ -457,13 +458,51 @@ namespace SM.Media.Playlists
             }
         }
 
+        async Task<ISubProgram> LoadSubProgram()
+        {
+            if (null != _subProgram)
+                return _subProgram;
+
+            ISubProgram subProgram;
+
+            try
+            {
+                var programs = await _programManager.LoadAsync().ConfigureAwait(false);
+
+                var program = programs.Values.FirstOrDefault();
+
+                if (null == program)
+                {
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): program not found");
+                    throw new FileNotFoundException("Unable to load program");
+                }
+
+                subProgram = PlaylistSegmentManagerFactory.SelectSubProgram(program.SubPrograms);
+
+                if (null == subProgram)
+                {
+                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): no sub programs found");
+                    throw new FileNotFoundException("Unable to load program stream");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaElementWrapper.SetMediaSource(): unable to load playlist: " + ex.Message);
+                throw;
+            }
+
+            _subProgram = subProgram;
+
+            return subProgram;
+        }
+
         async Task<bool> UpdatePlaylist()
         {
-            var programStream = _subProgram.Video;
+            var programStream = await LoadSubProgram().ConfigureAwait(false);
 
             var start = DateTime.UtcNow;
 
-            var parser = await FetchPlaylist(programStream.Urls).ConfigureAwait(false);
+            var parser = await FetchPlaylist(programStream.Video.Urls).ConfigureAwait(false);
 
             var fetchElapsed = DateTime.UtcNow - start;
 

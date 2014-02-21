@@ -26,8 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,46 +76,11 @@ namespace SM.Media.Playlists
                                      Playlists = source
                                  };
 
-            var subProgram = await LoasdSubProgram(programManager).ConfigureAwait(false);
-
             var segmentManager = new PlaylistSegmentManager(_parameters, programManager, contentType, _webCacheFactory, _segmentsFactory, _webContentTypeDetector, cancellationToken);
 
             return segmentManager;
         }
 
         #endregion
-
-        static async Task<ISubProgram> LoasdSubProgram(ProgramManager programManager)
-        {
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await programManager.LoadAsync().ConfigureAwait(false);
-
-                var program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): program not found");
-                    throw new FileNotFoundException("Unable to load program");
-                }
-
-                subProgram = SelectSubProgram(program.SubPrograms);
-
-                if (null == subProgram)
-                {
-                    Debug.WriteLine("MediaElementWrapper.SetMediaSource(): no sub programs found");
-                    throw new FileNotFoundException("Unable to load program stream");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaElementWrapper.SetMediaSource(): unable to load playlist: " + ex.Message);
-                throw;
-            }
-
-            return subProgram;
-        }
     }
 }

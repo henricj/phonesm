@@ -150,19 +150,19 @@ namespace SimulatedPlayer
                     }
 
                     if (0 != _pendingRequests)
-                        _asyncFifoWorker.Post(() => CheckForSamples());
+                        _asyncFifoWorker.Post(HandleSamples);
                 });
         }
 
         public void GetSampleAsync(int streamType)
         {
-            //Debug.WriteLine("SimulatedMediaStreamSource.GetSampleAsync({0}) state {1}", streamType, state);
+            //Debug.WriteLine("SimulatedMediaStreamSource.GetSampleAsync({0})", streamType);
 
             ValidateEvent(MediaStreamFsm.MediaEvent.GetSampleAsyncCalled);
 
             RequestGet(streamType);
 
-            _asyncFifoWorker.Post(() => CheckForSamples());
+            _asyncFifoWorker.Post(HandleSamples);
         }
 
         public void CloseMedia()

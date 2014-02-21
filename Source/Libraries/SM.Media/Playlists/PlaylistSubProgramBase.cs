@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlaylistSubProgramBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,7 +35,7 @@ namespace SM.Media.Playlists
 
         public string StreamType { get; internal set; }
         public string Language { get; internal set; }
-        public IEnumerable<Uri> Urls { get; internal set; }
+        public ICollection<Uri> Urls { get; internal set; }
 
         #endregion
     }
@@ -44,7 +44,8 @@ namespace SM.Media.Playlists
     {
         readonly IProgramStream _video;
 
-        public PlaylistSubProgramBase(IProgramStream video)
+        public PlaylistSubProgramBase(IProgram program, IProgramStream video)
+            : base(program)
         {
             _video = video;
         }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ProgramManagerBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -71,7 +71,7 @@ namespace SM.Media.Playlists
             }
 
             var programs = new Dictionary<long, Program>();
-            SimpleSubProgram simpleSubProgram = null;
+            SimpleSubProgram mediaSegments = null;
 
             var streamSegments = _segmentsFactory(parser);
 
@@ -101,56 +101,51 @@ namespace SM.Media.Playlists
 
                     var bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth);
 
-                    var subProgram = new PlaylistSubProgramBase(new ProgramStream
-                                                                {
-                                                                    Urls = new[] { playlistUrl }
-                                                                })
-                                     {
-                                         Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
-                                         Playlist = playlistUrl,
-                                         AudioGroup = audioGroup
-                                     };
-
                     Program program;
 
                     if (!programs.TryGetValue(programId, out program))
                     {
                         program = new Program
                                   {
-                                      Url = parser.BaseUrl,
+                                      PlaylistUrl = parser.BaseUrl,
                                       ProgramId = programId
                                   };
 
                         programs[programId] = program;
                     }
 
+                    var subProgram = new PlaylistSubProgramBase(program, new ProgramStream
+                                                                         {
+                                                                             Urls = new[] { playlistUrl }
+                                                                         })
+                                     {
+                                         Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
+                                         Playlist = playlistUrl,
+                                         AudioGroup = audioGroup
+                                     };
+
                     program.SubPrograms.Add(subProgram);
                 }
                 else
                 {
-                    var extInf = M3U8Tags.ExtXInf.Find(p.Tags);
-
-                    if (null != extInf)
+                    if (null == mediaSegments)
                     {
-                        if (null == simpleSubProgram)
-                        {
-                            simpleSubProgram = new SimpleSubProgram(parser.BaseUrl);
+                        var program = new Program
+                                      {
+                                          PlaylistUrl = parser.BaseUrl,
+                                          ProgramId = long.MinValue
+                                      };
 
-                            var program = new Program
-                                          {
-                                              Url = parser.BaseUrl,
-                                              ProgramId = long.MinValue
-                                          };
+                        programs[program.ProgramId] = program;
 
-                            program.SubPrograms.Add(simpleSubProgram);
+                        mediaSegments = new SimpleSubProgram(program, parser.BaseUrl);
 
-                            programs[program.ProgramId] = program;
-                        }
-
-                        var segment = streamSegments.CreateStreamSegment(p);
-
-                        simpleSubProgram.Segments.Add(segment);
+                        program.SubPrograms.Add(mediaSegments);
                     }
+
+                    var segment = streamSegments.CreateStreamSegment(p);
+
+                    mediaSegments.Segments.Add(segment);
                 }
             }
 

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Program.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,13 +35,15 @@ namespace SM.Media.Playlists
         string Language { get; }
 
         /// <summary>
-        /// A list of URLs representing the same data.  They are provided in order of preference. 
+        ///     A list of URLs representing the same data.  They are provided in order of preference.
         /// </summary>
-        IEnumerable<Uri> Urls { get; }
+        ICollection<Uri> Urls { get; }
     }
 
     public interface ISubProgram
     {
+        IProgram Program { get; }
+
         int? Height { get; }
         int? Width { get; }
 
@@ -58,10 +60,9 @@ namespace SM.Media.Playlists
 
     public interface IProgram
     {
-        Uri Url { get; }
+        Uri PlaylistUrl { get; }
         ICollection<ISubProgram> SubPrograms { get; }
     }
-
 
     public class Program : IProgram
     {
@@ -71,7 +72,7 @@ namespace SM.Media.Playlists
 
         #region IProgram Members
 
-        public Uri Url { get; set; }
+        public Uri PlaylistUrl { get; set; }
 
         public ICollection<ISubProgram> SubPrograms
         {
@@ -79,5 +80,10 @@ namespace SM.Media.Playlists
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            return string.Format("{0} {1} SubPrograms {2}", ProgramId, _subPrograms.Count, PlaylistUrl);
+        }
     }
 }

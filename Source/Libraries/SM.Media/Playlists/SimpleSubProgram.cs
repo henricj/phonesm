@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SimpleSubProgram.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,8 @@ namespace SM.Media.Playlists
         readonly Uri[] _playlistUrl;
         readonly ICollection<ISegment> _segments = new List<ISegment>();
 
-        public SimpleSubProgram(Uri playlistUrl)
+        public SimpleSubProgram(IProgram program, Uri playlistUrl)
+            : base(program)
         {
             _playlistUrl = new[] { playlistUrl };
         }
@@ -79,7 +80,7 @@ namespace SM.Media.Playlists
             get { return CultureInfo.InvariantCulture.TwoLetterISOLanguageName; }
         }
 
-        public IEnumerable<Uri> Urls
+        public ICollection<Uri> Urls
         {
             get { return _playlistUrl; }
         }

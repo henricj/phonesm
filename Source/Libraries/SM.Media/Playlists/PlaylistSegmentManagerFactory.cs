@@ -78,6 +78,8 @@ namespace SM.Media.Playlists
 
             var segmentManager = new PlaylistSegmentManager(_parameters, programManager, contentType, _webCacheFactory, _segmentsFactory, _webContentTypeDetector, cancellationToken);
 
+            await segmentManager.StartAsync().ConfigureAwait(false);
+
             return segmentManager;
         }
 

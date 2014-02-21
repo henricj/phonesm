@@ -40,6 +40,7 @@ namespace SM.TsParser
         readonly uint _pid;
         readonly int _programNumber;
         readonly Dictionary<uint, ProgramMap> _programStreamMap = new Dictionary<uint, ProgramMap>();
+        readonly Dictionary<Tuple<uint, TsStreamType>, ProgramMap> _retiredProgramStreams = new Dictionary<Tuple<uint, TsStreamType>, ProgramMap>();
         readonly Action<IProgramStreams> _streamFilter;
         readonly List<ProgramMap> _streamList = new List<ProgramMap>();
         bool _foundPcrPid;
@@ -204,7 +205,10 @@ namespace SM.TsParser
                 ClearProgram(program);
 
             Debug.Assert(0 == _programStreamMap.Count);
+
             _newProgramStreams.Clear();
+
+            _retiredProgramStreams.Clear();
         }
 
         public void FlushBuffers()
@@ -224,7 +228,7 @@ namespace SM.TsParser
                 ProgramMap newProgramMap;
                 if (_newProgramStreams.TryGetValue(program.Pid, out newProgramMap))
                 {
-                    if (newProgramMap.StreamType != program.StreamType)
+                    if (!Equals(newProgramMap.StreamType, program.StreamType))
                         _streamList.Add(program);
                 }
                 else
@@ -234,7 +238,13 @@ namespace SM.TsParser
             if (_streamList.Count > 0)
             {
                 foreach (var program in _streamList)
+                {
+                    Debug.WriteLine("*** TsProgramMapTable.MapProgramStreams(): retiring " + program);
+
                     ClearProgram(program);
+
+                    _retiredProgramStreams[Tuple.Create(program.Pid, program.StreamType)] = program;
+                }
 
                 _streamList.Clear();
             }
@@ -270,7 +280,7 @@ namespace SM.TsParser
                 ProgramMap mappedProgram;
                 if (_programStreamMap.TryGetValue(pid, out mappedProgram))
                 {
-                    if (mappedProgram.StreamType == streamType && streamRequested)
+                    if (Equals(mappedProgram.StreamType, streamType) && streamRequested)
                         continue;
 
                     ClearProgram(mappedProgram);
@@ -278,11 +288,31 @@ namespace SM.TsParser
 
                 if (streamRequested)
                 {
-                    var pes = _decoder.CreateStream(streamType, pid);
+                    TsPacketizedElementaryStream pes;
 
-                    programStream.ProgramStream.Stream = pes;
+                    var key = Tuple.Create(pid, streamType);
 
-                    _programStreamMap[pid] = programStream.ProgramStream;
+                    ProgramMap retiredProgram;
+                    if (_retiredProgramStreams.TryGetValue(key, out retiredProgram))
+                    {
+                        Debug.WriteLine("*** TsProgramMapTable.MapProgramStreams(): remapping retired program " + retiredProgram);
+
+                        var removed = _retiredProgramStreams.Remove(key);
+
+                        Debug.Assert(removed, "Unable to remove program from retired");
+
+                        pes = retiredProgram.Stream;
+
+                        _programStreamMap[pid] = retiredProgram;
+                    }
+                    else
+                    {
+                        pes = _decoder.CreateStream(streamType, pid);
+
+                        programStream.ProgramStream.Stream = pes;
+
+                        _programStreamMap[pid] = programStream.ProgramStream;
+                    }
 
                     if (pid == _pcrPid)
                     {
@@ -325,6 +355,11 @@ namespace SM.TsParser
             public uint Pid;
             public TsPacketizedElementaryStream Stream;
             public TsStreamType StreamType;
+
+            public override string ToString()
+            {
+                return string.Format("{0}/{1}", Pid, null == StreamType ? "<unknown type>" : StreamType.Description);
+            }
         }
 
         #endregion

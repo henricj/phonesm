@@ -29,7 +29,7 @@ using SM.Media.MediaParser;
 
 namespace SM.Media
 {
-    class TsMediaModule : Module
+    public class TsMediaModule : Module
     {
         protected override void Load(ContainerBuilder builder)
         {

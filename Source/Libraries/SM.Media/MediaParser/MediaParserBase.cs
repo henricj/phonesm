@@ -30,7 +30,6 @@ using System.Diagnostics;
 using System.Threading;
 using SM.Media.Configuration;
 using SM.TsParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media.MediaParser
 {
@@ -38,22 +37,18 @@ namespace SM.Media.MediaParser
         where TConfigurator : IConfigurationSource
     {
         readonly TConfigurator _configurator;
-        readonly ITsPesPacketPool _pesPacketPool;
         readonly TsStreamType _streamType;
         int _isDisposed;
         ICollection<IMediaParserMediaStream> _mediaStreams;
-        StreamBuffer _streamBuffer;
+        IStreamBuffer _streamBuffer;
 
-        protected MediaParserBase(ITsPesPacketPool pesPacketPool, TsStreamType streamType, TConfigurator configurator)
+        protected MediaParserBase(TsStreamType streamType, TConfigurator configurator)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
             if (null == streamType)
                 throw new ArgumentNullException("streamType");
             if (ReferenceEquals(default(TConfigurator), configurator))
                 throw new ArgumentNullException("configurator");
 
-            _pesPacketPool = pesPacketPool;
             _streamType = streamType;
             _configurator = configurator;
 
@@ -97,12 +92,12 @@ namespace SM.Media.MediaParser
 
         public abstract void FlushBuffers();
 
-        public void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
+        public void Initialize(Func<TsStreamType, IStreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
         {
-            if (streamBufferFactory == null)
+            if (null == streamBufferFactory)
                 throw new ArgumentNullException("streamBufferFactory");
 
-            _streamBuffer = streamBufferFactory(_streamType, _pesPacketPool.FreePesPacket);
+            _streamBuffer = streamBufferFactory(_streamType);
 
             _mediaStreams = new[] { new MediaStream(_configurator, _streamBuffer) };
         }

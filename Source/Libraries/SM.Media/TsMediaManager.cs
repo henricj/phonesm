@@ -558,7 +558,7 @@ namespace SM.Media
             mediaParser.ConfigurationComplete += (s, e) => ConfigurationComplete(reader);
 
             reader.MediaParser.Initialize(
-                (streamType, freePacket) => new StreamBuffer(streamType, freePacket, reader.BufferingManager, _mediaStreamSource.CheckForSamples),
+                streamType => reader.BufferingManager.CreateStreamBuffer(streamType, _mediaStreamSource.CheckForSamples),
                 _programStreamsHandler);
         }
 

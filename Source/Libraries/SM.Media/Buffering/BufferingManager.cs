@@ -30,6 +30,7 @@ using System.Diagnostics;
 using System.Threading;
 using SM.Media.Utility;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.Buffering
 {
@@ -40,6 +41,7 @@ namespace SM.Media.Buffering
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly IBufferingPolicy _bufferingPolicy;
         readonly object _lock = new object();
+        readonly ITsPesPacketPool _packetPool;
         readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
         readonly SignalTask _reportingTask;
         bool _blockReads;
@@ -50,12 +52,15 @@ namespace SM.Media.Buffering
         Action _reportBufferingChange;
         int _totalBufferedStart;
 
-        public BufferingManager(IBufferingPolicy bufferingPolicy)
+        public BufferingManager(IBufferingPolicy bufferingPolicy, ITsPesPacketPool packetPool)
         {
-            if (bufferingPolicy == null)
+            if (null == bufferingPolicy)
                 throw new ArgumentNullException("bufferingPolicy");
+            if (null == packetPool)
+                throw new ArgumentNullException("packetPool");
 
             _bufferingPolicy = bufferingPolicy;
+            _packetPool = packetPool;
 
             _reportingTask = new SignalTask(() =>
                                             {
@@ -157,6 +162,11 @@ namespace SM.Media.Buffering
             }
 
             return queue;
+        }
+
+        public IStreamBuffer CreateStreamBuffer(TsStreamType streamType, Action checkForSamples)
+        {
+            return new StreamBuffer(streamType, _packetPool.FreePesPacket, this, checkForSamples);
         }
 
         public void Flush()

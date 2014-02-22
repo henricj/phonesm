@@ -25,12 +25,23 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.Buffering
 {
     public sealed class NullBufferingManager : IBufferingManager
     {
         static readonly IBufferingQueue Queue = new NullBufferingQueue();
+        readonly ITsPesPacketPool _packetPool;
+
+        public NullBufferingManager(ITsPesPacketPool packetPool)
+        {
+            if (null == packetPool)
+                throw new ArgumentNullException("packetPool");
+
+            _packetPool = packetPool;
+        }
 
         #region IBufferingManager Members
 
@@ -47,6 +58,11 @@ namespace SM.Media.Buffering
         public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
         {
             return Queue;
+        }
+
+        public IStreamBuffer CreateStreamBuffer(TsStreamType streamType, Action checkForSamples)
+        {
+            return new StreamBuffer(streamType, _packetPool.FreePesPacket, this, checkForSamples);
         }
 
         public void Flush()

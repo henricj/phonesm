@@ -39,6 +39,6 @@ namespace SM.Media.MediaParser
         void ProcessEndOfData();
         void ProcessData(byte[] buffer, int offset, int length);
         void FlushBuffers();
-        void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null);
+        void Initialize(Func<TsStreamType, IStreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null);
     }
 }

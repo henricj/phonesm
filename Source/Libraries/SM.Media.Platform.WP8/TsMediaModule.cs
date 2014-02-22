@@ -35,7 +35,7 @@ namespace SM.Media
         {
             builder.RegisterType<TsMediaStreamSource>()
                    .As<IMediaStreamSource>()
-                   .InstancePerLifetimeScope();
+                   .InstancePerMatchingLifetimeScope("builder-scope");
         }
     }
 }

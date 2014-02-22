@@ -47,7 +47,7 @@ namespace SM.Media
         readonly ITsDecoder _tsDecoder;
         readonly ITsPesPacketPool _tsPesPacketPool;
         readonly ITsTimestamp _tsTimemestamp;
-        Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> _streamBufferFactory;
+        Func<TsStreamType, IStreamBuffer> _streamBufferFactory;
         int? _streamCount;
 
         public TsMediaParser(ITsDecoder tsDecoder, ITsPesPacketPool tsPesPacketPool, IBufferPool bufferPool, ITsTimestamp tsTimemestamp, IPesHandlers pesHandlers)
@@ -106,9 +106,9 @@ namespace SM.Media
             CleanupStreams();
         }
 
-        public void Initialize(Func<TsStreamType, Action<TsPesPacket>, StreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
+        public void Initialize(Func<TsStreamType, IStreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
         {
-            if (streamBufferFactory == null)
+            if (null == streamBufferFactory)
                 throw new ArgumentNullException("streamBufferFactory");
 
             _streamBufferFactory = streamBufferFactory;
@@ -218,7 +218,7 @@ namespace SM.Media
 
         TsPacketizedElementaryStream CreatePacketizedElementaryStream(TsStreamType streamType, uint pid)
         {
-            var streamBuffer = _streamBufferFactory(streamType, _tsPesPacketPool.FreePesPacket);
+            var streamBuffer = _streamBufferFactory(streamType);
 
             lock (_mediaStreamsLock)
             {

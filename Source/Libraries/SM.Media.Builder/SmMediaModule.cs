@@ -48,7 +48,7 @@ namespace SM.Media
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<TsMediaManager>().As<IMediaManager>().InstancePerLifetimeScope();
+            builder.RegisterType<TsMediaManager>().As<IMediaManager>().InstancePerMatchingLifetimeScope("builder-scope");
 
             builder.RegisterType<HttpHeaderReader>().As<IHttpHeaderReader>().SingleInstance();
             builder.RegisterInstance(new ContentTypeDetector(ContentTypes.AllTypes)).As<IContentTypeDetector>();
@@ -59,9 +59,9 @@ namespace SM.Media
             builder.RegisterType<SegmentReaderManagerFactory>().As<ISegmentReaderManagerFactory>().SingleInstance();
             builder.RegisterType<NullMediaElementManager>().As<IMediaElementManager>().SingleInstance();
 
-            builder.RegisterType<TsPesPacketPool>().As<ITsPesPacketPool>().InstancePerLifetimeScope();
-            builder.RegisterType<BufferPool>().As<IBufferPool>().InstancePerLifetimeScope();
-            builder.RegisterType<DefaultBufferPoolParameters>().As<IBufferPoolParameters>().InstancePerLifetimeScope();
+            builder.RegisterType<TsPesPacketPool>().As<ITsPesPacketPool>().SingleInstance();
+            builder.RegisterType<BufferPool>().As<IBufferPool>().SingleInstance();
+            builder.RegisterType<DefaultBufferPoolParameters>().As<IBufferPoolParameters>().SingleInstance();
 
             builder.RegisterType<WebCacheFactory>().As<IWebCacheFactory>().SingleInstance();
 
@@ -100,7 +100,7 @@ namespace SM.Media
 
             builder.RegisterType<MediaManagerParameters>().As<IMediaManagerParameters>().SingleInstance();
             builder.RegisterType<PlaylistSegmentManagerParameters>().As<IPlaylistSegmentManagerParameters>().SingleInstance();
-            builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerLifetimeScope();
+            builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerMatchingLifetimeScope("builder-scope");
 
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();
         }

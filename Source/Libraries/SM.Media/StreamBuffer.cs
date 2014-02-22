@@ -33,7 +33,12 @@ using SM.TsParser;
 
 namespace SM.Media
 {
-    public sealed class StreamBuffer : IStreamSource, IDisposable, IManagedBuffer
+    public interface IStreamBuffer : IStreamSource, IManagedBuffer, IDisposable
+    {
+        void Enqueue(TsPesPacket packet);
+    }
+
+    public sealed class StreamBuffer : IStreamBuffer
     {
         readonly Queue<TsPesPacket> _packets = new Queue<TsPesPacket>();
         readonly object _packetsLock = new object();
@@ -56,7 +61,6 @@ namespace SM.Media
         {
             if (streamType == null)
                 throw new ArgumentNullException("streamType");
-
             if (freePesPacket == null)
                 throw new ArgumentNullException("freePesPacket");
 

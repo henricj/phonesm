@@ -34,6 +34,7 @@ namespace SM.Media.Buffering
         double BufferingProgress { get; }
         bool IsBuffering { get; }
         IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
+        IStreamBuffer CreateStreamBuffer(TsStreamType streamType, Action checkForSamples);
         void Flush();
         bool IsSeekAlreadyBuffered(TimeSpan position);
         void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange);
@@ -50,7 +51,7 @@ namespace SM.Media.Buffering
 
     public interface IManagedBuffer
     {
-        TimeSpan TimestampOffset { get; }
+        TimeSpan TimestampOffset { get; set; }
         TsStreamType StreamType { get; }
         void Flush();
     }

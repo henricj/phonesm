@@ -29,7 +29,6 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using SM.Media;
 using SM.Media.Buffering;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
@@ -41,25 +40,25 @@ namespace TsDump
     class MediaDumpBase : IDisposable
     {
         protected readonly IBufferPool BufferPool;
-        readonly IBufferingManager _bufferingManager;
         protected readonly ITsPesPacketPool PacketPool;
+        readonly IBufferingManager _bufferingManager;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly SignalTask _streamReader;
-        HttpClient _httpClient;
         protected IMediaParser Parser;
+        HttpClient _httpClient;
         Stream _stream;
 
         protected MediaDumpBase(Action<IProgramStreams> programStreamsHandler)
         {
             _programStreamsHandler = programStreamsHandler;
             BufferPool = new BufferPool(new DefaultBufferPoolParameters
-                                         {
-                                             BaseSize = 5 * 64 * 1024,
-                                             Pools = 2
-                                         });
+                                        {
+                                            BaseSize = 5 * 64 * 1024,
+                                            Pools = 2
+                                        });
 
             PacketPool = new TsPesPacketPool(BufferPool);
-            _bufferingManager = new NullBufferingManager();
+            _bufferingManager = new NullBufferingManager(PacketPool);
 
             _streamReader = new SignalTask(ReadStreams);
         }
@@ -185,7 +184,7 @@ namespace TsDump
 
         public async Task ReadAsync(string source)
         {
-            Parser.Initialize((streamType, freePacket) => new StreamBuffer(streamType, freePacket, _bufferingManager, CheckForSample), _programStreamsHandler);
+            Parser.Initialize(streamType => _bufferingManager.CreateStreamBuffer(streamType, CheckForSample), _programStreamsHandler);
 
             var buffer = new byte[16 * 1024];
 

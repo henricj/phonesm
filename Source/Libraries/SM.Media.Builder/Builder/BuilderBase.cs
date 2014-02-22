@@ -197,7 +197,7 @@ namespace SM.Media.Builder
             if (null != _handle)
                 throw new InvalidOperationException("The builder is in use");
 
-            var handle = new BuilderHandle<TBuild>(Container.BeginLifetimeScope());
+            var handle = new BuilderHandle<TBuild>(Container.BeginLifetimeScope("builder-scope"));
 
             if (null != Interlocked.CompareExchange(ref _handle, handle, null))
             {

@@ -35,7 +35,7 @@ namespace SM.Media.AAC
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.AacStreamType);
 
         public AacMediaParser(ITsPesPacketPool pesPacketPool)
-            : base(pesPacketPool, StreamType, new AacConfigurator())
+            : base(StreamType, new AacConfigurator())
         {
             Parser = new AacParser(pesPacketPool, Configurator.Configure, SubmitPacket);
         }

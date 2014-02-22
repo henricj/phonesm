@@ -29,7 +29,6 @@ using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.TsParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media.Audio
 {
@@ -39,12 +38,9 @@ namespace SM.Media.Audio
     {
         protected TParser Parser;
 
-        protected AudioMediaParser(ITsPesPacketPool pesPacketPool, TsStreamType streamType, TConfigurator configurator)
-            : base(pesPacketPool, streamType, configurator)
-        {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
-        }
+        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator)
+            : base(streamType, configurator)
+        { }
 
         public override TimeSpan StartPosition
         {

@@ -29,7 +29,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.Media.Pes;
 using SM.Media.Utility;
@@ -90,7 +89,7 @@ namespace SM.Media
             set { _tsTimemestamp.StartPosition = value; }
         }
 
-        public event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
+        public event EventHandler ConfigurationComplete;
 
         public bool EnableProcessing
         {
@@ -212,7 +211,7 @@ namespace SM.Media
 
             ConfigurationComplete = null;
 
-            var task = TaskEx.Run(() => cc(this, new ConfigurationEventArgs(null, null)));
+            var task = TaskEx.Run(() => cc(this, EventArgs.Empty));
 
             TaskCollector.Default.Add(task, "TsMediaParser.FireConfigurationComplete()");
         }

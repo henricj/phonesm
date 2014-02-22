@@ -166,7 +166,6 @@
     <Compile Include="Pls\PlsSegmentManagerFactory.cs" />
     <Compile Include="Pls\PlsTrack.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Configuration\ConfigurationEventArgs.cs" />
     <Compile Include="Configuration\IAudioConfigurationSource.cs" />
     <Compile Include="Configuration\IFrameParser.cs" />
     <Compile Include="Configuration\IConfigurationSource.cs" />

@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using SM.Media.Configuration;
 using SM.TsParser;
 
 namespace SM.Media.MediaParser
@@ -36,7 +35,7 @@ namespace SM.Media.MediaParser
         ICollection<IMediaParserMediaStream> MediaStreams { get; }
         bool EnableProcessing { get; set; }
         TimeSpan StartPosition { get; set; }
-        event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
+        event EventHandler ConfigurationComplete;
         void ProcessEndOfData();
         void ProcessData(byte[] buffer, int offset, int length);
         void FlushBuffers();

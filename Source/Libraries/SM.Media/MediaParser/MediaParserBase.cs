@@ -84,7 +84,7 @@ namespace SM.Media.MediaParser
 
         public bool EnableProcessing { get; set; }
         public virtual TimeSpan StartPosition { get; set; }
-        public event EventHandler<ConfigurationEventArgs> ConfigurationComplete;
+        public event EventHandler ConfigurationComplete;
 
         public virtual void ProcessEndOfData()
         {
@@ -118,7 +118,7 @@ namespace SM.Media.MediaParser
             if (null == occ)
                 return;
 
-            occ(this, new ConfigurationEventArgs(_configurator, _streamBuffer));
+            occ(this, EventArgs.Empty);
         }
 
         protected virtual void Dispose(bool disposing)

@@ -74,13 +74,6 @@ namespace SimulatedPlayer
 
             _asyncFifoWorker.Post(OpenMediaAsync);
 
-            if (null != _mediaStreamSource)
-            {
-                var t = PlayMediaAsync();
-
-                TaskCollector.Default.Add(t, "SimulatedMediaElementManager.SetSourceAsync");
-            }
-
             return TplTaskExtensions.CompletedTask;
         }
 
@@ -216,6 +209,13 @@ namespace SimulatedPlayer
             await Task.Delay(100).ConfigureAwait(false);
 
             _mediaStreamSource.OpenMediaAsync();
+
+            if (null != _mediaStreamSource)
+            {
+                var t = PlayMediaAsync();
+
+                TaskCollector.Default.Add(t, "SimulatedMediaElementManager.SetSourceAsync");
+            }
         }
 
         async Task PlayMediaAsync()

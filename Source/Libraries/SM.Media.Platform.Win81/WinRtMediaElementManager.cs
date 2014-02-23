@@ -27,6 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Windows.Media.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
 using SM.Media.MediaParser;
@@ -75,7 +76,18 @@ namespace SM.Media
 
                                 _mediaElement = _createMediaElement();
 
-                                mss.RegisterMediaStreamSourceHandler(ms => Dispatch(() => _mediaElement.SetMediaStreamSource(ms)));
+                                mss.RegisterMediaStreamSourceHandler(ms => Dispatch(() =>
+                                                                                    {
+                                                                                        Debug.WriteLine("WinRtMediaElementManager.SetSourceAsync() ME state {0} MM state {1} HasThreadAccess {2}",
+                                                                                            _mediaElement.CurrentState,
+                                                                                            null == mss.MediaManager ? "<Unknown>" :  mss.MediaManager.State.ToString(), _dispatcher.HasThreadAccess);
+                                                                                        
+                                                                                        _mediaElement.SetMediaStreamSource(ms);
+
+                                                                                        Debug.WriteLine("WinRtMediaElementManager.SetSourceAsync() post set ME state {0} MM state {1} HasThreadAccess {2}",
+                                                                                            _mediaElement.CurrentState,
+                                                                                            null == mss.MediaManager ? "<Unknown>" : mss.MediaManager.State.ToString(), _dispatcher.HasThreadAccess);
+                                                                                    }));
                             });
         }
 
@@ -103,7 +115,7 @@ namespace SM.Media
                 return TplTaskExtensions.CompletedTask;
             }
 
-            return _dispatcher.RunAsync(CoreDispatcherPriority.Low, () => action()).AsTask();
+            return _dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => action()).AsTask();
         }
     }
 }

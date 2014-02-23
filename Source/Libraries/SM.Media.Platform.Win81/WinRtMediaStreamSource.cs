@@ -132,7 +132,7 @@ namespace SM.Media
 
         public void CheckForSamples()
         {
-            //System.Diagnostics.Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
+            //Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
 
             if (null != _videoStreamState)
                 _videoStreamState.CheckForSamples();
@@ -145,7 +145,7 @@ namespace SM.Media
 
         public void CancelPending()
         {
-            //System.Diagnostics.Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
+            Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
 
             if (null != _videoStreamState)
                 _videoStreamState.Cancel();
@@ -234,6 +234,8 @@ namespace SM.Media
 
         void CompleteConfigure()
         {
+            Debug.WriteLine("WinRtMediaStreamSource.CompleteConfigure()");
+
             var mss = CreateMediaStreamSource();
 
             var mssHandler = _mssHandler;
@@ -242,6 +244,10 @@ namespace SM.Media
             {
                 _mssHandler = null;
                 mssHandler(mss);
+            }
+            else
+            {
+                Debug.WriteLine("WinRtMediaStreamSource.CompleteConfigure() no handler found");
             }
         }
 
@@ -282,7 +288,20 @@ namespace SM.Media
             mediaStreamSource.SampleRequested += MediaStreamSourceOnSampleRequested;
             mediaStreamSource.Closed += MediaStreamSourceOnClosed;
 
+            mediaStreamSource.Paused += MediaStreamSourceOnPaused;
+            mediaStreamSource.SwitchStreamsRequested += MediaStreamSourceOnSwitchStreamsRequested;
+
             return mediaStreamSource;
+        }
+
+        void MediaStreamSourceOnSwitchStreamsRequested(MediaStreamSource sender, MediaStreamSourceSwitchStreamsRequestedEventArgs args)
+        {
+            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSwitchStreamsRequested()");
+        }
+
+        void MediaStreamSourceOnPaused(MediaStreamSource sender, object args)
+        {
+            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnPaused()");
         }
 
         void MediaStreamSourceOnClosed(MediaStreamSource sender, MediaStreamSourceClosedEventArgs args)
@@ -303,7 +322,7 @@ namespace SM.Media
 
         void MediaStreamSourceOnSampleRequested(MediaStreamSource sender, MediaStreamSourceSampleRequestedEventArgs args)
         {
-            //Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSampleRequested()");
+            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSampleRequested()");
 
             var request = args.Request;
 

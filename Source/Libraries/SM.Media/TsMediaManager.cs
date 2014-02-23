@@ -215,7 +215,7 @@ namespace SM.Media
             }
             catch (OperationCanceledException ex)
             {
-                Debug.WriteLine("TsMediaManager.CloseMedia() operation cancelled exception: " + ex.Message);
+                Debug.WriteLine("TsMediaManager.CloseMedia() operation canceled exception: " + ex.Message);
             }
             catch (ObjectDisposedException ex)
             {

@@ -289,6 +289,10 @@ namespace SM.Media
         {
             Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() reason: " + args.Request.Reason);
 
+            sender.Starting += MediaStreamSourceOnStarting;
+            sender.SampleRequested += MediaStreamSourceOnSampleRequested;
+            sender.Closed += MediaStreamSourceOnClosed;
+
             var mediaManager = MediaManager;
 
             if (null == mediaManager)

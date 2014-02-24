@@ -322,7 +322,7 @@ namespace SM.Media
 
         void MediaStreamSourceOnSampleRequested(MediaStreamSource sender, MediaStreamSourceSampleRequestedEventArgs args)
         {
-            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSampleRequested()");
+            //Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSampleRequested()");
 
             var request = args.Request;
 

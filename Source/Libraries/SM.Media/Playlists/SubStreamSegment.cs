@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SubStreamSegment.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -66,5 +66,13 @@ namespace SM.Media.Playlists
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            if (Length > 0)
+                return string.Format("{0} {1} {2} [offset {3} length {4}]", MediaSequence, Duration, Url, Offset, Offset + Length);
+
+            return string.Format("{0} {1} {2}", MediaSequence, Duration, Url);
+        }
     }
 }

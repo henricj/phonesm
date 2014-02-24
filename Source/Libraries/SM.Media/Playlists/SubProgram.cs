@@ -73,5 +73,10 @@ namespace SM.Media.Playlists
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            return string.Format("{0:F3} Mbit/s from {1}", Bandwidth * (1.0 / (1000 * 1000)), _program.PlaylistUrl);
+        }
     }
 }

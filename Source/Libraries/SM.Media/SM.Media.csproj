@@ -210,6 +210,7 @@
     <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\ExceptionExtensions.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
+    <Compile Include="Utility\QueueExtensions.cs" />
     <Compile Include="Utility\ResettableParameters.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs">
       <SubType>

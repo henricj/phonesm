@@ -457,6 +457,9 @@
     <Compile Include="..\SM.Media\Utility\IStopClose.cs">
       <Link>Utility\IStopClose.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\QueueExtensions.cs">
+      <Link>Utility\QueueExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\ResettableParameters.cs">
       <Link>Utility\ResettableParameters.cs</Link>
     </Compile>

@@ -93,6 +93,8 @@
     <Compile Include="Content\IContentServiceFactoryInstance.cs" />
     <Compile Include="H262\H262StreamHandlerFactory.cs" />
     <Compile Include="H264\H264StreamHandlerFactory.cs" />
+    <Compile Include="M3U8\TagSupport\DateTimeTagInstance.cs" />
+    <Compile Include="M3U8\TagSupport\M3U8DateTimeTag.cs" />
     <Compile Include="MediaParser\IMediaParserFactoryInstance.cs" />
     <Compile Include="MediaParser\MediaConfiguration.cs" />
     <Compile Include="MediaParser\MediaParserBase.cs" />

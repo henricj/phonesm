@@ -112,8 +112,10 @@
     <Compile Include="Pes\PesStreamFactory.cs" />
     <Compile Include="Pes\PesStreamFactoryFinder.cs" />
     <Compile Include="MP3\Mp3MediaParserFactory.cs" />
-    <Compile Include="Playlists\PlaylistSegmentManagerDefaults.cs" />
+    <Compile Include="Playlists\PlaylistDefaults.cs" />
     <Compile Include="Playlists\PlaylistSegmentManagerParameters.cs" />
+    <Compile Include="Playlists\PlaylistSegmentManagerPolicy.cs" />
+    <Compile Include="Playlists\ProgramStream.cs" />
     <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
     <Compile Include="Segments\SegmentReaderManagerFactory.cs" />
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
@@ -244,11 +246,10 @@
     <Compile Include="Pes\PesHandlers.cs" />
     <Compile Include="Pes\PesStream.cs" />
     <Compile Include="Pes\PesStreamHandler.cs" />
-    <Compile Include="Playlists\PlaylistSubProgramBase.cs" />
+    <Compile Include="Playlists\PlaylistSubProgram.cs" />
     <Compile Include="Playlists\PlaylistSubStream.cs" />
     <Compile Include="Playlists\Program.cs" />
     <Compile Include="Playlists\ProgramManagerBase.cs" />
-    <Compile Include="Playlists\SimpleSubProgram.cs" />
     <Compile Include="Playlists\SubProgram.cs" />
     <Compile Include="Playlists\SubStream.cs" />
     <Compile Include="Playlists\SubStreamSegment.cs" />

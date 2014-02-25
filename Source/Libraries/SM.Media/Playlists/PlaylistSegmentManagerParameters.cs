@@ -24,29 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.Media.M3U8;
-
 namespace SM.Media.Playlists
 {
     public class PlaylistSegmentManagerParameters : IPlaylistSegmentManagerParameters
-    {
-        Func<M3U8Parser, bool> _isDynamicPlaylist;
-
-        #region IPlaylistSegmentManagerParameters Members
-
-        public Func<M3U8Parser, bool> IsDynamicPlaylist
-        {
-            get
-            {
-                if (null == _isDynamicPlaylist)
-                    _isDynamicPlaylist = PlaylistSegmentManagerDefaults.IsDynamicPlayist;
-
-                return _isDynamicPlaylist;
-            }
-            set { _isDynamicPlaylist = value; }
-        }
-
-        #endregion
-    }
+    { }
 }

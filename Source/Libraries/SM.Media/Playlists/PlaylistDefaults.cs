@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSubProgramBase.cs" company="Henric Jungheim">
+//  <copyright file="PlaylistDefaults.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,51 +25,39 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
+using System.Linq;
+using SM.Media.M3U8;
+using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
-    public class ProgramStream : IProgramStream
+    public static class PlaylistDefaults
     {
-        #region IProgramStream Members
-
-        public string StreamType { get; internal set; }
-        public string Language { get; internal set; }
-        public ICollection<Uri> Urls { get; internal set; }
-
-        #endregion
-    }
-
-    public class PlaylistSubProgramBase : SubProgram
-    {
-        readonly IProgramStream _video;
-
-        public PlaylistSubProgramBase(IProgram program, IProgramStream video)
-            : base(program)
+        /// <summary>
+        ///     A playlist is dynamic if it does not have an #EXT-X-ENDLIST tag and every segment has an #EXTINF with a valid
+        ///     duration.
+        /// </summary>
+        /// <param name="parser"></param>
+        /// <returns></returns>
+        public static bool IsDynamicPlayist(M3U8Parser parser)
         {
-            _video = video;
+            if (null != parser.GlobalTags.Tag(M3U8Tags.ExtXEndList))
+                return false;
+
+            var validDuration = parser.Playlist.All(
+                p =>
+                {
+                    var extInf = M3U8Tags.ExtXInf.Find(p.Tags);
+
+                    return null != extInf && extInf.Duration > 0;
+                });
+
+            return validDuration;
         }
 
-        public Uri Playlist { get; set; }
-
-        public override IProgramStream Audio
+        public static Func<M3U8Parser, IStreamSegments> CreateSegmentsFactory(IHttpClients httpClients)
         {
-            get { throw new NotImplementedException(); }
-        }
-
-        public override IProgramStream Video
-        {
-            get { return _video; }
-        }
-
-        public override ICollection<IProgramStream> AlternateAudio
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        public override ICollection<IProgramStream> AlternateVideo
-        {
-            get { throw new NotImplementedException(); }
+            return new SegmentsFactory(httpClients).CreateStreamSegments;
         }
     }
 }

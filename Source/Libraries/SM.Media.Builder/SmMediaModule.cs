@@ -100,6 +100,7 @@ namespace SM.Media
 
             builder.RegisterType<MediaManagerParameters>().As<IMediaManagerParameters>().SingleInstance();
             builder.RegisterType<PlaylistSegmentManagerParameters>().As<IPlaylistSegmentManagerParameters>().SingleInstance();
+            builder.RegisterType<PlaylistSegmentManagerPolicy>().As<IPlaylistSegmentManagerPolicy>().SingleInstance();
             builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerMatchingLifetimeScope("builder-scope");
 
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();

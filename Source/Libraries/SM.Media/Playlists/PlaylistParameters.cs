@@ -25,12 +25,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.M3U8;
 
 namespace SM.Media.Playlists
 {
     public class PlaylistParameters
     {
         TimeSpan _excessiveDuration = TimeSpan.FromMinutes(5);
+        Func<M3U8Parser, bool> _isDynamicPlaylist;
         TimeSpan _maximumReload = TimeSpan.FromMinutes(2);
         TimeSpan _minimumReload = TimeSpan.FromSeconds(5);
         TimeSpan _minimumRetry = TimeSpan.FromMilliseconds(333);
@@ -71,6 +73,12 @@ namespace SM.Media.Playlists
         {
             get { return _minimumRetry; }
             set { _minimumRetry = value; }
+        }
+
+        public Func<M3U8Parser, bool> IsDyanmicPlaylist
+        {
+            get { return _isDynamicPlaylist ?? PlaylistDefaults.IsDynamicPlayist; }
+            set { _isDynamicPlaylist = value; }
         }
     }
 }

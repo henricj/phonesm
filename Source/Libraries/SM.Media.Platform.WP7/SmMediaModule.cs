@@ -114,6 +114,7 @@ namespace SM.Media
 
             Bind<IMediaManagerParameters>().To<MediaManagerParameters>().InSingletonScope();
             Bind<IPlaylistSegmentManagerParameters>().To<PlaylistSegmentManagerParameters>().InSingletonScope();
+            Bind<IPlaylistSegmentManagerPolicy>().To<PlaylistSegmentManagerPolicy>().InSingletonScope();
             Bind<IBufferingPolicy>().To<DefaultBufferingPolicy>();
             Bind<IBufferingManager>().To<BufferingManager>();
             Bind<Func<IBufferingManager>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferingManager>());

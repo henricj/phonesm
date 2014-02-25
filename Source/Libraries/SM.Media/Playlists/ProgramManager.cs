@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ProgramManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,10 +39,16 @@ namespace SM.Media.Playlists
     public class ProgramManager : ProgramManagerBase, IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
+        readonly HttpClient _httpClient;
 
-        public ProgramManager(IHttpClients httpClients, Func<M3U8Parser, IStreamSegments> segmentsFactory)
-            : base(httpClients, segmentsFactory)
-        { }
+        public ProgramManager(IHttpClients httpClients, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebCacheFactory webCacheFactory, IWebContentTypeDetector webContentTypeDetector)
+            : base(segmentsFactory, webCacheFactory, webContentTypeDetector)
+        {
+            if (null == httpClients)
+                throw new ArgumentNullException("httpClients");
+
+            _httpClient = httpClients.RootPlaylistClient;
+        }
 
         #region IProgramManager Members
 
@@ -52,16 +58,14 @@ namespace SM.Media.Playlists
         {
             var playlists = Playlists;
 
-            var httpClient = HttpClients.RootPlaylistClient;
-
             foreach (var playlist in playlists)
             {
                 try
                 {
                     var parser = new M3U8Parser();
 
-                    var actualPlaylist = await parser.ParseAsync(httpClient, playlist, cancellationToken)
-                                .ConfigureAwait(false);
+                    var actualPlaylist = await parser.ParseAsync(_httpClient, playlist, cancellationToken)
+                                                     .ConfigureAwait(false);
 
                     return Load(actualPlaylist, parser);
                 }

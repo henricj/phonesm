@@ -32,34 +32,26 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
-using SM.Media.M3U8;
 using SM.Media.Segments;
 using SM.Media.Utility;
-using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
     public interface IPlaylistSegmentManagerParameters
-    {
-        Func<M3U8Parser, bool> IsDynamicPlaylist { get; set; }
-    }
+    { }
 
     public class PlaylistSegmentManager : ISegmentManager
     {
         readonly CancellationToken _cancellationToken;
         readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
         readonly TimeSpan _excessiveDuration;
-        readonly Func<M3U8Parser, bool> _isDynamicPlaylistPolicy;
         readonly TimeSpan _maximumReload;
         readonly TimeSpan _minimumReload;
         readonly TimeSpan _minimumRetry;
-        readonly IProgramManager _programManager;
+        readonly IProgramStream _programStream;
         readonly TaskTimer _refreshTimer = new TaskTimer();
         readonly List<ISegment> _segmentList = new List<ISegment>();
         readonly object _segmentLock = new object();
-        readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
-        readonly IWebCacheFactory _webCacheFactory;
-        readonly IWebContentTypeDetector _webContentTypeDetector;
         CancellationTokenSource _abortTokenSource;
         int _dynamicStartIndex;
         int _isDisposed;
@@ -72,28 +64,16 @@ namespace SM.Media.Playlists
         ISegment[] _segments;
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
-        IWebCache _subPlaylistCache;
-        ISubProgram _subProgram;
 
-        public PlaylistSegmentManager(IPlaylistSegmentManagerParameters parameters, IProgramManager programManager, ContentType playlistType,
-            IWebCacheFactory webCacheFactory, Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebContentTypeDetector webContentTypeDetector,
-            CancellationToken cancellationToken)
+        public PlaylistSegmentManager(IProgramStream programStream, ContentType playlistType, CancellationToken cancellationToken)
         {
-            if (null == parameters)
-                throw new ArgumentNullException("parameters");
-            if (null == programManager)
-                throw new ArgumentNullException("programManager");
+            if (null == programStream)
+                throw new ArgumentNullException("programStream");
             if (null == playlistType)
                 throw new ArgumentNullException("playlistType");
-            if (null == parameters.IsDynamicPlaylist)
-                throw new ArgumentException("WebCacheFactory cannot be null", "parameters");
 
-            _webCacheFactory = webCacheFactory;
-            _programManager = programManager;
+            _programStream = programStream;
             _playlistType = playlistType;
-            _segmentsFactory = segmentsFactory;
-            _webContentTypeDetector = webContentTypeDetector;
-            _isDynamicPlaylistPolicy = parameters.IsDynamicPlaylist;
             _cancellationToken = cancellationToken;
 
             var p = PlaylistSettings.Parameters;
@@ -165,6 +145,7 @@ namespace SM.Media.Playlists
                 {
                     cancellationTokenSource = _abortTokenSource;
 
+                    // ReSharper disable once PossiblyMistakenUseOfParamsMethod
                     _abortTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
 
                     oldReadTask = _readTask;
@@ -177,6 +158,9 @@ namespace SM.Media.Playlists
 
             await CleanupReader(oldReadTask, cancellationTokenSource).ConfigureAwait(false);
 
+            if (null != _programStream.Segments && _programStream.Segments.Count > 0)
+                UpdatePlaylist();
+
             var segment = await Playlist.FirstOrDefaultAsync().ConfigureAwait(false);
 
             if (null == segment)
@@ -186,7 +170,7 @@ namespace SM.Media.Playlists
                 throw new FileNotFoundException("Unable to find the first segment");
             }
 
-            ContentType = await _webContentTypeDetector.GetContentTypeAsync(segment.Url, _cancellationToken).ConfigureAwait(false);
+            ContentType = await _programStream.GetContentTypeAsync(_cancellationToken).ConfigureAwait(false);
         }
 
         public Task StopAsync()
@@ -349,247 +333,159 @@ namespace SM.Media.Playlists
             return TplTaskExtensions.CompletedTask;
         }
 
-        async Task<M3U8Parser> FetchPlaylist(IEnumerable<Uri> urls)
-        {
-            foreach (var playlist in urls)
-            {
-                if (null == _subPlaylistCache || _subPlaylistCache.Url != playlist)
-                    _subPlaylistCache = await _webCacheFactory.CreateAsync(playlist).ConfigureAwait(false);
-
-                CancellationToken.ThrowIfCancellationRequested();
-
-                var parsedPlaylist = await _subPlaylistCache.ReadAsync(
-                    bytes =>
-                    {
-                        CancellationToken.ThrowIfCancellationRequested();
-
-                        if (bytes.Length < 1)
-                            return null;
-
-                        var parser = new M3U8Parser();
-
-                        using (var ms = new MemoryStream(bytes))
-                        {
-                            parser.Parse(_subPlaylistCache.RequestUri, ms);
-                        }
-
-                        return parser;
-                    }, CancellationToken)
-                                                            .ConfigureAwait(false);
-
-                if (null != parsedPlaylist)
-                    return parsedPlaylist;
-            }
-
-            return null;
-        }
-
         async Task ReadSubList()
         {
-            Debug.WriteLine("PlaylistSegmentManager.ReadSubList ({0})", DateTimeOffset.Now);
+            Debug.WriteLine("PlaylistSegmentManager.ReadSubList({0})", DateTimeOffset.Now);
 
             try
             {
-                try
+                _refreshTimer.Cancel();
+
+                var start = DateTime.UtcNow;
+
+                await _programStream.RefreshPlaylistAsync(_cancellationToken).ConfigureAwait(false);
+
+                var fetchElapsed = DateTime.UtcNow - start;
+
+                Debug.WriteLine("PlaylistSegmentManager.ReadSubList() refreshed playlist in " + fetchElapsed);
+
+                if (UpdatePlaylist())
                 {
-                    _refreshTimer.Cancel();
+                    _readSubListFailureCount = 0;
 
-                    if (await UpdatePlaylist().ConfigureAwait(false))
+                    if (_isDynamicPlaylist)
                     {
-                        _readSubListFailureCount = 0;
+                        var remaining = TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount);
 
-                        if (_isDynamicPlaylist)
+                        if (remaining < _minimumRetry)
                         {
-                            var remaining = TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount);
+                            Debug.WriteLine("Expiration too short: " + remaining);
 
-                            if (remaining < _minimumRetry)
-                            {
-                                Debug.WriteLine("Expiration too short: " + remaining);
-
-                                remaining = _minimumRetry;
-                            }
-
-                            CancellationToken.ThrowIfCancellationRequested();
-
-                            _refreshTimer.SetTimer(() => _readTask.Fire(), remaining);
+                            remaining = _minimumRetry;
                         }
 
-                        return;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Normal, ignore it.
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
-                }
+                        CancellationToken.ThrowIfCancellationRequested();
 
-                if (++_readSubListFailureCount > 3)
-                {
-                    lock (_segmentLock)
-                    {
-                        _segments = null;
-                        _isDynamicPlaylist = false;
+                        _refreshTimer.SetTimer(() => _readTask.Fire(), remaining);
                     }
 
                     return;
                 }
-
-                // Retry in a little while
-                var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
-
-                delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
-
-                var timeSpan = TimeSpan.FromSeconds(delay);
-
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
-
-                CancellationToken.ThrowIfCancellationRequested();
-
-                _refreshTimer.SetTimer(() => _readTask.Fire(), timeSpan);
             }
-            finally
+            catch (OperationCanceledException)
             {
-                lock (_segmentLock)
-                {
-                    _isInitialized = true;
-                    //_reader = null;
-                }
-            }
-        }
-
-        async Task<ISubProgram> LoadSubProgram()
-        {
-            if (null != _subProgram)
-                return _subProgram;
-
-            ISubProgram subProgram;
-
-            try
-            {
-                var programs = await _programManager.LoadAsync(_cancellationToken).ConfigureAwait(false);
-
-                var program = programs.Values.FirstOrDefault();
-
-                if (null == program)
-                {
-                    Debug.WriteLine("PlaylistSegmentManager.SetMediaSource(): program not found");
-                    throw new FileNotFoundException("Unable to load program");
-                }
-
-                subProgram = PlaylistSegmentManagerFactory.SelectSubProgram(program.SubPrograms);
-
-                if (null == subProgram)
-                {
-                    Debug.WriteLine("PlaylistSegmentManager.SetMediaSource(): no sub programs found");
-                    throw new FileNotFoundException("Unable to load program stream");
-                }
+                // Normal, ignore it.
+                return;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("PlaylistSegmentManager.SetMediaSource(): unable to load playlist: " + ex.Message);
-                throw;
+                Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
             }
 
-            _subProgram = subProgram;
+            if (++_readSubListFailureCount > 3)
+            {
+                lock (_segmentLock)
+                {
+                    _segments = null;
+                    _isDynamicPlaylist = false;
+                }
 
-            return subProgram;
+                return;
+            }
+
+            // Retry in a little while
+            var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
+
+            delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
+
+            var timeSpan = TimeSpan.FromSeconds(delay);
+
+            Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
+
+            CancellationToken.ThrowIfCancellationRequested();
+
+            _refreshTimer.SetTimer(() => _readTask.Fire(), timeSpan);
         }
 
-        async Task<bool> UpdatePlaylist()
+        bool UpdatePlaylist()
         {
-            var programStream = await LoadSubProgram().ConfigureAwait(false);
+            var segments = _programStream.Segments.ToArray();
 
-            var start = DateTime.UtcNow;
+            var isDynamicPlaylist = _programStream.IsDyanmicPlaylist;
 
-            var parser = await FetchPlaylist(programStream.Video.Urls).ConfigureAwait(false);
-
-            var fetchElapsed = DateTime.UtcNow - start;
-
-            if (null == parser)
-            {
-                Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): unable to fetch playlist");
-
-                return false;
-            }
-
-            Url = parser.BaseUrl;
-
-            var segments = _segmentsFactory(parser)
-                .GetPlaylist()
-                .ToArray();
-
-            var segments0 = segments;
-
-            var isDynamicPlayist = _isDynamicPlaylistPolicy(parser);
-
-            Duration = isDynamicPlayist ? null : GetDuration(segments);
+            Duration = isDynamicPlaylist ? null : GetDuration(segments);
 
             lock (_segmentLock)
             {
                 if (!_isRunning)
                     return true;
 
-                var needReload = false;
+                UnlockedUpdatePlaylist(isDynamicPlaylist, segments);
 
-                if (isDynamicPlayist || _dynamicPlaylists.Count > 0)
-                {
-                    var lastPlaylist = _dynamicPlaylists.LastOrDefault();
+                _isDynamicPlaylist = isDynamicPlaylist;
 
-                    if (segments.Length > 0)
-                    {
-                        if (null != lastPlaylist
-                            && lastPlaylist[0].MediaSequence == segments[0].MediaSequence
-                            && (segments[0].MediaSequence.HasValue || lastPlaylist[0].Url == segments[0].Url)
-                            && lastPlaylist.Length == segments.Length)
-                        {
-                            // We are running out of playlist, but the server just gave us the
-                            // same list as last time.
-                            Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
-
-                            var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
-
-                            if (_segmentsExpiration < expiration)
-                                _segmentsExpiration = expiration;
-
-                            needReload = true;
-                        }
-                        else
-                        {
-                            _dynamicPlaylists.Add(segments);
-
-                            if (_dynamicPlaylists.Count > 4)
-                                _dynamicPlaylists.RemoveAt(0);
-                        }
-                    }
-
-                    if (!needReload)
-                    {
-                        segments = ResyncSegments();
-
-                        if (isDynamicPlayist)
-                            UpdateDynamicPlaylistExpiration(segments0);
-                    }
-                }
-
-                if (!needReload)
-                    _segments = segments;
-
-                _isDynamicPlaylist = isDynamicPlayist;
+                _isInitialized = true;
             }
 
-            Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries in {2}. index: {3} dynamic: {4} expires: {5} ({6})",
-                parser.BaseUrl, _segments.Length, fetchElapsed, _startSegmentIndex, isDynamicPlayist,
-                isDynamicPlayist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
+            Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries. index: {2} dynamic: {3} expires: {4} ({5})",
+                _programStream.ActualUrl, _segments.Length, _startSegmentIndex, isDynamicPlaylist,
+                isDynamicPlaylist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                 DateTimeOffset.Now);
 
             // Is a race possible between our just-completed reload and the
             // reader's CheckReload?  (The expiration timer handles this...?)
 
             return true;
+        }
+
+        void UnlockedUpdatePlaylist(bool isDynamicPlaylist, ISegment[] segments)
+        {
+            var segments0 = segments;
+
+            var needReload = false;
+
+            if (isDynamicPlaylist || _dynamicPlaylists.Count > 0)
+            {
+                var lastPlaylist = _dynamicPlaylists.LastOrDefault();
+
+                if (segments.Length > 0)
+                {
+                    if (null != lastPlaylist
+                        && lastPlaylist[0].MediaSequence == segments[0].MediaSequence
+                        && (segments[0].MediaSequence.HasValue || lastPlaylist[0].Url == segments[0].Url)
+                        && lastPlaylist.Length == segments.Length)
+                    {
+                        // We are running out of playlist, but the server just gave us the
+                        // same list as last time.
+                        Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
+
+                        var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
+
+                        if (_segmentsExpiration < expiration)
+                            _segmentsExpiration = expiration;
+
+                        needReload = true;
+                    }
+                    else
+                    {
+                        _dynamicPlaylists.Add(segments);
+
+                        if (_dynamicPlaylists.Count > 4)
+                            _dynamicPlaylists.RemoveAt(0);
+                    }
+                }
+
+                if (!needReload)
+                {
+                    segments = ResyncSegments();
+
+                    if (isDynamicPlaylist)
+                        UpdateDynamicPlaylistExpiration(segments0);
+                }
+            }
+
+            if (!needReload)
+                _segments = segments;
         }
 
         ISegment[] ResyncSegments()

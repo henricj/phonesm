@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SimpleSubProgram.cs" company="Henric Jungheim">
+//  <copyright file="PlaylistSubProgram.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,65 +26,44 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
-    class SimpleSubProgram : SubProgram, IProgramStream
+    public class PlaylistSubProgram : SubProgram
     {
-        static readonly IProgramStream[] NoStreams = new IProgramStream[0];
-        readonly Uri[] _playlistUrl;
-        readonly ICollection<ISegment> _segments = new List<ISegment>();
+        readonly IProgramStream _video;
 
-        public SimpleSubProgram(IProgram program, Uri playlistUrl)
+        public PlaylistSubProgram(IProgram program, IProgramStream video)
             : base(program)
         {
-            _playlistUrl = new[] { playlistUrl };
+            _video = video;
         }
 
-        public ICollection<ISegment> Segments
-        {
-            get { return _segments; }
-        }
+        public Uri Playlist { get; set; }
 
         public override IProgramStream Audio
         {
-            get { return this; }
+            get { throw new NotImplementedException(); }
         }
 
         public override IProgramStream Video
         {
-            get { return this; }
+            get { return _video; }
         }
 
         public override ICollection<IProgramStream> AlternateAudio
         {
-            get { return NoStreams; }
+            get { throw new NotImplementedException(); }
         }
 
         public override ICollection<IProgramStream> AlternateVideo
         {
-            get { return NoStreams; }
+            get { throw new NotImplementedException(); }
         }
 
-        #region IProgramStream Members
-
-        public string StreamType
+        public override string ToString()
         {
-            get { return "unknown"; }
+            return string.Format("{0} {1}", null == Playlist ? "<none>" : Playlist.ToString(), base.ToString());
         }
-
-        public string Language
-        {
-            get { return CultureInfo.InvariantCulture.TwoLetterISOLanguageName; }
-        }
-
-        public ICollection<Uri> Urls
-        {
-            get { return _playlistUrl; }
-        }
-
-        #endregion
     }
 }

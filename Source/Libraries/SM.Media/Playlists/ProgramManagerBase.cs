@@ -34,18 +34,22 @@ namespace SM.Media.Playlists
 {
     public class ProgramManagerBase
     {
-        protected readonly IHttpClients HttpClients;
         readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
+        readonly IWebCacheFactory _webCacheFactory;
+        readonly IWebContentTypeDetector _webContentTypeDetector;
 
-        protected ProgramManagerBase(IHttpClients httpClients, Func<M3U8Parser, IStreamSegments> segmentsFactory)
+        protected ProgramManagerBase(Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebCacheFactory webCacheFactory, IWebContentTypeDetector webContentTypeDetector)
         {
-            if (httpClients == null)
-                throw new ArgumentNullException("httpClients");
-            if (segmentsFactory == null)
+            if (null == segmentsFactory)
                 throw new ArgumentNullException("segmentsFactory");
+            if (null == webCacheFactory)
+                throw new ArgumentNullException("webCacheFactory");
+            if (null == webContentTypeDetector)
+                throw new ArgumentNullException("webContentTypeDetector");
 
-            HttpClients = httpClients;
             _segmentsFactory = segmentsFactory;
+            _webCacheFactory = webCacheFactory;
+            _webContentTypeDetector = webContentTypeDetector;
         }
 
         protected IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
@@ -71,9 +75,7 @@ namespace SM.Media.Playlists
             }
 
             var programs = new Dictionary<long, Program>();
-            SimpleSubProgram mediaSegments = null;
-
-            var streamSegments = _segmentsFactory(parser);
+            var hasSegments = false;
 
             foreach (var p in parser.Playlist)
             {
@@ -101,23 +103,14 @@ namespace SM.Media.Playlists
 
                     var bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth);
 
-                    Program program;
+                    var programUrl = parser.BaseUrl;
 
-                    if (!programs.TryGetValue(programId, out program))
-                    {
-                        program = new Program
-                                  {
-                                      PlaylistUrl = parser.BaseUrl,
-                                      ProgramId = programId
-                                  };
+                    var program = GetProgram(programs, programId, programUrl);
 
-                        programs[programId] = program;
-                    }
-
-                    var subProgram = new PlaylistSubProgramBase(program, new ProgramStream
-                                                                         {
-                                                                             Urls = new[] { playlistUrl }
-                                                                         })
+                    var subProgram = new PlaylistSubProgram(program, new ProgramStream(_segmentsFactory, _webCacheFactory, _webContentTypeDetector)
+                                                                     {
+                                                                         Urls = new[] { playlistUrl }
+                                                                     })
                                      {
                                          Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
                                          Playlist = playlistUrl,
@@ -127,29 +120,40 @@ namespace SM.Media.Playlists
                     program.SubPrograms.Add(subProgram);
                 }
                 else
-                {
-                    if (null == mediaSegments)
-                    {
-                        var program = new Program
-                                      {
-                                          PlaylistUrl = parser.BaseUrl,
-                                          ProgramId = long.MinValue
-                                      };
+                    hasSegments = true;
+            }
 
-                        programs[program.ProgramId] = program;
+            if (hasSegments)
+            {
+                var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
-                        mediaSegments = new SimpleSubProgram(program, parser.BaseUrl);
+                var subProgram = new PlaylistSubProgram(program, new ProgramStream(_segmentsFactory, _webCacheFactory, _webContentTypeDetector, parser)
+                                                                 {
+                                                                     Urls = new[] { playlist }
+                                                                 });
 
-                        program.SubPrograms.Add(mediaSegments);
-                    }
-
-                    var segment = streamSegments.CreateStreamSegment(p);
-
-                    mediaSegments.Segments.Add(segment);
-                }
+                program.SubPrograms.Add(subProgram);
             }
 
             return programs;
+        }
+
+        static Program GetProgram(IDictionary<long, Program> programs, long programId, Uri programUrl)
+        {
+            Program program;
+
+            if (!programs.TryGetValue(programId, out program))
+            {
+                program = new Program
+                          {
+                              PlaylistUrl = programUrl,
+                              ProgramId = programId
+                          };
+
+                programs[programId] = program;
+            }
+
+            return program;
         }
 
         public void Dispose()

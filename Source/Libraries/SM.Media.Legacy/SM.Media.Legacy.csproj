@@ -385,14 +385,14 @@
     <Compile Include="..\SM.Media\Playlists\IStreamSegments.cs">
       <Link>Playlists\IStreamSegments.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistDefaults.cs">
+      <Link>Playlists\PlaylistDefaults.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistParameters.cs">
       <Link>Playlists\PlaylistParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManager.cs">
       <Link>Playlists\PlaylistSegmentManager.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerDefaults.cs">
-      <Link>Playlists\PlaylistSegmentManagerDefaults.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerFactory.cs">
       <Link>Playlists\PlaylistSegmentManagerFactory.cs</Link>
@@ -400,11 +400,20 @@
     <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerParameters.cs">
       <Link>Playlists\PlaylistSegmentManagerParameters.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerPolicy.cs">
+      <Link>Playlists\PlaylistSegmentManagerPolicy.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSettings.cs">
       <Link>Playlists\PlaylistSettings.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\PlaylistSubProgram.cs">
+      <Link>Playlists\PlaylistSubProgram.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\ProgramManager.cs">
       <Link>Playlists\ProgramManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Playlists\ProgramStream.cs">
+      <Link>Playlists\ProgramStream.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\SegmentsFactory.cs">
       <Link>Playlists\SegmentsFactory.cs</Link>
@@ -591,9 +600,6 @@
     <Compile Include="..\SM.Media\Pes\PesStreamHandler.cs">
       <Link>Pes\PesStreamHandler.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSubProgramBase.cs">
-      <Link>Playlists\PlaylistSubProgramBase.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSubStream.cs">
       <Link>Playlists\PlaylistSubStream.cs</Link>
     </Compile>
@@ -602,9 +608,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Playlists\ProgramManagerBase.cs">
       <Link>Playlists\ProgramManagerBase.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\SimpleSubProgram.cs">
-      <Link>Playlists\SimpleSubProgram.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\SubProgram.cs">
       <Link>Playlists\SubProgram.cs</Link>

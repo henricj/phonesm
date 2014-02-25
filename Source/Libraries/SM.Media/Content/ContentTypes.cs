@@ -39,8 +39,9 @@ namespace SM.Media.Content
         public static readonly ContentType Pls = new ContentType("PLS", ContentKind.Playlist, ".pls", "audio/x-scpls");
         public static readonly ContentType H262 = new ContentType("H.262/MPEG-2", ContentKind.Video, ".mpg", "video/mpeg");
         public static readonly ContentType H264 = new ContentType("H.264/MPEG-4", ContentKind.Video, ".mp4", "video/mp4");
+        public static readonly ContentType Html = new ContentType("HTML", ContentKind.Other, ".html", "text/html", new[] { "application/xhtml+xml" });
 
-        static readonly ContentType[] AllContentTypes = { Mp3, Aac, Ac3, TransportStream, M3U8, M3U, Pls, H262, H264 };
+        static readonly ContentType[] AllContentTypes = { Mp3, Aac, Ac3, TransportStream, M3U8, M3U, Pls, H262, H264, Html };
 
         public static IEnumerable<ContentType> AllTypes
         {

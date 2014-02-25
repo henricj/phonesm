@@ -464,6 +464,8 @@ namespace SM.Media
                 exception = new AggregateException(ex.Message, ex);
             }
 
+            _playbackCancellationTokenSource.Cancel();
+
             if (null == _readers && null != readerTasks)
             {
                 // Clean up any stragglers.
@@ -535,7 +537,11 @@ namespace SM.Media
             var contentType = reader.SegmentReaders.Manager.ContentType;
 
             if (null == contentType)
-                throw new NotSupportedException("Unknown content type");
+            {
+                Debug.WriteLine("TsMediaManager.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
+
+                contentType = ContentTypes.TransportStream;
+            }
 
             await InitializeMediaParser(reader, contentType).ConfigureAwait(false);
 
@@ -693,44 +699,58 @@ namespace SM.Media
 
         async Task<TimeSpan> SeekAsync(TimeSpan position)
         {
-            if (IsSeekInRange(position))
-                return position;
+            if (_playbackCancellationTokenSource.IsCancellationRequested)
+                return TimeSpan.MinValue;
 
-            foreach (var reader in _readers)
+            try
             {
-                reader.QueueWorker.IsEnabled = false;
-                reader.MediaParser.EnableProcessing = false;
-            }
+                if (IsSeekInRange(position))
+                    return position;
 
-            var stopReaderTasks = _readers.Select(
-                async r =>
+                foreach (var reader in _readers)
                 {
-                    await r.CallbackReader.StopAsync().ConfigureAwait(false);
-                    await r.QueueWorker.ClearAsync().ConfigureAwait(false);
-                });
+                    reader.QueueWorker.IsEnabled = false;
+                    reader.MediaParser.EnableProcessing = false;
+                }
 
-            await TaskEx.WhenAll(stopReaderTasks).ConfigureAwait(false);
+                var stopReaderTasks = _readers.Select(
+                    async r =>
+                    {
+                        await r.CallbackReader.StopAsync().ConfigureAwait(false);
+                        await r.QueueWorker.ClearAsync().ConfigureAwait(false);
+                    });
 
-            foreach (var reader in _readers)
+                await TaskEx.WhenAll(stopReaderTasks).ConfigureAwait(false);
+
+                foreach (var reader in _readers)
+                {
+                    reader.MediaParser.FlushBuffers();
+                    reader.BufferingManager.Flush();
+
+                    reader.MediaParser.EnableProcessing = true;
+                    reader.QueueWorker.IsEnabled = true;
+                }
+
+                State = MediaState.Seeking;
+
+                var actualPosition = await _readerManager.SeekAsync(position, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
+
+                StartReaders();
+
+                return actualPosition;
+            }
+            catch (Exception ex)
             {
-                reader.MediaParser.FlushBuffers();
-                reader.BufferingManager.Flush();
-
-                reader.MediaParser.EnableProcessing = true;
-                reader.QueueWorker.IsEnabled = true;
+                Debug.WriteLine("TsMediaManager.SeekAsync() failed: " + ex.Message);
             }
 
-            State = MediaState.Seeking;
-
-            var actualPosition = await _readerManager.SeekAsync(position, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
-
-            StartReaders();
-
-            return actualPosition;
+            return TimeSpan.MinValue;
         }
 
         Task<TReturn> StartWorkAsync<TReturn>(Func<Task<TReturn>> func, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var tcs = new TaskCompletionSource<TReturn>();
 
             _asyncFifoWorker.PostAsync(() =>

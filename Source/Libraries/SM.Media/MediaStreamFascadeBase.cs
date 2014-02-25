@@ -61,6 +61,7 @@ namespace SM.Media
     public class MediaStreamFascadeBase : IMediaStreamFascade
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
+        readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
         readonly IBuilder<IMediaManager> _mediaManagerBuilder;
         readonly Func<IMediaStreamSource, Task> _setSourceAsync;
         int _isDisposed;
@@ -99,6 +100,8 @@ namespace SM.Media
             get { return _source; }
             set
             {
+                ThrowIfDisposed();
+
                 if (value == null)
                     Post(CloseMediaAsync);
                 else if (value.IsAbsoluteUri)
@@ -116,6 +119,8 @@ namespace SM.Media
             get { return null == _mediaManager ? null : _mediaManager.SeekTarget; }
             set
             {
+                ThrowIfDisposed();
+
                 if (null == _mediaManager)
                     return;
 
@@ -145,12 +150,16 @@ namespace SM.Media
         {
             Debug.WriteLine("MediaStreamFascade.Play()");
 
+            ThrowIfDisposed();
+
             Post(StartPlaybackAsync);
         }
 
         public void RequestStop()
         {
             Debug.WriteLine("MediaStreamFascade.Stop()");
+
+            ThrowIfDisposed();
 
             Post(CloseMediaAsync);
         }
@@ -159,15 +168,28 @@ namespace SM.Media
         {
             Debug.WriteLine("MediaStreamFascade.CloseAsync()");
 
-            return _asyncFifoWorker.PostAsync(CloseMediaAsync);
+            ThrowIfDisposed();
+
+            _disposeCancellationTokenSource.Cancel();
+
+            return _asyncFifoWorker.PostAsync(CloseMediaAsync, CancellationToken.None);
         }
 
         #endregion
+
+        void ThrowIfDisposed()
+        {
+            if (0 != _isDisposed)
+                throw new ObjectDisposedException(GetType().Name);
+        }
 
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing)
                 return;
+
+            if (!_disposeCancellationTokenSource.IsCancellationRequested)
+                _disposeCancellationTokenSource.Cancel();
 
             StateChange = null;
 
@@ -176,6 +198,8 @@ namespace SM.Media
             _mediaManagerBuilder.DisposeSafe();
 
             _asyncFifoWorker.Dispose();
+
+            _disposeCancellationTokenSource.Dispose();
         }
 
         void CleanupMediaManager()
@@ -194,7 +218,7 @@ namespace SM.Media
 
         void Post(Func<Task> work)
         {
-            _asyncFifoWorker.Post(work);
+            _asyncFifoWorker.Post(work, _disposeCancellationTokenSource.Token);
         }
 
         async Task SetMediaSourceAsync(Uri source)

@@ -36,7 +36,7 @@ namespace SM.Media.Utility
     {
         readonly object _lock = new object();
         readonly SignalTask _signalTask;
-        readonly Queue<Func<Task>> _workQueue = new Queue<Func<Task>>();
+        readonly Queue<WorkHandle> _workQueue = new Queue<WorkHandle>();
         bool _isClosed;
 
         public AsyncFifoWorker(CancellationToken cancellationToken)
@@ -58,6 +58,24 @@ namespace SM.Media.Utility
 
             using (_signalTask)
             { }
+
+            WorkHandle[] workQueue;
+
+            lock (_lock)
+            {
+                workQueue = _workQueue.ToArray();
+                _workQueue.Clear();
+            }
+
+            foreach (var work in workQueue)
+            {
+                work.CancellationTokenRegistration.Dispose();
+
+                var tcs = work.TaskCompletionSource;
+
+                if (null != tcs)
+                    tcs.TrySetCanceled();
+            }
         }
 
         #endregion
@@ -66,7 +84,7 @@ namespace SM.Media.Utility
         {
             for (; ; )
             {
-                Func<Task> work;
+                WorkHandle work;
 
                 lock (_lock)
                 {
@@ -76,31 +94,83 @@ namespace SM.Media.Utility
                     work = _workQueue.Dequeue();
                 }
 
+                work.CancellationTokenRegistration.Dispose();
+
+                var tcs = work.TaskCompletionSource;
+
                 try
                 {
-                    await work().ConfigureAwait(false);
+                    await work.Work().ConfigureAwait(false);
+
+                    if (null != tcs)
+                        tcs.TrySetResult(true);
                 }
                 catch (OperationCanceledException)
-                { }
+                {
+                    if (null != tcs)
+                        tcs.TrySetCanceled();
+                }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("AsyncFifoWorker.Worker() work should not throw exceptions: " + ex.ExtendedMessage());
+                    if (null != tcs)
+                        tcs.TrySetException(ex);
+                    else
+                        Debug.WriteLine("AsyncFifoWorker.Worker() work should not throw exceptions: " + ex.ExtendedMessage());
                 }
+
+                work.Dispose();
             }
         }
 
-        public void Post(Func<Task> workFunc)
+        void RemoveWork(object workObject)
+        {
+            var work = (WorkHandle)workObject;
+
+            lock (_lock)
+            {
+                if (!_workQueue.Remove(work))
+                    return;
+            }
+
+            work.Dispose();
+        }
+
+        public void Post(Func<Task> workFunc, CancellationToken cancellationToken)
+        {
+            PostWork(workFunc, false, cancellationToken);
+        }
+
+        public Task PostAsync(Func<Task> workFunc, CancellationToken cancellationToken)
+        {
+            var work = PostWork(workFunc, true, cancellationToken);
+
+            return work.TaskCompletionSource.Task;
+        }
+
+        WorkHandle PostWork(Func<Task> workFunc, bool createTcs, CancellationToken cancellationToken)
         {
             if (workFunc == null)
                 throw new ArgumentNullException("workFunc");
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            WorkHandle work;
 
             lock (_lock)
             {
                 if (_isClosed)
                     throw new InvalidOperationException("AsyncFifoWorker is closed");
 
-                _workQueue.Enqueue(workFunc);
+                work = new WorkHandle
+                       {
+                           Work = workFunc,
+                           TaskCompletionSource = createTcs ? new TaskCompletionSource<bool>() : null
+                       };
+
+                _workQueue.Enqueue(work);
             }
+
+            work.CancellationTokenRegistration = cancellationToken.Register(RemoveWork, work);
 
             try
             {
@@ -108,17 +178,15 @@ namespace SM.Media.Utility
             }
             catch (ObjectDisposedException)
             {
-                Func<Task>[] pendingWork;
-                lock (_lock)
-                {
-                    pendingWork = _workQueue.ToArray();
-                }
+                RemoveWork(work);
 
-                if (pendingWork.Length > 0)
-                    Debug.WriteLine("AsyncFifoWorker.Post() object disposed but there are still {0} pending", pendingWork.Length);
+                if (_workQueue.Count > 0)
+                    Debug.WriteLine("AsyncFifoWorker.Post() object disposed but there are still {0} pending", _workQueue.Count);
 
                 throw;
             }
+
+            return work;
         }
 
         public Task CloseAsync()
@@ -140,31 +208,45 @@ namespace SM.Media.Utility
 
             return true;
         }
+
+        #region Nested type: WorkHandle
+
+        sealed class WorkHandle : IDisposable
+        {
+            public CancellationTokenRegistration CancellationTokenRegistration;
+            public TaskCompletionSource<bool> TaskCompletionSource;
+            public Func<Task> Work;
+
+            #region IDisposable Members
+
+            public void Dispose()
+            {
+                CancellationTokenRegistration.Dispose();
+
+                if (null != TaskCompletionSource)
+                    TaskCompletionSource.TrySetCanceled();
+            }
+
+            #endregion
+        }
+
+        #endregion
     }
 
     public static class AsyncFifoWorkerExtensions
     {
-        public static void Post(this AsyncFifoWorker worker, Action action)
+        public static void Post(this AsyncFifoWorker worker, Action action, CancellationToken cancellationToken)
         {
             worker.Post(() =>
                         {
                             action();
                             return TplTaskExtensions.CompletedTask;
-                        });
+                        }, cancellationToken);
         }
 
-        public static void Post(this AsyncFifoWorker worker, Task work)
+        public static void Post(this AsyncFifoWorker worker, Task work, CancellationToken cancellationToken)
         {
-            worker.Post(() => work);
-        }
-
-        public static Task PostAsync(this AsyncFifoWorker worker, Func<Task> workFunc)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-
-            worker.Post(() => workFunc().ContinueWith(t => tcs.TrySetResult(true)));
-
-            return tcs.Task;
+            worker.Post(() => work, cancellationToken);
         }
     }
 }

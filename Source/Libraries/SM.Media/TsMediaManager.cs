@@ -195,7 +195,7 @@ namespace SM.Media
                                       State = MediaState.OpenMedia;
 
                                       return OpenMediaAsync();
-                                  });
+                                  }, _closeCancellationTokenSource.Token);
         }
 
         public void CloseMedia()
@@ -211,7 +211,7 @@ namespace SM.Media
             // at return is what the caller asked for (closed).
             try
             {
-                _asyncFifoWorker.Post(CloseAsync);
+                _asyncFifoWorker.Post(CloseAsync, CancellationToken.None);
             }
             catch (OperationCanceledException ex)
             {
@@ -223,13 +223,17 @@ namespace SM.Media
             }
         }
 
-        public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
+        public async Task<TimeSpan> SeekMediaAsync(TimeSpan position)
         {
             Debug.WriteLine("TsMediaManager.SeekMediaAsync({0})", position);
 
             var token = _playbackCancellationTokenSource.Token;
 
-            return StartWorkAsync(() => SeekAsync(position), token);
+            TimeSpan actualPosition;
+
+            await _asyncFifoWorker.PostAsync(async () => actualPosition = await SeekAsync(position).ConfigureAwait(false), token).ConfigureAwait(false);
+
+            return actualPosition;
         }
 
         public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
@@ -554,7 +558,7 @@ namespace SM.Media
 
             var mediaParserParameters = new MediaParserParameters(reader.BufferingManager, _mediaStreamSource.CheckForSamples);
 
-            var mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, CancellationToken.None).ConfigureAwait(false);
+            var mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
             if (null == mediaParser)
                 throw new NotSupportedException("Unsupported content type: " + contentType);
@@ -745,32 +749,6 @@ namespace SM.Media
             }
 
             return TimeSpan.MinValue;
-        }
-
-        Task<TReturn> StartWorkAsync<TReturn>(Func<Task<TReturn>> func, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var tcs = new TaskCompletionSource<TReturn>();
-
-            _asyncFifoWorker.PostAsync(() =>
-                                       {
-                                           var task = func();
-
-                                           task.ContinueWith(t =>
-                                                             {
-                                                                 if (t.IsCanceled)
-                                                                     tcs.TrySetCanceled();
-                                                                 else if (t.IsFaulted)
-                                                                     tcs.TrySetException(t.Exception);
-                                                                 else
-                                                                     tcs.TrySetResult(t.Result);
-                                                             }, cancellationToken);
-
-                                           return task;
-                                       });
-
-            return tcs.Task;
         }
 
         #region Nested type: ReaderPipeline

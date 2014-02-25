@@ -43,6 +43,7 @@ namespace SimulatedPlayer
         readonly ISimulatedMediaElement _mediaElement;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
         readonly object _stateLock = new object();
+        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         bool _isClosed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         int _pendingRequests;
@@ -59,8 +60,13 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
+            if (!_cancellationTokenSource.IsCancellationRequested)
+                _cancellationTokenSource.Cancel();
+
             using (_asyncFifoWorker)
             { }
+
+            _cancellationTokenSource.Dispose();
         }
 
         public IMediaManager MediaManager { get; set; }
@@ -136,13 +142,20 @@ namespace SimulatedPlayer
                     if (_isClosed)
                         return;
 
-                    var position = await mediaManager.SeekMediaAsync(seekTimestamp).ConfigureAwait(false);
+                    try
+                    {
+                        var position = await mediaManager.SeekMediaAsync(seekTimestamp).ConfigureAwait(false);
 
-                    if (_isClosed)
-                        return;
+                        if (_isClosed)
+                            return;
 
-                    ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
-                    _mediaElement.ReportSeekCompleted(position.Ticks);
+                        ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                        _mediaElement.ReportSeekCompleted(position.Ticks);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("SimulatedMediaStreamSource.SeekAsync() failed: " + ex.Message);
+                    }
 
                     lock (_stateLock)
                     {
@@ -150,8 +163,8 @@ namespace SimulatedPlayer
                     }
 
                     if (0 != _pendingRequests)
-                        _asyncFifoWorker.Post(HandleSamples);
-                });
+                        _asyncFifoWorker.Post(HandleSamples, _cancellationTokenSource.Token);
+                }, _cancellationTokenSource.Token);
         }
 
         public void GetSampleAsync(int streamType)
@@ -162,7 +175,7 @@ namespace SimulatedPlayer
 
             RequestGet(streamType);
 
-            _asyncFifoWorker.Post(HandleSamples);
+            _asyncFifoWorker.Post(HandleSamples, _cancellationTokenSource.Token);
         }
 
         public void CloseMedia()
@@ -188,7 +201,7 @@ namespace SimulatedPlayer
         public void CheckForSamples()
         {
             if (0 != _pendingRequests)
-                _asyncFifoWorker.Post(HandleSamples);
+                _asyncFifoWorker.Post(HandleSamples, _cancellationTokenSource.Token);
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)

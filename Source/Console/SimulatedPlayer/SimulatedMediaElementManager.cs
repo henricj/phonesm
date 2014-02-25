@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.MediaParser;
@@ -39,6 +40,7 @@ namespace SimulatedPlayer
     sealed class SimulatedMediaElementManager : IMediaElementManager, ISimulatedMediaElement, IDisposable
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
+        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
         // _mediaStreamFsm must not be readonly.  Member functions would then operate on *copies* of the value
         // rather than this field (since it is a value type).
@@ -56,8 +58,13 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
+            if (!_cancellationTokenSource.IsCancellationRequested)
+                _cancellationTokenSource.Cancel();
+
             using (_asyncFifoWorker)
             { }
+
+            _cancellationTokenSource.Dispose();
         }
 
         #endregion
@@ -72,7 +79,7 @@ namespace SimulatedPlayer
 
             _mediaStreamSource = (ISimulatedMediaStreamSource)source;
 
-            _asyncFifoWorker.Post(OpenMediaAsync);
+            _asyncFifoWorker.Post(OpenMediaAsync, _cancellationTokenSource.Token);
 
             return TplTaskExtensions.CompletedTask;
         }
@@ -97,7 +104,7 @@ namespace SimulatedPlayer
         {
             Debug.WriteLine("SimulatedMediaElementManager.ReportOpenMediaCompleted()");
 
-            _asyncFifoWorker.Post(PlayMediaAsync);
+            _asyncFifoWorker.Post(PlayMediaAsync, _cancellationTokenSource.Token);
         }
 
         public void ReportSeekCompleted(long ticks)
@@ -188,7 +195,7 @@ namespace SimulatedPlayer
         {
             Debug.WriteLine("SimulatedMediaElement.ErrorOccurred({0})", (object)message);
 
-            var task = CloseAsync();
+            var task = Task.Run((Func<Task>)CloseAsync);
 
             TaskCollector.Default.Add(task, "SimulatedMediaElement.ErrorOccurred");
         }
@@ -271,7 +278,7 @@ namespace SimulatedPlayer
 
         public void Play()
         {
-            _asyncFifoWorker.Post(PlayAsync);
+            _asyncFifoWorker.Post(PlayAsync, _cancellationTokenSource.Token);
         }
 
         #region Nested type: SampleState

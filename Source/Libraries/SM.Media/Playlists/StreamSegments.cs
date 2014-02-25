@@ -41,7 +41,6 @@ namespace SM.Media.Playlists
 {
     public interface IStreamSegments
     {
-        ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri);
         ICollection<ISegment> GetPlaylist();
     }
 
@@ -75,7 +74,20 @@ namespace SM.Media.Playlists
 
         #region IStreamSegments Members
 
-        public virtual ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri)
+        public ICollection<ISegment> GetPlaylist()
+        {
+            if (null == _playlist)
+            {
+                _playlist = _parser.Playlist.Select(CreateStreamSegment)
+                                   .ToArray();
+            }
+
+            return _playlist;
+        }
+
+        #endregion
+
+        protected virtual ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri)
         {
             var url = _parser.ResolveUrl(uri.Uri);
 
@@ -107,19 +119,6 @@ namespace SM.Media.Playlists
 
             return segment;
         }
-
-        public ICollection<ISegment> GetPlaylist()
-        {
-            if (null == _playlist)
-            {
-                _playlist = _parser.Playlist.Select(CreateStreamSegment)
-                                   .ToArray();
-            }
-
-            return _playlist;
-        }
-
-        #endregion
 
         void HandleByteRange(SubStreamSegment segment, ByterangeTagInstance byteRange)
         {

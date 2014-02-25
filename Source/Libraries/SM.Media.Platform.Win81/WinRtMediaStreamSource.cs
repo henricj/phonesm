@@ -35,6 +35,7 @@ using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.TsParser;
+using Buffer = Windows.Storage.Streams.Buffer;
 
 namespace SM.Media
 {
@@ -246,9 +247,7 @@ namespace SM.Media
                 mssHandler(mss);
             }
             else
-            {
                 Debug.WriteLine("WinRtMediaStreamSource.CompleteConfigure() no handler found");
-            }
         }
 
         public Task WaitDrain()
@@ -490,7 +489,18 @@ namespace SM.Media
 
                     var presentationTimestamp = _streamSource.PresentationTimestamp;
 
+#if WORKING_PROCESSED_EVENT
                     var packetBuffer = packet.Buffer.AsBuffer(packet.Index, packet.Length);
+#else
+                    // Make a copy of the buffer since Sample.Processed doesn't always seem to
+                    // get called.
+                    var packetBuffer = new Buffer((uint)packet.Length)
+                                       {
+                                           Length = (uint)packet.Length
+                                       };
+
+                    packet.Buffer.CopyTo(packet.Index, packetBuffer, 0, packet.Length);
+#endif
 
                     var mediaStreamSample = MediaStreamSample.CreateFromBuffer(packetBuffer, presentationTimestamp);
 
@@ -508,12 +518,14 @@ namespace SM.Media
 
                     request.Sample = mediaStreamSample;
 
+#if WORKING_PROCESSED_EVENT
                     var localPacket = packet;
 
                     request.Sample.Processed += (sender, args) => _streamSource.FreeSample(localPacket);
 
                     // Prevent the .FreeSample() below from freeing this packet.
                     packet = null;
+#endif
 
                     return true;
                 }

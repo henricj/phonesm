@@ -37,6 +37,24 @@ using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
+    public interface IProgramStream
+    {
+        string StreamType { get; }
+        string Language { get; }
+
+        /// <summary>
+        ///     A list of URLs representing the same data.  They are provided in order of preference.
+        /// </summary>
+        ICollection<Uri> Urls { get; }
+
+        Uri ActualUrl { get; }
+        bool IsDyanmicPlaylist { get; }
+        ICollection<ISegment> Segments { get; }
+
+        Task RefreshPlaylistAsync(CancellationToken cancellationToken);
+        Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken);
+    }
+
     public class ProgramStream : IProgramStream
     {
         static readonly ISegment[] NoPlaylist = new ISegment[0];

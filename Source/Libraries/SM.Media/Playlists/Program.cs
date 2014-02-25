@@ -26,49 +26,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using SM.Media.Content;
-using SM.Media.Segments;
 
 namespace SM.Media.Playlists
 {
-    public interface IProgramStream
-    {
-        string StreamType { get; }
-        string Language { get; }
-
-        /// <summary>
-        ///     A list of URLs representing the same data.  They are provided in order of preference.
-        /// </summary>
-        ICollection<Uri> Urls { get; }
-
-        Uri ActualUrl { get; }
-        bool IsDyanmicPlaylist { get; }
-        ICollection<ISegment> Segments { get; }
-
-        Task RefreshPlaylistAsync(CancellationToken cancellationToken);
-        Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken);
-    }
-
-    public interface ISubProgram
-    {
-        IProgram Program { get; }
-
-        int? Height { get; }
-        int? Width { get; }
-
-        TimeSpan? Duration { get; }
-
-        long Bandwidth { get; }
-
-        IProgramStream Audio { get; }
-        IProgramStream Video { get; }
-
-        ICollection<IProgramStream> AlternateAudio { get; }
-        ICollection<IProgramStream> AlternateVideo { get; }
-    }
-
     public interface IProgram
     {
         Uri PlaylistUrl { get; }

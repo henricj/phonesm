@@ -157,8 +157,6 @@
     <Compile Include="MP3\Mp3Parser.cs" />
     <Compile Include="NullMediaElementManager.cs" />
     <Compile Include="Buffering\NullBufferingManager.cs" />
-    <Compile Include="Playlists\IProgramManager.cs" />
-    <Compile Include="Playlists\IStreamSegments.cs" />
     <Compile Include="Playlists\PlaylistParameters.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />
     <Compile Include="Playlists\PlaylistSegmentManagerFactory.cs" />

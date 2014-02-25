@@ -36,6 +36,13 @@ using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
+    public interface IProgramManager : IDisposable
+    {
+        ICollection<Uri> Playlists { get; }
+
+        Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken);
+    }
+
     public class ProgramManager : ProgramManagerBase, IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();

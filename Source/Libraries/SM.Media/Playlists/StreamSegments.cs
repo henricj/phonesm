@@ -39,6 +39,12 @@ using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
+    public interface IStreamSegments
+    {
+        ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri);
+        ICollection<ISegment> GetPlaylist();
+    }
+
     public class StreamSegments : IStreamSegments
     {
         const string MethodAes = "AES-128";

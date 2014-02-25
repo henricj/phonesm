@@ -167,6 +167,11 @@ namespace SM.Media.M3U8
         {
             public M3U8TagInstance[] Tags;
             public string Uri;
+
+            public override string ToString()
+            {
+                return Uri;
+            }
         }
 
         #endregion

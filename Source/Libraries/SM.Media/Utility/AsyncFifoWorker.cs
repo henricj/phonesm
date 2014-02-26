@@ -68,14 +68,7 @@ namespace SM.Media.Utility
             }
 
             foreach (var work in workQueue)
-            {
-                work.CancellationTokenRegistration.Dispose();
-
-                var tcs = work.TaskCompletionSource;
-
-                if (null != tcs)
-                    tcs.TrySetCanceled();
-            }
+                work.Dispose();
         }
 
         #endregion

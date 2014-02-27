@@ -34,7 +34,7 @@ namespace SM.Media.Content
 {
     public interface IContentTypeDetector
     {
-        IEnumerable<ContentType> GetContentType(Uri url, HttpContentHeaders headers = null);
+        ICollection<ContentType> GetContentType(Uri url, HttpContentHeaders headers = null);
     }
 
     public class ContentTypeDetector : IContentTypeDetector
@@ -81,11 +81,11 @@ namespace SM.Media.Content
 
         #region IContentTypeDetector Members
 
-        public virtual IEnumerable<ContentType> GetContentType(Uri url, HttpContentHeaders headers = null)
+        public virtual ICollection<ContentType> GetContentType(Uri url, HttpContentHeaders headers = null)
         {
             var contentType = GetContentTypeByUrl(url);
 
-            if (null != contentType)
+            if (null != contentType && contentType.Any())
                 return contentType;
 
             if (null == headers)
@@ -96,22 +96,22 @@ namespace SM.Media.Content
 
         #endregion
 
-        protected virtual IEnumerable<ContentType> GetContentTypeByUrl(Uri url)
+        protected virtual ICollection<ContentType> GetContentTypeByUrl(Uri url)
         {
             var ext = url.GetExtension();
 
             if (null == ext)
                 return null;
 
-            return ExtensionLookup[ext];
+            return ExtensionLookup[ext].ToArray();
         }
 
-        protected virtual IEnumerable<ContentType> GetContentTypeByContentHeaders(HttpContentHeaders httpHeaders)
+        protected virtual ICollection<ContentType> GetContentTypeByContentHeaders(HttpContentHeaders httpHeaders)
         {
             if (null == httpHeaders || null == httpHeaders.ContentType)
                 return null;
 
-            return MimeLookup[httpHeaders.ContentType.MediaType];
+            return MimeLookup[httpHeaders.ContentType.MediaType].ToArray();
         }
     }
 }

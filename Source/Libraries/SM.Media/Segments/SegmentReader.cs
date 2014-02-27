@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -250,7 +250,7 @@ namespace SM.Media.Segments
                     {
                         _request = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
 
-                        if (_startOffset >= 0 && _endOffset > 0)
+                        if (_startOffset >= 0 && _endOffset >= 0)
                         {
                             _request.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
                             _expectedBytes = _endOffset - _startOffset + 1;
@@ -266,7 +266,7 @@ namespace SM.Media.Segments
                             var contentLength = _response.Content.Headers.ContentLength;
 
                             if (_endOffset <= 0)
-                                _endOffset = contentLength ?? 0;
+                                _endOffset = (contentLength - 1) ?? 0;
 
                             if (!_expectedBytes.HasValue)
                                 _expectedBytes = contentLength;

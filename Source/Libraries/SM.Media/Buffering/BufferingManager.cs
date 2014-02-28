@@ -48,6 +48,7 @@ namespace SM.Media.Buffering
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
         double _bufferingProgress;
         volatile int _isBuffering = 1;
+        bool _isStarting = true;
         IQueueThrottling _queueThrottling;
         Action _reportBufferingChange;
         int _totalBufferedStart;
@@ -267,6 +268,8 @@ namespace SM.Media.Buffering
         {
             lock (_lock)
             {
+                _isStarting = true;
+
                 update();
 
                 UnlockedReport();
@@ -382,9 +385,10 @@ namespace SM.Media.Buffering
                     Interlocked.Exchange(ref _isBuffering, 0);
 #pragma warning restore 0420
 
-                    Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): {0} duration, {1} size, {2:F} MiB memory",
+                    Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): duration {0} size {1} starting {2} memory {3:F} MiB",
                         validData ? timestampDifference.ToString() : "none",
                         validData ? totalBuffered.ToString() : "none",
+                        _isStarting,
                         GC.GetTotalMemory(false).BytesToMiB());
 
                     DumpQueues();
@@ -403,8 +407,8 @@ namespace SM.Media.Buffering
                 //if (!allDone && allExhausted && validData)
                 if (!allDone && isExhausted)
                 {
-                    Debug.WriteLine("BufferingManager.UpdateState start buffering: {0} duration, {1} size, {2:F} MiB memory",
-                        timestampDifference, totalBuffered, GC.GetTotalMemory(false).BytesToMiB());
+                    Debug.WriteLine("BufferingManager.UpdateState start buffering: duration {0} size {1} starting {2} memory {3:F} MiB",
+                        timestampDifference, totalBuffered, _isStarting, GC.GetTotalMemory(false).BytesToMiB());
 
                     DumpQueues();
 
@@ -424,7 +428,7 @@ namespace SM.Media.Buffering
 #if DEBUG
             if (shouldBlock != _blockReads)
             {
-                Debug.WriteLine("BufferingManager.UpdateState read blocking -> {0}, {1} duration {2} size {3:F} MiB memory",
+                Debug.WriteLine("BufferingManager.UpdateState read blocking -> {0} duration {1} size {2} memory {3:F} MiB",
                     shouldBlock,
                     validData ? timestampDifference.ToString() : "none",
                     validData ? totalBuffered.ToString() : "none",
@@ -446,16 +450,18 @@ namespace SM.Media.Buffering
 
         void UpdateBuffering(TimeSpan timestampDifference, int bufferSize)
         {
-            if (_bufferingPolicy.IsDoneBuffering(timestampDifference, bufferSize, _totalBufferedStart))
+            if (_bufferingPolicy.IsDoneBuffering(timestampDifference, bufferSize, _totalBufferedStart, _isStarting))
             {
 #pragma warning disable 0420
                 Interlocked.Exchange(ref _isBuffering, 0);
 #pragma warning restore 0420
 
-                Debug.WriteLine("BufferingManager.UpdateBuffering done buffering: {0} duration, {1} size, {2:F} MiB memory",
-                    timestampDifference, bufferSize, GC.GetTotalMemory(false).BytesToMiB());
+                Debug.WriteLine("BufferingManager.UpdateBuffering done buffering: duration {0} size {1} starting {2} memory {3:F} MiB",
+                    timestampDifference, bufferSize, _isStarting, GC.GetTotalMemory(false).BytesToMiB());
 
                 DumpQueues();
+
+                _isStarting = false;
 
                 ReportBuffering(1);
             }
@@ -469,10 +475,10 @@ namespace SM.Media.Buffering
                 {
                     _bufferStatusTimeUtc = now;
 
-                    var bufferingStatus = _bufferingPolicy.GetProgress(timestampDifference, bufferSize, _totalBufferedStart);
+                    var bufferingStatus = _bufferingPolicy.GetProgress(timestampDifference, bufferSize, _totalBufferedStart, _isStarting);
 
-                    Debug.WriteLine("BufferingManager.UpdateBuffering: {0:F2}%, {1} duration, {2} size, {3:F} MiB memory",
-                        bufferingStatus * 100, timestampDifference, bufferSize, GC.GetTotalMemory(false).BytesToMiB());
+                    Debug.WriteLine("BufferingManager.UpdateBuffering: {0:F2}% duration {1} size {2} starting {3} memory {4:F} MiB",
+                        bufferingStatus * 100, timestampDifference, bufferSize, _isStarting, GC.GetTotalMemory(false).BytesToMiB());
 
                     ReportBuffering(bufferingStatus);
                 }

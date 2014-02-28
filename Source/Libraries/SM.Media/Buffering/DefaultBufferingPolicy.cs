@@ -32,10 +32,12 @@ namespace SM.Media.Buffering
     {
         int _bytesMaximum = 8192 * 1024;
         int _bytesMinimum = 300 * 1024;
+        int _bytesMinimumStarting = 100 * 1024;
         TimeSpan _durationBufferingDone = TimeSpan.FromSeconds(9);
         TimeSpan _durationBufferingMax = TimeSpan.FromSeconds(20);
         TimeSpan _durationReadDisable = TimeSpan.FromSeconds(25);
         TimeSpan _durationReadEnable = TimeSpan.FromSeconds(12);
+        TimeSpan _durationStartingDone = TimeSpan.FromSeconds(2.5);
 
         public int BytesMaximum
         {
@@ -49,6 +51,12 @@ namespace SM.Media.Buffering
             set { _bytesMinimum = value; }
         }
 
+        public int BytesMinimumStarting
+        {
+            get { return _bytesMinimumStarting; }
+            set { _bytesMinimumStarting = value; }
+        }
+
         public TimeSpan DurationReadEnable
         {
             get { return _durationReadEnable; }
@@ -59,6 +67,12 @@ namespace SM.Media.Buffering
         {
             get { return _durationBufferingDone; }
             set { _durationBufferingDone = value; }
+        }
+
+        public TimeSpan DurationStartingDone
+        {
+            get { return _durationStartingDone; }
+            set { _durationStartingDone = value; }
         }
 
         public TimeSpan DurationReadDisable
@@ -95,19 +109,25 @@ namespace SM.Media.Buffering
             return isReadBlocked;
         }
 
-        public virtual bool IsDoneBuffering(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted)
+        public virtual bool IsDoneBuffering(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted, bool isStarting)
         {
             var bufferSize = Math.Max(0, bytesBuffered - bytesBufferedWhenExhausted);
 
-            return (bufferDuration >= DurationBufferingDone && bufferSize >= BytesMinimum) || bytesBuffered >= BytesMaximum || bufferDuration > DurationBufferingMax;
+            var durationDone = isStarting ? DurationStartingDone : DurationBufferingDone;
+            var bytesMinimum = isStarting ? BytesMinimumStarting : BytesMinimum;
+
+            return (bufferDuration >= durationDone && bufferSize >= bytesMinimum) || bytesBuffered >= BytesMaximum || bufferDuration > DurationBufferingMax;
         }
 
-        public virtual float GetProgress(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted)
+        public virtual float GetProgress(TimeSpan bufferDuration, int bytesBuffered, int bytesBufferedWhenExhausted, bool isStarting)
         {
+            var durationDone = isStarting ? DurationStartingDone : DurationBufferingDone;
+            var bytesMinimum = isStarting ? BytesMinimumStarting : BytesMinimum;
+
             var bufferSize = Math.Max(0, bytesBuffered - bytesBufferedWhenExhausted);
 
-            var bufferingStatus1 = Math.Max(0, bufferDuration.Ticks / (float)DurationBufferingDone.Ticks);
-            var bufferingStatus2 = bufferSize / (float)BytesMinimum;
+            var bufferingStatus1 = Math.Max(0, bufferDuration.Ticks / (float)durationDone.Ticks);
+            var bufferingStatus2 = bufferSize / (float)bytesMinimum;
             var bufferingStatus3 = bytesBuffered / (float)BytesMaximum;
             var bufferingStatus4 = Math.Max(0, bufferDuration.Ticks / (float)DurationBufferingMax.Ticks);
 

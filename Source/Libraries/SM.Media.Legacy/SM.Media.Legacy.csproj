@@ -454,6 +454,9 @@
     <Compile Include="..\SM.Media\Utility\DisposeExtensions.cs">
       <Link>Utility\DisposeExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\EnumerableExtensions.cs">
+      <Link>Utility\EnumerableExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\ExceptionExtensions.cs">
       <Link>Utility\ExceptionExtensions.cs</Link>
     </Compile>

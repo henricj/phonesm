@@ -26,10 +26,10 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Utility;
 
 namespace SM.Media.Web
 {
@@ -53,9 +53,7 @@ namespace SM.Media.Web
 
         public async Task<ContentType> GetContentTypeAsync(Uri url, CancellationToken cancellationToken)
         {
-            var contentTypes = _contentTypeDetector.GetContentType(url).Take(2).ToArray();
-
-            var contentType = 1 == contentTypes.Length ? contentTypes[0] : null;
+            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
 
             if (null != contentType)
             {
@@ -69,9 +67,7 @@ namespace SM.Media.Web
             if (null == headers)
                 return null;
 
-            contentTypes = _contentTypeDetector.GetContentType(headers.Url, headers.ContentHeaders).Take(2).ToArray();
-
-            contentType = 1 == contentTypes.Length ? contentTypes[0] : null;
+            contentType = _contentTypeDetector.GetContentType(headers.Url, headers.ContentHeaders).SingleOrDefaultSafe();
 
             if (null != contentType)
                 Debug.WriteLine("WebContentTypeDetector.GetContentTypeAsync() url header \"{0}\" type {1}", url, contentType);

@@ -31,7 +31,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Buffering;
-using SM.Media.Configuration;
 using SM.Media.Content;
 using SM.Media.MediaParser;
 using SM.Media.Segments;
@@ -589,49 +588,7 @@ namespace SM.Media
             if (null == _readers || _readers.Any(r => !r.IsConfigured))
                 return;
 
-            var configuration = new MediaConfiguration
-                                {
-                                    Duration = _readerManager.Duration
-                                };
-
-            foreach (var mediaStream in _readers.SelectMany(r => r.MediaParser.MediaStreams))
-            {
-                var configurationSource = mediaStream.ConfigurationSource;
-
-                var video = configurationSource as IVideoConfigurationSource;
-
-                if (null != video)
-                {
-                    if (null != configuration.Video)
-                    {
-                        Debug.WriteLine("TsMediaManager.CheckConfigurationCompleted() multiple video streams");
-                        continue;
-                    }
-
-                    configuration.Video = mediaStream;
-
-                    continue;
-                }
-
-                var audio = configurationSource as IAudioConfigurationSource;
-
-                if (null != audio)
-                {
-                    if (null != configuration.Audio)
-                    {
-                        Debug.WriteLine("TsMediaManager.CheckConfigurationCompleted() multiple audio streams");
-                        continue;
-                    }
-
-                    configuration.Audio = mediaStream;
-
-                    continue;
-                }
-
-                Debug.WriteLine("TsMediaManager.CheckConfigurationCompleted() unexpected media stream");
-            }
-
-            _mediaStreamSource.Configure(configuration);
+            _mediaStreamSource.Configure(_readers.SelectMany(r => r.MediaParser.MediaStreams), _readerManager.Duration);
 
             State = MediaState.Playing;
         }

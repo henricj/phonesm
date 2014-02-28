@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using SM.Media.Utility;
 
@@ -40,5 +41,13 @@ namespace SM.Media.MediaParser
         void CheckForSamples();
 
         void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
+    }
+
+    public static class MediaStreamSourceExtensions
+    {
+        public static void Configure(this IMediaStreamSource mediaStreamSource, IEnumerable<IMediaParserMediaStream> mediaParserMediaStreams, TimeSpan? duration)
+        {
+            mediaStreamSource.Configure(mediaParserMediaStreams.CreateMediaConfiguration(duration));
+        }
     }
 }

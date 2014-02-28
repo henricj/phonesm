@@ -334,6 +334,9 @@
     <Compile Include="..\SM.Media\MediaParser\MediaParserFactoryFinder.cs">
       <Link>MediaParser\MediaParserFactoryFinder.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\MediaParser\MediaParserMediaStreamExtensions.cs">
+      <Link>MediaParser\MediaParserMediaStreamExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\MediaParser\MediaParserParameters.cs">
       <Link>MediaParser\MediaParserParameters.cs</Link>
     </Compile>

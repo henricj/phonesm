@@ -103,6 +103,7 @@
     <Compile Include="MediaParser\MediaParserFactoryFinder.cs" />
     <Compile Include="MediaParser\MediaParserMediaStreamExtensions.cs" />
     <Compile Include="MediaParser\MediaParserParameters.cs" />
+    <Compile Include="MediaReader.cs" />
     <Compile Include="MediaStreamFascadeBase.cs" />
     <Compile Include="MediaStreamFascadeParameters.cs" />
     <Compile Include="MediaStreamFascadeSetting.cs" />

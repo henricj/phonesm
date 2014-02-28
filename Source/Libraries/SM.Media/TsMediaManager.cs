@@ -85,7 +85,7 @@ namespace SM.Media
         string _mediaStateMessage;
         CancellationTokenSource _playbackCancellationTokenSource;
         ISegmentReaderManager _readerManager;
-        ReaderPipeline[] _readers;
+        IMediaReader[] _readers;
 
         public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory, IMediaElementManager mediaElementManager,
             IMediaStreamSource mediaStreamSource, Func<IBufferingManager> bufferingManagerFactory,
@@ -272,20 +272,8 @@ namespace SM.Media
                 drainTask = mss.CloseAsync();
             }
 
-            string error = null;
-
             if (null != _readers && _readers.Length > 0)
-            {
-                try
-                {
-                    await CloseReadersAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("TsMediaManager.CloseAsync: " + ex.Message);
-                    error = "Close failed: " + ex.Message;
-                }
-            }
+                await CloseReadersAsync().ConfigureAwait(false);
 
             if (null != stopPlaylistTask)
             {
@@ -335,16 +323,12 @@ namespace SM.Media
             if (null != mss)
                 mss.MediaManager = null;
 
-            if (null != _readers && _readers.Length > 0)
-                DisposeReaders();
+            DisposeReaders();
 
             if (null != readerManager)
                 readerManager.DisposeSafe();
 
-            if (null == error)
-                State = MediaState.Closed;
-            else
-                SetMediaState(MediaState.Error, error);
+            State = MediaState.Closed;
 
             Debug.WriteLine("TsMediaManager.CloseAsync() completed");
         }
@@ -436,7 +420,7 @@ namespace SM.Media
 
             Exception exception;
 
-            Task<ReaderPipeline>[] readerTasks = null;
+            Task<IMediaReader>[] readerTasks = null;
 
             try
             {
@@ -446,11 +430,11 @@ namespace SM.Media
                                             .Select(CreateReaderPipeline)
                                             .ToArray();
 
-                _readers = await TaskEx.WhenAll<ReaderPipeline>(readerTasks)
+                _readers = await TaskEx.WhenAll<IMediaReader>(readerTasks)
                                        .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
-                    reader.QueueWorker.IsEnabled = true;
+                    reader.IsEnabled = true;
 
                 await _readerManager.StartAsync(_playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
@@ -472,110 +456,46 @@ namespace SM.Media
             if (null == _readers && null != readerTasks)
             {
                 // Clean up any stragglers.
-                var cleanupReaderTasks = readerTasks.Where(r => null != r);
+                _readers = readerTasks.Where(r =>
+                                             {
+                                                 if (null == r)
+                                                     return false;
 
-                foreach (var readerTask in cleanupReaderTasks)
-                {
-                    var readerException = readerTask.Exception;
+                                                 var readerException = r.Exception;
 
-                    if (null != readerException)
-                    {
-                        Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader create failed: " + readerException.Message);
-                        continue;
-                    }
+                                                 if (null != readerException)
+                                                 {
+                                                     Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader create failed: " + readerException.Message);
+                                                     return false;
+                                                 }
 
-                    var reader = readerTask.Result;
+                                                 return r.IsCompleted;
+                                             })
+                                      .Select(r => r.Result)
+                                      .ToArray();
 
-                    try
-                    {
-                        await reader.StopAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader cleanup failed: " + ex.Message);
-                    }
-                }
+                await CloseReadersAsync().ConfigureAwait(false);
 
-                if (null != _readerManager)
-                {
-                    _readerManager.DisposeSafe();
-                    _readerManager = null;
-                }
+                DisposeReaders();
+            }
+
+            if (null != _readerManager)
+            {
+                _readerManager.DisposeSafe();
+                _readerManager = null;
             }
 
             throw exception;
         }
 
-        async Task<ReaderPipeline> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
+        async Task<IMediaReader> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
         {
-            var reader = new ReaderPipeline
-                         {
-                             SegmentReaders = segmentManagerReaders,
-                             BlockingPool = new BlockingPool<WorkBuffer>(MaxBuffers),
-                         };
+            var reader = new MediaReader(_bufferingManagerFactory(), _mediaParserFactory, segmentManagerReaders, new BlockingPool<WorkBuffer>(MaxBuffers));
 
-            var startReaderTask = reader.SegmentReaders.Manager.StartAsync();
-
-            var localReader = reader;
-
-            reader.QueueWorker = new QueueWorker<WorkBuffer>(
-                wi =>
-                {
-                    var mediaParser = localReader.MediaParser;
-
-                    if (null == wi)
-                        mediaParser.ProcessEndOfData();
-                    else
-                        mediaParser.ProcessData(wi.Buffer, 0, wi.Length);
-                }, reader.BlockingPool.Free);
-
-            reader.CallbackReader = new CallbackReader(segmentManagerReaders.Readers, reader.QueueWorker.Enqueue, reader.BlockingPool);
-
-            reader.BufferingManager = _bufferingManagerFactory();
-
-            reader.BufferingManager.Initialize(reader.QueueWorker, () => _mediaStreamSource.CheckForSamples());
-
-            await startReaderTask.ConfigureAwait(false);
-
-            var contentType = reader.SegmentReaders.Manager.ContentType;
-
-            if (null == contentType)
-            {
-                Debug.WriteLine("TsMediaManager.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
-
-                contentType = ContentTypes.TransportStream;
-            }
-
-            await InitializeMediaParser(reader, contentType).ConfigureAwait(false);
+            await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted, () => _mediaStreamSource.CheckForSamples(), _playbackCancellationTokenSource.Token, _programStreamsHandler)
+                        .ConfigureAwait(false);
 
             return reader;
-        }
-
-        async Task InitializeMediaParser(ReaderPipeline reader, ContentType contentType)
-        {
-            Debug.WriteLine("TsMediaManager.InitializeMediaParser() for " + contentType);
-
-            var mediaParserParameters = new MediaParserParameters(reader.BufferingManager, _mediaStreamSource.CheckForSamples);
-
-            var mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
-
-            if (null == mediaParser)
-                throw new NotSupportedException("Unsupported content type: " + contentType);
-
-            reader.MediaParser = mediaParser;
-
-            mediaParser.ConfigurationComplete += (s, e) => ConfigurationComplete(reader);
-
-            reader.MediaParser.Initialize(
-                streamType => reader.BufferingManager.CreateStreamBuffer(streamType, _mediaStreamSource.CheckForSamples),
-                _programStreamsHandler);
-        }
-
-        void ConfigurationComplete(ReaderPipeline reader)
-        {
-            reader.IsConfigured = true;
-
-            CheckConfigurationCompleted();
         }
 
         void CheckConfigurationCompleted()
@@ -588,7 +508,7 @@ namespace SM.Media
             if (null == _readers || _readers.Any(r => !r.IsConfigured))
                 return;
 
-            _mediaStreamSource.Configure(_readers.SelectMany(r => r.MediaParser.MediaStreams), _readerManager.Duration);
+            _mediaStreamSource.Configure(_readers.SelectMany(r => r.MediaStreams), _readerManager.Duration);
 
             State = MediaState.Playing;
         }
@@ -608,6 +528,9 @@ namespace SM.Media
         async Task CloseReadersAsync()
         {
             //Debug.WriteLine("TsMediaManager.CloseAsync() closing readers");
+
+            if (null == _readers || _readers.Length < 1)
+                return;
 
             try
             {
@@ -647,6 +570,9 @@ namespace SM.Media
 
             _readers = null;
 
+            if (null == readers || readers.Length < 1)
+                return;
+
             foreach (var reader in readers)
                 reader.DisposeBackground("TsMediaManager dispose reader");
 
@@ -655,7 +581,7 @@ namespace SM.Media
 
         bool IsSeekInRange(TimeSpan position)
         {
-            return _readers.All(reader => reader.BufferingManager.IsSeekAlreadyBuffered(position));
+            return _readers.All(reader => reader.IsBuffered(position));
         }
 
         async Task<TimeSpan> SeekAsync(TimeSpan position)
@@ -668,29 +594,10 @@ namespace SM.Media
                 if (IsSeekInRange(position))
                     return position;
 
-                foreach (var reader in _readers)
-                {
-                    reader.QueueWorker.IsEnabled = false;
-                    reader.MediaParser.EnableProcessing = false;
-                }
-
-                var stopReaderTasks = _readers.Select(
-                    async r =>
-                    {
-                        await r.CallbackReader.StopAsync().ConfigureAwait(false);
-                        await r.QueueWorker.ClearAsync().ConfigureAwait(false);
-                    });
-
-                await TaskEx.WhenAll(stopReaderTasks).ConfigureAwait(false);
+                await TaskEx.WhenAll(_readers.Select(reader => reader.StopAsync())).ConfigureAwait(false);
 
                 foreach (var reader in _readers)
-                {
-                    reader.MediaParser.FlushBuffers();
-                    reader.BufferingManager.Flush();
-
-                    reader.MediaParser.EnableProcessing = true;
-                    reader.QueueWorker.IsEnabled = true;
-                }
+                    reader.IsEnabled = true;
 
                 State = MediaState.Seeking;
 
@@ -707,122 +614,5 @@ namespace SM.Media
 
             return TimeSpan.MinValue;
         }
-
-        #region Nested type: ReaderPipeline
-
-        sealed class ReaderPipeline : IDisposable
-        {
-            public BlockingPool<WorkBuffer> BlockingPool;
-            public IBufferingManager BufferingManager;
-            public CallbackReader CallbackReader;
-            public IMediaParser MediaParser;
-            public QueueWorker<WorkBuffer> QueueWorker;
-            public ISegmentManagerReaders SegmentReaders;
-            int _isDisposed;
-
-            public bool IsConfigured { get; set; }
-
-            #region IDisposable Members
-
-            public void Dispose()
-            {
-                if (0 != Interlocked.Exchange(ref _isDisposed, 1))
-                    return;
-
-                using (CallbackReader)
-                { }
-
-                using (QueueWorker)
-                { }
-
-                using (BlockingPool)
-                { }
-
-                using (MediaParser)
-                { }
-
-                CallbackReader = null;
-                QueueWorker = null;
-                BlockingPool = null;
-                MediaParser = null;
-                BufferingManager = null;
-                SegmentReaders = null;
-            }
-
-            #endregion
-
-            public Task StartAsync(CancellationToken cancellationToken)
-            {
-                MediaParser.StartPosition = SegmentReaders.Manager.StartPosition;
-
-                BufferingManager.Flush();
-
-                return CallbackReader.StartAsync(cancellationToken);
-            }
-
-            public async Task CloseAsync()
-            {
-                await StopReadingAsync().ConfigureAwait(false);
-
-                var queue = QueueWorker;
-
-                if (null != queue)
-                {
-                    try
-                    {
-                        await queue.CloseAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("TsMediaManager.ReaderPipeline.CloseAsync(): queue clear failed: " + ex.Message);
-                    }
-                }
-            }
-
-            public async Task StopAsync()
-            {
-                await StopReadingAsync().ConfigureAwait(false);
-
-                var queue = QueueWorker;
-
-                if (null != queue)
-                {
-                    try
-                    {
-                        await queue.ClearAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("TsMediaManager.ReaderPipeline.StopAsync(): queue clear failed: " + ex.Message);
-                    }
-                }
-            }
-
-            async Task StopReadingAsync()
-            {
-                if (null != CallbackReader)
-                {
-                    try
-                    {
-                        await CallbackReader.StopAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("TsMediaManager.ReaderPipeline.StopAsync(): callback reader stop failed: " + ex.Message);
-                    }
-                }
-
-                if (null != MediaParser)
-                {
-                    MediaParser.EnableProcessing = false;
-                    MediaParser.FlushBuffers();
-                }
-
-                if (null != BufferingManager)
-                    BufferingManager.Flush();
-            }
-        }
-
-        #endregion
     }
 }

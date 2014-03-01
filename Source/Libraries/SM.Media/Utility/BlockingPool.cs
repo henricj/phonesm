@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="BlockingPool.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,13 +33,16 @@ using System.Threading.Tasks;
 namespace SM.Media.Utility
 {
     public sealed class BlockingPool<TItem> : IBlockingPool<TItem>
-        where TItem : new()
+        where TItem : class, new()
     {
-        readonly AsyncManualResetEvent _bufferWait = new AsyncManualResetEvent(true);
-        readonly Stack<LinkedListNode<TItem>> _freeNodes = new Stack<LinkedListNode<TItem>>();
-        readonly LinkedList<TItem> _pool = new LinkedList<TItem>();
+        readonly Queue<TItem> _pool = new Queue<TItem>();
         readonly int _poolSize;
+        readonly Queue<CancellationTaskCompletionSource<TItem>> _waiters = new Queue<CancellationTaskCompletionSource<TItem>>();
         int _allocationCount;
+
+#if DEBUG
+        readonly List<TItem> _allocationTracker = new List<TItem>();
+#endif // DEBUG
 
         public BlockingPool(int poolSize)
         {
@@ -48,76 +51,86 @@ namespace SM.Media.Utility
 
         #region IBlockingPool<TItem> Members
 
-        public async Task<TItem> AllocateAsync(CancellationToken cancellationToken)
+        public Task<TItem> AllocateAsync(CancellationToken cancellationToken)
         {
-            for (; ; )
+            lock (_pool)
             {
-                var allocateBuffer = false;
-
-                lock (_pool)
+                if (_pool.Count > 0)
                 {
-                    if (_pool.Count > 0)
-                    {
-                        var node = _pool.First;
+                    var item = _pool.Dequeue();
 
-                        _pool.RemoveFirst();
+                    Debug.Assert(!EqualityComparer<TItem>.Default.Equals(default(TItem), item));
 
-                        var item = node.Value;
+                    //Debug.WriteLine("BlockingPool.AllocateAsync() Returning pool item: " + item);
 
-                        _freeNodes.Push(node);
-
-                        Debug.Assert(!EqualityComparer<TItem>.Default.Equals(default(TItem), item));
-
-                        return item;
-                    }
-
-                    if (_allocationCount < _poolSize)
-                    {
-                        ++_allocationCount;
-
-                        allocateBuffer = true;
-                    }
-
-                    _bufferWait.Reset();
+                    return TaskEx.FromResult(item);
                 }
 
-                if (allocateBuffer)
-                    return new TItem();
+                if (_allocationCount >= _poolSize)
+                {
+                    var workHandle = new CancellationTaskCompletionSource<TItem>(wh => _waiters.Remove(wh), cancellationToken);
 
-                //Debug.WriteLine("Waiting for item");
+                    _waiters.Enqueue(workHandle);
 
-                //var sw = Stopwatch.StartNew();
+#if DEBUG
+                    //var sw = Stopwatch.StartNew();
 
-                await _bufferWait.WaitAsync()
-                    .WithCancellation(cancellationToken)
-                    .ConfigureAwait(false);
+                    //Debug.WriteLine("BlockingPool.AllocateAsync() Creating waiter");
+                    //workHandle.Task.ContinueWith(t =>
+                    //                             {
+                    //                                 sw.Stop();
 
-                //sw.Stop();
+                    //                                 Debug.WriteLine("BlockingPool.AllocateAsync() Waiter completed: status {0} elapsed {1}",
+                    //                                     t.Status, sw.Elapsed);
+                    //                             });
+#endif
 
-                //Debug.WriteLine("Done waiting for item ({0})", sw.Elapsed);
+                    return workHandle.Task;
+                }
+
+                ++_allocationCount;
             }
+
+            var newItem = new TItem();
+
+            Debug.WriteLine("BlockingPool.AllocateAsync() Returning new item " + newItem);
+
+#if DEBUG
+            _allocationTracker.Add(newItem);
+#endif
+
+            return TaskEx.FromResult(newItem);
         }
 
-        public void Free(TItem value)
+        public void Free(TItem item)
         {
-            if (EqualityComparer<TItem>.Default.Equals(default(TItem), value))
-                throw new ArgumentNullException("value");
+            //Debug.WriteLine("BlockingPool.Free() item: " + item);
+
+            if (EqualityComparer<TItem>.Default.Equals(default(TItem), item))
+                throw new ArgumentNullException("item");
 
             lock (_pool)
             {
-                if (_freeNodes.Count > 0)
+#if DEBUG
+                Debug.Assert(_allocationTracker.Contains(item), "Unknown item has been freed");
+                Debug.Assert(!_pool.Contains(item), "Item is already in pool");
+#endif
+
+                while (_waiters.Count > 0)
                 {
-                    var node = _freeNodes.Pop();
+                    Debug.Assert(0 == _pool.Count, "The pool should be empty when there are waiters");
 
-                    node.Value = value;
+                    var waiter = _waiters.Dequeue();
 
-                    _pool.AddFirst(node);
+                    //Debug.WriteLine("BlockingPool.Free() giving to waiter: " + item);
+
+                    if (waiter.TrySetResult(item))
+                        return;
+
+                    //Debug.WriteLine("BlockingPool.Free() giving to waiter failed for: " + item);
                 }
-                else
-                    _pool.AddFirst(value);
 
-                if (1 == _pool.Count)
-                    _bufferWait.Set();
+                _pool.Enqueue(item);
             }
         }
 
@@ -130,12 +143,19 @@ namespace SM.Media.Utility
 
         void Clear()
         {
+            CancellationTaskCompletionSource<TItem>[] waiters;
+
             lock (_pool)
             {
+                waiters = _waiters.ToArray();
+                _waiters.Clear();
+
                 _pool.Clear();
                 _allocationCount = 0;
-                _freeNodes.Clear();
             }
+
+            foreach (var waiter in waiters)
+                waiter.Dispose();
         }
     }
 }

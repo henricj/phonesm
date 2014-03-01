@@ -211,6 +211,7 @@
     <Compile Include="Segments\SegmentReader.cs" />
     <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="Utility\AsyncFifoWorker.cs" />
+    <Compile Include="Utility\CancellationTaskCompletionSource.cs" />
     <Compile Include="Utility\DisposeExtensions.cs" />
     <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\EnumerableExtensions.cs" />

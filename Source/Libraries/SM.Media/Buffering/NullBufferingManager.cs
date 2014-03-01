@@ -32,7 +32,6 @@ namespace SM.Media.Buffering
 {
     public sealed class NullBufferingManager : IBufferingManager
     {
-        static readonly IBufferingQueue Queue = new NullBufferingQueue();
         readonly ITsPesPacketPool _packetPool;
 
         public NullBufferingManager(ITsPesPacketPool packetPool)
@@ -45,7 +44,7 @@ namespace SM.Media.Buffering
 
         #region IBufferingManager Members
 
-        public double BufferingProgress
+        public float BufferingProgress
         {
             get { return 1; }
         }
@@ -55,14 +54,9 @@ namespace SM.Media.Buffering
             get { return false; }
         }
 
-        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
+        public IStreamBuffer CreateStreamBuffer(TsStreamType streamType)
         {
-            return Queue;
-        }
-
-        public IStreamBuffer CreateStreamBuffer(TsStreamType streamType, Action checkForSamples)
-        {
-            return new StreamBuffer(streamType, _packetPool.FreePesPacket, this, checkForSamples);
+            return new StreamBuffer(streamType, _packetPool.FreePesPacket, this);
         }
 
         public void Flush()
@@ -76,34 +70,14 @@ namespace SM.Media.Buffering
         public void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange)
         { }
 
-        public void Dispose()
+        public void Refresh()
         { }
 
-        #endregion
+        public void ReportExhaustion()
+        { }
 
-        #region Nested type: NullBufferingQueue
-
-        class NullBufferingQueue : IBufferingQueue
-        {
-            #region IBufferingQueue Members
-
-            public void ReportEnqueue(int size, TimeSpan timestamp)
-            { }
-
-            public void ReportDequeue(int size, TimeSpan timestamp)
-            { }
-
-            public void ReportFlush()
-            { }
-
-            public void ReportExhaustion()
-            { }
-
-            public void ReportDone()
-            { }
-
-            #endregion
-        }
+        public void Dispose()
+        { }
 
         #endregion
     }

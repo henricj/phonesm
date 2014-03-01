@@ -31,28 +31,29 @@ namespace SM.Media.Buffering
 {
     public interface IBufferingManager : IDisposable
     {
-        double BufferingProgress { get; }
+        float BufferingProgress { get; }
         bool IsBuffering { get; }
-        IBufferingQueue CreateQueue(IManagedBuffer managedBuffer);
-        IStreamBuffer CreateStreamBuffer(TsStreamType streamType, Action checkForSamples);
+        IStreamBuffer CreateStreamBuffer(TsStreamType streamType);
         void Flush();
         bool IsSeekAlreadyBuffered(TimeSpan position);
         void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange);
+        void Refresh();
+        void ReportExhaustion();
+    }
+
+    public class BufferStatus
+    {
+        public int Size { get; set; }
+        public TimeSpan? Newest { get; set; }
+        public TimeSpan? Oldest { get; set; }
+        public int PacketCount { get; set; }
+        public bool IsDone { get; set; }
+        public bool IsValid { get; set; }
     }
 
     public interface IBufferingQueue
     {
-        void ReportEnqueue(int size, TimeSpan timestamp);
-        void ReportDequeue(int size, TimeSpan timestamp);
-        void ReportFlush();
-        void ReportExhaustion();
-        void ReportDone();
-    }
-
-    public interface IManagedBuffer
-    {
-        TimeSpan TimestampOffset { get; set; }
-        TsStreamType StreamType { get; }
+        void UpdateBufferStatus(BufferStatus bufferStatus);
         void Flush();
     }
 }

@@ -29,6 +29,7 @@ using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.Audio
 {
@@ -38,8 +39,8 @@ namespace SM.Media.Audio
     {
         protected TParser Parser;
 
-        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator)
-            : base(streamType, configurator)
+        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool pesPacketPool)
+            : base(streamType, configurator, pesPacketPool)
         { }
 
         public override TimeSpan StartPosition
@@ -54,11 +55,15 @@ namespace SM.Media.Audio
             Debug.Assert(offset + length <= buffer.Length);
 
             Parser.ProcessData(buffer, offset, length);
+
+            PushStreams();
         }
 
         public override void FlushBuffers()
         {
             Parser.FlushBuffers();
+
+            base.FlushBuffers();
         }
 
         protected override void Dispose(bool disposing)

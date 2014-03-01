@@ -184,7 +184,7 @@ namespace TsDump
 
         public async Task ReadAsync(string source)
         {
-            Parser.Initialize(streamType => _bufferingManager.CreateStreamBuffer(streamType, CheckForSample), _programStreamsHandler);
+            Parser.Initialize(_bufferingManager, _programStreamsHandler);
 
             var buffer = new byte[16 * 1024];
 
@@ -210,12 +210,18 @@ namespace TsDump
                     } while (index < thresholdSize);
 
                     if (index > 0)
+                    {
                         Parser.ProcessData(buffer, 0, index);
+
+                        CheckForSample();
+                    }
 
                     index = 0;
                 }
 
                 Parser.ProcessEndOfData();
+
+                CheckForSample();
             }
         }
 

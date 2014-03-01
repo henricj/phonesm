@@ -28,8 +28,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using SM.Media.Buffering;
 using SM.Media.Configuration;
 using SM.TsParser;
+using SM.TsParser.Utility;
 
 namespace SM.Media.MediaParser
 {
@@ -38,19 +40,25 @@ namespace SM.Media.MediaParser
     {
         readonly TConfigurator _configurator;
         readonly TsStreamType _streamType;
+        readonly ITsPesPacketPool _tsPesPacketPool;
+        IBufferingManager _bufferingManager;
         int _isDisposed;
+        MediaStream _mediaStream;
         ICollection<IMediaParserMediaStream> _mediaStreams;
         IStreamBuffer _streamBuffer;
 
-        protected MediaParserBase(TsStreamType streamType, TConfigurator configurator)
+        protected MediaParserBase(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool tsPesPacketPool)
         {
             if (null == streamType)
                 throw new ArgumentNullException("streamType");
             if (ReferenceEquals(default(TConfigurator), configurator))
                 throw new ArgumentNullException("configurator");
+            if (null == tsPesPacketPool)
+                throw new ArgumentNullException("tsPesPacketPool");
 
             _streamType = streamType;
             _configurator = configurator;
+            _tsPesPacketPool = tsPesPacketPool;
 
             _configurator.ConfigurationComplete += OnConfigurationComplete;
         }
@@ -86,23 +94,39 @@ namespace SM.Media.MediaParser
             FlushBuffers();
 
             SubmitPacket(null);
+
+            PushStreams();
         }
 
         public abstract void ProcessData(byte[] buffer, int offset, int length);
 
-        public abstract void FlushBuffers();
-
-        public void Initialize(Func<TsStreamType, IStreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
+        public virtual void FlushBuffers()
         {
-            if (null == streamBufferFactory)
-                throw new ArgumentNullException("streamBufferFactory");
+            _mediaStream.Flush();
+        }
 
-            _streamBuffer = streamBufferFactory(_streamType);
+        public void Initialize(IBufferingManager bufferingManager, Action<IProgramStreams> programStreamsHandler = null)
+        {
+            if (null == bufferingManager)
+                throw new ArgumentNullException("bufferingManager");
 
-            _mediaStreams = new[] { new MediaStream(_configurator, _streamBuffer) };
+            _bufferingManager = bufferingManager;
+
+            _streamBuffer = bufferingManager.CreateStreamBuffer(_streamType);
+
+            _mediaStream = new MediaStream(_configurator, _streamBuffer, _tsPesPacketPool.FreePesPacket);
+
+            _mediaStreams = new[] { _mediaStream };
         }
 
         #endregion
+
+        protected virtual void PushStreams()
+        {
+            _mediaStream.PushPackets();
+
+            _bufferingManager.Refresh();
+        }
 
         void OnConfigurationComplete(object sender, EventArgs eventArgs)
         {
@@ -132,11 +156,14 @@ namespace SM.Media.MediaParser
 
             using (_streamBuffer)
             { }
+
+            using (_mediaStream)
+            { }
         }
 
         protected void SubmitPacket(TsPesPacket packet)
         {
-            _streamBuffer.Enqueue(packet);
+            _mediaStream.EnqueuePacket(packet);
         }
     }
 }

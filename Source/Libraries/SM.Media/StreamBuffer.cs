@@ -33,22 +33,24 @@ using SM.TsParser;
 
 namespace SM.Media
 {
-    public interface IStreamBuffer : IStreamSource, IManagedBuffer, IDisposable
+    public interface IStreamBuffer : IStreamSource, IDisposable
     {
-        void Enqueue(TsPesPacket packet);
+        TimeSpan TimestampOffset { get; set; }
+        bool TryEnqueue(ICollection<TsPesPacket> packet);
     }
 
-    public sealed class StreamBuffer : IStreamBuffer
+    public sealed class StreamBuffer : IBufferingQueue, IStreamBuffer
     {
         readonly Queue<TsPesPacket> _packets = new Queue<TsPesPacket>();
         readonly object _packetsLock = new object();
-        readonly Action _checkForSamples;
         readonly TsStreamType _streamType;
         readonly Action<TsPesPacket> _freePesPacket;
         readonly IBufferingManager _bufferingManager;
-        readonly IBufferingQueue _bufferingQueue;
         int _isDisposed;
         bool _isDone;
+        TimeSpan? _oldest;
+        TimeSpan? _newest;
+        int _size;
 
 #if DEBUG
         static int _streamBufferCounter;
@@ -57,20 +59,23 @@ namespace SM.Media
 
         public TimeSpan TimestampOffset { get; set; }
 
-        public StreamBuffer(TsStreamType streamType, Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager, Action checkForSamples)
+        public TsStreamType StreamType
         {
-            if (streamType == null)
+            get { return _streamType; }
+        }
+
+        public StreamBuffer(TsStreamType streamType, Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager)
+        {
+            if (null == streamType)
                 throw new ArgumentNullException("streamType");
-            if (freePesPacket == null)
+            if (null == freePesPacket)
                 throw new ArgumentNullException("freePesPacket");
+            if (null == bufferingManager)
+                throw new ArgumentNullException("bufferingManager");
 
             _streamType = streamType;
             _freePesPacket = freePesPacket;
             _bufferingManager = bufferingManager;
-            _checkForSamples = checkForSamples;
-
-            if (null != bufferingManager)
-                _bufferingQueue = bufferingManager.CreateQueue(this);
         }
 
         #region IDisposable Members
@@ -109,7 +114,20 @@ namespace SM.Media
         public TimeSpan PresentationTimestamp { get; private set; }
         public TimeSpan? DecodeTimestamp { get; private set; }
 
-        public bool IsEof { get; private set; }
+        public bool IsEof
+        {
+            get { return _isDone; }
+        }
+
+        public bool HasSample
+        {
+            get { lock (_packetsLock) return _packets.Count > 0; }
+        }
+
+        public float? BufferingProgress
+        {
+            get { return _bufferingManager.BufferingProgress; }
+        }
 
         public TsPesPacket GetNextSample()
         {
@@ -117,43 +135,42 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
-            if (IsEof)
-                return null;
-
             TsPesPacket packet = null;
 
             try
             {
+                var isEmpty = false;
+
                 lock (_packetsLock)
                 {
-                    if (null != _bufferingManager && _bufferingManager.IsBuffering)
+                    if (!_isDone && _bufferingManager.IsBuffering)
                         return null;
 
-                    if (_packets.Count < 1)
+                    if (_packets.Count > 0)
                     {
-                        // Keep returning null packets if we are done.
-                        if (!_isDone)
-                        {
-                            ReportExhaustion();
+                        packet = _packets.Dequeue();
 
-                            return null;
+                        if (null != packet)
+                        {
+                            _oldest = packet.PresentationTimestamp;
+
+                            if (!_newest.HasValue)
+                                _newest = _oldest;
+
+                            _size -= packet.Length;
                         }
                     }
                     else
-                        packet = _packets.Dequeue();
+                        isEmpty = true;
                 }
+
+                if (isEmpty)
+                    _bufferingManager.ReportExhaustion();
+                else
+                    _bufferingManager.Refresh();
 
                 if (null == packet)
-                {
-                    IsEof = true;
-
-                    //Debug.WriteLine("StreamBuffer {0}/{1} forwarding null sample", _streamBufferId, _streamType.Contents);
-
-                    // Propagate end-of-stream
                     return null;
-                }
-
-                ReportDequeue(packet.Length, packet.PresentationTimestamp);
 
                 PresentationTimestamp = packet.PresentationTimestamp - TimestampOffset;
 
@@ -190,113 +207,9 @@ namespace SM.Media
             _freePesPacket(packet);
         }
 
-        public bool HasSample
-        {
-            get
-            {
-                lock (_packetsLock)
-                {
-                    return _packets.Count > 0;
-                }
-            }
-        }
-
-        public float? BufferingProgress
-        {
-            get
-            {
-                if (null == _bufferingManager)
-                    return null;
-
-                return (float)_bufferingManager.BufferingProgress;
-            }
-        }
-
         #endregion
 
-        void ReportEnqueue(int packetCount, TimeSpan timestamp)
-        {
-            var rb = _bufferingQueue;
-
-            if (null == rb)
-                return;
-
-            rb.ReportEnqueue(packetCount, timestamp);
-        }
-
-        void ReportDequeue(int packetCount, TimeSpan timestamp)
-        {
-            var rb = _bufferingQueue;
-
-            if (null == rb)
-                return;
-
-            rb.ReportDequeue(packetCount, timestamp);
-        }
-
-        void ReportExhaustion()
-        {
-            var rb = _bufferingQueue;
-
-            if (null == rb)
-                return;
-
-            rb.ReportExhaustion();
-        }
-
-        void ReportFlush()
-        {
-            var rb = _bufferingQueue;
-
-            if (null == rb)
-                return;
-
-            rb.ReportFlush();
-        }
-
-        void ReportDone()
-        {
-            var rb = _bufferingQueue;
-
-            if (null == rb)
-                return;
-
-            rb.ReportDone();
-        }
-
-        public void Enqueue(TsPesPacket packet)
-        {
-            ThrowIfDisposed();
-
-            lock (_packetsLock)
-            {
-                _packets.Enqueue(packet);
-
-                if (null != packet)
-                    ReportEnqueue(packet.Length, packet.PresentationTimestamp);
-                else
-                {
-                    _isDone = true;
-                    ReportDone();
-                }
-            }
-
-            CheckGetNextSample();
-
-#if DEBUG
-            ThrowIfDisposed();
-#endif
-        }
-
-        void CheckGetNextSample()
-        {
-            var checkForSamples = _checkForSamples;
-
-            if (null != checkForSamples)
-                checkForSamples();
-        }
-
-        void IManagedBuffer.Flush()
+        void IBufferingQueue.Flush()
         {
             TsPesPacket[] packets = null;
 
@@ -309,7 +222,9 @@ namespace SM.Media
                     _packets.Clear();
                 }
 
-                ReportFlush();
+                _size = 0;
+                _newest = null;
+                _oldest = null;
             }
 
             if (null == packets)
@@ -324,9 +239,75 @@ namespace SM.Media
             }
         }
 
-        public TsStreamType StreamType
+        public void UpdateBufferStatus(BufferStatus bufferStatus)
         {
-            get { return _streamType; }
+            lock (_packetsLock)
+            {
+                bufferStatus.PacketCount = _packets.Count;
+                bufferStatus.Size = _size;
+                bufferStatus.Newest = _newest - TimestampOffset;
+                bufferStatus.Oldest = _oldest - TimestampOffset;
+                bufferStatus.IsValid = _packets.Count > 0 && _newest.HasValue && _oldest.HasValue;
+                bufferStatus.IsDone = _isDone;
+            }
+        }
+
+        public bool TryEnqueue(ICollection<TsPesPacket> packets)
+        {
+            ThrowIfDisposed();
+
+            lock (_packetsLock)
+            {
+                foreach (var packet in packets)
+                {
+                    if (null != packet && packet.Length < 1)
+                    {
+                        Debug.WriteLine("StreamBuffer.TryEnqueue() discarding short buffer: size " + packet.Length);
+
+                        _freePesPacket(packet);
+
+                        continue;
+                    }
+
+                    if (_isDone)
+                    {
+                        if (null != packet)
+                            _freePesPacket(packet);
+
+                        continue;
+                    }
+
+                    _packets.Enqueue(packet);
+
+                    if (null != packet)
+                    {
+                        _newest = packet.PresentationTimestamp;
+
+                        if (!_oldest.HasValue)
+                            _oldest = _newest;
+
+                        _size += packet.Length;
+                    }
+                    else
+                        _isDone = true;
+                }
+            }
+
+#if DEBUG
+            ThrowIfDisposed();
+#endif
+
+            return true;
+        }
+
+        public override string ToString()
+        {
+            var bufferStatus = new BufferStatus();
+
+            UpdateBufferStatus(bufferStatus);
+
+            return string.Format("{0} count {1} size {2} newest {3} oldest {4}",
+                StreamType.Contents, bufferStatus.PacketCount, bufferStatus.Size, bufferStatus.Newest, bufferStatus.Oldest);
         }
     }
 }

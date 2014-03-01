@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using SM.Media.Buffering;
 using SM.TsParser;
 
 namespace SM.Media.MediaParser
@@ -39,6 +40,6 @@ namespace SM.Media.MediaParser
         void ProcessEndOfData();
         void ProcessData(byte[] buffer, int offset, int length);
         void FlushBuffers();
-        void Initialize(Func<TsStreamType, IStreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null);
+        void Initialize(IBufferingManager bufferingManager, Action<IProgramStreams> programStreamsHandler = null);
     }
 }

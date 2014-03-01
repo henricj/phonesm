@@ -34,10 +34,10 @@ namespace SM.Media.Ac3
     {
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Ac3StreamType);
 
-        public Ac3MediaParser(ITsPesPacketPool packetPool)
-            : base(StreamType, new Ac3Configurator())
+        public Ac3MediaParser(ITsPesPacketPool pesPacketPool)
+            : base(StreamType, new Ac3Configurator(), pesPacketPool)
         {
-            Parser = new Ac3Parser(packetPool, Configurator.Configure, SubmitPacket);
+            Parser = new Ac3Parser(pesPacketPool, Configurator.Configure, SubmitPacket);
         }
     }
 }

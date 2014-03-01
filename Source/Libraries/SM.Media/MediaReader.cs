@@ -228,9 +228,7 @@ namespace SM.Media
 
             _mediaParser.ConfigurationComplete += ConfigurationComplete;
 
-            _mediaParser.Initialize(
-                streamType => _bufferingManager.CreateStreamBuffer(streamType, checkForSamples),
-                programStreamsHandler);
+            _mediaParser.Initialize(_bufferingManager, programStreamsHandler);
         }
 
         void ConfigurationComplete(object sender, EventArgs eventArgs)

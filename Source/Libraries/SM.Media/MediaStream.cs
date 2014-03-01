@@ -25,26 +25,42 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
+using SM.TsParser;
 
 namespace SM.Media
 {
-    public sealed class MediaStream : IMediaParserMediaStream
+    public sealed class MediaStream : IMediaParserMediaStream, IDisposable
     {
         readonly IConfigurationSource _configurator;
-        readonly IStreamSource _streamSource;
+        readonly Action<TsPesPacket> _freePacket;
+        readonly List<TsPesPacket> _packets = new List<TsPesPacket>();
+        readonly IStreamBuffer _streamBuffer;
 
-        public MediaStream(IConfigurationSource configurator, IStreamSource streamSource)
+        public MediaStream(IConfigurationSource configurator, IStreamBuffer streamBuffer, Action<TsPesPacket> freePacket)
         {
             if (null == configurator)
                 throw new ArgumentNullException("configurator");
-            if (null == streamSource)
-                throw new ArgumentNullException("streamSource");
+            if (null == streamBuffer)
+                throw new ArgumentNullException("streamBuffer");
+            if (null == freePacket)
+                throw new ArgumentNullException("freePacket");
 
             _configurator = configurator;
-            _streamSource = streamSource;
+            _streamBuffer = streamBuffer;
+            _freePacket = freePacket;
         }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            Flush();
+        }
+
+        #endregion
 
         #region IMediaParserMediaStream Members
 
@@ -55,9 +71,34 @@ namespace SM.Media
 
         public IStreamSource StreamSource
         {
-            get { return _streamSource; }
+            get { return _streamBuffer; }
         }
 
         #endregion
+
+        public void Flush()
+        {
+            if (_packets.Count <= 0)
+                return;
+
+            foreach (var packet in _packets)
+                _freePacket(packet);
+
+            _packets.Clear();
+        }
+
+        public void EnqueuePacket(TsPesPacket packet)
+        {
+            _packets.Add(packet);
+        }
+
+        public void PushPackets()
+        {
+            if (_packets.Count <= 0)
+                return;
+
+            if (_streamBuffer.TryEnqueue(_packets))
+                _packets.Clear();
+        }
     }
 }

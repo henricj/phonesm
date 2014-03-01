@@ -28,7 +28,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Buffering;
 using SM.Media.MediaParser;
 using SM.Media.Pes;
 using SM.Media.Utility;
@@ -39,15 +41,16 @@ namespace SM.Media
 {
     public sealed class TsMediaParser : IMediaParser
     {
+        static readonly MediaStream[] NoMediaStreams = new MediaStream[0];
         readonly IBufferPool _bufferPool;
-        readonly List<IMediaParserMediaStream> _mediaStreams = new List<IMediaParserMediaStream>();
-        readonly object _mediaStreamsLock = new object();
         readonly IPesHandlers _pesHandlers;
+        readonly object _timestampLock = new object();
         readonly List<Action<TimeSpan>> _timestampOffsetHandlers = new List<Action<TimeSpan>>();
         readonly ITsDecoder _tsDecoder;
         readonly ITsPesPacketPool _tsPesPacketPool;
         readonly ITsTimestamp _tsTimemestamp;
-        Func<TsStreamType, IStreamBuffer> _streamBufferFactory;
+        IBufferingManager _bufferingManager;
+        MediaStream[] _mediaStreams = NoMediaStreams;
         int? _streamCount;
 
         public TsMediaParser(ITsDecoder tsDecoder, ITsPesPacketPool tsPesPacketPool, IBufferPool bufferPool, ITsTimestamp tsTimemestamp, IPesHandlers pesHandlers)
@@ -74,13 +77,7 @@ namespace SM.Media
 
         public ICollection<IMediaParserMediaStream> MediaStreams
         {
-            get
-            {
-                lock (_mediaStreamsLock)
-                {
-                    return _mediaStreams.ToArray();
-                }
-            }
+            get { return _mediaStreams.ToArray(); }
         }
 
         public TimeSpan StartPosition
@@ -103,15 +100,15 @@ namespace SM.Media
         /// <filterpriority>2</filterpriority>
         public void Dispose()
         {
-            CleanupStreams();
+            DisposeStreams();
         }
 
-        public void Initialize(Func<TsStreamType, IStreamBuffer> streamBufferFactory, Action<IProgramStreams> programStreamsHandler = null)
+        public void Initialize(IBufferingManager bufferingManager, Action<IProgramStreams> programStreamsHandler = null)
         {
-            if (null == streamBufferFactory)
-                throw new ArgumentNullException("streamBufferFactory");
+            if (null == bufferingManager)
+                throw new ArgumentNullException("bufferingManager");
 
-            _streamBufferFactory = streamBufferFactory;
+            _bufferingManager = bufferingManager;
 
             var handler = programStreamsHandler ?? DefaultProgramStreamsHandler;
 
@@ -128,20 +125,36 @@ namespace SM.Media
         public void FlushBuffers()
         {
             _tsDecoder.FlushBuffers();
+
+            foreach (var ms in _mediaStreams)
+                ms.Flush();
+
             _tsTimemestamp.Flush();
         }
 
         public void ProcessEndOfData()
         {
             _tsDecoder.ParseEnd();
+
+            PushStreams();
         }
 
         public void ProcessData(byte[] buffer, int offset, int length)
         {
             _tsDecoder.Parse(buffer, offset, length);
+
+            PushStreams();
         }
 
         #endregion
+
+        void PushStreams()
+        {
+            foreach (var mediaStream in _mediaStreams)
+                mediaStream.PushPackets();
+
+            _bufferingManager.Refresh();
+        }
 
         static void DefaultProgramStreamsHandler(IProgramStreams pss)
         {
@@ -171,19 +184,36 @@ namespace SM.Media
             }
         }
 
-        void CleanupStreams()
+        void DisposeStreams()
         {
-            lock (_mediaStreamsLock)
-            {
-                _mediaStreams.Clear();
-            }
+            var mediaStreams = Interlocked.Exchange(ref _mediaStreams, NoMediaStreams);
+
+            if (mediaStreams.Length <= 0)
+                return;
+
+            foreach (var ms in mediaStreams)
+                ms.Dispose();
         }
 
         void AddMediaStream(MediaStream mediaStream)
         {
-            lock (_mediaStreamsLock)
+            var mediaStreams = _mediaStreams;
+            var newMediaStreams = new MediaStream[_mediaStreams.Length + 1];
+
+            for (; ; )
             {
-                _mediaStreams.Add(mediaStream);
+                if (newMediaStreams.Length != mediaStreams.Length)
+                    newMediaStreams = new MediaStream[_mediaStreams.Length + 1];
+
+                Array.Copy(mediaStreams, newMediaStreams, mediaStreams.Length);
+                newMediaStreams[newMediaStreams.Length - 1] = mediaStream;
+
+                var oldMediaStream = Interlocked.CompareExchange(ref _mediaStreams, newMediaStreams, mediaStreams);
+
+                if (ReferenceEquals(oldMediaStream, mediaStreams))
+                    break;
+
+                mediaStreams = oldMediaStream;
             }
 
             CheckConfigurationComplete();
@@ -218,12 +248,14 @@ namespace SM.Media
 
         TsPacketizedElementaryStream CreatePacketizedElementaryStream(TsStreamType streamType, uint pid)
         {
-            var streamBuffer = _streamBufferFactory(streamType);
+            var streamBuffer = _bufferingManager.CreateStreamBuffer(streamType);
 
-            lock (_mediaStreamsLock)
+            lock (_timestampLock)
             {
                 _timestampOffsetHandlers.Add(ts => streamBuffer.TimestampOffset = ts);
             }
+
+            MediaStream mediaStream = null;
 
             var gotFirstPacket = false;
 
@@ -238,7 +270,7 @@ namespace SM.Media
                             {
                                 var offset = _tsTimemestamp.Offset.Value;
 
-                                lock (_mediaStreamsLock)
+                                lock (_timestampLock)
                                 {
                                     foreach (var timestampOffsetHandler in _timestampOffsetHandlers)
                                         timestampOffsetHandler(offset);
@@ -251,7 +283,8 @@ namespace SM.Media
                         Debug.Assert(packet.PresentationTimestamp >= StartPosition, String.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.PresentationTimestamp, StartPosition, packet.PresentationTimestamp >= StartPosition));
                     }
 
-                    streamBuffer.Enqueue(packet);
+                    if (null != mediaStream)
+                        mediaStream.EnqueuePacket(packet);
                 });
 
             var pes = new TsPacketizedElementaryStream(_bufferPool, _tsPesPacketPool, pesStreamHandler.PacketHandler, streamType, pid);
@@ -269,9 +302,9 @@ namespace SM.Media
 
             configurator.ConfigurationComplete += configuratorOnConfigurationComplete;
 
-            var ms = new MediaStream(configurator, streamBuffer);
+            mediaStream = new MediaStream(configurator, streamBuffer, _tsPesPacketPool.FreePesPacket);
 
-            AddMediaStream(ms);
+            AddMediaStream(mediaStream);
 
             return pes;
         }

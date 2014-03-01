@@ -40,14 +40,18 @@ namespace SM.Media.Buffering
         static readonly TimeSpan SeekBeginTolerance = TimeSpan.FromSeconds(6);
         static readonly TimeSpan BufferStatusUpdatePeriod = TimeSpan.FromMilliseconds(250);
         readonly IBufferingPolicy _bufferingPolicy;
+        readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
         readonly ITsPesPacketPool _packetPool;
-        readonly List<BufferingQueue> _queues = new List<BufferingQueue>();
+        readonly List<IBufferingQueue> _queues = new List<IBufferingQueue>();
+        readonly SignalTask _refreshTask;
         readonly SignalTask _reportingTask;
+        readonly List<BufferStatus> _statuses = new List<BufferStatus>();
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
-        double _bufferingProgress;
-        volatile int _isBuffering = 1;
+        float _bufferingProgress;
+        bool _isBuffering = true;
+        int _isDisposed;
         bool _isStarting = true;
         IQueueThrottling _queueThrottling;
         Action _reportBufferingChange;
@@ -63,78 +67,19 @@ namespace SM.Media.Buffering
             _bufferingPolicy = bufferingPolicy;
             _packetPool = packetPool;
 
+            _refreshTask = new SignalTask(() =>
+                                          {
+                                              RefreshHandler();
+
+                                              return TplTaskExtensions.CompletedTask;
+                                          }, _disposeCancellationTokenSource.Token);
+
             _reportingTask = new SignalTask(() =>
                                             {
                                                 _reportBufferingChange();
 
                                                 return TplTaskExtensions.CompletedTask;
-                                            }, CancellationToken.None);
-        }
-
-        public TimeSpan BufferPosition
-        {
-            get
-            {
-                var latestPosition = TimeSpan.MaxValue;
-
-                lock (_lock)
-                {
-                    foreach (var queue in _queues)
-                    {
-                        if (!queue.IsValid)
-                            continue;
-
-                        var position = queue.Oldest.Value;
-
-                        if (position < latestPosition)
-                            latestPosition = position;
-                    }
-                }
-
-                Debug.Assert(latestPosition >= TimeSpan.Zero, "latestPosition: " + latestPosition);
-
-                if (TimeSpan.MaxValue == latestPosition)
-                    return TimeSpan.Zero;
-
-                return latestPosition;
-            }
-        }
-
-        public TimeSpan BufferDuration
-        {
-            get
-            {
-                var oldest = TimeSpan.MaxValue;
-                var newest = TimeSpan.MinValue;
-
-                lock (_lock)
-                {
-                    foreach (var queue in _queues)
-                    {
-                        if (!queue.IsValid)
-                            continue;
-
-                        var position = queue.Oldest.Value;
-
-                        if (position < oldest)
-                            oldest = position;
-
-                        position = queue.Newest.Value;
-
-                        if (position > newest)
-                            newest = position;
-                    }
-                }
-
-                if (newest > TimeSpan.MinValue && oldest < TimeSpan.MaxValue)
-                {
-                    Debug.Assert(newest >= oldest, string.Format("newest {0} >= oldest {1}", newest, oldest));
-
-                    return newest - oldest;
-                }
-
-                return TimeSpan.Zero;
-            }
+                                            }, _disposeCancellationTokenSource.Token);
         }
 
         #region IBufferingManager Members
@@ -146,33 +91,31 @@ namespace SM.Media.Buffering
             if (reportBufferingChange == null)
                 throw new ArgumentNullException("reportBufferingChange");
 
+            ThrowIfDisposed();
+
             _queueThrottling = queueThrottling;
             _reportBufferingChange = reportBufferingChange;
         }
 
-        public IBufferingQueue CreateQueue(IManagedBuffer managedBuffer)
+        public IStreamBuffer CreateStreamBuffer(TsStreamType streamType)
         {
-            if (null == managedBuffer)
-                throw new ArgumentNullException("managedBuffer");
+            ThrowIfDisposed();
 
-            var queue = new BufferingQueue(this, managedBuffer);
+            var buffer = new StreamBuffer(streamType, _packetPool.FreePesPacket, this);
 
             lock (_lock)
             {
-                _queues.Add(queue);
+                _queues.Add(buffer);
+
+                ResizeStatuses();
             }
 
-            return queue;
-        }
-
-        public IStreamBuffer CreateStreamBuffer(TsStreamType streamType, Action checkForSamples)
-        {
-            return new StreamBuffer(streamType, _packetPool.FreePesPacket, this, checkForSamples);
+            return buffer;
         }
 
         public void Flush()
         {
-            BufferingQueue[] queues;
+            IBufferingQueue[] queues;
 
             lock (_lock)
             {
@@ -181,13 +124,19 @@ namespace SM.Media.Buffering
 
             foreach (var queue in queues)
                 queue.Flush();
+
+            ReportFlush();
         }
 
         public bool IsSeekAlreadyBuffered(TimeSpan position)
         {
+            ThrowIfDisposed();
+
             lock (_lock)
             {
-                foreach (var queue in _queues)
+                UnlockedUpdateQueueStatus();
+
+                foreach (var queue in _statuses)
                 {
                     // We'll ignore the "IsValid" flag for now.  The Oldest/Newest
                     // will either be the last known values or TimeSpan.Zero.  In
@@ -209,10 +158,10 @@ namespace SM.Media.Buffering
 
         public bool IsBuffering
         {
-            get { return 0 != _isBuffering; }
+            get { return _isBuffering; }
         }
 
-        public double BufferingProgress
+        public float BufferingProgress
         {
             get
             {
@@ -224,22 +173,62 @@ namespace SM.Media.Buffering
         }
 
         public void Dispose()
-        { }
-
-        #endregion
-
-        void Report(Action<int, TimeSpan> update, int size, TimeSpan timestamp)
         {
-            //var wasBlock = _blockReads;
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            _disposeCancellationTokenSource.Cancel();
+
+            using (_refreshTask)
+            { }
+
+            using (_reportingTask)
+            { }
+
+            _disposeCancellationTokenSource.Dispose();
+        }
+
+        public void Refresh()
+        {
+            ThrowIfDisposed();
+
+            _refreshTask.Fire();
+        }
+
+        public void ReportExhaustion()
+        {
+            Debug.WriteLine("BufferingManager.ReportExhaustion()");
 
             lock (_lock)
             {
-                update(size, timestamp);
+                UnlockedStartBuffering();
+            }
+        }
+
+        #endregion
+
+        void ResizeStatuses()
+        {
+            while (_statuses.Count > _queues.Count)
+                _statuses.RemoveAt(_statuses.Count - 1);
+            while (_statuses.Count < _queues.Count)
+                _statuses.Add(new BufferStatus());
+        }
+
+        void RefreshHandler()
+        {
+            lock (_lock)
+            {
+                UnlockedUpdateQueueStatus();
 
                 UnlockedReport();
-
-                //Debug.WriteLine("Report Sample({0}, {1}) blockReads {2} => {3} ({4})", size, timestamp, wasBlock, _blockReads, DateTimeOffset.Now);
             }
+        }
+
+        void UnlockedUpdateQueueStatus()
+        {
+            for (var i = 0; i < _queues.Count; ++i)
+                _queues[i].UpdateBufferStatus(_statuses[i]);
         }
 
         void UnlockedReport()
@@ -254,45 +243,29 @@ namespace SM.Media.Buffering
             }
         }
 
-        void ReportExhaustion(Action update)
+        void ReportFlush()
         {
-            lock (_lock)
-            {
-                update();
+            ThrowIfDisposed();
 
-                UnlockedReport();
-            }
-        }
+            bool hasQueues;
 
-        void ReportFlush(Action update)
-        {
             lock (_lock)
             {
                 _isStarting = true;
-
-                update();
-
-                UnlockedReport();
+                hasQueues = _queues.Count > 0;
             }
-        }
 
-        void ReportDone(Action update)
-        {
-            lock (_lock)
-            {
-                update();
-
-                UnlockedReport();
-            }
+            if (hasQueues)
+                _refreshTask.Fire();
         }
 
         void UnlockedStartBuffering()
         {
-#pragma warning disable 0420
-            var wasBuffering = Interlocked.Exchange(ref _isBuffering, 1);
-#pragma warning restore 0420
+            var wasBuffering = _isBuffering;
 
-            if (0 != wasBuffering)
+            _isBuffering = true;
+
+            if (!wasBuffering)
                 return;
 
             ReportBuffering(0);
@@ -300,6 +273,9 @@ namespace SM.Media.Buffering
 
         bool UpdateState()
         {
+            if (_statuses.Count <= 0)
+                return false;
+
             var newest = TimeSpan.MinValue;
             var oldest = TimeSpan.MaxValue;
             var minDuration = TimeSpan.MaxValue;
@@ -312,17 +288,17 @@ namespace SM.Media.Buffering
             var isExhausted = false;
             var allExhausted = true;
 
-            foreach (var queue in _queues)
+            foreach (var status in _statuses)
             {
-                if (!queue.IsDone)
+                if (!status.IsDone)
                     allDone = false;
 
-                if (queue.IsExhausted)
+                if (0 == status.PacketCount)
                     isExhausted = true;
                 else
                     allExhausted = false;
 
-                if (!queue.IsValid)
+                if (!status.IsValid)
                 {
                     if (minDuration > TimeSpan.Zero)
                         minDuration = TimeSpan.Zero;
@@ -330,11 +306,11 @@ namespace SM.Media.Buffering
                     continue;
                 }
 
-                totalBuffered += queue.Size;
+                totalBuffered += status.Size;
 
                 validData = true;
 
-                var count = queue.PacketCount;
+                var count = status.PacketCount;
 
                 if (count < lowestCount)
                     lowestCount = count;
@@ -342,12 +318,12 @@ namespace SM.Media.Buffering
                 if (count > highestCount)
                     highestCount = count;
 
-                var newTime = queue.Newest;
+                var newTime = status.Newest;
 
                 if (newTime > newest)
                     newest = newTime.Value;
 
-                var oldTime = queue.Oldest;
+                var oldTime = status.Oldest;
 
                 if (oldTime < oldest)
                     oldest = oldTime.Value;
@@ -377,13 +353,11 @@ namespace SM.Media.Buffering
                 validData = false;
             }
 
-            if (0 != _isBuffering)
+            if (_isBuffering)
             {
                 if (allDone)
                 {
-#pragma warning disable 0420
-                    Interlocked.Exchange(ref _isBuffering, 0);
-#pragma warning restore 0420
+                    _isBuffering = false;
 
                     Debug.WriteLine("BufferingManager.UpdateState done buffering (eof): duration {0} size {1} starting {2} memory {3:F} MiB",
                         validData ? timestampDifference.ToString() : "none",
@@ -398,7 +372,7 @@ namespace SM.Media.Buffering
                 else if (validData)
                     UpdateBuffering(timestampDifference, totalBuffered);
 
-                if (0 != _isBuffering)
+                if (!_isBuffering)
                     return false;
             }
             else
@@ -452,9 +426,7 @@ namespace SM.Media.Buffering
         {
             if (_bufferingPolicy.IsDoneBuffering(timestampDifference, bufferSize, _totalBufferedStart, _isStarting))
             {
-#pragma warning disable 0420
-                Interlocked.Exchange(ref _isBuffering, 0);
-#pragma warning restore 0420
+                _isBuffering = false;
 
                 Debug.WriteLine("BufferingManager.UpdateBuffering done buffering: duration {0} size {1} starting {2} memory {3:F} MiB",
                     timestampDifference, bufferSize, _isStarting, GC.GetTotalMemory(false).BytesToMiB());
@@ -485,7 +457,7 @@ namespace SM.Media.Buffering
             }
         }
 
-        void ReportBuffering(double bufferingProgress)
+        void ReportBuffering(float bufferingProgress)
         {
             _bufferingProgress = bufferingProgress;
 
@@ -505,153 +477,10 @@ namespace SM.Media.Buffering
                 er.Resume();
         }
 
-        #region Nested type: BufferingQueue
-
-        class BufferingQueue : IBufferingQueue
+        void ThrowIfDisposed()
         {
-            readonly BufferingManager _bufferingManager;
-            readonly IManagedBuffer _managedBuffer;
-            readonly TsStreamType _streamType;
-            int _bufferSize;
-            bool _isDone;
-            TimeSpan? _newestPacket;
-            TimeSpan? _oldestPacket;
-            int _packetCount;
-
-            public BufferingQueue(BufferingManager bufferingManager, IManagedBuffer managedBuffer)
-            {
-                if (bufferingManager == null)
-                    throw new ArgumentNullException("bufferingManager");
-                if (managedBuffer == null)
-                    throw new ArgumentNullException("managedBuffer");
-
-                _bufferingManager = bufferingManager;
-                _managedBuffer = managedBuffer;
-                _streamType = managedBuffer.StreamType;
-            }
-
-            public bool IsDone
-            {
-                get { return _isDone; }
-            }
-
-            public bool IsValid
-            {
-                get { return _packetCount > 0 && _newestPacket.HasValue && _oldestPacket.HasValue; }
-            }
-
-            public TimeSpan? Newest
-            {
-                get { return _newestPacket - _managedBuffer.TimestampOffset; }
-            }
-
-            public TimeSpan? Oldest
-            {
-                get { return _oldestPacket - _managedBuffer.TimestampOffset; }
-            }
-
-            public int PacketCount
-            {
-                get { return _packetCount; }
-            }
-
-            public int Size
-            {
-                get { return _bufferSize; }
-            }
-
-            public bool IsExhausted { get; private set; }
-
-            #region IBufferingQueue Members
-
-            public void ReportEnqueue(int size, TimeSpan timestamp)
-            {
-                if (IsExhausted)
-                {
-                    Debug.WriteLine("BufferingQueue.ReportEnqueue(): IsExhausted=false " + _streamType.Contents);
-                    IsExhausted = false;
-                }
-
-                _bufferingManager.Report(Enqueue, size, timestamp);
-            }
-
-            public void ReportDequeue(int size, TimeSpan timestamp)
-            {
-                _bufferingManager.Report(Dequeue, size, timestamp);
-            }
-
-            public void ReportExhaustion()
-            {
-                if (!IsExhausted)
-                {
-                    Debug.WriteLine("BufferingQueue.ReportExhaustion(): " + _streamType.Contents);
-                    IsExhausted = true;
-                }
-
-                _bufferingManager.ReportExhaustion(Exhausted);
-            }
-
-            public void ReportFlush()
-            {
-                Debug.WriteLine("BufferingQueue.ReportFlush(): " + _streamType.Contents);
-
-                _bufferingManager.ReportFlush(Exhausted);
-            }
-
-            public void ReportDone()
-            {
-                Debug.WriteLine("BufferingQueue.ReportDone(): " + _streamType.Contents);
-
-                _bufferingManager.ReportDone(Done);
-            }
-
-            #endregion
-
-            public void Flush()
-            {
-                _managedBuffer.Flush();
-            }
-
-            void Done()
-            {
-                _isDone = true;
-            }
-
-            void Exhausted()
-            {
-                _packetCount = 0;
-                _bufferSize = 0;
-                _newestPacket = _oldestPacket = null;
-            }
-
-            void Enqueue(int size, TimeSpan timestamp)
-            {
-                ++_packetCount;
-                _bufferSize += size;
-
-                _newestPacket = timestamp;
-
-                if (!_oldestPacket.HasValue)
-                    _oldestPacket = timestamp;
-            }
-
-            void Dequeue(int size, TimeSpan timestamp)
-            {
-                --_packetCount;
-                _bufferSize -= size;
-
-                _oldestPacket = timestamp;
-
-                if (!_newestPacket.HasValue)
-                    _newestPacket = timestamp;
-            }
-
-            public override string ToString()
-            {
-                return string.Format("{0} count {1} size {2} newest {3} oldest {4}", _streamType.Contents, _packetCount, _bufferSize, _newestPacket, _oldestPacket);
-            }
+            if (0 != _isDisposed)
+                throw new ObjectDisposedException(GetType().Name);
         }
-
-        #endregion
     }
 }

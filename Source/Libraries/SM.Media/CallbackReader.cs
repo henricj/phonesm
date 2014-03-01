@@ -163,7 +163,8 @@ namespace SM.Media
             {
                 while (!segmentReader.IsEof)
                 {
-                    buffer = await _bufferPool.AllocateAsync(cancellationToken).ConfigureAwait(false);
+                    if (null == buffer)
+                        buffer = await _bufferPool.AllocateAsync(cancellationToken).ConfigureAwait(false);
 
                     Debug.Assert(null != buffer);
 

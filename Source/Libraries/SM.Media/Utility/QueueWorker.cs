@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="QueueWorker.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,17 +41,18 @@ namespace SM.Media.Utility
         readonly TaskCompletionSource<bool> _closeTaskCompletionSource = new TaskCompletionSource<bool>();
         readonly LinkedList<TWorkItem> _processBuffers = new LinkedList<TWorkItem>();
         readonly object _processLock = new object();
+        readonly SignalTask _workerTask;
         bool _isClosed;
         int _isDisposed;
         bool _isEnabled;
         bool _isPaused;
-        Task _queueWorker;
-        bool _workerRunning;
 
         public QueueWorker(Action<TWorkItem> callback, Action<TWorkItem> cleanup)
         {
             _callback = callback;
             _cleanup = cleanup;
+
+            _workerTask = SignalTask.Create(Worker);
         }
 
         public bool IsEnabled
@@ -64,21 +65,21 @@ namespace SM.Media.Utility
                     if (_isClosed)
                         return;
 
-                    if (_isEnabled == value)
+                    if (value == _isEnabled)
                         return;
 
                     _isEnabled = value;
 
-                    if (_isEnabled && _processBuffers.Count > 0)
+                    if (_isEnabled && !_isPaused && _processBuffers.Count > 0)
                         UnlockedWakeWorker();
                 }
 
                 if (!value)
-                    Clear();
+                    Clear(false);
             }
         }
 
-        public bool IsPaused
+        bool IsPaused
         {
             get { return _isPaused; }
             set
@@ -95,7 +96,7 @@ namespace SM.Media.Utility
                 {
                     _isPaused = value;
 
-                    if (!_isPaused)
+                    if (_isEnabled && !_isPaused && _processBuffers.Count > 0)
                         UnlockedWakeWorker();
                 }
             }
@@ -105,23 +106,14 @@ namespace SM.Media.Utility
 
         public void Dispose()
         {
-            var wasDisposed = Interlocked.Exchange(ref _isDisposed, 1);
-
-            if (0 != wasDisposed)
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
                 return;
 
             _abortTokenSource.Cancel();
 
-            Clear();
+            Clear(true);
 
-            Task queueWorker;
-            lock (_processLock)
-            {
-                queueWorker = _queueWorker;
-            }
-
-            if (null != queueWorker)
-                queueWorker.Wait();
+            _workerTask.Dispose();
 
             _abortTokenSource.Dispose();
         }
@@ -160,14 +152,7 @@ namespace SM.Media.Utility
 
         void UnlockedWakeWorker()
         {
-            if (_workerRunning)
-                return;
-
-            _workerRunning = true;
-
-            //_queueWorker = Task.Run((Func<Task>)QueueWorker);
-            _queueWorker = Task.Factory.StartNew((Func<Task>)WorkerAsync, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default)
-                               .Unwrap();
+            _workerTask.Fire();
         }
 
         void ThrowIfDisposed()
@@ -176,12 +161,7 @@ namespace SM.Media.Utility
                 throw new ObjectDisposedException(GetType().Name);
         }
 
-        public void Clear()
-        {
-            ClearImpl(false);
-        }
-
-        void ClearImpl(bool closeQueue)
+        void Clear(bool closeQueue)
         {
             TWorkItem[] workItems = null;
 
@@ -199,16 +179,7 @@ namespace SM.Media.Utility
                 if (closeQueue)
                 {
                     if (!_isClosed)
-                    {
                         _isClosed = true;
-
-                        UnlockedWakeWorker();
-                    }
-                }
-                else
-                {
-                    if (!_isPaused)
-                        UnlockedWakeWorker();
                 }
             }
 
@@ -226,103 +197,67 @@ namespace SM.Media.Utility
         {
             IsPaused = false;
 
-            Task queueWorker;
-
-            lock (_processLock)
-            {
-                queueWorker = _queueWorker;
-            }
-
-            return queueWorker ?? TplTaskExtensions.CompletedTask;
+            return _workerTask.WaitAsync();
         }
 
         public Task ClearAsync()
         {
-            Clear();
+            Clear(false);
 
-            Task queueWorker;
-
-            lock (_processLock)
-            {
-                queueWorker = _queueWorker;
-            }
-
-            return queueWorker ?? TplTaskExtensions.CompletedTask;
+            return _workerTask.WaitAsync();
         }
 
         public Task CloseAsync()
         {
-            ClearImpl(true);
+            Clear(true);
 
-            return _closeTaskCompletionSource.Task;
+            return _workerTask.WaitAsync();
         }
 
-        async Task WorkerAsync()
+        void Worker()
         {
-            var closeTask = false;
             var normalExit = false;
 
             try
             {
                 for (; ; )
                 {
+                    ThrowIfDisposed();
+
                     TWorkItem workItem = null;
 
                     try
                     {
                         lock (_processLock)
                         {
-                            var isDisposed = 0 != _isDisposed;
-                            var isEnabled = _isEnabled;
-                            var isClosed = _isClosed;
-                            var isPaused = _isPaused;
-
-                            if (isDisposed || !isEnabled || isClosed || isPaused)
+                            if (!_isEnabled || _isClosed || _isPaused || _closeTaskCompletionSource.Task.IsCompleted)
                             {
                                 normalExit = true;
-                                _workerRunning = false;
 
-                                if (!isClosed)
-                                    return;
-
-                                if (_closeTaskCompletionSource.Task.IsCompleted)
-                                    return;
-
-                                _workerRunning = true;
-                                closeTask = true;
+                                return;
                             }
 
-                            if (!closeTask)
+                            if (0 == _processBuffers.Count)
                             {
-                                if (0 == _processBuffers.Count)
-                                {
-                                    normalExit = true;
-                                    _workerRunning = false;
+                                normalExit = true;
 
-                                    return;
-                                }
-
-                                var item = _processBuffers.First;
-
-                                _processBuffers.RemoveFirst();
-
-                                workItem = item.Value;
+                                return;
                             }
+
+                            var item = _processBuffers.First;
+
+                            _processBuffers.RemoveFirst();
+
+                            workItem = item.Value;
                         }
 
                         _callback(workItem);
-
-                        if (null == workItem)
-                            Clear();
-
-                        if (closeTask)
-                            return;
-
-                        continue;
                     }
                     catch (OperationCanceledException)
                     {
-                        throw;
+                        normalExit = true;
+
+                        return;
                     }
                     catch (Exception ex)
                     {
@@ -333,26 +268,15 @@ namespace SM.Media.Utility
                         if (null != workItem)
                             _cleanup(workItem);
                     }
-
-                    await TaskEx.Delay(250, _abortTokenSource.Token).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("WorkAsync failed: " + ex.Message);
-                throw;
             }
             finally
             {
-                lock (_processLock)
-                {
-                    Debug.Assert(normalExit, "QueueWorker.WorkerAsync() exited unexpectedly");
-
-                    _workerRunning = false;
-                }
-
-                if (closeTask)
-                    _closeTaskCompletionSource.TrySetResult(true);
+                Debug.Assert(normalExit, "QueueWorker.WorkerAsync() exited unexpectedly");
             }
         }
     }

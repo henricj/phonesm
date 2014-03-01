@@ -63,6 +63,26 @@ namespace SM.Media.Utility
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
         }
 
+        public static SignalTask Create(Action handler)
+        {
+            return new SignalTask(() =>
+                                  {
+                                      handler();
+
+                                      return TplTaskExtensions.CompletedTask;
+                                  });
+        }
+
+        public static SignalTask Create(Action handler, CancellationToken token)
+        {
+            return new SignalTask(() =>
+                                  {
+                                      handler();
+
+                                      return TplTaskExtensions.CompletedTask;
+                                  }, token);
+        }
+
         public bool IsActive
         {
             get

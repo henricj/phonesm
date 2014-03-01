@@ -120,6 +120,7 @@
     <Compile Include="Playlists\ProgramStream.cs" />
     <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
     <Compile Include="Segments\SegmentReaderManagerFactory.cs" />
+    <Compile Include="Segments\SimpleSegmentManager.cs" />
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
     <Compile Include="Content\ContentServiceFactory.cs" />
     <Compile Include="TsMediaParserFactory.cs" />
@@ -260,7 +261,7 @@
     <Compile Include="Segments\ISegmentReaderManager.cs" />
     <Compile Include="Segments\ISegment.cs" />
     <Compile Include="Segments\SimpleSegment.cs" />
-    <Compile Include="Segments\SimpleSegmentManager.cs" />
+    <Compile Include="Segments\SimpleSegmentManagerBase.cs" />
     <Compile Include="StreamBuffer.cs" />
     <Compile Include="TsMediaManager.cs" />
     <Compile Include="TsTimestamp.cs" />

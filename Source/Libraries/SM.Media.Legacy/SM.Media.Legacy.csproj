@@ -442,6 +442,9 @@
     <Compile Include="..\SM.Media\Segments\SegmentReaderManagerFactory.cs">
       <Link>Segments\SegmentReaderManagerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Segments\SimpleSegmentManagerBase.cs">
+      <Link>Segments\SimpleSegmentManagerBase.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Segments\SimpleSegmentManagerFactory.cs">
       <Link>Segments\SimpleSegmentManagerFactory.cs</Link>
     </Compile>

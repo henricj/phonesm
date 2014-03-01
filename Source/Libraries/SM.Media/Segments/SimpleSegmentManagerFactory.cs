@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -51,7 +52,7 @@ namespace SM.Media.Segments
 
         public Task<ISegmentManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
         {
-            return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(source, contentType));
+            return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(source.FirstOrDefault(), source, contentType));
         }
 
         #endregion

@@ -26,130 +26,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Linq;
 using SM.Media.Content;
-using SM.Media.Utility;
 
 namespace SM.Media.Segments
 {
-    public sealed class SimpleSegmentManager : ISegmentManager, IAsyncEnumerable<ISegment>
+    public class SimpleSegmentManager : SimpleSegmentManagerBase
     {
-        static readonly Task<TimeSpan> TimeSpanZeroTask;
-        readonly ContentType _contentType;
-        readonly IEnumerable<Uri> _urls;
-
-        static SimpleSegmentManager()
-        {
-            var tcs = new TaskCompletionSource<TimeSpan>();
-            tcs.SetResult(TimeSpan.Zero);
-
-            TimeSpanZeroTask = tcs.Task;
-        }
-
-        public SimpleSegmentManager(IEnumerable<Uri> urls, ContentType contentType)
-        {
-            if (urls == null)
-                throw new ArgumentNullException("urls");
-
-            _contentType = contentType;
-            _urls = urls;
-        }
-
-        #region IAsyncEnumerable<ISegment> Members
-
-        IAsyncEnumerator<ISegment> IAsyncEnumerable<ISegment>.GetEnumerator()
-        {
-            return new SimpleEnumerator(_urls);
-        }
-
-        #endregion
-
-        #region ISegmentManager Members
-
-        public void Dispose()
+        public SimpleSegmentManager(Uri baseUrl, IEnumerable<Uri> urls, ContentType contentType)
+            : base(baseUrl, urls.Select<Uri, ISegment>(url => new SimpleSegment(url)).ToArray(), contentType)
         { }
-
-        public Task<TimeSpan> SeekAsync(TimeSpan timestamp)
-        {
-            return TimeSpanZeroTask;
-        }
-
-        public Task StartAsync()
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Task StopAsync()
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Task CloseAsync()
-        {
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public Uri Url
-        {
-            get { return null; }
-        }
-
-        public TimeSpan StartPosition
-        {
-            get { return TimeSpan.Zero; }
-        }
-
-        public TimeSpan? Duration
-        {
-            get { return null; }
-        }
-
-        public ContentType ContentType
-        {
-            get { return _contentType; }
-        }
-
-        public IAsyncEnumerable<ISegment> Playlist
-        {
-            get { return this; }
-        }
-
-        #endregion
-
-        #region Nested type: SimpleEnumerator
-
-        class SimpleEnumerator : IAsyncEnumerator<ISegment>
-        {
-            readonly IEnumerator<Uri> _enumerator;
-
-            public SimpleEnumerator(IEnumerable<Uri> urls)
-            {
-                _enumerator = urls.GetEnumerator();
-            }
-
-            #region IAsyncEnumerator<ISegment> Members
-
-            public void Dispose()
-            {
-                using (_enumerator)
-                { }
-            }
-
-            public ISegment Current { get; private set; }
-
-            public Task<bool> MoveNextAsync()
-            {
-                if (!_enumerator.MoveNext())
-                    return TplTaskExtensions.FalseTask;
-
-                Current = new SimpleSegment(_enumerator.Current);
-
-                return TplTaskExtensions.TrueTask;
-            }
-
-            #endregion
-        }
-
-        #endregion
     }
 }

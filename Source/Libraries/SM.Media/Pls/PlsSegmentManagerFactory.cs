@@ -131,7 +131,7 @@ namespace SM.Media.Pls
                 return null;
             }
 
-            return new SimpleSegmentManager(new[] { trackUrl }, contentType);
+            return new SimpleSegmentManager(playlistUri, new[] { trackUrl }, contentType);
         }
 
         [Conditional("DEBUG")]

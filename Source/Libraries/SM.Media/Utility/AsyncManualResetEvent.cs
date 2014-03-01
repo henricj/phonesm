@@ -50,19 +50,21 @@ namespace SM.Media.Utility
             return _tcs.Task;
         }
 
-        //public void Set() { _mTcs.TrySetResult(true); }
-        public void Set()
-        {
-            var tcs = _tcs;
+        public void Set() { _tcs.TrySetResult(true); }
+        //public void Set()
+        //{
+        //    var tcs = _tcs;
 
-            if (tcs.Task.IsCompleted)
-                return;
+        //    if (tcs.Task.IsCompleted)
+        //        return;
 
-            var t = Task.Factory.StartNew(s => ((TaskCompletionSource<bool>)s).TrySetResult(true),
-                tcs, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
+        //    var t = Task.Factory.StartNew(s => ((TaskCompletionSource<bool>)s).TrySetResult(true),
+        //        tcs, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
 
-            //tcs.Task.Wait();
-        }
+        //    TaskCollector.Default.Add(t, "AsyncManualResetEvent Set");
+
+        //    tcs.Task.Wait();
+        //}
 
         public void Reset()
         {

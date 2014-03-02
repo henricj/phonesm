@@ -111,7 +111,7 @@ namespace SM.Media.Utility
 
                 if (null != ex)
                 {
-                    Debug.WriteLine("TaskCollector.Cleanup() task {0} failed: {1}", description, ex.Message);
+                    Debug.WriteLine("TaskCollector.Cleanup() task {0} failed: {1}", description, ex.ExtendedMessage());
 
                     if (Debugger.IsAttached)
                         Debugger.Break();
@@ -119,7 +119,7 @@ namespace SM.Media.Utility
             }
             catch (Exception ex2)
             {
-                Debug.WriteLine("TaskCollector.Cleanup() cleanup of task {0} failed: {1}", description, ex2.Message);
+                Debug.WriteLine("TaskCollector.Cleanup() cleanup of task {0} failed: {1}", description, ex2.ExtendedMessage());
 
                 if (Debugger.IsAttached)
                     Debugger.Break();

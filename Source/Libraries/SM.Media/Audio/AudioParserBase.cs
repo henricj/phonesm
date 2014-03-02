@@ -61,6 +61,8 @@ namespace SM.Media.Audio
             _submitPacket = submitPacket;
         }
 
+        #region IAudioParser Members
+
         public TimeSpan StartPosition { get; set; }
 
         public TimeSpan? Position
@@ -68,8 +70,6 @@ namespace SM.Media.Audio
             get { return _position; }
             set { _position = value; }
         }
-
-        #region IDisposable Members
 
         public void Dispose()
         {
@@ -81,9 +81,16 @@ namespace SM.Media.Audio
             GC.SuppressFinalize(this);
         }
 
+        public virtual void FlushBuffers()
+        {
+            FreeBuffer();
+        }
+
+        public abstract void ProcessData(byte[] buffer, int offset, int length);
+
         #endregion
 
-        protected void SubmitFrame()
+        protected virtual void SubmitFrame()
         {
             var length = _index - _startIndex;
 
@@ -161,11 +168,6 @@ namespace SM.Media.Audio
             return packet;
         }
 
-        public void FlushBuffers()
-        {
-            FreeBuffer();
-        }
-
         void FreeBuffer()
         {
             if (null != _packet)
@@ -181,8 +183,6 @@ namespace SM.Media.Audio
             _startIndex = 0;
             _index = 0;
         }
-
-        public abstract void ProcessData(byte[] buffer, int offset, int length);
 
         protected virtual void Dispose(bool disposing)
         {

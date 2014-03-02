@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3Parser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,6 +34,8 @@ namespace SM.Media.MP3
 {
     public sealed class Mp3Parser : AudioParserBase
     {
+        int _skip;
+
         public Mp3Parser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
             : base(new Mp3FrameHeader(), pesPacketPool, configurationHandler, submitPacket)
         { }
@@ -42,6 +44,36 @@ namespace SM.Media.MP3
         {
             Debug.Assert(length > 0);
             Debug.Assert(offset + length <= buffer.Length);
+
+            if (0 == _skip && 0 == _index && 0 == _startIndex)
+            {
+                // This will not find all ID3 headers if someone is playing
+                // games with the read buffer size.  However, for any reasonable
+                // buffer size, the first 10 bytes of the file should wind up here
+                // in one block.
+
+                var id3Length = GetId3Length(buffer, offset, length);
+
+                if (id3Length.HasValue)
+                {
+                    _skip = id3Length.Value + 10;
+
+                    Debug.WriteLine("Mp3Parser.ProcessData() ID3 detected, length {0}", _skip);
+                }
+            }
+
+            if (_skip > 0)
+            {
+                if (_skip >= length)
+                {
+                    _skip -= length;
+                    return;
+                }
+
+                offset += _skip;
+                length -= _skip;
+                _skip = 0;
+            }
 
             var endOffset = offset + length;
 
@@ -122,6 +154,50 @@ namespace SM.Media.MP3
                     }
                 }
             }
+        }
+
+        public override void FlushBuffers()
+        {
+            base.FlushBuffers();
+
+            _skip = 0;
+        }
+
+        static int? GetId3Length(byte[] buffer, int offset, int length)
+        {
+            if (length < 10)
+                return null;
+
+            if ('I' != buffer[offset] || 'D' != buffer[offset + 1] || '3' != buffer[offset + 2])
+                return null;
+
+            var majorVersion = buffer[offset + 3];
+
+            if (0xff == majorVersion)
+                return null;
+
+            var minorVersion = buffer[offset + 4];
+
+            if (0xff == minorVersion)
+                return null;
+
+            var flags = buffer[offset + 5];
+
+            var size = 0;
+
+            for (var i = 0; i < 4; ++i)
+            {
+                var b = buffer[offset + 6 + i];
+
+                if (0 != (0x80 & b))
+                    return null;
+
+                size <<= 7;
+
+                size |= b;
+            }
+
+            return size;
         }
 
         void SkipInvalidFrameHeader()

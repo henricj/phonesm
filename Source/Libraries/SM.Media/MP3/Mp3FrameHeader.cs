@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3FrameHeader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -217,7 +217,7 @@ namespace SM.Media.MP3
             Channels = channelMode == 3 ? 1 : 2;
             Bitrate = bitRate;
             SamplingFrequency = sampleRate;
-            FrameLength = GetFrameSize(layer, bitRate, sampleRate, paddingFlag);
+            FrameLength = GetFrameSize(version, layer, bitRate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
 
             if (string.IsNullOrEmpty(Name))
@@ -277,22 +277,28 @@ namespace SM.Media.MP3
             return multiplier * baseRate;
         }
 
-        static int GetFrameSize(int layer, int bitrate, int sampleRate, bool paddingFlag)
+        static int GetFrameSize(int version, int layer, int bitrate, int sampleRate, bool paddingFlag)
         {
-            if (1 == layer)
-            {
-                const int slotSize = 4;
-                var padding = paddingFlag ? slotSize : 0;
+            int samplesPerFrame8;
 
-                return (12 * bitrate / sampleRate + padding) * 4;
-            }
-            else
+            switch (layer)
             {
-                const int slotSize = 1;
-                var padding = paddingFlag ? slotSize : 0;
-
-                return 144 * bitrate / sampleRate + padding;
+                case 1:
+                    samplesPerFrame8 = 12;
+                    break;
+                case 3:
+                    samplesPerFrame8 = 1 == version ? 144 : 72;
+                    break;
+                default:
+                    samplesPerFrame8 = 144;
+                    break;
             }
+
+            var slotSize = 1 == layer ? 4 : 1;
+
+            var padding = paddingFlag ? slotSize : 0;
+
+            return (samplesPerFrame8 * bitrate / sampleRate + padding) * slotSize;
         }
 
         TimeSpan GetDuration(int version, int layer, int sampleRate)

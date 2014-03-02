@@ -104,16 +104,20 @@ namespace SM.Media.Web
                     {
                         using (var request = new HttpRequestMessage(method, source))
                         {
-                            var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                            if (HttpMethod.Head != method)
+                                request.Headers.Range = new RangeHeaderValue(0, 0);
 
-                            if (response.IsSuccessStatusCode)
+                            using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
                             {
-                                return new HttpHeaderReaderResults
-                                       {
-                                           Url = request.RequestUri,
-                                           ResponseHeaders = response.Headers,
-                                           ContentHeaders = response.Content.Headers
-                                       };
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    return new HttpHeaderReaderResults
+                                           {
+                                               Url = request.RequestUri,
+                                               ResponseHeaders = response.Headers,
+                                               ContentHeaders = response.Content.Headers
+                                           };
+                                }
                             }
                         }
 

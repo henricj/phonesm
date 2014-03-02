@@ -140,19 +140,15 @@ namespace TsDump
 
                 sawData = true;
 
-                Console.WriteLine("{0}/{1} {2} {3}", packet.PresentationTimestamp, packet.DecodeTimestamp, packet.Duration, packet.Length);
-
-                sb.Length = 0;
+                sb.AppendFormat("{0}/{1} {2} {3}", packet.PresentationTimestamp, packet.DecodeTimestamp, packet.Duration, packet.Length);
+                sb.AppendLine();
 
                 for (var i = 0; i < packet.Length; ++i)
                 {
                     if (i > 0 && 0 == (i & 0x03))
                     {
                         if (0 == (i & 0x1f))
-                        {
-                            Console.WriteLine(sb);
-                            sb.Length = 0;
-                        }
+                            sb.AppendLine();
                         else
                             sb.Append(' ');
                     }
@@ -161,6 +157,7 @@ namespace TsDump
                 }
 
                 Console.WriteLine(sb);
+                sb.Clear();
 
                 streamSource.FreeSample(packet);
             }

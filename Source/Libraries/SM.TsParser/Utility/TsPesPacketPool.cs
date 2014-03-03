@@ -52,6 +52,9 @@ namespace SM.TsParser.Utility
 
         public TsPesPacket AllocatePesPacket(int minSize)
         {
+            if (minSize < 1)
+                throw new ArgumentOutOfRangeException("minSize", "minSize must be positive: " + minSize);
+
             var bufferEntry = _bufferPool.Allocate(minSize);
 
             var packet = AllocatePacketWithOwnedBuffer(bufferEntry);
@@ -65,6 +68,9 @@ namespace SM.TsParser.Utility
 
         public TsPesPacket AllocatePesPacket(BufferInstance bufferEntry)
         {
+            if (null == bufferEntry)
+                throw new ArgumentNullException("bufferEntry");
+
             bufferEntry.Reference();
 
             var packet = AllocatePacketWithOwnedBuffer(bufferEntry);
@@ -108,6 +114,8 @@ namespace SM.TsParser.Utility
 
         public void FreePesPacket(TsPesPacket packet)
         {
+            if (null == packet)
+                throw new ArgumentNullException("packet");
 #if DEBUG
             //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, packet.BufferEntry);
 #endif

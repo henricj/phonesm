@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.TsParser;
@@ -65,5 +66,10 @@ namespace SM.Media.Pes
         }
 
         #endregion
+
+        public virtual TimeSpan? GetDuration(TsPesPacket packet)
+        {
+            return packet.Duration;
+        }
     }
 }

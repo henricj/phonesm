@@ -99,6 +99,12 @@
     <Compile Include="..\SM.Media\Audio\AudioParserBase.cs">
       <Link>Audio\AudioParserBase.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Audio\AudioStreamHandler.cs">
+      <Link>Audio\AudioStreamHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\IAudioConfigurator.cs">
+      <Link>Audio\IAudioConfigurator.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Audio\IAudioFrameHeader.cs">
       <Link>Audio\IAudioFrameHeader.cs</Link>
     </Compile>

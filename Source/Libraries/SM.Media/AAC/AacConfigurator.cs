@@ -31,7 +31,7 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.AAC
 {
-    public sealed class AacConfigurator : ConfiguratorBase, IAudioConfigurationSource, IFrameParser
+    public sealed class AacConfigurator : ConfiguratorBase, IAudioConfigurationSource, IFrameParser, IAudioConfigurator
     {
         readonly AacFrameHeader _frameHeader = new AacFrameHeader();
 
@@ -49,6 +49,23 @@ namespace SM.Media.AAC
 
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
+
+        #endregion
+
+        #region IAudioConfigurator Members
+
+        public void Configure(IAudioFrameHeader frameHeader)
+        {
+            var aacFrameHeader = (AacFrameHeader)frameHeader;
+
+            CodecPrivateData = BuildCodecPrivateData(aacFrameHeader);
+
+            Name = frameHeader.Name;
+            Channels = aacFrameHeader.ChannelConfig;
+            SamplingFrequency = frameHeader.SamplingFrequency;
+
+            SetConfigured();
+        }
 
         #endregion
 
@@ -70,19 +87,6 @@ namespace SM.Media.AAC
         }
 
         #endregion
-
-        public void Configure(IAudioFrameHeader frameHeader)
-        {
-            var aacFrameHeader = (AacFrameHeader)frameHeader;
-
-            CodecPrivateData = BuildCodecPrivateData(aacFrameHeader);
-
-            Name = frameHeader.Name;
-            Channels = aacFrameHeader.ChannelConfig;
-            SamplingFrequency = frameHeader.SamplingFrequency;
-
-            SetConfigured();
-        }
 
         static string BuildCodecPrivateData(AacFrameHeader aacFrameHeader)
         {

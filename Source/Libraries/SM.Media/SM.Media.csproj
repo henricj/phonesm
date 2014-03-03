@@ -81,6 +81,8 @@
     <Compile Include="Ac3\Ac3Parser.cs" />
     <Compile Include="Ac3\Ac3StreamHandlerFactory.cs" />
     <Compile Include="Audio\AudioMediaParser.cs" />
+    <Compile Include="Audio\AudioStreamHandler.cs" />
+    <Compile Include="Audio\IAudioConfigurator.cs" />
     <Compile Include="Audio\IAudioParser.cs" />
     <Compile Include="Builder\IBuilder.cs" />
     <Compile Include="Builder\IBuilderHandle.cs" />

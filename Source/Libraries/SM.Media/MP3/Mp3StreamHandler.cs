@@ -25,155 +25,23 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
-using SM.Media.Configuration;
-using SM.Media.Pes;
+using SM.Media.Audio;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
-    public class Mp3StreamHandler : PesStreamHandler
+    public class Mp3StreamHandler : AudioStreamHandler
     {
+        const int MinimumPacketSize = 24; // "Seen on the web somewhere..."   TODO: Verify this in the spec.
+
         const bool UseParser = false; // Have Mp3Parser parse the stream and submit frames to the OS.
-        readonly Mp3Configurator _configurator;
-        readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
-        readonly Action<TsPesPacket> _nextHandler;
-        readonly Mp3Parser _parser;
-        readonly ITsPesPacketPool _pesPacketPool;
-        bool _foundFrame;
 
         public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+            : base(pid, streamType, new Mp3FrameHeader(), new Mp3Configurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)
         {
-            if (pesPacketPool == null)
-                throw new ArgumentNullException("pesPacketPool");
-            if (nextHandler == null)
-                throw new ArgumentNullException("nextHandler");
-
-            _pesPacketPool = pesPacketPool;
-            _nextHandler = nextHandler;
-            _configurator = new Mp3Configurator(streamType.Description);
-
             if (UseParser)
                 _parser = new Mp3Parser(pesPacketPool, _configurator.Configure, _nextHandler);
-        }
-
-        public override IConfigurationSource Configurator
-        {
-            get { return _configurator; }
-        }
-
-        public override void PacketHandler(TsPesPacket packet)
-        {
-            base.PacketHandler(packet);
-
-            if (null == packet)
-            {
-                if (null != _parser)
-                    _parser.FlushBuffers();
-
-                _nextHandler(null);
-
-                return;
-            }
-
-            if (null != _parser)
-            {
-                _parser.Position = packet.PresentationTimestamp;
-                _parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
-
-                _pesPacketPool.FreePesPacket(packet);
-
-                return;
-            }
-
-            if (false)
-            {
-                FrameSplittingHandler(packet);
-
-                return;
-            }
-
-            if (!_foundFrame)
-            {
-                if (_frameHeader.Parse(packet.Buffer, packet.Index, packet.Length, true))
-                {
-                    _configurator.Configure(_frameHeader);
-                    _foundFrame = true;
-                }
-            }
-
-            _nextHandler(packet);
-        }
-
-        void FrameSplittingHandler(TsPesPacket packet)
-        {
-            var index = packet.Index;
-            var length = packet.Length;
-            var timestamp = packet.PresentationTimestamp;
-
-            for (; ; )
-            {
-                if (!_frameHeader.Parse(packet.Buffer, index, length))
-                {
-                    if (_frameHeader.MarkerIndex.HasValue && _frameHeader.MarkerIndex.Value + 7 < packet.Index + packet.Length)
-                    {
-                        // We saw a bad header, but we did find a marker.  Skip the marker and try
-                        // to find another packet.
-                        var newIndex = _frameHeader.MarkerIndex.Value + 1;
-                        var newLength = length - (newIndex - index);
-
-                        length = newLength;
-                        index = newIndex;
-
-                        continue;
-                    }
-
-                    _pesPacketPool.FreePesPacket(packet);
-
-                    return;
-                }
-
-                if (!_foundFrame)
-                {
-                    _foundFrame = true;
-
-                    _configurator.Configure(_frameHeader);
-                }
-
-                Debug.Assert(_frameHeader.MarkerIndex.HasValue);
-
-                index = _frameHeader.MarkerIndex.Value;
-                var endIndex = _frameHeader.EndIndex.Value;
-                var frameLength = endIndex - index;
-
-                Debug.Assert(frameLength <= length);
-                Debug.Assert(index >= 0 && index >= packet.Index);
-                Debug.Assert(endIndex >= index && endIndex <= packet.Index + packet.Length);
-                Debug.Assert(frameLength <= packet.Length);
-
-                if (endIndex + 4 >= packet.Index + packet.Length)
-                {
-                    packet.Index = index;
-                    packet.Length = length;
-                    packet.PresentationTimestamp = timestamp;
-
-                    _nextHandler(packet);
-
-                    return;
-                }
-
-                var copyPacket = _pesPacketPool.CopyPesPacket(packet, index, frameLength);
-
-                copyPacket.PresentationTimestamp = timestamp;
-
-                _nextHandler(copyPacket);
-
-                index += frameLength;
-                length -= frameLength;
-                timestamp += _frameHeader.Duration;
-            }
         }
     }
 }

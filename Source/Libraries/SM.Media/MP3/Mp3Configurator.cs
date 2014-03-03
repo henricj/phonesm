@@ -30,7 +30,7 @@ using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
 {
-    public sealed class Mp3Configurator : ConfiguratorBase, IAudioConfigurationSource, IFrameParser
+    public sealed class Mp3Configurator : ConfiguratorBase, IAudioConfigurator, IFrameParser
     {
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
 
@@ -39,7 +39,7 @@ namespace SM.Media.MP3
             StreamDescription = streamDescription;
         }
 
-        #region IAudioConfigurationSource Members
+        #region IAudioConfigurator Members
 
         public AudioFormat Format
         {
@@ -48,30 +48,6 @@ namespace SM.Media.MP3
 
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
-
-        #endregion
-
-        #region IFrameParser Members
-
-        public int FrameLength
-        {
-            get { return _frameHeader.FrameLength; }
-        }
-
-        public bool Parse(byte[] buffer, int index, int length)
-        {
-            if (length < 10)
-                return false;
-
-            if (!_frameHeader.Parse(buffer, index, length, true))
-                return false;
-
-            Configure(_frameHeader);
-
-            return true;
-        }
-
-        #endregion
 
         public void Configure(IAudioFrameHeader frameHeader)
         {
@@ -96,5 +72,29 @@ namespace SM.Media.MP3
 
             SetConfigured();
         }
+
+        #endregion
+
+        #region IFrameParser Members
+
+        public int FrameLength
+        {
+            get { return _frameHeader.FrameLength; }
+        }
+
+        public bool Parse(byte[] buffer, int index, int length)
+        {
+            if (length < 10)
+                return false;
+
+            if (!_frameHeader.Parse(buffer, index, length, true))
+                return false;
+
+            Configure(_frameHeader);
+
+            return true;
+        }
+
+        #endregion
     }
 }

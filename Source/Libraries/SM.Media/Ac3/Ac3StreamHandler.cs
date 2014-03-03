@@ -79,6 +79,9 @@ namespace SM.Media.Ac3
             if (!_foundframe)
                 _foundframe = _configurator.Parse(packet.Buffer, packet.Index, packet.Length);
 
+            if (!packet.Duration.HasValue)
+                packet.Duration = Ac3FrameHeader.FrameDuration;
+
             _nextHandler(packet);
         }
     }

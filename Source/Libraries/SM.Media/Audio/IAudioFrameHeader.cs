@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IAudioFrameHeader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,6 +35,6 @@ namespace SM.Media.Audio
         int HeaderLength { get; }
         string Name { get; }
         TimeSpan Duration { get; }
-        bool Parse(byte[] buffer, int index, int length, bool verbose);
+        bool Parse(byte[] buffer, int index, int length, bool verbose = false);
     }
 }

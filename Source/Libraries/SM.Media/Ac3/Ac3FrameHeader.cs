@@ -34,7 +34,7 @@ namespace SM.Media.Ac3
 {
     sealed class Ac3FrameHeader : IAudioFrameHeader
     {
-        static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(32);
+        internal static readonly TimeSpan FrameDuration = TimeSpan.FromMilliseconds(32);
 
         static readonly int[] SamplingFrequencyTable =
         {

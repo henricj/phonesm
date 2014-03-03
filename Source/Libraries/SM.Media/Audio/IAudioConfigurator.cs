@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="AacStreamHandler.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="IAudioConfigurator.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,22 +24,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.Media.Audio;
-using SM.TsParser;
-using SM.TsParser.Utility;
+using SM.Media.Configuration;
 
-namespace SM.Media.AAC
+namespace SM.Media.Audio
 {
-    public class AacStreamHandler : AudioStreamHandler
+    public interface IAudioConfigurator : IAudioConfigurationSource
     {
-        const int MinimumPacketSize = 7; // Well, it needs the ADTS header at least...
-
-        public AacStreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType, new AacFrameHeader(), new AacConfigurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)
-        {
-            if (AacDecoderSettings.Parameters.UseParser)
-                _parser = new AacParser(pesPacketPool, _configurator.Configure, _nextHandler);
-        }
+        void Configure(IAudioFrameHeader frameHeader);
     }
 }

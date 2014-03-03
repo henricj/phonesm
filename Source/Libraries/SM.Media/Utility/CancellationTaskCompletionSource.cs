@@ -30,53 +30,29 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public sealed class CancellationTaskCompletionSource<TItem> : IDisposable
+    public sealed class CancellationTaskCompletionSource<TItem> : TaskCompletionSource<TItem>
     {
         readonly Action<CancellationTaskCompletionSource<TItem>> _cancellationAction;
-        readonly TaskCompletionSource<TItem> _taskCompletionSource;
         CancellationTokenRegistration _cancellationTokenRegistration;
+        int _isDisposed;
 
         public CancellationTaskCompletionSource(Action<CancellationTaskCompletionSource<TItem>> cancellationAction, CancellationToken cancellationToken)
         {
             if (null == cancellationAction)
                 throw new ArgumentNullException("cancellationAction");
 
-            _taskCompletionSource = new TaskCompletionSource<TItem>();
-
             _cancellationAction = cancellationAction;
             _cancellationTokenRegistration = cancellationToken.Register(obj => ((CancellationTaskCompletionSource<TItem>)obj).Cancel(), this);
         }
 
-        public Task<TItem> Task
-        {
-            get { return _taskCompletionSource.Task; }
-        }
-
-        #region IDisposable Members
-
         public void Dispose()
         {
-            _cancellationTokenRegistration.Dispose();
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
 
-            if (null != _taskCompletionSource)
-                _taskCompletionSource.TrySetCanceled();
-        }
+            _cancellationTokenRegistration.DisposeSafe();
 
-        #endregion
-
-        public bool TrySetResult(TItem item)
-        {
-            return _taskCompletionSource.TrySetResult(item);
-        }
-
-        public bool TrySetException(Exception exception)
-        {
-            return _taskCompletionSource.TrySetException(exception);
-        }
-
-        public bool TrySetCanceled()
-        {
-            return _taskCompletionSource.TrySetCanceled();
+            TrySetCanceled();
         }
 
         void Cancel()

@@ -250,48 +250,77 @@ namespace SM.Media
             if (_isClosed)
                 return;
 
-            var lastOperation = Operation.None;
+            var previousOperations = Operation.None;
+            var requestedOperations = Operation.None;
 
-            for (; ; )
+            try
             {
-                if (0 != HandleOperation(Operation.Seek))
+                for (; ; )
                 {
-                    // Request the last operation again if we
-                    // detect a possible Seek/GetSample race.
-                    if (Operation.None != lastOperation)
-                        RequestOperation(lastOperation);
+                    if (0 != HandleOperation(Operation.Seek))
+                    {
+                        // Request the previous operation(s) again if we
+                        // detect a possible Seek/GetSample race.
+                        if (Operation.None != previousOperations)
+                            requestedOperations |= previousOperations;
 
-                    var task = SeekHandler();
+                        var task = SeekHandler();
 
-                    TaskCollector.Default.Add(task, "TsMediaStreamSource.SignalHandler SeekHandler()");
+                        TaskCollector.Default.Add(task, "TsMediaStreamSource.SignalHandler SeekHandler()");
 
-                    return;
+                        return;
+                    }
+
+                    if (SourceState.Play != State)
+                        return;
+
+                    previousOperations = HandleOperation(Operation.Video | Operation.Audio);
+
+                    requestedOperations |= previousOperations;
+
+                    if (0 == requestedOperations)
+                        return;
+
+                    var reportBufferingMask = (Operation)_streamOpenFlags;
+
+                    var canCallReportBufferingProgress = reportBufferingMask == (requestedOperations & reportBufferingMask);
+
+                    var gotPackets = false;
+
+                    if (0 != (requestedOperations & Operation.Video))
+                    {
+                        if (null != _videoStreamSource)
+                        {
+                            if (SendStreamSample(_videoStreamSource, _videoStreamDescription, canCallReportBufferingProgress))
+                            {
+                                requestedOperations &= ~Operation.Video;
+                                gotPackets = true;
+                            }
+                        }
+                    }
+
+                    if (0 != (requestedOperations & Operation.Audio))
+                    {
+                        if (null != _audioStreamSource)
+                        {
+                            if (SendStreamSample(_audioStreamSource, _audioStreamDescription, canCallReportBufferingProgress))
+                            {
+                                requestedOperations &= ~Operation.Audio;
+                                gotPackets = true;
+                            }
+                        }
+                    }
+
+                    if (!gotPackets)
+                        return;
                 }
-
-                if (SourceState.Play != State)
-                    return;
-
-                lastOperation = HandleOperation(Operation.Video | Operation.Audio);
-
-                if (0 == lastOperation)
-                    return;
-
-                var reportBufferingMask = (Operation)_streamOpenFlags;
-
-                var canCallReportBufferingProgress = reportBufferingMask == (lastOperation & reportBufferingMask);
-
-                if (0 != (lastOperation & Operation.Video))
+            }
+            finally
+            {
+                if (0 != requestedOperations)
                 {
-                    if (null != _videoStreamSource
-                        && !SendStreamSample(_videoStreamSource, _videoStreamDescription, canCallReportBufferingProgress))
-                        RequestOperation(Operation.Video);
-                }
-
-                if (0 != (lastOperation & Operation.Audio))
-                {
-                    if (null != _audioStreamSource
-                        && !SendStreamSample(_audioStreamSource, _audioStreamDescription, canCallReportBufferingProgress))
-                        RequestOperation(Operation.Audio);
+                    Debug.WriteLine("TsMediaStreamSource.SignalHandler() re-requesting " + requestedOperations);
+                    RequestOperation(requestedOperations);
                 }
             }
         }

@@ -30,12 +30,12 @@ namespace SM.Media.Playlists
 {
     public static class PlaylistSettings
     {
-        static readonly ResettableParameters<PlaylistParameters> AacDecoderParameters = new ResettableParameters<PlaylistParameters>();
+        static readonly ResettableParameters<PlaylistParameters> PlaylistParameters = new ResettableParameters<PlaylistParameters>();
 
         public static PlaylistParameters Parameters
         {
-            get { return AacDecoderParameters.Parameters; }
-            set { AacDecoderParameters.Parameters = value; }
+            get { return PlaylistParameters.Parameters; }
+            set { PlaylistParameters.Parameters = value; }
         }
     }
 }

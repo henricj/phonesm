@@ -87,28 +87,15 @@ namespace SM.Media.Utility
                     work = _workQueue.Dequeue();
                 }
 
-                work.CancellationTokenRegistration.Dispose();
-
-                var tcs = work.TaskCompletionSource;
-
                 try
                 {
-                    await work.Work().ConfigureAwait(false);
+                    work.TryDeregister();
 
-                    if (null != tcs)
-                        tcs.TrySetResult(true);
-                }
-                catch (OperationCanceledException)
-                {
-                    if (null != tcs)
-                        tcs.TrySetCanceled();
+                    await work.RunAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    if (null != tcs)
-                        tcs.TrySetException(ex);
-                    else
-                        Debug.WriteLine("AsyncFifoWorker.Worker() work should not throw exceptions: " + ex.ExtendedMessage());
+                    Debug.WriteLine("AsyncFifoWorker.Worker() failed: " + ex.ExtendedMessage());
                 }
 
                 work.Dispose();
@@ -137,7 +124,7 @@ namespace SM.Media.Utility
         {
             var work = PostWork(workFunc, true, cancellationToken);
 
-            return work.TaskCompletionSource.Task;
+            return work.Task;
         }
 
         WorkHandle PostWork(Func<Task> workFunc, bool createTcs, CancellationToken cancellationToken)
@@ -154,16 +141,17 @@ namespace SM.Media.Utility
                 if (_isClosed)
                     throw new InvalidOperationException("AsyncFifoWorker is closed");
 
-                work = new WorkHandle
-                       {
-                           Work = workFunc,
-                           TaskCompletionSource = createTcs ? new TaskCompletionSource<bool>() : null
-                       };
+                work = new WorkHandle(workFunc, createTcs ? new TaskCompletionSource<object>() : null);
 
                 _workQueue.Enqueue(work);
             }
 
-            work.CancellationTokenRegistration = cancellationToken.Register(RemoveWork, work);
+            if (!work.Register(RemoveWork, cancellationToken))
+            {
+                Debug.WriteLine("AsyncFifoWorker.PostWork() work already done");
+
+                return work;
+            }
 
             try
             {
@@ -206,18 +194,98 @@ namespace SM.Media.Utility
 
         sealed class WorkHandle : IDisposable
         {
-            public CancellationTokenRegistration CancellationTokenRegistration;
-            public TaskCompletionSource<bool> TaskCompletionSource;
-            public Func<Task> Work;
+            readonly TaskCompletionSource<object> _taskCompletionSource;
+            readonly Func<Task> _work;
+            CancellationTokenRegistration _cancellationTokenRegistration;
+            int _state;
+
+            public WorkHandle(Func<Task> work, TaskCompletionSource<object> taskCompletionSource)
+            {
+                if (null == work)
+                    throw new ArgumentNullException("work");
+
+                _work = work;
+                _taskCompletionSource = taskCompletionSource;
+            }
+
+            public Task Task
+            {
+                get { return null == _taskCompletionSource ? null : _taskCompletionSource.Task; }
+            }
 
             #region IDisposable Members
 
             public void Dispose()
             {
-                CancellationTokenRegistration.Dispose();
+                if (State.Disposed == SetState(State.Disposed))
+                    return;
 
-                if (null != TaskCompletionSource)
-                    TaskCompletionSource.TrySetCanceled();
+                TryDeregister();
+
+                if (null != _taskCompletionSource)
+                    _taskCompletionSource.TrySetCanceled();
+            }
+
+            #endregion
+
+            public bool Register(Action<WorkHandle> removeWork, CancellationToken cancellationToken)
+            {
+                if (State.Free != SetState(State.Registered))
+                    return false;
+
+                _cancellationTokenRegistration = cancellationToken.Register(w => removeWork((WorkHandle)w), this);
+
+                return true;
+            }
+
+            public bool TryDeregister()
+            {
+                if (State.Registered != SetState(State.Deregistered))
+                    return false;
+
+                _cancellationTokenRegistration.DisposeSafe();
+
+                return true;
+            }
+
+            State SetState(State state)
+            {
+                return (State)Interlocked.Exchange(ref _state, (int)state);
+            }
+
+            public async Task RunAsync()
+            {
+                var tcs = _taskCompletionSource;
+
+                try
+                {
+                    await _work().ConfigureAwait(false);
+
+                    if (null != tcs)
+                        tcs.TrySetResult(string.Empty);
+                }
+                catch (OperationCanceledException)
+                {
+                    if (null != tcs)
+                        tcs.TrySetCanceled();
+                }
+                catch (Exception ex)
+                {
+                    if (null != tcs && tcs.TrySetException(ex))
+                        return;
+
+                    Debug.WriteLine("AsyncFifoWorker.WorkHandle.RunAsync() work should not throw exceptions: " + ex.ExtendedMessage());
+                }
+            }
+
+            #region Nested type: State
+
+            enum State
+            {
+                Free = 0,
+                Registered = 1,
+                Deregistered = 2,
+                Disposed = 3
             }
 
             #endregion

@@ -32,7 +32,7 @@ using SM.Media.MediaParser;
 
 namespace SM.Media
 {
-    public interface IMediaManager
+    public interface IMediaManager : IDisposable
     {
         TimeSpan? SeekTarget { get; set; }
         TsMediaManager.MediaState State { get; }

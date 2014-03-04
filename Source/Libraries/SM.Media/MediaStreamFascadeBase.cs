@@ -212,6 +212,8 @@ namespace SM.Media
 
                 _mediaManager = null;
 
+                mediaManager.DisposeSafe();
+
                 _mediaManagerBuilder.Destroy(mediaManager);
             }
         }

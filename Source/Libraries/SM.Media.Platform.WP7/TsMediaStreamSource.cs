@@ -393,6 +393,8 @@ namespace SM.Media
         {
             _taskScheduler.ThrowIfNotOnThread();
 
+            ReportGetSampleProgress(1);
+
             var sample = new MediaStreamSample(mediaStreamDescription, null, 0, 0, 0, NoMediaSampleAttributes);
 
             Debug.WriteLine("Sample {0} is null", mediaStreamDescription.Type);

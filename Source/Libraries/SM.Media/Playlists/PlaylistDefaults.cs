@@ -24,10 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Linq;
 using SM.Media.M3U8;
-using SM.Media.Web;
 
 namespace SM.Media.Playlists
 {
@@ -49,15 +47,10 @@ namespace SM.Media.Playlists
                 {
                     var extInf = M3U8Tags.ExtXInf.Find(p.Tags);
 
-                    return null != extInf && extInf.Duration > 0;
+                    return null != extInf && extInf.Duration >= 0;
                 });
 
             return validDuration;
-        }
-
-        public static Func<M3U8Parser, IStreamSegments> CreateSegmentsFactory(IHttpClients httpClients)
-        {
-            return new SegmentsFactory(httpClients).CreateStreamSegments;
         }
     }
 }

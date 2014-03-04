@@ -93,7 +93,7 @@ namespace SM.Media.Utility
 
             var newItem = new TItem();
 
-            Debug.WriteLine("BlockingPool.AllocateAsync() Returning new item " + newItem);
+            //Debug.WriteLine("BlockingPool.AllocateAsync() Returning new item " + newItem);
 
 #if DEBUG
             _allocationTracker.Add(newItem);

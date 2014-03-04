@@ -39,6 +39,7 @@ namespace SM.Media.Buffering
         void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange);
         void Refresh();
         void ReportExhaustion();
+        void ReportEndOfData();
     }
 
     public class BufferStatus

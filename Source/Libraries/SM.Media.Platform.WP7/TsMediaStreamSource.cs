@@ -180,6 +180,8 @@ namespace SM.Media
 
         public void CheckForSamples()
         {
+            //Debug.WriteLine("TsMediaStreamSource.CheckForSamples(): " + (Operation)_pendingOperations);
+
             if (0 == (_pendingOperations & (int)(Operation.Audio | Operation.Video)))
                 return;
 
@@ -239,6 +241,8 @@ namespace SM.Media
 
                 _taskScheduler.ThrowIfNotOnThread();
             }
+
+            CheckForSamples();
         }
 
         void SignalHandler()
@@ -372,7 +376,7 @@ namespace SM.Media
                 _pesStream.Packet = packet;
 
                 var sample = new MediaStreamSample(mediaStreamDescription, _pesStream, 0, packet.Length,
-                    source.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
+                    packet.PresentationTimestamp.Ticks, NoMediaSampleAttributes);
 
                 //Debug.WriteLine("Sample {0} at {1}", sample.MediaStreamDescription.Type, TimeSpan.FromTicks(sample.Timestamp));
 

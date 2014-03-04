@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsTimestamp.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,13 +25,19 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using SM.TsParser;
 
 namespace SM.Media
 {
     public sealed class TsTimestamp : ITsTimestamp
     {
+        public static bool EnableDiscontinutityFilter = true;
+        static readonly TimeSpan MaximumError = TimeSpan.FromMilliseconds(5);
+
+        readonly List<PacketsState> _packetsStates = new List<PacketsState>();
         TimeSpan? _timestampOffset;
 
         #region ITsTimestamp Members
@@ -48,24 +54,157 @@ namespace SM.Media
             _timestampOffset = null;
         }
 
-        public bool Update(TsPesPacket packet, bool isFirstPacketOfStream)
+        public bool ProcessPackets()
         {
-            if (!isFirstPacketOfStream)
+            if (_packetsStates.Count <= 0)
                 return false;
 
-            var startPosition = StartPosition;
+            //if (_packetsStates.Any(ps => ps.Packets.Count <= 0))
+            //    return false;
 
-            Debug.WriteLine("TsTimestamp.Update: Sync to start position {0} at {1}", startPosition, packet.PresentationTimestamp);
+            var enableDiscontinutityFilter = EnableDiscontinutityFilter;
 
-            var timestampOffset = packet.PresentationTimestamp - startPosition;
-
-            if (!_timestampOffset.HasValue || timestampOffset < _timestampOffset)
+            if (!_timestampOffset.HasValue)
             {
-                _timestampOffset = timestampOffset;
-                return true;
+                var minPts = TimeSpan.MaxValue;
+                var minDts = TimeSpan.MaxValue;
+
+                foreach (var state in _packetsStates)
+                {
+                    var validData = false;
+
+                    foreach (var packet in state.Packets)
+                    {
+                        if (null == packet)
+                            continue;
+
+                        validData = true;
+
+                        if (packet.PresentationTimestamp < minPts)
+                            minPts = packet.PresentationTimestamp;
+                        if (packet.DecodeTimestamp < minDts && packet.DecodeTimestamp.HasValue)
+                            minDts = packet.DecodeTimestamp.Value;
+                    }
+
+                    // We need packets from all the streams before we can
+                    // determine the proper offset.
+                    if (!validData)
+                        return false;
+                }
+
+                var minTimestamp = minPts;
+
+                if (minDts < minTimestamp)
+                    minTimestamp = minDts;
+
+                _timestampOffset = minTimestamp - StartPosition;
+
+                Debug.WriteLine("TsTimestamp.ProcessPackets() syncing pts {0} dts {1} target {2} => offset {3}",
+                    minPts, minDts, StartPosition, _timestampOffset);
+            }
+            else if (enableDiscontinutityFilter)
+            {
+                foreach (var state in _packetsStates)
+                {
+                    if (state.Packets.Count <= 0)
+                        return false;
+
+                    if (!state.Duration.HasValue)
+                        continue;
+
+                    var packet = state.Packets.First();
+
+                    if (null == packet)
+                        continue;
+
+                    var actualPts = packet.PresentationTimestamp - _timestampOffset.Value;
+
+                    var expectedPts = state.PresentationTimestamp + state.Duration.Value;
+
+                    var error = actualPts - expectedPts;
+
+                    if (error < MaximumError && error > -MaximumError)
+                        continue;
+
+                    var timestampOffset = packet.PresentationTimestamp - expectedPts;
+
+                    Debug.WriteLine("TsTimestamp.ProcessPackets() resyncing expected pts {0} actual pts {1} target {2} => offset {3} (was {4})",
+                        expectedPts, actualPts, StartPosition, timestampOffset, _timestampOffset);
+
+                    _timestampOffset = timestampOffset;
+                }
             }
 
-            return false;
+            if (!_timestampOffset.HasValue)
+                return false;
+
+            if (_timestampOffset != TimeSpan.Zero)
+                AdjustTimestamps(_timestampOffset.Value);
+
+            if (enableDiscontinutityFilter)
+            {
+                foreach (var state in _packetsStates)
+                {
+                    if (state.Packets.Count <= 0)
+                        continue;
+
+                    var packet = state.Packets.Last();
+
+                    if (null == packet)
+                        continue;
+
+                    state.PresentationTimestamp = packet.PresentationTimestamp;
+                    state.DecodeTimestamp = packet.DecodeTimestamp;
+
+                    if (packet.Duration.HasValue)
+                        state.Duration = packet.Duration;
+                    else if (null != state.GetDuration)
+                        state.Duration = state.GetDuration(packet);
+                    else
+                        state.Duration = null;
+                }
+            }
+
+            return true;
+        }
+
+        public void RegisterPackets(ICollection<TsPesPacket> packets, Func<TsPesPacket, TimeSpan?> getDuration)
+        {
+            _packetsStates.Add(new PacketsState
+                               {
+                                   Packets = packets,
+                                   GetDuration = getDuration
+                               });
+        }
+
+        #endregion
+
+        void AdjustTimestamps(TimeSpan offset)
+        {
+            foreach (var state in _packetsStates)
+            {
+                foreach (var packet in state.Packets)
+                {
+                    if (null == packet)
+                        continue;
+
+                    packet.PresentationTimestamp -= offset;
+
+                    if (packet.DecodeTimestamp.HasValue)
+                        packet.DecodeTimestamp -= offset;
+                }
+            }
+        }
+
+        #region Nested type: PacketsState
+
+        class PacketsState
+        {
+            public TimeSpan? DecodeTimestamp;
+            public TimeSpan? Duration;
+            public Func<TsPesPacket, TimeSpan?> GetDuration;
+            public ICollection<TsPesPacket> Packets;
+            public TimeSpan? PresentationTimestamp;
         }
 
         #endregion

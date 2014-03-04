@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using SM.TsParser;
 
 namespace SM.Media
@@ -34,6 +35,7 @@ namespace SM.Media
         TimeSpan StartPosition { get; set; }
         TimeSpan? Offset { get; }
         void Flush();
-        bool Update(TsPesPacket packet, bool isFirstPacketOfStream);
+        bool ProcessPackets();
+        void RegisterPackets(ICollection<TsPesPacket> packets, Func<TsPesPacket, TimeSpan?> getDuration);
     }
 }

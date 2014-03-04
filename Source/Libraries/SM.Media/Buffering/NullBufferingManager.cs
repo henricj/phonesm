@@ -76,6 +76,9 @@ namespace SM.Media.Buffering
         public void ReportExhaustion()
         { }
 
+        public void ReportEndOfData()
+        { }
+
         public void Dispose()
         { }
 

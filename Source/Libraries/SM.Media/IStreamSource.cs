@@ -24,7 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using SM.TsParser;
 
 namespace SM.Media
@@ -34,9 +33,6 @@ namespace SM.Media
         bool HasSample { get; }
 
         float? BufferingProgress { get; }
-
-        TimeSpan PresentationTimestamp { get; }
-        TimeSpan? DecodeTimestamp { get; }
 
         bool IsEof { get; }
 

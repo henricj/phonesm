@@ -35,7 +35,6 @@ namespace SM.Media
 {
     public interface IStreamBuffer : IStreamSource, IDisposable
     {
-        TimeSpan TimestampOffset { get; set; }
         bool TryEnqueue(ICollection<TsPesPacket> packet);
     }
 
@@ -56,8 +55,6 @@ namespace SM.Media
         static int _streamBufferCounter;
         readonly int _streamBufferId = Interlocked.Increment(ref _streamBufferCounter);
 #endif
-
-        public TimeSpan TimestampOffset { get; set; }
 
         public TsStreamType StreamType
         {
@@ -110,9 +107,6 @@ namespace SM.Media
         }
 
         #region IStreamSource Members
-
-        public TimeSpan PresentationTimestamp { get; private set; }
-        public TimeSpan? DecodeTimestamp { get; private set; }
 
         public bool IsEof
         {
@@ -171,10 +165,6 @@ namespace SM.Media
 
                 if (null == packet)
                     return null;
-
-                PresentationTimestamp = packet.PresentationTimestamp - TimestampOffset;
-
-                DecodeTimestamp = packet.DecodeTimestamp - TimestampOffset;
 
 #if DEBUG
                 //Debug.WriteLine("StreamBuffer {0}/{1} forwarding sample {2}", _streamBufferId, _streamType.Contents, PresentationTimestamp);
@@ -245,8 +235,8 @@ namespace SM.Media
             {
                 bufferStatus.PacketCount = _packets.Count;
                 bufferStatus.Size = _size;
-                bufferStatus.Newest = _newest - TimestampOffset;
-                bufferStatus.Oldest = _oldest - TimestampOffset;
+                bufferStatus.Newest = _newest;
+                bufferStatus.Oldest = _oldest;
                 bufferStatus.IsValid = _packets.Count > 0 && _newest.HasValue && _oldest.HasValue;
                 bufferStatus.IsDone = _isDone;
             }

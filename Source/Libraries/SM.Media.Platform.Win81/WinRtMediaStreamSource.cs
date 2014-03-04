@@ -467,7 +467,10 @@ namespace SM.Media
                     if (null == packet)
                     {
                         if (_streamSource.IsEof)
+                        {
+                            //Debug.WriteLine("Sample {0} eof", _name);
                             return true;
+                        }
 
                         if (_streamSource.BufferingProgress.HasValue)
                             _bufferingProgress = (uint)(Math.Round(100 * _streamSource.BufferingProgress.Value));
@@ -487,7 +490,7 @@ namespace SM.Media
 
                     _bufferingProgress = _reportedBufferingProgress = 100;
 
-                    var presentationTimestamp = _streamSource.PresentationTimestamp;
+                    var presentationTimestamp = packet.PresentationTimestamp;
 
 #if WORKING_PROCESSED_EVENT
                     var packetBuffer = packet.Buffer.AsBuffer(packet.Index, packet.Length);
@@ -507,8 +510,8 @@ namespace SM.Media
                     if (null == mediaStreamSample)
                         throw new InvalidOperationException("MediaStreamSamples cannot be null");
 
-                    if (_streamSource.DecodeTimestamp.HasValue)
-                        mediaStreamSample.DecodeTimestamp = _streamSource.DecodeTimestamp.Value;
+                    if (packet.DecodeTimestamp.HasValue)
+                        mediaStreamSample.DecodeTimestamp = packet.DecodeTimestamp.Value;
 
                     if (packet.Duration.HasValue)
                         mediaStreamSample.Duration = packet.Duration.Value;

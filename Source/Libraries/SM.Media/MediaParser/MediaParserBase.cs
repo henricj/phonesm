@@ -95,7 +95,9 @@ namespace SM.Media.MediaParser
 
             SubmitPacket(null);
 
-            PushStreams();
+            _mediaStream.PushPackets();
+
+            _bufferingManager.ReportEndOfData();
         }
 
         public abstract void ProcessData(byte[] buffer, int offset, int length);
@@ -121,11 +123,14 @@ namespace SM.Media.MediaParser
 
         #endregion
 
-        protected virtual void PushStreams()
+        protected virtual bool PushStreams()
         {
-            _mediaStream.PushPackets();
+            if (!_mediaStream.PushPackets())
+                return false;
 
             _bufferingManager.Refresh();
+
+            return true;
         }
 
         void OnConfigurationComplete(object sender, EventArgs eventArgs)

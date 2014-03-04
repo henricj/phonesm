@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.TsParser;
@@ -51,6 +52,11 @@ namespace SM.Media
             _configurator = configurator;
             _streamBuffer = streamBuffer;
             _freePacket = freePacket;
+        }
+
+        public ICollection<TsPesPacket> Packets
+        {
+            get { return _packets; }
         }
 
         #region IDisposable Members
@@ -82,7 +88,12 @@ namespace SM.Media
                 return;
 
             foreach (var packet in _packets)
+            {
+                if (null == packet)
+                    continue;
+
                 _freePacket(packet);
+            }
 
             _packets.Clear();
         }
@@ -92,13 +103,22 @@ namespace SM.Media
             _packets.Add(packet);
         }
 
-        public void PushPackets()
+        public bool PushPackets()
         {
-            if (_packets.Count <= 0)
-                return;
+            Debug.WriteLine("MediaStream.PushPackets() count {0} buffer: {1}", _packets.Count, _streamBuffer);
 
-            if (_streamBuffer.TryEnqueue(_packets))
-                _packets.Clear();
+            if (_packets.Count <= 0)
+                return false;
+
+            if (!_streamBuffer.TryEnqueue(_packets))
+            {
+                Debug.WriteLine("MediaStream.PushPackets() the stream buffer was not ready to accept the packets: " + _streamBuffer);
+                return false;
+            }
+
+            _packets.Clear();
+
+            return true;
         }
     }
 }

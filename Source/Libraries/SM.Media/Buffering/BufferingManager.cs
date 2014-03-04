@@ -51,6 +51,7 @@ namespace SM.Media.Buffering
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
         float _bufferingProgress;
         bool _isBuffering = true;
+        bool _isEof;
         int _isDisposed;
         bool _isStarting = true;
         IQueueThrottling _queueThrottling;
@@ -115,21 +116,37 @@ namespace SM.Media.Buffering
 
         public void Flush()
         {
+            Debug.WriteLine("BufferingManager.Flush()");
+
+            ThrowIfDisposed();
+
+            bool hasQueues;
+
             IBufferingQueue[] queues;
 
             lock (_lock)
             {
                 queues = _queues.ToArray();
+
+                _isStarting = true;
+                _isBuffering = true;
+
+                hasQueues = _queues.Count > 0;
             }
 
             foreach (var queue in queues)
                 queue.Flush();
 
-            ReportFlush();
+            ReportBuffering(0);
+
+            if (hasQueues)
+                _refreshTask.Fire();
         }
 
         public bool IsSeekAlreadyBuffered(TimeSpan position)
         {
+            Debug.WriteLine("BufferingManager.IsSeekAlreadyBuffered({0})", position);
+
             ThrowIfDisposed();
 
             lock (_lock)
@@ -163,13 +180,7 @@ namespace SM.Media.Buffering
 
         public float BufferingProgress
         {
-            get
-            {
-                lock (_lock)
-                {
-                    return _bufferingProgress;
-                }
-            }
+            get { return _bufferingProgress; }
         }
 
         public void Dispose()
@@ -203,6 +214,20 @@ namespace SM.Media.Buffering
             {
                 UnlockedStartBuffering();
             }
+        }
+
+        public void ReportEndOfData()
+        {
+            Debug.WriteLine("BufferingManager.ReportEndOfData()");
+
+            lock (_lock)
+            {
+                _isEof = true;
+
+                UnlockedReport();
+            }
+
+            _refreshTask.Fire();
         }
 
         #endregion
@@ -243,22 +268,6 @@ namespace SM.Media.Buffering
             }
         }
 
-        void ReportFlush()
-        {
-            ThrowIfDisposed();
-
-            bool hasQueues;
-
-            lock (_lock)
-            {
-                _isStarting = true;
-                hasQueues = _queues.Count > 0;
-            }
-
-            if (hasQueues)
-                _refreshTask.Fire();
-        }
-
         void UnlockedStartBuffering()
         {
             var wasBuffering = _isBuffering;
@@ -273,6 +282,8 @@ namespace SM.Media.Buffering
 
         bool UpdateState()
         {
+            //Debug.WriteLine("BufferingManager.UpdateState()");
+
             if (_statuses.Count <= 0)
                 return false;
 
@@ -284,7 +295,7 @@ namespace SM.Media.Buffering
             var totalBuffered = 0;
 
             var validData = false;
-            var allDone = true;
+            var allDone = _isEof;
             var isExhausted = false;
             var allExhausted = true;
 
@@ -336,6 +347,9 @@ namespace SM.Media.Buffering
                 if (duration < minDuration)
                     minDuration = duration;
             }
+
+            if (allDone)
+                _isEof = true;
 
             var timestampDifference = validData ? minDuration : TimeSpan.MaxValue;
             //var timestampDifference = validData ? newest - oldest : TimeSpan.MaxValue;

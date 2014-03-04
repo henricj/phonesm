@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -137,23 +136,34 @@ namespace SM.Media
             _tsDecoder.ParseEnd();
 
             PushStreams();
+
+            _bufferingManager.ReportEndOfData();
         }
 
         public void ProcessData(byte[] buffer, int offset, int length)
         {
             _tsDecoder.Parse(buffer, offset, length);
 
-            PushStreams();
+            if (PushStreams())
+                _bufferingManager.Refresh();
         }
 
         #endregion
 
-        void PushStreams()
+        bool PushStreams()
         {
-            foreach (var mediaStream in _mediaStreams)
-                mediaStream.PushPackets();
+            if (!_tsTimemestamp.ProcessPackets())
+                return false;
 
-            _bufferingManager.Refresh();
+            var newPackets = false;
+
+            foreach (var mediaStream in _mediaStreams)
+            {
+                if (mediaStream.PushPackets())
+                    newPackets = true;
+            }
+
+            return newPackets;
         }
 
         static void DefaultProgramStreamsHandler(IProgramStreams pss)
@@ -250,41 +260,17 @@ namespace SM.Media
         {
             var streamBuffer = _bufferingManager.CreateStreamBuffer(streamType);
 
-            lock (_timestampLock)
-            {
-                _timestampOffsetHandlers.Add(ts => streamBuffer.TimestampOffset = ts);
-            }
-
             MediaStream mediaStream = null;
-
-            var gotFirstPacket = false;
 
             var pesStreamHandler = _pesHandlers.GetPesHandler(streamType, pid,
                 packet =>
                 {
-                    if (null != packet)
-                    {
-                        if (_tsTimemestamp.Update(packet, !gotFirstPacket))
-                        {
-                            if (_tsTimemestamp.Offset.HasValue)
-                            {
-                                var offset = _tsTimemestamp.Offset.Value;
-
-                                lock (_timestampLock)
-                                {
-                                    foreach (var timestampOffsetHandler in _timestampOffsetHandlers)
-                                        timestampOffsetHandler(offset);
-                                }
-                            }
-                        }
-
-                        gotFirstPacket = true;
-
-                        Debug.Assert(packet.PresentationTimestamp >= StartPosition, String.Format("packet.Timestamp >= StartPosition: {0} >= {1} is {2}", packet.PresentationTimestamp, StartPosition, packet.PresentationTimestamp >= StartPosition));
-                    }
-
+                    // ReSharper disable AccessToModifiedClosure
                     if (null != mediaStream)
                         mediaStream.EnqueuePacket(packet);
+                    else
+                        _tsPesPacketPool.FreePesPacket(packet);
+                    // ReSharper restore AccessToModifiedClosure
                 });
 
             var pes = new TsPacketizedElementaryStream(_bufferPool, _tsPesPacketPool, pesStreamHandler.PacketHandler, streamType, pid);
@@ -305,6 +291,8 @@ namespace SM.Media
             mediaStream = new MediaStream(configurator, streamBuffer, _tsPesPacketPool.FreePesPacket);
 
             AddMediaStream(mediaStream);
+
+            _tsTimemestamp.RegisterPackets(mediaStream.Packets, pesStreamHandler.GetDuration);
 
             return pes;
         }

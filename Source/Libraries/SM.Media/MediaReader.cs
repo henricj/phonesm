@@ -129,6 +129,8 @@ namespace SM.Media
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            //Debug.WriteLine("MediaReader.StartAsync()");
+
             _mediaParser.StartPosition = _segmentReaders.Manager.StartPosition;
 
             _bufferingManager.Flush();
@@ -138,6 +140,8 @@ namespace SM.Media
 
         public async Task CloseAsync()
         {
+            //Debug.WriteLine("MediaReader.CloseAsync()");
+
             _queueWorker.IsEnabled = false;
 
             await StopReadingAsync().ConfigureAwait(false);
@@ -152,13 +156,17 @@ namespace SM.Media
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("TsMediaManager.ReaderPipeline.CloseAsync(): queue clear failed: " + ex.Message);
+                    Debug.WriteLine("MediaReader.CloseAsync(): queue close failed: " + ex.Message);
                 }
             }
+
+            FlushBuffers();
         }
 
         public async Task StopAsync()
         {
+            //Debug.WriteLine("MediaReader.StopAsync()");
+
             _queueWorker.IsEnabled = false;
 
             await StopReadingAsync().ConfigureAwait(false);
@@ -173,9 +181,11 @@ namespace SM.Media
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("TsMediaManager.ReaderPipeline.StopAsync(): queue clear failed: " + ex.Message);
+                    Debug.WriteLine("MediaReader.CloseAsync(): queue clear failed: " + ex.Message);
                 }
             }
+
+            FlushBuffers();
         }
 
         public bool IsBuffered(TimeSpan position)
@@ -185,7 +195,8 @@ namespace SM.Media
 
         #endregion
 
-        public async Task InitializeAsync(ISegmentManagerReaders segmentManagerReaders, Action checkConfiguration, Action checkForSamples, CancellationToken cancellationToken, Action<IProgramStreams> programStreamsHandler)
+        public async Task InitializeAsync(ISegmentManagerReaders segmentManagerReaders, Action checkConfiguration,
+            Action checkForSamples, CancellationToken cancellationToken, Action<IProgramStreams> programStreamsHandler)
         {
             _checkConfiguration = checkConfiguration;
 
@@ -196,6 +207,8 @@ namespace SM.Media
             _queueWorker = new QueueWorker<WorkBuffer>(
                 wi =>
                 {
+                    //Debug.WriteLine("MediaReader dequeued " + wi);
+
                     var mediaParser = localReader._mediaParser;
 
                     if (null == wi)
@@ -233,6 +246,8 @@ namespace SM.Media
 
         void ConfigurationComplete(object sender, EventArgs eventArgs)
         {
+            //Debug.WriteLine("MediaReader.ConfigurationComplete()");
+
             _mediaParser.ConfigurationComplete -= ConfigurationComplete;
 
             IsConfigured = true;
@@ -253,7 +268,10 @@ namespace SM.Media
                     Debug.WriteLine("TsMediaManager.ReaderPipeline.StopAsync(): callback reader stop failed: " + ex.Message);
                 }
             }
+        }
 
+        void FlushBuffers()
+        {
             if (null != _mediaParser)
             {
                 _mediaParser.EnableProcessing = false;

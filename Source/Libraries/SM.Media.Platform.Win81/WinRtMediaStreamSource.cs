@@ -41,7 +41,8 @@ namespace SM.Media
 {
     public sealed class WinRtMediaStreamSource : IMediaStreamSource
     {
-        readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
+        TaskCompletionSource<object> _closedTaskCompletionSource;
+
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
@@ -88,6 +89,12 @@ namespace SM.Media
 
             Debug.WriteLine("WinRtMediaStreamSource.Dispose()");
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
+
+            if (null != _closedTaskCompletionSource)
+            {
+                _closedTaskCompletionSource.TrySetCanceled();
+                _closedTaskCompletionSource = null;
+            }
         }
 
         public void Configure(IMediaConfiguration configuration)
@@ -121,7 +128,22 @@ namespace SM.Media
 
         public Task CloseAsync()
         {
-            return _drainCompleted.WaitAsync();
+            Debug.WriteLine("WinRtMediaStreamSource.CloseAsync()");
+
+            ThrowIfDisposed();
+
+            if (null != _videoStreamState)
+                _videoStreamState.Close();
+
+            if (null != _audioStreamState)
+                _audioStreamState.Close();
+
+            var tcs = _closedTaskCompletionSource;
+
+            if (null == tcs)
+                return TplTaskExtensions.CompletedTask;
+
+            return tcs.Task;
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
@@ -144,7 +166,7 @@ namespace SM.Media
 
         #endregion
 
-        public void CancelPending()
+        void CancelPending()
         {
             Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
 
@@ -250,11 +272,6 @@ namespace SM.Media
                 Debug.WriteLine("WinRtMediaStreamSource.CompleteConfigure() no handler found");
         }
 
-        public Task WaitDrain()
-        {
-            return _drainCompleted.WaitAsync();
-        }
-
         public void RegisterMediaStreamSourceHandler(Action<IMediaSource> mssHandler)
         {
             Debug.WriteLine("WintRtMediaStreamSource.RegisterMediaStreamSourceHandler()");
@@ -296,20 +313,36 @@ namespace SM.Media
         void MediaStreamSourceOnSwitchStreamsRequested(MediaStreamSource sender, MediaStreamSourceSwitchStreamsRequestedEventArgs args)
         {
             Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSwitchStreamsRequested()");
+
+            ThrowIfDisposed();
+
+            throw new NotSupportedException();
         }
 
         void MediaStreamSourceOnPaused(MediaStreamSource sender, object args)
         {
             Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnPaused()");
+
+            ThrowIfDisposed();
         }
 
         void MediaStreamSourceOnClosed(MediaStreamSource sender, MediaStreamSourceClosedEventArgs args)
         {
             Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() reason: " + args.Request.Reason);
 
+            ThrowIfDisposed();
+
             sender.Starting += MediaStreamSourceOnStarting;
             sender.SampleRequested += MediaStreamSourceOnSampleRequested;
             sender.Closed += MediaStreamSourceOnClosed;
+
+            if (null == _closedTaskCompletionSource)
+                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() unexpected call to close");
+            else
+            {
+                if (!_closedTaskCompletionSource.TrySetResult(string.Empty))
+                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() close already completed");
+            }
 
             var mediaManager = MediaManager;
 
@@ -323,6 +356,8 @@ namespace SM.Media
         {
             //Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSampleRequested()");
 
+            ThrowIfDisposed();
+
             var request = args.Request;
 
             if (null != _videoStreamState && request.StreamDescriptor == _videoStreamState.Descriptor)
@@ -333,6 +368,12 @@ namespace SM.Media
 
         async void MediaStreamSourceOnStarting(MediaStreamSource sender, MediaStreamSourceStartingEventArgs args)
         {
+            ThrowIfDisposed();
+
+            Debug.Assert(null == _closedTaskCompletionSource);
+
+            _closedTaskCompletionSource = new TaskCompletionSource<object>();
+
             var request = args.Request;
             var startPosition = request.StartPosition;
 
@@ -368,13 +409,14 @@ namespace SM.Media
         {
             public readonly IMediaStreamDescriptor Descriptor;
             readonly string _name;
+            readonly object _sampleLock = new object();
 
             readonly IStreamSource _streamSource;
             uint _bufferingProgress;
             MediaStreamSourceSampleRequestDeferral _deferral;
+            bool _isClosed;
             uint _reportedBufferingProgress;
             MediaStreamSourceSampleRequest _request;
-            SpinLock _sampleLock = new SpinLock();
 
             public StreamState(string name, IStreamSource streamSource, IMediaStreamDescriptor descriptor)
             {
@@ -397,12 +439,8 @@ namespace SM.Media
 
                 try
                 {
-                    var lockTaken = false;
-
-                    try
+                    lock (_sampleLock)
                     {
-                        _sampleLock.Enter(ref lockTaken);
-
                         deferral = _deferral;
 
                         if (null == deferral)
@@ -414,11 +452,9 @@ namespace SM.Media
 
                         if (null != request)
                             _request = null;
-                    }
-                    finally
-                    {
-                        if (lockTaken)
-                            _sampleLock.Exit();
+
+                        if (_isClosed)
+                            return;
                     }
 
                     if (!TryCompleteRequest(request))
@@ -435,29 +471,31 @@ namespace SM.Media
                 {
                     if (null != deferral || null != request)
                     {
-                        var lockTaken = false;
-
-                        try
+                        lock (_sampleLock)
                         {
-                            _sampleLock.Enter(ref lockTaken);
-
                             SmDebug.Assert(null == _deferral);
                             SmDebug.Assert(null == _request);
 
-                            _deferral = deferral;
-                            _request = request;
+                            if (!_isClosed)
+                            {
+                                _deferral = deferral;
+                                _request = request;
+
+                                deferral = null;
+                            }
                         }
-                        finally
-                        {
-                            if (lockTaken)
-                                _sampleLock.Exit();
-                        }
+
+                        if (null != deferral)
+                            deferral.Complete();
                     }
                 }
             }
 
             bool TryCompleteRequest(MediaStreamSourceSampleRequest request)
             {
+                if (_isClosed)
+                    return true;
+
                 TsPesPacket packet = null;
 
                 try
@@ -479,7 +517,7 @@ namespace SM.Media
 
                         if (_bufferingProgress != _reportedBufferingProgress)
                         {
-                            //Debug.WriteLine("Sample {0} buffering {1}%", _name, _bufferingProgress);
+                            Debug.WriteLine("Sample {0} buffering {1}%", _name, _bufferingProgress);
 
                             request.ReportSampleProgress(_bufferingProgress);
                             _reportedBufferingProgress = _bufferingProgress;
@@ -549,35 +587,30 @@ namespace SM.Media
 
                 var deferral = request.GetDeferral();
 
-                var lockTaken = false;
-
-                try
+                lock (_sampleLock)
                 {
-                    _sampleLock.Enter(ref lockTaken);
-
                     SmDebug.Assert(null == _deferral);
                     SmDebug.Assert(null == _request);
 
-                    _request = request;
-                    _deferral = deferral;
+                    if (!_isClosed)
+                    {
+                        _request = request;
+                        _deferral = deferral;
+
+                        deferral = null;
+                    }
                 }
-                finally
-                {
-                    if (lockTaken)
-                        _sampleLock.Exit();
-                }
+
+                if (null != deferral)
+                    deferral.Complete();
             }
 
             public void Cancel()
             {
                 MediaStreamSourceSampleRequestDeferral deferral;
 
-                var lockTaken = false;
-
-                try
+                lock (_sampleLock)
                 {
-                    _sampleLock.Enter(ref lockTaken);
-
                     deferral = _deferral;
 
                     if (null == deferral)
@@ -586,16 +619,19 @@ namespace SM.Media
                     _deferral = null;
                     _request = null;
                 }
-                finally
-                {
-                    if (lockTaken)
-                        _sampleLock.Exit();
-                }
 
                 if (null == deferral)
                     return;
 
                 deferral.Complete();
+            }
+
+            public void Close()
+            {
+                lock (_sampleLock)
+                    _isClosed = true;
+
+                Cancel();
             }
         }
     }

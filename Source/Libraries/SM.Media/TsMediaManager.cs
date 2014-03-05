@@ -128,7 +128,7 @@ namespace SM.Media
             get { return _closeCancellationTokenSource.IsCancellationRequested; }
         }
 
-        #region IDisposable Members
+        #region IMediaManager Members
 
         public void Dispose()
         {
@@ -152,20 +152,16 @@ namespace SM.Media
             CloseAsync()
                 .Wait();
 
+            using (_reportStateTask)
+            using (_asyncFifoWorker)
+            { }
+
             using (_playbackCancellationTokenSource)
             { }
 
             using (_closeCancellationTokenSource)
             { }
-
-            using (_reportStateTask)
-            using (_asyncFifoWorker)
-            { }
         }
-
-        #endregion
-
-        #region IMediaManager Members
 
         public MediaState State
         {
@@ -343,6 +339,8 @@ namespace SM.Media
 
         Task ReportState()
         {
+            //Debug.WriteLine("TsMediaManager.ReportState()");
+
             MediaState state;
             string message;
 
@@ -371,14 +369,43 @@ namespace SM.Media
 
         void ResetCancellationToken()
         {
-            if (null != _playbackCancellationTokenSource && !_playbackCancellationTokenSource.IsCancellationRequested)
-                return;
+            var oldPcts = _playbackCancellationTokenSource;
 
-            using (_playbackCancellationTokenSource)
-            { }
+            CancellationTokenSource newPcts = null;
 
-            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
-            _playbackCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_closeCancellationTokenSource.Token);
+            for (; ; )
+            {
+                if (null != oldPcts && !oldPcts.IsCancellationRequested)
+                {
+                    if (null != newPcts)
+                        newPcts.Dispose();
+
+                    return;
+                }
+
+                if (null == newPcts)
+                {
+                    // ReSharper disable once PossiblyMistakenUseOfParamsMethod
+                    newPcts = CancellationTokenSource.CreateLinkedTokenSource(_closeCancellationTokenSource.Token);
+                }
+
+                var pcts = Interlocked.CompareExchange(ref _playbackCancellationTokenSource, newPcts, oldPcts);
+
+                if (pcts == oldPcts)
+                {
+                    if (null != oldPcts)
+                    {
+                        if (!oldPcts.IsCancellationRequested)
+                            oldPcts.Cancel();
+
+                        oldPcts.DisposeSafe();
+                    }
+
+                    return;
+                }
+
+                oldPcts = pcts;
+            }
         }
 
         void SetMediaState(MediaState state, string message)

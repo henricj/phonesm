@@ -143,18 +143,24 @@ namespace HlsView
             else
                 MediaStateBox.Text = state.ToString();
 
-            if (MediaElementState.Closed == state)
+            switch (state)
             {
-                playButton.IsEnabled = true;
-                stopButton.IsEnabled = false;
+                case MediaElementState.Closed:
+                    playButton.IsEnabled = true;
+                    stopButton.IsEnabled = false;
+                    break;
+                case MediaElementState.Paused:
+                    playButton.IsEnabled = true;
+                    stopButton.IsEnabled = true;
+                    break;
+                case MediaElementState.Playing:
+                    playButton.IsEnabled = false;
+                    stopButton.IsEnabled = true;
+                    break;
+                default:
+                    stopButton.IsEnabled = true;
+                    break;
             }
-            else if (MediaElementState.Paused == state)
-            {
-                playButton.IsEnabled = true;
-                stopButton.IsEnabled = true;
-            }
-            else
-                stopButton.IsEnabled = true;
 
             OnPositionSamplerOnTick(null, null);
         }

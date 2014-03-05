@@ -26,6 +26,7 @@
 
 using Autofac;
 using SM.Media.MediaParser;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
@@ -36,6 +37,10 @@ namespace SM.Media
             builder.RegisterType<TsMediaStreamSource>()
                    .As<IMediaStreamSource>()
                    .InstancePerMatchingLifetimeScope("builder-scope");
+
+            builder.RegisterType<PlatformServices>()
+                   .As<IPlatformServices>()
+                   .SingleInstance();
         }
     }
 }

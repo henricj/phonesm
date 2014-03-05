@@ -29,6 +29,7 @@ using Ninject.Activation;
 using Ninject.Modules;
 using SM.Media.Builder;
 using SM.Media.MediaParser;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
@@ -48,6 +49,8 @@ namespace SM.Media
 
             if (null != scope)
                 b.InScope(scope);
+
+            Bind<IPlatformServices>().To<PlatformServices>().InSingletonScope();
         }
     }
 }

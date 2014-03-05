@@ -105,7 +105,7 @@ namespace SM.Media
 
         public bool PushPackets()
         {
-            Debug.WriteLine("MediaStream.PushPackets() count {0} buffer: {1}", _packets.Count, _streamBuffer);
+            //Debug.WriteLine("MediaStream.PushPackets() count {0} buffer: {1}", _packets.Count, _streamBuffer);
 
             if (_packets.Count <= 0)
                 return false;

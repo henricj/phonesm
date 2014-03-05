@@ -221,9 +221,10 @@ namespace HlsView.Silverlight
             InitializeMediaStream();
 
             _mediaStreamFascade.Source = new Uri(
-                "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                //"http://www.npr.org/streams/mp3/nprlive24.pls"
+                //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
                 //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                //"https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
+                "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
                 );
 
             mediaElement1.Play();

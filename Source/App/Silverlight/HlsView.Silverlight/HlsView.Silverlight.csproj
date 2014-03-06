@@ -64,6 +64,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Autofac, Version=3.0.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\packages\Autofac.3.3.0\lib\portable-win+net40+sl50+wp8\Autofac.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Threading.Tasks">
       <HintPath>..\..\..\packages\Microsoft.Bcl.Async.1.0.165\lib\sl4\Microsoft.Threading.Tasks.dll</HintPath>
     </Reference>
@@ -129,19 +133,58 @@
     <None Include="Properties\AppManifest.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Libraries\SM.Media.Legacy\SM.Media.Legacy.csproj">
-      <Project>{37f16220-78c4-4931-bf3a-0a61faffe3d5}</Project>
-      <Name>SM.Media.Legacy</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Libraries\SM.Media.Platform.Silverlight\SM.Media.Platform.Silverlight.csproj">
-      <Project>{e8aee890-1934-4396-83de-9cc4371500c0}</Project>
-      <Name>SM.Media.Platform.Silverlight</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-      <Project>{ca6f2d9d-5d8b-4e72-bbef-6d61d86aa1a1}</Project>
-      <Name>SM.TsParser.Legacy</Name>
-    </ProjectReference>
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.Media.Legacy\SM.Media.Legacy.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.Media.Legacy\SM.Media.Legacy.csproj">
+          <Project>{37f16220-78c4-4931-bf3a-0a61faffe3d5}</Project>
+          <Name>SM.Media.Legacy</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Legacy">
+          <HintPath>..\..\..\bin\$(Configuration)\SM.Media.Legacy.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.Media.Platform.Silverlight\SM.Media.Platform.Silverlight.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.Media.Platform.Silverlight\SM.Media.Platform.Silverlight.csproj">
+          <Project>{e8aee890-1934-4396-83de-9cc4371500c0}</Project>
+          <Name>SM.Media.Platform.Silverlight</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Platform.Silverlight">
+          <HintPath>..\..\..\bin\$(Configuration)\Silverlight\SM.Media.Platform.Silverlight.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
+          <Project>{ca6f2d9d-5d8b-4e72-bbef-6d61d86aa1a1}</Project>
+          <Name>SM.TsParser.Legacy</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.TsParser.Legacy">
+          <HintPath>..\..\..\bin\$(Configuration)\SM.TsParser.Legacy.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <None Include="Properties\OutOfBrowserSettings.xml" />
   </ItemGroup>

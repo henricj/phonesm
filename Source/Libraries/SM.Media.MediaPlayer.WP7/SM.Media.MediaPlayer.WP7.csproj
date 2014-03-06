@@ -110,20 +110,57 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SM.Media.Legacy\SM.Media.Legacy.csproj">
-      <Project>{37F16220-78C4-4931-BF3A-0A61FAFFE3D5}</Project>
-      <Name>SM.Media.Legacy</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.Media.Platform.WP7\SM.Media.Platform.WP7.csproj">
-      <Project>{89D3F028-F32F-4113-A711-29E4FE9AC877}</Project>
-      <Name>SM.Media.Platform.WP7</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-      <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
-      <Name>SM.TsParser.Legacy</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\SM.Media.Legacy\SM.Media.Legacy.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media.Legacy\SM.Media.Legacy.csproj">
+          <Project>{37F16220-78C4-4931-BF3A-0A61FAFFE3D5}</Project>
+          <Name>SM.Media.Legacy</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Legacy">
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.Legacy.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.Media.Platform.WP7\SM.Media.Platform.WP7.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media.Platform.WP7\SM.Media.Platform.WP7.csproj">
+          <Project>{89D3F028-F32F-4113-A711-29E4FE9AC877}</Project>
+          <Name>SM.Media.Platform.WP7</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Platform.WP7">
+          <HintPath>..\..\bin\$(Configuration)\WP7\SM.Media.Platform.WP7.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
+          <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
+          <Name>SM.TsParser.Legacy</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.TsParser.Legacy">
+          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.Legacy.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.$(TargetFrameworkProfile).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.CSharp.targets" />
   <ProjectExtensions />

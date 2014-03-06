@@ -93,9 +93,6 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\BackgroundAudio.Sample.WP7\Images\Thumbs.db">
-      <Link>Images\Thumbs.db</Link>
-    </None>
     <None Include="packages.config" />
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml">
@@ -149,12 +146,45 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj">
-      <Project>{9F8AF48D-82BA-4CB6-A691-E96E683B96C4}</Project>
-      <Name>SM.Media.BackgroundAudioStreamingAgent.WP8</Name>
-    </ProjectReference>
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj">
+          <Project>{9F8AF48D-82BA-4CB6-A691-E96E683B96C4}</Project>
+          <Name>SM.Media.BackgroundAudioStreamingAgent.WP8</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.BackgroundAudioStreamingAgent.WP8">
+          <HintPath>..\..\bin\$(Configuration)\WP8\$(Platform)\SM.Media.BackgroundAudioStreamingAgent.WP8.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
+          <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
+          <Name>SM.Media.Builder</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Builder">
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.Builder.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
+    <Reference Include="Autofac">
+      <HintPath>..\..\packages\Autofac.3.3.0\lib\portable-win+net40+sl50+wp8\Autofac.dll</HintPath>
+    </Reference>
     <Reference Include="System.Net.Http">
       <HintPath>..\..\packages\Microsoft.Net.Http.2.2.18\lib\sl4-windowsphone71\System.Net.Http.dll</HintPath>
     </Reference>

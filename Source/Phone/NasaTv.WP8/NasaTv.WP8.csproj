@@ -157,6 +157,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
+      <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
+      <Name>SM.Media.Builder</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
       <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
       <Name>SM.Media.Platform.WP8</Name>
@@ -173,8 +177,15 @@
       <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
       <Name>SM.TsParser</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
+      <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
+      <Name>SM.Media.Builder</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Autofac">
+      <HintPath>..\..\packages\Autofac.3.3.0\lib\portable-win+net40+sl50+wp8\Autofac.dll</HintPath>
+    </Reference>
     <Reference Include="System.Net.Http">
       <HintPath>..\..\packages\Microsoft.Net.Http.2.2.18\lib\sl4-windowsphone71\System.Net.Http.dll</HintPath>
     </Reference>

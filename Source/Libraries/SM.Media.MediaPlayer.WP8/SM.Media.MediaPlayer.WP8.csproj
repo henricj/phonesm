@@ -74,20 +74,57 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamingMediaPlugin.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
-      <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
-      <Name>SM.Media.Platform.WP8</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.Media\SM.Media.csproj">
-      <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
-      <Name>SM.Media</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
-      <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-      <Name>SM.TsParser</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
+          <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
+          <Name>SM.Media.Platform.WP8</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Platform.WP8">
+          <HintPath>..\..\bin\$(Configuration)\WP8\$(Platform)\SM.Media.Platform.WP8.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.Media\SM.Media.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media\SM.Media.csproj">
+          <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
+          <Name>SM.Media</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media">
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.TsParser\SM.TsParser.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
+          <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
+          <Name>SM.TsParser</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.TsParser">
+          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>

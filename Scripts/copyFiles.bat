@@ -136,6 +136,7 @@ copy App\WinRT\HlsView.Win81\*.cs ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\HlsView.Win81.csproj ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\Assets\*.png ..\Distribution\App\WinRT\HlsView.Win81\Assets\
 copy App\WinRT\HlsView.Win81\Properties\*.cs ..\Distribution\App\WinRT\HlsView.Win81\Properties\
+copy App\WinRT\HlsView.Win81\HlsView.Win81_TemporaryKey.pfx ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\Package.appxmanifest ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\packages.config ..\Distribution\App\WinRT\HlsView.Win81\
 

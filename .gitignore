@@ -141,6 +141,7 @@ Distribution/
 PerfLogs/
 SubmissionInfo/
 runsdvui.cmd
+!Source/App/WinRT/HlsView.Win81/HlsView.Win81_TemporaryKey.pfx
 
 # =========================
 # Windows detritus

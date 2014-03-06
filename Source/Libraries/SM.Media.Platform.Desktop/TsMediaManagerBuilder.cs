@@ -26,6 +26,7 @@
 
 using Autofac.Core;
 using SM.Media.Builder;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media
@@ -38,6 +39,8 @@ namespace SM.Media
             : base(Modules)
         {
             RegisterSingleton(httpClients);
+
+            RegisterSingleton<IPlatformServices, PlatformServices>();
         }
     }
 }

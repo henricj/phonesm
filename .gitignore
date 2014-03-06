@@ -136,6 +136,12 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 
+# Local changes
+Distribution/
+PerfLogs/
+SubmissionInfo/
+runsdvui.cmd
+
 # =========================
 # Windows detritus
 # =========================

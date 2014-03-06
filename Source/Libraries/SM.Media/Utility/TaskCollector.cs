@@ -38,7 +38,7 @@ namespace SM.Media.Utility
         readonly object _lock = new object();
         readonly Dictionary<Task, string> _tasks = new Dictionary<Task, string>();
 
-        [Conditional("DEBUG")]
+        //[Conditional("DEBUG")]
         public void Add(Task task, string description)
         {
             if (task.IsCompleted)

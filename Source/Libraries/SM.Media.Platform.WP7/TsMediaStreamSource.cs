@@ -41,7 +41,7 @@ namespace SM.Media
     public sealed class TsMediaStreamSource : MediaStreamSource, IMediaStreamSource
     {
         static readonly Dictionary<MediaSampleAttributeKeys, string> NoMediaSampleAttributes = new Dictionary<MediaSampleAttributeKeys, string>();
-        readonly AsyncManualResetEvent _drainCompleted = new AsyncManualResetEvent(true);
+        TaskCompletionSource<object> _closeCompleted;
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
@@ -118,15 +118,39 @@ namespace SM.Media
             Debug.WriteLine("TsMediaStreamSource.Dispose()");
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
 
+            TaskCompletionSource<object> closeCompleted;
+
             lock (_stateLock)
             {
                 _isClosed = true;
+                closeCompleted = _closeCompleted;
+                _closeCompleted = null;
             }
 
-            _drainCompleted.Set();
+            if (null != closeCompleted)
+                closeCompleted.TrySetResult(string.Empty);
 
             if (null != _taskScheduler)
                 _taskScheduler.Dispose();
+
+            ForceClose();
+        }
+
+        void ForceClose()
+        {
+            var operations = HandleOperation(Operation.Video | Operation.Audio | Operation.Seek);
+
+            if (0 != (operations & Operation.Seek))
+            {
+                ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
+                ReportSeekCompleted(0);
+            }
+
+            if (0 != (operations & Operation.Video) && null != _videoStreamDescription)
+                SendLastStreamSample(_videoStreamDescription);
+
+            if (0 != (operations & Operation.Audio) && null != _audioStreamDescription)
+                SendLastStreamSample(_audioStreamDescription);
         }
 
         public void Configure(IMediaConfiguration configuration)
@@ -152,23 +176,40 @@ namespace SM.Media
 
         public Task CloseAsync()
         {
-            Debug.WriteLine("TsMediaStreamSource.CloseAsync(): open {0} drain {1}", _streamOpenFlags, _drainCompleted.WaitAsync().Status);
+            Debug.WriteLine("TsMediaStreamSource.CloseAsync(): open {0} close {1}",
+                _streamOpenFlags, null == _closeCompleted ? "<none>" : _closeCompleted.Task.Status.ToString());
+
+            TaskCompletionSource<object> closeCompleted;
 
             lock (_stateLock)
             {
                 _isClosed = true;
 
                 _state = SourceState.WaitForClose;
+
+                closeCompleted = _closeCompleted;
+
+                if (null != closeCompleted && closeCompleted.Task.IsCompleted)
+                {
+                    closeCompleted = null;
+                    _closeCompleted = null;
+                }
             }
 
             if (0 == _streamOpenFlags)
             {
-                _drainCompleted.Set();
+                if (null != closeCompleted)
+                    closeCompleted.TrySetResult(string.Empty);
 
                 return TplTaskExtensions.CompletedTask;
             }
 
-            return _drainCompleted.WaitAsync();
+            if (null == _closeCompleted)
+                return TplTaskExtensions.CompletedTask;
+
+            CheckPending();
+
+            return _closeCompleted.Task;
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
@@ -242,7 +283,7 @@ namespace SM.Media
                 _taskScheduler.ThrowIfNotOnThread();
             }
 
-            CheckForSamples();
+            CheckPending();
         }
 
         void SignalHandler()
@@ -252,7 +293,11 @@ namespace SM.Media
             _taskScheduler.ThrowIfNotOnThread();
 
             if (_isClosed)
+            {
+                ForceClose();
+
                 return;
+            }
 
             var previousOperations = Operation.None;
             var requestedOperations = Operation.None;
@@ -603,9 +648,11 @@ namespace SM.Media
                 _isClosed = false;
 
                 _state = SourceState.Open;
-            }
 
-            _drainCompleted.Reset();
+                Debug.Assert(null == _closeCompleted, "TsMediaStreamSource.OpenMediaAsync() stream is already playing");
+
+                _closeCompleted = new TaskCompletionSource<object>();
+            }
 
             _bufferingProgress = -1;
 
@@ -745,7 +792,15 @@ namespace SM.Media
 
             _taskScheduler.ThrowIfNotOnThread();
 
-            _drainCompleted.Set();
+            TaskCompletionSource<object> closeCompleted;
+
+            lock (_stateLock)
+            {
+                closeCompleted = _closeCompleted;
+            }
+
+            if (null != closeCompleted)
+                closeCompleted.TrySetResult(string.Empty);
 
             var mediaManager = MediaManager;
 
@@ -825,14 +880,6 @@ namespace SM.Media
 
                 current = existing;
             }
-        }
-
-        public Task WaitDrain()
-        {
-            if (0 == _streamOpenFlags)
-                return TplTaskExtensions.CompletedTask;
-
-            return _drainCompleted.WaitAsync();
         }
 
         #region Nested type: Operation

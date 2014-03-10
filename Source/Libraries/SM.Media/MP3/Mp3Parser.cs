@@ -34,6 +34,7 @@ namespace SM.Media.MP3
 {
     public sealed class Mp3Parser : AudioParserBase
     {
+        bool _hasSeenValidFrames;
         int _skip;
 
         public Mp3Parser(ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
@@ -109,7 +110,7 @@ namespace SM.Media.MP3
 
                         // We now have an MP3 header.
 
-                        if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
+                        if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured && _hasSeenValidFrames))
                         {
                             SkipInvalidFrameHeader();
 
@@ -118,7 +119,7 @@ namespace SM.Media.MP3
 
                         Debug.Assert(_frameHeader.FrameLength > 4);
 
-                        if (!_isConfigured)
+                        if (!_isConfigured && _hasSeenValidFrames)
                         {
                             _configurationHandler(_frameHeader);
 
@@ -150,6 +151,11 @@ namespace SM.Media.MP3
                     if (_index - _startIndex == _frameHeader.FrameLength)
                     {
                         // We have a completed MP3 frame.
+                        if (_hasSeenValidFrames)
+                            SubmitFrame();
+                        else
+                            _hasSeenValidFrames = true;
+
                         SubmitFrame();
                     }
                 }
@@ -161,6 +167,7 @@ namespace SM.Media.MP3
             base.FlushBuffers();
 
             _skip = 0;
+            _hasSeenValidFrames = false;
         }
 
         static int? GetId3Length(byte[] buffer, int offset, int length)

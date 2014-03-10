@@ -51,8 +51,8 @@ namespace SM.Media.Buffering
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
         float _bufferingProgress;
         bool _isBuffering = true;
-        bool _isEof;
         int _isDisposed;
+        bool _isEof;
         bool _isStarting = true;
         IQueueThrottling _queueThrottling;
         Action _reportBufferingChange;
@@ -212,22 +212,34 @@ namespace SM.Media.Buffering
 
             lock (_lock)
             {
+                if (_isEof || _isBuffering)
+                    return;
+
                 UnlockedStartBuffering();
             }
+
+            _refreshTask.Fire();
         }
 
         public void ReportEndOfData()
         {
             Debug.WriteLine("BufferingManager.ReportEndOfData()");
 
+            bool wasEof;
+
             lock (_lock)
             {
+                wasEof = _isEof;
+
                 _isEof = true;
 
                 UnlockedReport();
             }
 
             _refreshTask.Fire();
+
+            if (!wasEof)
+                _reportingTask.Fire();
         }
 
         #endregion

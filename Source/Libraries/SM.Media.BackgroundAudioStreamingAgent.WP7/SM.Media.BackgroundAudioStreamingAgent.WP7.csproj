@@ -85,6 +85,7 @@
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AudioPlayer.cs" />
+    <Compile Include="AudioTrackExtensions.cs" />
     <Compile Include="AudioTrackStreamer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

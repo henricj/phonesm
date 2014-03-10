@@ -140,6 +140,8 @@ namespace SM.Media
         {
             var operations = HandleOperation(Operation.Video | Operation.Audio | Operation.Seek);
 
+            //Debug.WriteLine("TsMediastreamSource.ForceClose() " + operations);
+
             if (0 != (operations & Operation.Seek))
             {
                 ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
@@ -181,11 +183,16 @@ namespace SM.Media
 
             TaskCompletionSource<object> closeCompleted;
 
+            bool closedState;
+
             lock (_stateLock)
             {
                 _isClosed = true;
 
-                _state = SourceState.WaitForClose;
+                closedState = SourceState.Closed == _state;
+
+                if (!closedState)
+                    _state = SourceState.WaitForClose;
 
                 closeCompleted = _closeCompleted;
 
@@ -196,7 +203,7 @@ namespace SM.Media
                 }
             }
 
-            if (0 == _streamOpenFlags)
+            if (0 == _streamOpenFlags || closedState)
             {
                 if (null != closeCompleted)
                     closeCompleted.TrySetResult(string.Empty);
@@ -458,7 +465,8 @@ namespace SM.Media
                 {
                     _isClosed = true;
 
-                    _state = SourceState.WaitForClose;
+                    if (SourceState.Closed != _state)
+                        _state = SourceState.WaitForClose;
                 }
             }
 

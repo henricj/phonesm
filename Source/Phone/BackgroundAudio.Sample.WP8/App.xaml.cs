@@ -1,9 +1,37 @@
-﻿using System;
+﻿// -----------------------------------------------------------------------
+//  <copyright file="App.xaml.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
+//  <author>Henric Jungheim</author>
+//  </copyright>
+// -----------------------------------------------------------------------
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
+
+using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
 using BackgroundAudio.Sample.Resources;
+using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 
@@ -12,18 +40,14 @@ namespace BackgroundAudio.Sample
     public partial class App : Application
     {
         /// <summary>
-        /// Provides easy access to the root frame of the Phone Application.
-        /// </summary>
-        /// <returns>The root frame of the Phone Application.</returns>
-        public static PhoneApplicationFrame RootFrame { get; private set; }
-
-        /// <summary>
-        /// Constructor for the Application object.
+        ///     Constructor for the Application object.
         /// </summary>
         public App()
         {
             // Global handler for uncaught exceptions.
             UnhandledException += Application_UnhandledException;
+
+            TaskScheduler.UnobservedTaskException += Application_UnobservedException;
 
             // Standard XAML initialization
             InitializeComponent();
@@ -37,8 +61,12 @@ namespace BackgroundAudio.Sample
             // Show graphics profiling information while debugging.
             if (Debugger.IsAttached)
             {
+                // Close the background audio player in case it 
+                // was running from a previous debugging session.
+                BackgroundAudioPlayer.Instance.Close();
+                
                 // Display the current frame rate counters.
-                Application.Current.Host.Settings.EnableFrameRateCounter = true;
+                Current.Host.Settings.EnableFrameRateCounter = true;
 
                 // Show the areas of the app that are being redrawn in each frame.
                 //Application.Current.Host.Settings.EnableRedrawRegions = true;
@@ -53,35 +81,36 @@ namespace BackgroundAudio.Sample
                 // and consume battery power when the user is not using the phone.
                 PhoneApplicationService.Current.UserIdleDetectionMode = IdleDetectionMode.Disabled;
             }
-
         }
+
+        /// <summary>
+        ///     Provides easy access to the root frame of the Phone Application.
+        /// </summary>
+        /// <returns>The root frame of the Phone Application.</returns>
+        public static PhoneApplicationFrame RootFrame { get; private set; }
 
         // Code to execute when the application is launching (eg, from Start)
         // This code will not execute when the application is reactivated
-        private void Application_Launching(object sender, LaunchingEventArgs e)
-        {
-        }
+        void Application_Launching(object sender, LaunchingEventArgs e)
+        { }
 
         // Code to execute when the application is activated (brought to foreground)
         // This code will not execute when the application is first launched
-        private void Application_Activated(object sender, ActivatedEventArgs e)
-        {
-        }
+        void Application_Activated(object sender, ActivatedEventArgs e)
+        { }
 
         // Code to execute when the application is deactivated (sent to background)
         // This code will not execute when the application is closing
-        private void Application_Deactivated(object sender, DeactivatedEventArgs e)
-        {
-        }
+        void Application_Deactivated(object sender, DeactivatedEventArgs e)
+        { }
 
         // Code to execute when the application is closing (eg, user hit Back)
         // This code will not execute when the application is deactivated
-        private void Application_Closing(object sender, ClosingEventArgs e)
-        {
-        }
+        void Application_Closing(object sender, ClosingEventArgs e)
+        { }
 
         // Code to execute if a navigation fails
-        private void RootFrame_NavigationFailed(object sender, NavigationFailedEventArgs e)
+        void RootFrame_NavigationFailed(object sender, NavigationFailedEventArgs e)
         {
             if (Debugger.IsAttached)
             {
@@ -91,7 +120,7 @@ namespace BackgroundAudio.Sample
         }
 
         // Code to execute on Unhandled Exceptions
-        private void Application_UnhandledException(object sender, ApplicationUnhandledExceptionEventArgs e)
+        void Application_UnhandledException(object sender, ApplicationUnhandledExceptionEventArgs e)
         {
             if (Debugger.IsAttached)
             {
@@ -100,13 +129,75 @@ namespace BackgroundAudio.Sample
             }
         }
 
+        void Application_UnobservedException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Debug.WriteLine("*** Unobserved task exception {0}", e.Exception.Message);
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
+        }
+
+        // Initialize the app's font and flow direction as defined in its localized resource strings.
+        //
+        // To ensure that the font of your application is aligned with its supported languages and that the
+        // FlowDirection for each of those languages follows its traditional direction, ResourceLanguage
+        // and ResourceFlowDirection should be initialized in each resx file to match these values with that
+        // file's culture. For example:
+        //
+        // AppResources.es-ES.resx
+        //    ResourceLanguage's value should be "es-ES"
+        //    ResourceFlowDirection's value should be "LeftToRight"
+        //
+        // AppResources.ar-SA.resx
+        //     ResourceLanguage's value should be "ar-SA"
+        //     ResourceFlowDirection's value should be "RightToLeft"
+        //
+        // For more info on localizing Windows Phone apps see http://go.microsoft.com/fwlink/?LinkId=262072.
+        //
+        void InitializeLanguage()
+        {
+            try
+            {
+                // Set the font to match the display language defined by the
+                // ResourceLanguage resource string for each supported language.
+                //
+                // Fall back to the font of the neutral language if the Display
+                // language of the phone is not supported.
+                //
+                // If a compiler error is hit then ResourceLanguage is missing from
+                // the resource file.
+                RootFrame.Language = XmlLanguage.GetLanguage(AppResources.ResourceLanguage);
+
+                // Set the FlowDirection of all elements under the root frame based
+                // on the ResourceFlowDirection resource string for each
+                // supported language.
+                //
+                // If a compiler error is hit then ResourceFlowDirection is missing from
+                // the resource file.
+                var flow = (FlowDirection)Enum.Parse(typeof(FlowDirection), AppResources.ResourceFlowDirection);
+                RootFrame.FlowDirection = flow;
+            }
+            catch
+            {
+                // If an exception is caught here it is most likely due to either
+                // ResourceLangauge not being correctly set to a supported language
+                // code or ResourceFlowDirection is set to a value other than LeftToRight
+                // or RightToLeft.
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+
+                throw;
+            }
+        }
+
         #region Phone application initialization
 
         // Avoid double-initialization
-        private bool phoneApplicationInitialized = false;
+        bool phoneApplicationInitialized;
 
         // Do not add any additional code to this method
-        private void InitializePhoneApplication()
+        void InitializePhoneApplication()
         {
             if (phoneApplicationInitialized)
                 return;
@@ -127,7 +218,7 @@ namespace BackgroundAudio.Sample
         }
 
         // Do not add any additional code to this method
-        private void CompleteInitializePhoneApplication(object sender, NavigationEventArgs e)
+        void CompleteInitializePhoneApplication(object sender, NavigationEventArgs e)
         {
             // Set the root visual to allow the application to render
             if (RootVisual != RootFrame)
@@ -137,7 +228,7 @@ namespace BackgroundAudio.Sample
             RootFrame.Navigated -= CompleteInitializePhoneApplication;
         }
 
-        private void CheckForResetNavigation(object sender, NavigationEventArgs e)
+        void CheckForResetNavigation(object sender, NavigationEventArgs e)
         {
             // If the app has received a 'reset' navigation, then we need to check
             // on the next navigation to see if the page stack should be reset
@@ -145,7 +236,7 @@ namespace BackgroundAudio.Sample
                 RootFrame.Navigated += ClearBackStackAfterReset;
         }
 
-        private void ClearBackStackAfterReset(object sender, NavigationEventArgs e)
+        void ClearBackStackAfterReset(object sender, NavigationEventArgs e)
         {
             // Unregister the event so it doesn't get called again
             RootFrame.Navigated -= ClearBackStackAfterReset;
@@ -156,67 +247,9 @@ namespace BackgroundAudio.Sample
 
             // For UI consistency, clear the entire page stack
             while (RootFrame.RemoveBackEntry() != null)
-            {
                 ; // do nothing
-            }
         }
 
         #endregion
-
-        // Initialize the app's font and flow direction as defined in its localized resource strings.
-        //
-        // To ensure that the font of your application is aligned with its supported languages and that the
-        // FlowDirection for each of those languages follows its traditional direction, ResourceLanguage
-        // and ResourceFlowDirection should be initialized in each resx file to match these values with that
-        // file's culture. For example:
-        //
-        // AppResources.es-ES.resx
-        //    ResourceLanguage's value should be "es-ES"
-        //    ResourceFlowDirection's value should be "LeftToRight"
-        //
-        // AppResources.ar-SA.resx
-        //     ResourceLanguage's value should be "ar-SA"
-        //     ResourceFlowDirection's value should be "RightToLeft"
-        //
-        // For more info on localizing Windows Phone apps see http://go.microsoft.com/fwlink/?LinkId=262072.
-        //
-        private void InitializeLanguage()
-        {
-            try
-            {
-                // Set the font to match the display language defined by the
-                // ResourceLanguage resource string for each supported language.
-                //
-                // Fall back to the font of the neutral language if the Display
-                // language of the phone is not supported.
-                //
-                // If a compiler error is hit then ResourceLanguage is missing from
-                // the resource file.
-                RootFrame.Language = XmlLanguage.GetLanguage(AppResources.ResourceLanguage);
-
-                // Set the FlowDirection of all elements under the root frame based
-                // on the ResourceFlowDirection resource string for each
-                // supported language.
-                //
-                // If a compiler error is hit then ResourceFlowDirection is missing from
-                // the resource file.
-                FlowDirection flow = (FlowDirection)Enum.Parse(typeof(FlowDirection), AppResources.ResourceFlowDirection);
-                RootFrame.FlowDirection = flow;
-            }
-            catch
-            {
-                // If an exception is caught here it is most likely due to either
-                // ResourceLangauge not being correctly set to a supported language
-                // code or ResourceFlowDirection is set to a value other than LeftToRight
-                // or RightToLeft.
-
-                if (Debugger.IsAttached)
-                {
-                    Debugger.Break();
-                }
-
-                throw;
-            }
-        }
     }
 }

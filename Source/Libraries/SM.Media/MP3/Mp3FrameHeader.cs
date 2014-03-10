@@ -213,10 +213,31 @@ namespace SM.Media.MP3
 
             var emphasis = h3 & 3;
 
-            ChannelMode = channelMode;
-            Channels = channelMode == 3 ? 1 : 2;
-            Bitrate = bitRate;
-            SamplingFrequency = sampleRate;
+            if (ChannelMode != channelMode)
+            {
+                ChannelMode = channelMode;
+                Name = null;
+            }
+
+            var channels = channelMode == 3 ? 1 : 2;
+            if (Channels != channels)
+            {
+                Channels = channels;
+                Name = null;
+            }
+
+            if (Bitrate != bitRate)
+            {
+                Bitrate = bitRate;
+                Name = null;
+            }
+
+            if (SamplingFrequency != sampleRate)
+            {
+                SamplingFrequency = sampleRate;
+                Name = null;
+            }
+
             FrameLength = GetFrameSize(version, layer, bitRate, sampleRate, paddingFlag);
             Duration = GetDuration(version, layer, sampleRate);
 

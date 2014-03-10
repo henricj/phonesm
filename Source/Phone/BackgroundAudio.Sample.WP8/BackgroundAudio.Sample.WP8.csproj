@@ -145,8 +145,6 @@
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
   <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj')">
       <ItemGroup>

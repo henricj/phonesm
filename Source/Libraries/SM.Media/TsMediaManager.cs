@@ -80,6 +80,7 @@ namespace SM.Media
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly SignalTask _reportStateTask;
         readonly ISegmentReaderManagerFactory _segmentReaderManagerFactory;
+        TaskCompletionSource<object> _closeTaskCompletionSource;
         int _isDisposed;
         MediaState _mediaState;
         string _mediaStateMessage;
@@ -121,11 +122,6 @@ namespace SM.Media
             _playbackCancellationTokenSource.Cancel();
 
             _reportStateTask = new SignalTask(ReportState);
-        }
-
-        bool IsClosed
-        {
-            get { return _closeCancellationTokenSource.IsCancellationRequested; }
         }
 
         #region IMediaManager Members
@@ -243,8 +239,31 @@ namespace SM.Media
         {
             Debug.WriteLine("TsMediaManager.CloseAsync()");
 
-            if (IsClosed)
+            TaskCompletionSource<object> closeTaskCompletionSource;
+            var isClosing = true;
+
+            lock (_lock)
+            {
+                closeTaskCompletionSource = _closeTaskCompletionSource;
+
+                if (null == closeTaskCompletionSource)
+                {
+                    isClosing = false;
+
+                    closeTaskCompletionSource = new TaskCompletionSource<object>();
+
+                    _closeTaskCompletionSource = closeTaskCompletionSource;
+                }
+            }
+
+            if (isClosing)
+            {
+                await closeTaskCompletionSource.Task.ConfigureAwait(false);
+
+                Debug.WriteLine("TsMediaManager.CloseAsync() completed by other caller");
+
                 return;
+            }
 
             State = MediaState.Closing;
 
@@ -332,6 +351,13 @@ namespace SM.Media
 
             State = MediaState.Closed;
 
+            await _reportStateTask.WaitAsync().ConfigureAwait(false);
+
+            var t = Task.Factory.StartNew(s => ((TaskCompletionSource<object>)s).TrySetResult(string.Empty),
+                closeTaskCompletionSource, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
+
+            TaskCollector.Default.Add(t, "TsMediaManager close");
+
             Debug.WriteLine("TsMediaManager.CloseAsync() completed");
         }
 
@@ -339,7 +365,7 @@ namespace SM.Media
 
         Task ReportState()
         {
-            //Debug.WriteLine("TsMediaManager.ReportState()");
+            //Debug.WriteLine("TsMediaManager.ReportState() state {0} message {1}", _mediaState, _mediaStateMessage);
 
             MediaState state;
             string message;

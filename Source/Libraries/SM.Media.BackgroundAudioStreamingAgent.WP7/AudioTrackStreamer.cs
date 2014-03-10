@@ -72,7 +72,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             _bufferingPolicy = new DefaultBufferingPolicy
                                {
-                                   BytesMinimum = 200 * 1024
+                                   BytesMinimumStarting = 24 * 1024,
+                                   BytesMinimum = 64 * 1024
                                };
         }
 
@@ -133,19 +134,19 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 if (null != _mediaStreamFascade)
                 {
-                    _mediaStreamFascade.StateChange -= TsMediaManagerOnOnStateChange;
+                    _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
                     _mediaStreamFascade.DisposeSafe();
                 }
 
                 _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, mss => SetSourceAsync(mss, streamer));
 
-                _mediaStreamFascade.Source = url;
-
                 _mediaStreamFascade.SetParameter(_bufferingPolicy);
 
                 _mediaStreamFascade.SetParameter(_mediaManagerParameters);
 
-                _mediaStreamFascade.StateChange += TsMediaManagerOnOnStateChange;
+                _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+
+                _mediaStreamFascade.Source = url;
 
                 _mediaStreamFascade.Play();
 
@@ -158,11 +159,39 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             }
         }
 
-        void TsMediaManagerOnOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
-            var message = string.Format("Media manager state in background agent: {0}, message: {1}", tsMediaManagerStateEventArgs.State,
-                tsMediaManagerStateEventArgs.Message);
-            Debug.WriteLine(message);
+            var state = tsMediaManagerStateEventArgs.State;
+
+            Debug.WriteLine("Media manager state in background agent: {0}, message: {1}", state, tsMediaManagerStateEventArgs.Message);
+
+            if (TsMediaManager.MediaState.Closed == state || TsMediaManager.MediaState.Error == state)
+            {
+                Debug.WriteLine("AudioTrackStreamer.CleanupMediaStream()");
+
+                var mediaStreamFascade = _mediaStreamFascade;
+
+                if (null != mediaStreamFascade)
+                {
+                    _mediaStreamFascade = null;
+
+                    mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+                    mediaStreamFascade.CloseAsync().ContinueWith(
+                        t =>
+                        {
+                            var exception = t.Exception;
+
+                            Debug.WriteLine("AudioTrackStreamer.TsMediaManagerOnOnStateChange() calling NotifyComplete() exception " + exception);
+
+                            mediaStreamFascade.DisposeSafe();
+
+                            //if (TsMediaManager.MediaState.Closed == state)
+                            NotifyComplete();
+                            //else
+                            //    Abort();
+                        });
+                }
+            }
         }
 
         /// <summary>

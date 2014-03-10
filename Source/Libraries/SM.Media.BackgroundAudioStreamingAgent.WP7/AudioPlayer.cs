@@ -34,7 +34,22 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 {
     public class AudioPlayer : AudioPlayerAgent
     {
+        static readonly AudioTrack[] AudioTracks =
+        {
+            new AudioTrack(null, "Apple", null, null, null,
+                "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
+                EnabledPlayerControls.All),
+            new AudioTrack(null, "BBC", null, null, null,
+                "http://www.bbc.co.uk/mediaselector/playlists/hls/radio/bbc_london.m3u8",
+                EnabledPlayerControls.All),
+            new AudioTrack(null, "NPR", null, null, null,
+                "http://www.npr.org/streams/mp3/nprlive24.pls",
+                EnabledPlayerControls.All)
+        };
+
         static volatile bool _classInitialized;
+
+        static int _currentTrack = -1;
 
         /// <remarks>
         ///     AudioPlayer instances can share the same process.
@@ -85,33 +100,33 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             switch (playState)
             {
-                case PlayState.TrackEnded:
-                    player.Track = GetNextTrack();
-                    break;
-                case PlayState.TrackReady:
-                    player.Play();
-                    break;
-                case PlayState.Shutdown:
-                    break;
-                case PlayState.Unknown:
-                    break;
-                case PlayState.Stopped:
-                    break;
-                case PlayState.Paused:
-                    break;
-                case PlayState.Playing:
-                    break;
-                case PlayState.BufferingStarted:
-                    break;
-                case PlayState.BufferingStopped:
-                    break;
-                case PlayState.Rewinding:
-                    break;
-                case PlayState.FastForwarding:
-                    break;
-                default:
-                    Debug.WriteLine("AudioPlayer.OnPlayStateChanged() unknown playstate: " + playState);
-                    break;
+            case PlayState.TrackEnded:
+                player.Track = GetNextTrack();
+                break;
+            case PlayState.TrackReady:
+                player.Play();
+                break;
+            case PlayState.Shutdown:
+                break;
+            case PlayState.Unknown:
+                break;
+            case PlayState.Stopped:
+                break;
+            case PlayState.Paused:
+                break;
+            case PlayState.Playing:
+                break;
+            case PlayState.BufferingStarted:
+                break;
+            case PlayState.BufferingStopped:
+                break;
+            case PlayState.Rewinding:
+                break;
+            case PlayState.FastForwarding:
+                break;
+            default:
+                Debug.WriteLine("AudioPlayer.OnPlayStateChanged() unknown playstate: " + playState);
+                break;
             }
 
             NotifyComplete();
@@ -141,36 +156,71 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             switch (action)
             {
-                case UserAction.Play:
-                    if (player.PlayerState != PlayState.Playing)
-                        player.Play();
-                    break;
-                case UserAction.Stop:
-                    player.Stop();
-                    break;
-                case UserAction.Pause:
+            case UserAction.Play:
+                UpdateTrack(player);
+
+                if (PlayState.Playing != player.PlayerState && null != player.Track)
+                    player.Play();
+
+                break;
+            case UserAction.Stop:
+                player.Stop();
+
+                break;
+            case UserAction.Pause:
+                if (PlayState.Playing == player.PlayerState)
                     player.Pause();
-                    break;
-                case UserAction.FastForward:
+
+                break;
+            case UserAction.FastForward:
+                if (null != track && null != track.Source)
                     player.FastForward();
-                    break;
-                case UserAction.Rewind:
+
+                break;
+            case UserAction.Rewind:
+                if (null != track && null != track.Source)
                     player.Rewind();
-                    break;
-                case UserAction.Seek:
-                    player.Position = (TimeSpan)param;
-                    break;
-                case UserAction.SkipNext:
-                    player.Track = GetNextTrack();
-                    break;
-                case UserAction.SkipPrevious:
-                    var previousTrack = GetPreviousTrack();
-                    if (previousTrack != null)
-                        player.Track = previousTrack;
-                    break;
+
+                break;
+            case UserAction.Seek:
+                if (null != track)
+                    player.Position = (TimeSpan) param;
+
+                break;
+            case UserAction.SkipNext:
+                player.Track = GetNextTrack();
+
+                if (PlayState.Playing != player.PlayerState && null != player.Track)
+                    player.Play();
+
+                break;
+            case UserAction.SkipPrevious:
+                var previousTrack = GetPreviousTrack();
+                if (previousTrack != null)
+                    player.Track = previousTrack;
+
+                if (PlayState.Playing != player.PlayerState && null != player.Track)
+                    player.Play();
+
+                break;
             }
 
             NotifyComplete();
+        }
+
+        static void UpdateTrack(BackgroundAudioPlayer player)
+        {
+            if (_currentTrack < 0)
+                _currentTrack = 0;
+            else if (_currentTrack >= AudioTracks.Length)
+                _currentTrack = AudioTracks.Length - 1;
+
+            var track = AudioTracks[_currentTrack];
+
+            var playerTrack = player.Track;
+
+            if (!ReferenceEquals(track, playerTrack) || playerTrack.Source != track.Source || playerTrack.Tag != track.Tag)
+                player.Track = track;
         }
 
         /// <summary>
@@ -186,11 +236,16 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         /// <returns>an instance of AudioTrack, or null if the playback is completed</returns>
         AudioTrack GetNextTrack()
         {
-            Debug.WriteLine("AudioPlayer.GetPreviousTrack()");
+            Debug.WriteLine("AudioPlayer.GetNextTrack()");
 
-            // TODO: add logic to get the next audio track
-            AudioTrack track = null;
-            // specify the track
+            if (_currentTrack + 1 >= AudioTracks.Length)
+                _currentTrack = 0;
+            else
+                ++_currentTrack;
+
+            var track = AudioTracks[_currentTrack];
+
+            Debug.WriteLine("AudioPlayer.GetNextTrack() track " + track.ToExtendedString());
 
             return track;
         }
@@ -209,11 +264,14 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         {
             Debug.WriteLine("AudioPlayer.GetPreviousTrack()");
 
-            // TODO: add logic to get the previous audio track
+            if (_currentTrack <= 0)
+                _currentTrack = AudioTracks.Length - 1;
+            else
+                --_currentTrack;
 
-            AudioTrack track = null;
+            var track = AudioTracks[_currentTrack];
 
-            // specify the track
+            Debug.WriteLine("AudioPlayer.GetPreviousTrack() track " + track.ToExtendedString());
 
             return track;
         }
@@ -231,7 +289,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         /// </remarks>
         protected override void OnError(BackgroundAudioPlayer player, AudioTrack track, Exception error, bool isFatal)
         {
-            Debug.WriteLine("AudioPlayer.OnError(} track.Source {0} track.Tag {1} error {2} isFatl {3}",
+            Debug.WriteLine("AudioPlayer.OnError() track.Source {0} track.Tag {1} error {2} isFatal {3}",
                 null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
                 null == track ? "<no track>" : track.Tag ?? "<none>",
                 error, isFatal);
@@ -239,7 +297,11 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             if (isFatal)
                 Abort();
             else
+            {
+                player.Track = null;
+
                 NotifyComplete();
+            }
         }
 
         /// <summary>

@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -119,9 +120,16 @@ namespace SM.Media.Utility
             {
                 task.Wait();
             }
+            catch (OperationCanceledException)
+            { }
+            catch (AggregateException ex)
+            {
+                if (ex.Flatten().InnerExceptions.Any(e => !(e is OperationCanceledException)))
+                    Debug.WriteLine("SignalTask.Dispose(): " + ex.ExtendedMessage());
+            }
             catch (Exception ex)
             {
-                Debug.WriteLine("SignalTask.Dispose(): " + ex.Message);
+                Debug.WriteLine("SignalTask.Dispose(): " + ex.ExtendedMessage());
             }
 
             _cancellationTokenSource.Dispose();

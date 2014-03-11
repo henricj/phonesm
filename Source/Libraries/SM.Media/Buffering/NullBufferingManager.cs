@@ -44,9 +44,9 @@ namespace SM.Media.Buffering
 
         #region IBufferingManager Members
 
-        public float BufferingProgress
+        public float? BufferingProgress
         {
-            get { return 1; }
+            get { return null; }
         }
 
         public bool IsBuffering

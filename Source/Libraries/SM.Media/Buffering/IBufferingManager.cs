@@ -31,7 +31,7 @@ namespace SM.Media.Buffering
 {
     public interface IBufferingManager : IDisposable
     {
-        float BufferingProgress { get; }
+        float? BufferingProgress { get; }
         bool IsBuffering { get; }
         IStreamBuffer CreateStreamBuffer(TsStreamType streamType);
         void Flush();

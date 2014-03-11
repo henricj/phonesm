@@ -178,9 +178,20 @@ namespace SM.Media.Buffering
             get { return _isBuffering; }
         }
 
-        public float BufferingProgress
+        public float? BufferingProgress
         {
-            get { return _bufferingProgress; }
+            get
+            {
+                lock (_lock)
+                {
+                    if (!IsBuffering)
+                        return null;
+
+                    Debug.Assert(_bufferingProgress >= 0 && _bufferingProgress <= 1, "BufferingProgress out of range: " + _bufferingProgress);
+
+                    return _bufferingProgress;
+                }
+            }
         }
 
         public void Dispose()

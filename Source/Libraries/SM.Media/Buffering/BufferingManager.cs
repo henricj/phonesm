@@ -225,11 +225,9 @@ namespace SM.Media.Buffering
             {
                 if (_isEof || _isBuffering)
                     return;
-
-                UnlockedStartBuffering();
             }
 
-            _refreshTask.Fire();
+            RefreshHandler();
         }
 
         public void ReportEndOfData()

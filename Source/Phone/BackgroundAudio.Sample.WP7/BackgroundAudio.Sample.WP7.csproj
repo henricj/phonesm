@@ -129,12 +129,23 @@
     <Content Include="Images\appbar.transport.rew.rest.png" />
     <Content Include="SplashScreenImage.jpg" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\SM.Media.BackgroundAudioStreamingAgent.WP7.csproj">
-      <Project>{BBC6E962-522E-49B4-BC0B-496A34CFF57C}</Project>
-      <Name>SM.Media.BackgroundAudioStreamingAgent.WP7</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\SM.Media.BackgroundAudioStreamingAgent.WP7.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\SM.Media.BackgroundAudioStreamingAgent.WP7.csproj">
+          <Project>{BBC6E962-522E-49B4-BC0B-496A34CFF57C}</Project>
+          <Name>SM.Media.BackgroundAudioStreamingAgent.WP7</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.BackgroundAudioStreamingAgent.WP7">
+          <HintPath>..\..\bin\$(Configuration)\WP7\$(Platform)\SM.Media.BackgroundAudioStreamingAgent.WP7.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.$(TargetFrameworkProfile).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

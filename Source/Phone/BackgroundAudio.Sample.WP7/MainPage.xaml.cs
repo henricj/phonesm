@@ -39,18 +39,24 @@ namespace BackgroundAudio.Sample.WP7
         // Timer for updating the UI
 
         // Indexes into the array of ApplicationBar.Buttons
-        const int PlayButtonIndex = 0;
-        const int PauseButtonIndex = 1;
+        const int PrevButtonIndex = 0;
+        const int PlayButtonIndex = 1;
+        const int PauseButtonIndex = 2;
+        const int NextButtonIndex = 3;
+        readonly ApplicationBarIconButton _nextButton;
         readonly ApplicationBarIconButton _pauseButton;
         readonly ApplicationBarIconButton _playButton;
+        readonly ApplicationBarIconButton _prevButton;
         DispatcherTimer _timer;
 
         public MainPage()
         {
             InitializeComponent();
 
-            _playButton = ((ApplicationBarIconButton)(ApplicationBar.Buttons[PlayButtonIndex]));
+            _prevButton = ((ApplicationBarIconButton)(ApplicationBar.Buttons[PrevButtonIndex]));
             _pauseButton = ((ApplicationBarIconButton)(ApplicationBar.Buttons[PauseButtonIndex]));
+            _playButton = ((ApplicationBarIconButton)(ApplicationBar.Buttons[PlayButtonIndex]));
+            _nextButton = ((ApplicationBarIconButton)(ApplicationBar.Buttons[NextButtonIndex]));
         }
 
         void MainPage_OnLoaded(object sender, RoutedEventArgs e)
@@ -93,38 +99,38 @@ namespace BackgroundAudio.Sample.WP7
                             }
                         }
                     }
-                    UpdateButtons(false, true);
+
+                    _playButton.IsEnabled = false;
+                    _pauseButton.IsEnabled = true;
+
                     UpdateState(null, null);
 
                     // Start the timer for updating the UI.
                     _timer.Start();
-                    break;
 
+                    break;
                 case PlayState.Stopped:
                 case PlayState.Paused:
                     // Update the UI.
-                    UpdateButtons(true, false);
+
+                    _playButton.IsEnabled = true;
+                    _pauseButton.IsEnabled = false;
+
                     UpdateState(null, null);
 
                     // Stop the timer for updating the UI.
                     _timer.Stop();
+
                     break;
                 case PlayState.Unknown:
-                    UpdateButtons(true, true);
+                    _playButton.IsEnabled = true;
+                    _pauseButton.IsEnabled = true;
+
                     break;
             }
-        }
 
-        /// <summary>
-        ///     Helper method to update the state of the ApplicationBar.Buttons
-        /// </summary>
-        /// <param name="playBtnEnabled"></param>
-        /// <param name="pauseBtnEnabled"></param>
-        void UpdateButtons(bool playBtnEnabled, bool pauseBtnEnabled)
-        {
-            // Set the IsEnabled state of the ApplicationBar.Buttons array
-            _playButton.IsEnabled = playBtnEnabled;
-            _pauseButton.IsEnabled = pauseBtnEnabled;
+            _nextButton.IsEnabled = true;
+            _prevButton.IsEnabled = true;
         }
 
         /// <summary>
@@ -169,6 +175,24 @@ namespace BackgroundAudio.Sample.WP7
         }
 
         /// <summary>
+        ///     Click handler for the Skip Previous button
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void prevButton_Click(object sender, EventArgs e)
+        {
+            // Show the indeterminate progress bar.
+            positionIndicator.IsIndeterminate = true;
+
+            // Disable the button so the user can't click it multiple times before 
+            // the background audio agent is able to handle their request.
+            _prevButton.IsEnabled = false;
+
+            // Tell the background audio agent to skip to the previous track.
+            BackgroundAudioPlayer.Instance.SkipPrevious();
+        }
+
+        /// <summary>
         ///     Click handler for the Play button
         /// </summary>
         /// <param name="sender"></param>
@@ -188,6 +212,24 @@ namespace BackgroundAudio.Sample.WP7
         {
             // Tell the background audio agent to pause the current track.
             BackgroundAudioPlayer.Instance.Pause();
+        }
+
+        /// <summary>
+        ///     Click handler for the Skip Next button
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void nextButton_Click(object sender, EventArgs e)
+        {
+            // Show the indeterminate progress bar.
+            positionIndicator.IsIndeterminate = true;
+
+            // Disable the button so the user can't click it multiple times before 
+            // the background audio agent is able to handle their request.
+            _nextButton.IsEnabled = false;
+
+            // Tell the background audio agent to skip to the next track.
+            BackgroundAudioPlayer.Instance.SkipNext();
         }
     }
 }

@@ -98,14 +98,14 @@ namespace SM.Media.Segments
 
                     if (count < 1)
                     {
-                        IsEof = true;
-
                         var validLength = IsLengthValid();
-
-                        Close();
 
                         if (!validLength)
                             throw new HttpRequestException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
+
+                        IsEof = true;
+
+                        Close();
 
                         return index;
                     }

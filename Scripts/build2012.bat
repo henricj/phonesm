@@ -1,9 +1,3 @@
-.nuget\NuGet.exe restore HlsPlayer.sln
+%~dp0..\Source\.nuget\NuGet.exe restore %~dp0..\Source\HlsPlayer.sln
 
-msbuild /m HlsPlayer.sln /t:Build "/p:Configuration=Release;Platform=Mixed Platforms"
-msbuild /m HlsPlayer.sln /t:Build "/p:Configuration=Release;Platform=ARM"
-msbuild /m HlsPlayer.sln /t:Build "/p:Configuration=Debug;Platform=Mixed Platforms"
-msbuild /m HlsPlayer.sln /t:Build "/p:Configuration=Debug;Platform=ARM"
-
-
-
+msbuild /m %~dp0build2012.proj

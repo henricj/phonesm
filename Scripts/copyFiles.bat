@@ -1,3 +1,5 @@
+pushd %~dp0..\Source\
+
 copy Libraries\SM.Media\bin\Debug\SM.Media.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Debug\SM.Media.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Debug\SM.TsParser.dll ..\Distribution\bin\Debug\
@@ -87,9 +89,12 @@ copy Libraries\SM.Media.MediaPlayer.WP8\*.cs ..\Distribution\Libraries\SM.Media.
 copy Libraries\SM.Media.MediaPlayer.WP8\SM.Media.MediaPlayer.WP8.csproj ..\Distribution\Libraries\SM.Media.MediaPlayer.WP8\
 copy Libraries\SM.Media.MediaPlayer.WP8\Properties\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP8\Properties\
 
+copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\packages.config ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
+copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\SM.Media.BackgroundAudioStreamingAgent.WP7.csproj ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
+copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\Properties\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\Properties\
 
-copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\*.config ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\
+copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\packages.config ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\Properties\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\Properties\
@@ -116,8 +121,13 @@ copy Phone\SamplePlayer.WP8\Resources\*.resx ..\Distribution\Phone\SamplePlayer.
 
 copy Phone\BackgroundAudio.Sample.WP7\*.xaml ..\Distribution\Phone\BackgroundAudio.Sample.WP7\
 copy Phone\BackgroundAudio.Sample.WP7\*.cs ..\Distribution\Phone\BackgroundAudio.Sample.WP7\
+copy Phone\BackgroundAudio.Sample.WP7\*.jpg ..\Distribution\Phone\BackgroundAudio.Sample.WP7\
 copy Phone\BackgroundAudio.Sample.WP7\*.png ..\Distribution\Phone\BackgroundAudio.Sample.WP7\
+copy Phone\BackgroundAudio.Sample.WP7\BackgroundAudio.Sample.WP7.csproj ..\Distribution\Phone\BackgroundAudio.Sample.WP7\
 copy Phone\BackgroundAudio.Sample.WP7\Images\*.png ..\Distribution\Phone\BackgroundAudio.Sample.WP7\Images\
+copy Phone\BackgroundAudio.Sample.WP7\packages.config ..\Distribution\Phone\BackgroundAudio.Sample.WP7\
+copy Phone\BackgroundAudio.Sample.WP7\Properties\*.cs ..\Distribution\Phone\BackgroundAudio.Sample.WP7\Properties\
+copy Phone\BackgroundAudio.Sample.WP7\Properties\*.xml ..\Distribution\Phone\BackgroundAudio.Sample.WP7\Properties\
 
 copy Phone\BackgroundAudio.Sample.WP8\*.xaml ..\Distribution\Phone\BackgroundAudio.Sample.WP8\
 copy Phone\BackgroundAudio.Sample.WP8\*.cs ..\Distribution\Phone\BackgroundAudio.Sample.WP8\
@@ -155,3 +165,5 @@ copy .nuget\NuGet.config ..\Distribution\.nuget\
 copy smf\readme.txt ..\Distribution\smf\
 
 copy Sample*.sln ..\Distribution\
+
+popd

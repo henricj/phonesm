@@ -1,0 +1,15 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+         ToolsVersion="4.0"
+         DefaultTargets="FullBuild">
+
+  <ItemGroup>
+    <AllConfigurations Include="Debug; Release" />
+    <AllPlatforms Include="Mixed Platforms; ARM" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <SolutionToBuild Include="..\Source\HlsPlayer.sln" />
+  </ItemGroup>
+
+  <Import Project="shared.proj" />
+</Project>

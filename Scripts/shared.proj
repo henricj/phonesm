@@ -1,0 +1,54 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+         ToolsVersion="12.0"
+         DefaultTargets="FullBuild">
+  <PropertyGroup>
+    <FullBuildDependsOn>
+      $(FullBuildDependsOn);
+      BeforeBuild;
+      CoreBuild;
+      AfterBuild
+    </FullBuildDependsOn>
+    <FullRebuildDependsOn>
+      $(FullRebuildDependsOn);
+      Clean;
+      FullBuild
+    </FullRebuildDependsOn>
+  </PropertyGroup>
+
+  <Target Name="FullBuild"
+          DependsOnTargets="$(FullBuildDependsOn)" />
+
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+
+  <Target Name="CoreBuild" Outputs="%(AllPlatforms.Identity)">
+    <CreateItem Include="@(AllPlatforms)"
+                AdditionalMetadata="Configuration=%(AllConfigurations.Identity)">
+      <Output TaskParameter="Include" ItemName="BuildProperties"/>
+    </CreateItem>
+    <MSBuild
+      Projects="@(SolutionToBuild)"
+      BuildInParallel="true"
+      Properties="Configuration=%(BuildProperties.Configuration);Platform=%(BuildProperties.Identity)"
+      />
+  </Target>
+
+  <Target Name="FullRebuild"
+          DependsOnTargets="$(FullRebuildDependsOn)" />
+
+  <Target Name="Clean">
+    <!-- Clean for each configuration -->
+    <CreateItem Include="@(AllPlatforms)"
+                AdditionalMetadata="Configuration=%(AllConfigurations.Identity)">
+      <Output TaskParameter="Include" ItemName="BuildProperties"/>
+    </CreateItem>
+    <MSBuild
+      Projects="@(SolutionToBuild)"
+      BuildInParallel="true"
+      Properties="Configuration=%(BuildProperties.Configuration);Platform=%(BuildProperties.Identity)"
+      Targets="Clean"
+      />
+  </Target>
+</Project>

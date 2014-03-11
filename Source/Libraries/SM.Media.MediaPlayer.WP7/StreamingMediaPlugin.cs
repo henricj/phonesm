@@ -75,6 +75,7 @@ namespace SM.Media.MediaPlayer
         readonly IApplicationInformation _applicationInformation = ApplicationInformationFactory.Default;
         IMediaStreamFascade _mediaStreamFascade;
         Dispatcher _dispatcher;
+        Uri _source;
 
         #region Events
 
@@ -496,15 +497,17 @@ namespace SM.Media.MediaPlayer
         /// </summary>
         public Uri Source
         {
-            get { return null == _mediaStreamFascade ? null : _mediaStreamFascade.Source; }
+            get { return _source; }
             set
             {
                 Debug.WriteLine("StreamingMediaPlugin.Source setter: " + value);
 
+                _source = value;
+
                 if (null == _mediaStreamFascade)
                     return;
 
-                _mediaStreamFascade.Source = value;
+                _mediaStreamFascade.Source = _source;
 
                 _mediaStreamFascade.Play();
             }
@@ -569,7 +572,6 @@ namespace SM.Media.MediaPlayer
                     _httpClients.Dispose();
 
                 _httpClients = new HttpClients(userAgent: _applicationInformation.CreateUserAgent());
-
 
                 InitializeStreamingMediaElement();
                 IsLoaded = true;
@@ -783,10 +785,6 @@ namespace SM.Media.MediaPlayer
             Debug.WriteLine("StreamingMediaPlugin.CleanupMedia()");
 
             Close();
-
-            _mediaStreamFascade.CloseAsync().Wait();
-
-            _mediaStreamFascade.DisposeSafe();
         }
 
         public void Close()
@@ -834,6 +832,8 @@ namespace SM.Media.MediaPlayer
                     return;
                 }
             }
+
+            _mediaStreamFascade.Source = _source;
 
             _mediaStreamFascade.Play();
         }

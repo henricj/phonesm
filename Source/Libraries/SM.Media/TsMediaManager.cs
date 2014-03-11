@@ -485,6 +485,15 @@ namespace SM.Media
             {
                 _readerManager = await _segmentReaderManagerFactory.CreateAsync(Source.ToArray(), ContentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
+                if (null == _readerManager)
+                {
+                    Debug.WriteLine("TsMediaManager.OpenMediaAsync() unable to create reader manager");
+
+                    SetMediaState(MediaState.Error, "Unable to create reader");
+
+                    return;
+                }
+
                 readerTasks = _readerManager.SegmentManagerReaders
                                             .Select(CreateReaderPipeline)
                                             .ToArray();

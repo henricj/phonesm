@@ -62,6 +62,7 @@ namespace SM.Media
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
+        readonly object _lock = new object();
         readonly IBuilder<IMediaManager> _mediaManagerBuilder;
         readonly Func<IMediaStreamSource, Task> _setSourceAsync;
         int _isDisposed;
@@ -78,6 +79,17 @@ namespace SM.Media
 
             _setSourceAsync = setSourceAsync;
             _mediaManagerBuilder = mediaManagerBuilder;
+        }
+
+        IMediaManager MediaManager
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _mediaManager;
+                }
+            }
         }
 
         #region IMediaStreamFascade Members
@@ -100,31 +112,40 @@ namespace SM.Media
             get { return _source; }
             set
             {
+                Debug.WriteLine("MediaStreamFascadeBase Source setter: " + value);
+
                 ThrowIfDisposed();
 
+                Post(CloseMediaAsync);
+
                 if (value == null)
-                    Post(CloseMediaAsync);
-                else if (value.IsAbsoluteUri)
+                    return;
+
+                if (value.IsAbsoluteUri)
                     Post(() => SetMediaSourceAsync(value));
                 else
-                {
                     Debug.WriteLine("MediaStreamFascade Source setter: invalid URL: " + value);
-                    Post(CloseMediaAsync);
-                }
             }
         }
 
         public TimeSpan? SeekTarget
         {
-            get { return null == _mediaManager ? null : _mediaManager.SeekTarget; }
+            get
+            {
+                var mediaManager = MediaManager;
+
+                return null == mediaManager ? null : mediaManager.SeekTarget;
+            }
             set
             {
                 ThrowIfDisposed();
 
-                if (null == _mediaManager)
+                var mediaManager = MediaManager;
+
+                if (null == mediaManager)
                     return;
 
-                _mediaManager.SeekTarget = value;
+                mediaManager.SeekTarget = value;
             }
         }
 
@@ -132,10 +153,12 @@ namespace SM.Media
         {
             get
             {
-                if (null == _mediaManager)
+                var mediaManager = MediaManager;
+
+                if (null == mediaManager)
                     return TsMediaManager.MediaState.Closed;
 
-                return _mediaManager.State;
+                return mediaManager.State;
             }
         }
 
@@ -148,7 +171,7 @@ namespace SM.Media
 
         public void Play()
         {
-            Debug.WriteLine("MediaStreamFascade.Play()");
+            Debug.WriteLine("MediaStreamFascadeBase.Play()");
 
             ThrowIfDisposed();
 
@@ -157,7 +180,7 @@ namespace SM.Media
 
         public void RequestStop()
         {
-            Debug.WriteLine("MediaStreamFascade.Stop()");
+            Debug.WriteLine("MediaStreamFascadeBase.Stop()");
 
             ThrowIfDisposed();
 
@@ -166,7 +189,7 @@ namespace SM.Media
 
         public Task CloseAsync()
         {
-            Debug.WriteLine("MediaStreamFascade.CloseAsync()");
+            Debug.WriteLine("MediaStreamFascadeBase.CloseAsync()");
 
             ThrowIfDisposed();
 
@@ -193,7 +216,16 @@ namespace SM.Media
 
             StateChange = null;
 
-            CleanupMediaManager();
+            IMediaManager mediaManager;
+
+            lock (_lock)
+            {
+                mediaManager = _mediaManager;
+                _mediaManager = null;
+            }
+
+            if (null != mediaManager)
+                CleanupMediaManager(mediaManager);
 
             _mediaManagerBuilder.DisposeSafe();
 
@@ -202,20 +234,20 @@ namespace SM.Media
             _disposeCancellationTokenSource.Dispose();
         }
 
-        void CleanupMediaManager()
+        void CleanupMediaManager(IMediaManager mediaManager)
         {
-            var mediaManager = _mediaManager;
+            Debug.WriteLine("MediaStreamFascadeBase.CleanupMediaManager()");
 
-            if (null != mediaManager)
-            {
-                mediaManager.OnStateChange -= MediaManagerOnStateChange;
+            if (null == mediaManager)
+                return;
 
-                _mediaManager = null;
+            mediaManager.OnStateChange -= MediaManagerOnStateChange;
 
-                mediaManager.DisposeSafe();
+            mediaManager.DisposeSafe();
 
-                _mediaManagerBuilder.Destroy(mediaManager);
-            }
+            _mediaManagerBuilder.Destroy(mediaManager);
+
+            Debug.WriteLine("MediaStreamFascadeBase.CleanupMediaManager() completed");
         }
 
         void Post(Func<Task> work)
@@ -225,51 +257,63 @@ namespace SM.Media
 
         async Task SetMediaSourceAsync(Uri source)
         {
-            Debug.WriteLine("MediaStreamFascade.SetMediaSourceAsync({0})", source);
+            Debug.WriteLine("MediaStreamFascadeBase.SetMediaSourceAsync({0})", source);
 
             try
             {
                 await OpenMediaAsync(source).ConfigureAwait(true);
 
-                await _setSourceAsync(_mediaManager.MediaStreamSource).ConfigureAwait(false);
+                var mediaManager = MediaManager;
+
+                if (null == mediaManager)
+                {
+                    Debug.WriteLine("MediaStreamFascadeBase.SetMediaSourceAsync({0}) no media manager", source);
+                    return;
+                }
+
+                await _setSourceAsync(mediaManager.MediaStreamSource).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaStreamFascade.SetMediaSourceAsync({0}) failed: {1}", source, ex.Message);
+                Debug.WriteLine("MediaStreamFascadeBase.SetMediaSourceAsync({0}) failed: {1}", source, ex.Message);
             }
         }
 
         async Task StartPlaybackAsync()
         {
-            Debug.WriteLine("MediaStreamFascade.StartPlaybackAsync()");
+            Debug.WriteLine("MediaStreamFascadeBase.StartPlaybackAsync()");
 
             try
             {
                 if (null == _source)
                     return;
 
-                if (null == _mediaManager || TsMediaManager.MediaState.Error == _mediaManager.State || TsMediaManager.MediaState.Closed == _mediaManager.State)
+                var mediaManager = MediaManager;
+
+                if (null == mediaManager || TsMediaManager.MediaState.Error == mediaManager.State || TsMediaManager.MediaState.Closed == mediaManager.State)
                 {
                     await OpenMediaAsync(_source).ConfigureAwait(false);
 
-                    Debug.Assert(null != _mediaManager);
+                    Debug.Assert(null != mediaManager);
                 }
             }
             catch (Exception ex)
             {
                 // Send a "Failed" message here?
-                Debug.WriteLine("MediaStreamFascade.StartPlaybackAsync() failed: " + ex.Message);
+                Debug.WriteLine("MediaStreamFascadeBase.StartPlaybackAsync() failed: " + ex.Message);
             }
         }
 
         async Task OpenMediaAsync(Uri source)
         {
-            Debug.WriteLine("MediaStreamFascade.OpenMediaAsync()");
+            Debug.WriteLine("MediaStreamFascadeBase.OpenMediaAsync({0})", source);
 
-            if (null != _mediaManager)
+            var mediaManager = MediaManager;
+
+            if (null != mediaManager)
                 await CloseMediaAsync().ConfigureAwait(false);
 
-            Debug.Assert(null == _mediaManager);
+            Debug.Assert(null == MediaManager);
             Debug.Assert(null == _playlist);
 
             if (null == source)
@@ -277,40 +321,56 @@ namespace SM.Media
 
             if (!source.IsAbsoluteUri)
             {
-                Debug.WriteLine("MediaStreamFascade.OpenMediaAsync() source is not absolute: " + source);
+                Debug.WriteLine("MediaStreamFascadeBase.OpenMediaAsync() source is not absolute: " + source);
                 return;
             }
 
             _source = source;
 
-            _mediaManager = _mediaManagerBuilder.Create();
+            mediaManager = _mediaManagerBuilder.Create();
 
-            _mediaManager.Source = new[] { source };
-            _mediaManager.ContentType = ContentType;
+            mediaManager.ContentType = ContentType;
 
-            _mediaManager.OnStateChange += MediaManagerOnStateChange;
+            mediaManager.OnStateChange += MediaManagerOnStateChange;
+
+            lock (_lock)
+            {
+                Debug.Assert(null == _mediaManager);
+
+                _mediaManager = mediaManager;
+            }
+
+            mediaManager.Source = new[] { source };
         }
 
         async Task CloseMediaAsync()
         {
-            Debug.WriteLine("MediaStreamFascade.CloseMediaAsync()");
+            Debug.WriteLine("MediaStreamFascadeBase.CloseMediaAsync()");
 
-            if (null != _mediaManager)
+            IMediaManager mediaManager;
+
+            lock (_lock)
+            {
+                mediaManager = _mediaManager;
+                _mediaManager = null;
+            }
+
+            if (null != mediaManager)
             {
                 try
                 {
                     //Debug.WriteLine("MediaPlayerSource.CloseMediaAsync() calling mediaManager.CloseAsync()");
 
-                    await _mediaManager.CloseAsync().ConfigureAwait(false);
+                    await mediaManager.CloseAsync().ConfigureAwait(false);
 
                     //Debug.WriteLine("MediaPlayerSource.CloseMediaAsync() returned from mediaManager.CloseAsync()");
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("MediaStreamFascade.CloseMediaAsync() Media manager close failed: " + ex.Message);
+                    Debug.WriteLine("MediaStreamFascadeBase.CloseMediaAsync() Media manager close failed: " + ex.Message);
                 }
 
-                CleanupMediaManager();
+                CleanupMediaManager(mediaManager);
             }
 
             var playlist = _playlist;
@@ -319,25 +379,30 @@ namespace SM.Media
             {
                 _playlist = null;
 
-                playlist.CleanupBackground("MediaStreamFascade.CloseMediaAsync playlist");
+                playlist.CleanupBackground("MediaStreamFascadeBase.CloseMediaAsync playlist");
             }
 
             _source = null;
 
-            Debug.WriteLine("MediaStreamFascade.CloseMediaAsync() completed");
+            Debug.WriteLine("MediaStreamFascadeBase.CloseMediaAsync() completed");
         }
 
         void MediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
         {
-            Debug.WriteLine("MediaStreamFascade.MediaManagerOnStateChange() to {0}: {1}", e.State, e.Message);
+            Debug.WriteLine("MediaStreamFascadeBase.MediaManagerOnStateChange() to {0}: {1}", e.State, e.Message);
+
+            if (e.State == TsMediaManager.MediaState.Closed)
+            {
+                var mediaManager = MediaManager;
+
+                if (null != mediaManager)
+                    RequestStop();
+            }
 
             var stateChange = StateChange;
 
             if (null == stateChange)
                 return;
-
-            if (e.State == TsMediaManager.MediaState.Closed)
-                RequestStop();
 
             try
             {
@@ -345,7 +410,7 @@ namespace SM.Media
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaStreamFascade.MediaManagerOnStateChange() Exception in StateChange event handler: " + ex.Message);
+                Debug.WriteLine("MediaStreamFascadeBase.MediaManagerOnStateChange() Exception in StateChange event handler: " + ex.Message);
             }
         }
     }

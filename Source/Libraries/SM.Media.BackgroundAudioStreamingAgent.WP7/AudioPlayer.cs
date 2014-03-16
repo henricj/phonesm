@@ -62,7 +62,12 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             {
                 _classInitialized = true;
                 // Subscribe to the managed exception handler
-                Deployment.Current.Dispatcher.BeginInvoke(delegate { Application.Current.UnhandledException += AudioPlayer_UnhandledException; });
+                Deployment.Current.Dispatcher.BeginInvoke(delegate
+                                                          {
+                                                              Application.Current.UnhandledException += AudioPlayer_UnhandledException;
+
+                                                              TaskScheduler.UnobservedTaskException += AudioPlayer_UnobservedException;
+                                                          });
             }
         }
 
@@ -76,6 +81,14 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 // An unhandled exception has occurred; break into the debugger
                 Debugger.Break();
             }
+        }
+
+        void AudioPlayer_UnobservedException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Debug.WriteLine("AudioPlayer UnobservedException {0}", e.Exception.Message);
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
         }
 
         /// <summary>

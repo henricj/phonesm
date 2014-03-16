@@ -146,6 +146,14 @@ namespace SM.Media
 
                 _enqueue(null);
             }
+            catch (OperationCanceledException)
+            {
+                // Expected...
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("CallbackReader.ReadAsync() failed: " + ex.Message);
+            }
             finally
             {
                 lock (_readerLock)

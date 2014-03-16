@@ -361,7 +361,6 @@ namespace HlsView
 
             var position = mediaElement1.Position;
 
-            _mediaStreamFascade.SeekTarget = position + StepSize; // WP7's MediaElement needs help.
             mediaElement1.Position = position + StepSize;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
@@ -379,7 +378,6 @@ namespace HlsView
             else
                 position -= StepSize;
 
-            _mediaStreamFascade.SeekTarget = position; // WP7's MediaElement needs help.
             mediaElement1.Position = position;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);

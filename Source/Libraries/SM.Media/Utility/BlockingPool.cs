@@ -152,6 +152,10 @@ namespace SM.Media.Utility
 
                 _pool.Clear();
                 _allocationCount = 0;
+
+#if DEBUG
+                _allocationTracker.Clear();
+#endif
             }
 
             foreach (var waiter in waiters)

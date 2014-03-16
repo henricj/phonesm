@@ -190,6 +190,10 @@ namespace SM.Media.Audio
                 return;
 
             FreeBuffer();
+
+            _pesPacketPool = null;
+            _configurationHandler = null;
+            _submitPacket = null;
         }
     }
 }

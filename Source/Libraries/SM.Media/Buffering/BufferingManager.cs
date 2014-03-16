@@ -45,7 +45,6 @@ namespace SM.Media.Buffering
         readonly ITsPesPacketPool _packetPool;
         readonly List<IBufferingQueue> _queues = new List<IBufferingQueue>();
         readonly SignalTask _refreshTask;
-        readonly SignalTask _reportingTask;
         readonly List<BufferStatus> _statuses = new List<BufferStatus>();
         bool _blockReads;
         DateTime _bufferStatusTimeUtc = DateTime.MinValue;
@@ -55,7 +54,7 @@ namespace SM.Media.Buffering
         bool _isEof;
         bool _isStarting = true;
         IQueueThrottling _queueThrottling;
-        Action _reportBufferingChange;
+        SignalTask _reportingTask;
         int _totalBufferedStart;
 
         public BufferingManager(IBufferingPolicy bufferingPolicy, ITsPesPacketPool packetPool)
@@ -74,13 +73,6 @@ namespace SM.Media.Buffering
 
                                               return TplTaskExtensions.CompletedTask;
                                           }, _disposeCancellationTokenSource.Token);
-
-            _reportingTask = new SignalTask(() =>
-                                            {
-                                                _reportBufferingChange();
-
-                                                return TplTaskExtensions.CompletedTask;
-                                            }, _disposeCancellationTokenSource.Token);
         }
 
         #region IBufferingManager Members
@@ -95,7 +87,13 @@ namespace SM.Media.Buffering
             ThrowIfDisposed();
 
             _queueThrottling = queueThrottling;
-            _reportBufferingChange = reportBufferingChange;
+
+            _reportingTask = new SignalTask(() =>
+                                            {
+                                                reportBufferingChange();
+
+                                                return TplTaskExtensions.CompletedTask;
+                                            }, _disposeCancellationTokenSource.Token);
         }
 
         public IStreamBuffer CreateStreamBuffer(TsStreamType streamType)
@@ -206,8 +204,16 @@ namespace SM.Media.Buffering
 
             using (_reportingTask)
             { }
+            _reportingTask = null;
 
             _disposeCancellationTokenSource.Dispose();
+
+            lock (_lock)
+            {
+                _queues.Clear();
+            }
+
+            _queueThrottling = null;
         }
 
         public void Refresh()
@@ -247,7 +253,7 @@ namespace SM.Media.Buffering
 
             _refreshTask.Fire();
 
-            if (!wasEof)
+            if (!wasEof && null != _reportingTask)
                 _reportingTask.Fire();
         }
 
@@ -496,7 +502,8 @@ namespace SM.Media.Buffering
         {
             _bufferingProgress = bufferingProgress;
 
-            _reportingTask.Fire();
+            if (null != _reportingTask)
+                _reportingTask.Fire();
         }
 
         void HandleStateChange()

@@ -43,8 +43,8 @@ namespace SM.Media
         readonly Queue<TsPesPacket> _packets = new Queue<TsPesPacket>();
         readonly object _packetsLock = new object();
         readonly TsStreamType _streamType;
-        readonly Action<TsPesPacket> _freePesPacket;
-        readonly IBufferingManager _bufferingManager;
+        Action<TsPesPacket> _freePesPacket;
+        IBufferingManager _bufferingManager;
         int _isDisposed;
         bool _isDone;
         TimeSpan? _oldest;
@@ -96,6 +96,9 @@ namespace SM.Media
                     _freePesPacket(packet);
                 }
             }
+
+            _freePesPacket = null;
+            _bufferingManager = null;
         }
 
         #endregion

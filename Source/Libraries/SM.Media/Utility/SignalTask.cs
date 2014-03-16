@@ -34,7 +34,7 @@ namespace SM.Media.Utility
 {
     public sealed class SignalTask : IDisposable
     {
-        readonly Func<Task> _handler;
+        Func<Task> _handler;
         readonly object _lock = new object();
         readonly CancellationTokenSource _cancellationTokenSource;
         bool _isDisposed;
@@ -108,6 +108,7 @@ namespace SM.Media.Utility
 
                 _isDisposed = true;
                 task = _task;
+                _handler = null;
             }
 
             if (!_cancellationTokenSource.IsCancellationRequested)
@@ -201,9 +202,11 @@ namespace SM.Media.Utility
             {
                 for (; ; )
                 {
+                    Func<Task> handler;
+
                     lock (_lock)
                     {
-                        if (!_isPending || _isDisposed || _cancellationTokenSource.IsCancellationRequested)
+                        if (!_isPending || _isDisposed || _cancellationTokenSource.IsCancellationRequested || null == _handler)
                         {
                             _task = null;
 
@@ -211,6 +214,7 @@ namespace SM.Media.Utility
                         }
 
                         _isPending = false;
+                        handler = _handler;
                     }
 
 #if DEBUG
@@ -219,7 +223,7 @@ namespace SM.Media.Utility
 #endif
                     try
                     {
-                        await _handler().ConfigureAwait(false);
+                        await handler().ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

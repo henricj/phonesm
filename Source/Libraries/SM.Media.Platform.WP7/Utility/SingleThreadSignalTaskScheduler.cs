@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SingleThreadSignalTaskScheduler.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,11 +35,11 @@ namespace SM.Media.Utility
     public class SingleThreadSignalTaskScheduler : TaskScheduler, IDisposable
     {
         readonly object _lock = new object();
-        readonly Action _signalHandler;
         readonly Queue<Task> _tasks = new Queue<Task>();
         readonly Thread _thread;
         bool _isDone;
         bool _isSignaled;
+        Action _signalHandler;
 
         public SingleThreadSignalTaskScheduler(string name, Action signalHandler)
         {
@@ -51,9 +51,9 @@ namespace SM.Media.Utility
             _signalHandler = signalHandler;
 
             _thread = new Thread(Run)
-            {
-                Name = name
-            };
+                      {
+                          Name = name
+                      };
 
             _thread.Start();
         }
@@ -71,6 +71,7 @@ namespace SM.Media.Utility
             {
                 _isDone = true;
                 Monitor.PulseAll(_lock);
+                _signalHandler = null;
             }
 
             if (null != _thread)
@@ -104,6 +105,7 @@ namespace SM.Media.Utility
             {
                 for (; ; )
                 {
+                    Action signalHandler;
                     Task task;
                     var wasSignaled = false;
 
@@ -111,8 +113,10 @@ namespace SM.Media.Utility
                     {
                         for (; ; )
                         {
-                            if (_isDone)
+                            if (_isDone || null == _signalHandler)
                                 return;
+
+                            signalHandler = _signalHandler;
 
                             var haveWork = false;
                             task = null;
@@ -139,7 +143,7 @@ namespace SM.Media.Utility
 
                     if (wasSignaled)
                     {
-                        var signalTask = new Task(_signalHandler);
+                        var signalTask = new Task(signalHandler);
 
                         signalTask.RunSynchronously(this);
                     }

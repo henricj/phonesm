@@ -134,6 +134,12 @@ namespace SM.Media
                 _taskScheduler.Dispose();
 
             ForceClose();
+
+            _audioStreamSource = null;
+            _audioStreamDescription = null;
+
+            _videoStreamSource = null;
+            _videoStreamDescription = null;
         }
 
         void ForceClose()

@@ -164,6 +164,11 @@ namespace SM.Media.MediaParser
 
             using (_mediaStream)
             { }
+
+            _mediaStreams = null;
+            _mediaStream = null;
+            _bufferingManager = null;
+            _streamBuffer = null;
         }
 
         protected void SubmitPacket(TsPesPacket packet)

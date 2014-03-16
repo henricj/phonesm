@@ -77,10 +77,10 @@ namespace SM.Media
             builder.RegisterType<Mp3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<TsMediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
 
-            builder.RegisterType<AacMediaParser>().AsSelf();
-            builder.RegisterType<Ac3MediaParser>().AsSelf();
-            builder.RegisterType<Mp3MediaParser>().AsSelf();
-            builder.RegisterType<TsMediaParser>().AsSelf();
+            builder.RegisterType<AacMediaParser>().AsSelf().ExternallyOwned();
+            builder.RegisterType<Ac3MediaParser>().AsSelf().ExternallyOwned();
+            builder.RegisterType<Mp3MediaParser>().AsSelf().ExternallyOwned();
+            builder.RegisterType<TsMediaParser>().AsSelf().ExternallyOwned();
 
             builder.RegisterType<AacStreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();
             builder.RegisterType<Ac3StreamHandlerFactory>().As<IPesStreamFactoryInstance>().InstancePerLifetimeScope().PreserveExistingDefaults();

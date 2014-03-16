@@ -416,9 +416,18 @@ namespace SM.Media
                         ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSampleCompleted);
                         ReportGetSampleProgress(progress.Value);
                     }
+                    else
+                    {
+                        Debug.WriteLine("Sample {0} not buffering", mediaStreamDescription.Type);
+
+                        // Try again, data might have arrived between the last call to GetNextSample() and
+                        // when we checked the buffering progress.
+                        packet = source.GetNextSample();
+                    }
                 }
 
-                return false;
+                if (null == packet)
+                    return false;
             }
 
             _bufferingProgress = -1;

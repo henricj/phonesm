@@ -232,7 +232,7 @@ namespace SM.Media
                 contentType = ContentTypes.TransportStream;
             }
 
-            var mediaParserParameters = new MediaParserParameters(_bufferingManager, checkForSamples);
+            var mediaParserParameters = new MediaParserParameters();
 
             _mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, cancellationToken).ConfigureAwait(false);
 

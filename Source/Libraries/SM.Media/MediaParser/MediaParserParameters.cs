@@ -24,40 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.Media.Buffering;
-
 namespace SM.Media.MediaParser
 {
     public interface IMediaParserParameters
-    {
-        IBufferingManager BufferingManager { get; }
-        Action CheckForSamples { get; }
-    }
+    { }
 
     public class MediaParserParameters : IMediaParserParameters
-    {
-        readonly IBufferingManager _bufferingManager;
-        readonly Action _checkForSamples;
-
-        public MediaParserParameters(IBufferingManager bufferingManager, Action checkForSamples)
-        {
-            _bufferingManager = bufferingManager;
-            _checkForSamples = checkForSamples;
-        }
-
-        #region IMediaParserParameters Members
-
-        public IBufferingManager BufferingManager
-        {
-            get { return _bufferingManager; }
-        }
-
-        public Action CheckForSamples
-        {
-            get { return _checkForSamples; }
-        }
-
-        #endregion
-    }
+    { }
 }

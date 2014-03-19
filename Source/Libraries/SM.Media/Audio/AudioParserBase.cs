@@ -129,9 +129,10 @@ namespace SM.Media.Audio
         {
             if (null == _packet)
             {
-                _packet = CreatePacket(length);
                 _index = 0;
                 _startIndex = 0;
+                _packet = null;
+                _packet = CreatePacket(length);
 
                 return;
             }

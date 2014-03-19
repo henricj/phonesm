@@ -1,4 +1,4 @@
-pushd %~dp0..\Source\
+pushd "%~dp0..\Source\"
 
 copy Libraries\SM.Media\bin\Debug\SM.Media.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Debug\SM.Media.pdb ..\Distribution\bin\Debug\
@@ -55,6 +55,8 @@ copy Libraries\SM.Media.Builder\bin\Release\SM.Media.Builder.pdb ..\Distribution
 
 copy Global\GlobalAssemblyInfo.cs ..\Distribution\Global\
 copy Global\SM.MediaVersion.cs ..\Distribution\Global\
+copy Global\readme.txt ..\Distribution\
+copy Global\LICENSE.txt ..\Distribution\
 
 copy Phone\HlsView\*.xaml ..\Distribution\Phone\HlsView\
 copy Phone\HlsView\*.cs  ..\Distribution\Phone\HlsView\

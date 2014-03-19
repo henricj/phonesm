@@ -28,6 +28,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Global", "Global", "{A73C5F86-FFD5-4034-9443-E3C5F642ADAA}"
 	ProjectSection(SolutionItems) = preProject
 		Global\GlobalAssemblyInfo.cs = Global\GlobalAssemblyInfo.cs
+		Global\LICENSE.txt = Global\LICENSE.txt
+		Global\readme.txt = Global\readme.txt
 		Global\SM.MediaVersion.cs = Global\SM.MediaVersion.cs
 	EndProjectSection
 EndProject

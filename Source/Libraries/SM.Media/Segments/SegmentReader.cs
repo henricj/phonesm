@@ -110,6 +110,8 @@ namespace SM.Media.Segments
                         return index;
                     }
 
+                    retryCount = 3;
+
                     _startOffset += count;
 
                     index += count;

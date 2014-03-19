@@ -42,6 +42,7 @@ namespace SM.Media.Utility
         readonly LinkedList<TWorkItem> _processBuffers = new LinkedList<TWorkItem>();
         readonly object _processLock = new object();
         readonly SignalTask _workerTask;
+        Exception _exception;
         bool _isClosed;
         int _isDisposed;
         bool _isEnabled;
@@ -55,9 +56,14 @@ namespace SM.Media.Utility
             _workerTask = SignalTask.Create(Worker);
         }
 
+        public Exception Exception
+        {
+            get { return _exception; }
+        }
+
         public bool IsEnabled
         {
-            get { return _isEnabled; }
+            get { return !_isClosed && _isEnabled; }
             set
             {
                 lock (_processLock)
@@ -136,10 +142,12 @@ namespace SM.Media.Utility
 
         public void Enqueue(TWorkItem value)
         {
+            //Debug.WriteLine("QueueWorker.Enqueue() " + value);
+
             lock (_processLock)
             {
                 if (_isClosed)
-                    return;
+                    throw _exception ?? new NotSupportedException("The worker is closed");
 
                 ThrowIfDisposed();
 
@@ -262,6 +270,17 @@ namespace SM.Media.Utility
                     catch (Exception ex)
                     {
                         Debug.WriteLine("Callback failed: " + ex.Message);
+
+                        lock (_processLock)
+                        {
+                            _exception = ex;
+                        }
+
+                        Clear(true);
+
+                        normalExit = true;
+
+                        return;
                     }
                     finally
                     {

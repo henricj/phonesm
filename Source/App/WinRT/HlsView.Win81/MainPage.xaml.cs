@@ -24,9 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+//#define STREAM_SWITCHING
+
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Windows.Media;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -40,20 +44,6 @@ namespace HlsView
 {
     public partial class MainPage : Page
     {
-#if STREAM_SWITCHING
-        static readonly string[] Sources =
-        {
-            "http://www.npr.org/streams/mp3/nprlive24.pls",
-            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
-            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
-            null,
-            "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
-        };
-
-        readonly DispatcherTimer _timer;
-        int _count;
-#endif
-
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.DefaultTask.Result;
         readonly IHttpClients _httpClients;
@@ -61,6 +51,22 @@ namespace HlsView
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
+        int _track;
+        readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
+#if STREAM_SWITCHING
+        readonly DispatcherTimer _timer;
+#endif
+
+        MediaTrack CurrentTrack
+        {
+            get
+            {
+                if (_track < 0 || _track >= _tracks.Count)
+                    return null;
+
+                return _tracks[_track];
+            }
+        }
 
         // Constructor
         public MainPage()
@@ -99,21 +105,90 @@ namespace HlsView
 
                                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               var source = Sources[_count++ % Sources.Length];
+                               if (++_track >= _tracks.Count)
+                                   _track = 0;
 
-                               Debug.WriteLine("Switching to {0} (count {1} GC {2:F3} MiB)", source, _count, gcMemory);
+                               UpdateNextPrev();
 
-                               InitializeMediaStream();
+                               PlayCurrentTrack();
 
-                               _mediaStreamFascade.Source = null == source ? null : new Uri(source);
+                               var track = CurrentTrack;
 
-                               _positionSampler.Start();
+                               Debug.WriteLine("Switching to {0} (track {1} GC {2:F3} MiB)",
+                                   null == track ? "<none>" : track.Url.ToString(), _track, gcMemory);
                            };
 
             _timer.Interval = TimeSpan.FromSeconds(15);
 
             _timer.Start();
 #endif // STREAM_SWITCHING
+        }
+
+        void UpdateTrack(SystemMediaTransportControls systemMediaTransportControls)
+        {
+            var d = systemMediaTransportControls.DisplayUpdater;
+
+            d.ClearAll();
+
+            var track = CurrentTrack;
+
+            if (null != track)
+            {
+                d.Type = MediaPlaybackType.Video;
+
+                if (!string.IsNullOrEmpty(track.Title))
+                    d.VideoProperties.Title = track.Title;
+            }
+
+            d.Update();
+        }
+
+        void UpdateNextPrev()
+        {
+            var smtc = SystemMediaTransportControls.GetForCurrentView();
+
+            smtc.IsPreviousEnabled = _track > 0;
+            smtc.IsNextEnabled = _track < _tracks.Count - 1;
+
+            UpdateTrack(smtc);
+        }
+
+        async void SystemControls_ButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
+        {
+            Debug.WriteLine("MainPage SystemControls ButtonPressed: " + args.Button);
+
+            try
+            {
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => SystemControlsHandleButton(args.Button));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Main SystemControls ButtonPressed: {0}, failed: {1}", args.Button, ex.Message);
+            }
+        }
+
+        void SystemControlsHandleButton(SystemMediaTransportControlsButton button)
+        {
+            Debug.WriteLine("MainPage.SystemControlsHandleButton");
+
+            switch (button)
+            {
+                case SystemMediaTransportControlsButton.Play:
+                    OnPlay();
+                    break;
+                case SystemMediaTransportControlsButton.Pause:
+                    mediaElement1.Pause();
+                    break;
+                case SystemMediaTransportControlsButton.Stop:
+                    mediaElement1.Stop();
+                    break;
+                case SystemMediaTransportControlsButton.Next:
+                    OnNext();
+                    break;
+                case SystemMediaTransportControlsButton.Previous:
+                    OnPrevious();
+                    break;
+            }
         }
 
         void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
@@ -143,22 +218,41 @@ namespace HlsView
             else
                 MediaStateBox.Text = state.ToString();
 
+            var smtc = SystemMediaTransportControls.GetForCurrentView();
+
             switch (state)
             {
                 case MediaElementState.Closed:
                     playButton.IsEnabled = true;
                     stopButton.IsEnabled = false;
+
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Closed;
+
                     break;
                 case MediaElementState.Paused:
                     playButton.IsEnabled = true;
                     stopButton.IsEnabled = true;
+
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Paused;
+
                     break;
                 case MediaElementState.Playing:
                     playButton.IsEnabled = false;
                     stopButton.IsEnabled = true;
+
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
+
+                    break;
+                case MediaElementState.Stopped:
+                    playButton.IsEnabled = true;
+                    stopButton.IsEnabled = true;
+
+                    smtc.PlaybackStatus = MediaPlaybackStatus.Stopped;
+
                     break;
                 default:
                     stopButton.IsEnabled = true;
+
                     break;
             }
 
@@ -207,9 +301,16 @@ namespace HlsView
         {
             Debug.WriteLine("Play clicked");
 
+            OnPlay();
+        }
+
+        void OnPlay()
+        {
+            Debug.WriteLine("MainPage.OnPlay()");
+
             if (null == mediaElement1)
             {
-                Debug.WriteLine("MainPage.play_Click() mediaElement1 is null");
+                Debug.WriteLine("MainPage.OnPlay() mediaElement1 is null");
                 return;
             }
 
@@ -220,20 +321,65 @@ namespace HlsView
                 return;
             }
 
+            PlayCurrentTrack();
+        }
+
+        void PlayCurrentTrack()
+        {
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            InitializeMediaStream();
+            var track = CurrentTrack;
 
-            _mediaStreamFascade.Source = new Uri(
-                //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
-                );
+            if (null != track)
+            {
+                if (track.UseNativePlayer)
+                {
+                    if (null != _mediaStreamFascade)
+                        _mediaStreamFascade.Source = null;
+
+                    mediaElement1.Source = track.Url;
+                }
+                else
+                {
+                    if (null != mediaElement1.Source)
+                        mediaElement1.Source = null;
+
+                    InitializeMediaStream();
+
+                    _mediaStreamFascade.Source = track.Url;
+                }
+            }
+            else
+                mediaElement1.Source = null;
 
             mediaElement1.Play();
 
             _positionSampler.Start();
+        }
+
+        void OnNext()
+        {
+            Debug.WriteLine("MainPage.OnNextTrack()");
+
+            if (++_track >= _tracks.Count)
+                _track = 0;
+
+            UpdateNextPrev();
+
+            PlayCurrentTrack();
+        }
+
+        void OnPrevious()
+        {
+            Debug.WriteLine("MainPage.OnPreviousTrack()");
+
+            if (--_track < 0)
+                _track = 0;
+
+            UpdateNextPrev();
+
+            PlayCurrentTrack();
         }
 
         void InitializeMediaStream()
@@ -264,22 +410,36 @@ namespace HlsView
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
-            var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low, () =>
-                                                                          {
-                                                                              var message = tsMediaManagerStateEventArgs.Message;
+            var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low,
+                () =>
+                {
+                    var message = tsMediaManagerStateEventArgs.Message;
 
-                                                                              if (!string.IsNullOrWhiteSpace(message))
-                                                                              {
-                                                                                  errorBox.Text = message;
-                                                                                  errorBox.Visibility = Visibility.Visible;
-                                                                              }
+                    if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        errorBox.Text = message;
+                        errorBox.Visibility = Visibility.Visible;
+                    }
 
-                                                                              mediaElement1_CurrentStateChanged(null, null);
-                                                                          });
+                    mediaElement1_CurrentStateChanged(null, null);
+                });
+        }
+
+        void mediaElement1_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("MainPage media opened");
+
+            if (null == mediaElement1)
+                return;
+
+            if (mediaElement1.IsFullWindow && mediaElement1.IsAudioOnly)
+                mediaElement1.IsFullWindow = false;
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
         {
+            Debug.WriteLine("MainPage media failed");
+
             errorBox.Text = e.ErrorMessage;
             errorBox.Visibility = Visibility.Visible;
 
@@ -290,6 +450,8 @@ namespace HlsView
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)
         {
+            Debug.WriteLine("MainPage media ended");
+
             StopMedia();
         }
 
@@ -313,16 +475,49 @@ namespace HlsView
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
+            Debug.WriteLine("MainPage.OnNavigatedFrom()");
+
             base.OnNavigatedFrom(e);
 
-            CleanupMediaStream();
+            StopMedia();
+
+            var smtc = SystemMediaTransportControls.GetForCurrentView();
+
+            smtc.ButtonPressed -= SystemControls_ButtonPressed;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            Debug.WriteLine("MainPage.OnNavigatedTo()");
+
             base.OnNavigatedTo(e);
 
-            CleanupMediaStream();
+            var smtc = SystemMediaTransportControls.GetForCurrentView();
+
+            smtc.PlaybackStatus = MediaPlaybackStatus.Closed;
+
+            UpdateTrack(smtc);
+
+            smtc.ButtonPressed += SystemControls_ButtonPressed;
+
+            smtc.IsPlayEnabled = true;
+            smtc.IsPauseEnabled = true;
+            smtc.IsStopEnabled = true;
+
+            var multipleTracks = _tracks.Count > 1;
+
+            smtc.IsNextEnabled = multipleTracks;
+            smtc.IsPreviousEnabled = false;
+        }
+
+        void nextButton_Click(object sender, RoutedEventArgs e)
+        {
+            OnNext();
+        }
+
+        void prevButton_Click(object sender, RoutedEventArgs e)
+        {
+            OnPrevious();
         }
 
         void plusButton_Click(object sender, RoutedEventArgs e)
@@ -367,12 +562,11 @@ namespace HlsView
             mediaElement1_CurrentStateChanged(sender, e);
         }
 
-        public void OnUnload()
+        void OnUnload()
         {
             Debug.WriteLine("MainPage unload");
 
-            if (null != mediaElement1)
-                mediaElement1.Source = null;
+            StopMedia();
 
             var mediaStreamFascade = _mediaStreamFascade;
             _mediaStreamFascade = null;

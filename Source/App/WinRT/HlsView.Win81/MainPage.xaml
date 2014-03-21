@@ -59,6 +59,20 @@
                     VerticalAlignment="Center"
                     BorderThickness="2"
                     Click="wakeButton_Click" />
+            <Button Content="Previous"
+                    Height="Auto"
+                    Name="previousButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"
+                    Click="prevButton_Click" />
+            <Button Content="Next"
+                    Height="Auto"
+                    Name="nextButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"
+                    Click="nextButton_Click" />
             <Button Content="-"
                     Click="minusButton_Click" />
             <Button Content="+"
@@ -80,10 +94,12 @@
                           VerticalAlignment="Stretch"
                           Name="mediaElement1"
                           AutoPlay="True"
+                          MediaOpened="mediaElement1_MediaOpened"
                           MediaFailed="mediaElement1_MediaFailed"
                           MediaEnded="mediaElement1_MediaEnded"
                           CurrentStateChanged="mediaElement1_CurrentStateChanged"
-                          BufferingProgressChanged="mediaElement1_BufferingProgressChanged" />
+                          BufferingProgressChanged="mediaElement1_BufferingProgressChanged"
+                          AudioCategory="BackgroundCapableMedia" AreTransportControlsEnabled="True" />
         </Grid>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are

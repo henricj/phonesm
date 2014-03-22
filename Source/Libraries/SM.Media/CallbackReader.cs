@@ -215,17 +215,31 @@ namespace SM.Media
                 {
                     oldCancellationTokenSource = _readCancellationSource;
 
+                    // ReSharper disable once PossiblyMistakenUseOfParamsMethod
                     _readCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 }
 
-                var cancellationSource = _readCancellationSource.Token;
-
                 _readerRunning = true;
-                readerTask = _readerTask = TaskEx.Run(() => ReadAsync(cancellationSource), cancellationSource);
+
+                var token = _readCancellationSource.Token;
+
+                readerTask = _readerTask = TaskEx.Run(() => ReadAsync(token), token);
             }
 
             if (null != oldCancellationTokenSource)
+            {
+                try
+                {
+                    if (!oldCancellationTokenSource.IsCancellationRequested)
+                        oldCancellationTokenSource.Cancel();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("CallbackReader.StartAsync() cancel failed: " + ex.Message);
+                }
+
                 oldCancellationTokenSource.Dispose();
+            }
 
             return readerTask;
         }

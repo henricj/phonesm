@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="WinRtMediaStreamFascade.cs" company="Henric Jungheim">
+//  <copyright file="WinRtMediaStreamFacade.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -34,16 +34,16 @@ using SM.Media.Web;
 
 namespace SM.Media
 {
-    public interface IMediaStreamFascade : IMediaStreamFascadeBase<IMediaSource>
+    public interface IMediaStreamFacade : IMediaStreamFacadeBase<IMediaSource>
     { }
 
-    public class MediaStreamFascade : MediaStreamFascadeBase, IMediaStreamFascade
+    public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
     {
-        public MediaStreamFascade(IHttpClients httpClients)
+        public MediaStreamFacade(IHttpClients httpClients)
             : base(CreateBuilder(httpClients))
         { }
 
-        #region IMediaStreamFascade Members
+        #region IMediaStreamFacade Members
 
         public async Task<IMediaSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
@@ -63,7 +63,7 @@ namespace SM.Media
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaStreamFascade.CreateAsync() failed: " + ex.Message);
+                Debug.WriteLine("MediaStreamFacade.CreateAsync() failed: " + ex.Message);
 
                 exception = new AggregateException(ex.Message, ex);
             }

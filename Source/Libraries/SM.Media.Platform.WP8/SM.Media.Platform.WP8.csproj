@@ -70,11 +70,11 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFascadeParameters.cs">
-      <Link>DefaultMediaStreamFascadeParameters.cs</Link>
+    <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFacadeParameters.cs">
+      <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascade.cs">
-      <Link>MediaStreamFascade.cs</Link>
+    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFacade.cs">
+      <Link>MediaStreamFacade.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>

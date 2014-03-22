@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaStreamFascadeBase.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamFacadeBase.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -38,7 +38,7 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public interface IMediaStreamFascadeBase : IDisposable
+    public interface IMediaStreamFacadeBase : IDisposable
     {
         /// <summary>
         ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
@@ -60,13 +60,13 @@ namespace SM.Media
         Task CloseAsync();
     }
 
-    public interface IMediaStreamFascadeBase<TMediaStreamSource> : IMediaStreamFascadeBase
+    public interface IMediaStreamFacadeBase<TMediaStreamSource> : IMediaStreamFacadeBase
         where TMediaStreamSource : class
     {
         Task<TMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken);
     }
 
-    public abstract class MediaStreamFascadeBase : IMediaStreamFascadeBase
+    public abstract class MediaStreamFacadeBase : IMediaStreamFacadeBase
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
@@ -77,7 +77,7 @@ namespace SM.Media
         ISegmentManager _playlist;
         Uri _source;
 
-        protected MediaStreamFascadeBase(IBuilder<IMediaManager> mediaManagerBuilder)
+        protected MediaStreamFacadeBase(IBuilder<IMediaManager> mediaManagerBuilder)
         {
             if (mediaManagerBuilder == null)
                 throw new ArgumentNullException("mediaManagerBuilder");
@@ -96,7 +96,7 @@ namespace SM.Media
             }
         }
 
-        #region IMediaStreamFascadeBase Members
+        #region IMediaStreamFacadeBase Members
 
         public void Dispose()
         {
@@ -154,45 +154,45 @@ namespace SM.Media
 
         public void Play()
         {
-            Debug.WriteLine("MediaStreamFascadeBase.Play()");
+            Debug.WriteLine("MediaStreamFacadeBase.Play()");
 
             ThrowIfDisposed();
 
-            Post(StartPlaybackAsync, "MediaStreamFascadeBase.Play() StartPlaybackAsync");
+            Post(StartPlaybackAsync, "MediaStreamFacadeBase.Play() StartPlaybackAsync");
         }
 
         public void RequestStop()
         {
-            Debug.WriteLine("MediaStreamFascadeBase.RequestStop()");
+            Debug.WriteLine("MediaStreamFacadeBase.RequestStop()");
 
             ThrowIfDisposed();
 
-            Post(CloseMediaAsync, "MediaStreamFascadeBase.RequestStop() CloseMediaAsync");
+            Post(CloseMediaAsync, "MediaStreamFacadeBase.RequestStop() CloseMediaAsync");
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            Debug.WriteLine("MediaStreamFascadeBase.StopAsync()");
+            Debug.WriteLine("MediaStreamFacadeBase.StopAsync()");
 
             ThrowIfDisposed();
 
             using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCancellationTokenSource.Token))
             {
                 await _asyncFifoWorker
-                    .PostAsync(CloseMediaAsync, "MediaStreamFascadeBase.StopAsync() CloseMediaAsync", linkedToken.Token)
+                    .PostAsync(CloseMediaAsync, "MediaStreamFacadeBase.StopAsync() CloseMediaAsync", linkedToken.Token)
                     .ConfigureAwait(false);
             }
         }
 
         public Task CloseAsync()
         {
-            Debug.WriteLine("MediaStreamFascadeBase.CloseAsync()");
+            Debug.WriteLine("MediaStreamFacadeBase.CloseAsync()");
 
             ThrowIfDisposed();
 
             _disposeCancellationTokenSource.Cancel();
 
-            return _asyncFifoWorker.PostAsync(CloseMediaAsync, "MediaStreamFascadeBase.CloseAsync() CloseMediaAsync", CancellationToken.None);
+            return _asyncFifoWorker.PostAsync(CloseMediaAsync, "MediaStreamFacadeBase.CloseAsync() CloseMediaAsync", CancellationToken.None);
         }
 
         #endregion
@@ -205,7 +205,7 @@ namespace SM.Media
 
         protected virtual void Dispose(bool disposing)
         {
-            Debug.WriteLine("MediaStreamFascadeBase.Dispose({0})", disposing);
+            Debug.WriteLine("MediaStreamFacadeBase.Dispose({0})", disposing);
 
             if (!disposing)
                 return;
@@ -235,7 +235,7 @@ namespace SM.Media
 
         void CleanupMediaManager(IMediaManager mediaManager)
         {
-            Debug.WriteLine("MediaStreamFascadeBase.CleanupMediaManager()");
+            Debug.WriteLine("MediaStreamFacadeBase.CleanupMediaManager()");
 
             if (null == mediaManager)
                 return;
@@ -246,7 +246,7 @@ namespace SM.Media
 
             _mediaManagerBuilder.Destroy(mediaManager);
 
-            Debug.WriteLine("MediaStreamFascadeBase.CleanupMediaManager() completed");
+            Debug.WriteLine("MediaStreamFacadeBase.CleanupMediaManager() completed");
         }
 
         void Post(Func<Task> work, string description)
@@ -256,7 +256,7 @@ namespace SM.Media
 
         async Task StartPlaybackAsync()
         {
-            Debug.WriteLine("MediaStreamFascadeBase.StartPlaybackAsync()");
+            Debug.WriteLine("MediaStreamFacadeBase.StartPlaybackAsync()");
 
             try
             {
@@ -275,7 +275,7 @@ namespace SM.Media
             catch (Exception ex)
             {
                 // Send a "Failed" message here?
-                Debug.WriteLine("MediaStreamFascadeBase.StartPlaybackAsync() failed: " + ex.Message);
+                Debug.WriteLine("MediaStreamFacadeBase.StartPlaybackAsync() failed: " + ex.Message);
             }
         }
 
@@ -285,10 +285,10 @@ namespace SM.Media
 
             using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCancellationTokenSource.Token))
             {
-                _asyncFifoWorker.Post(CloseMediaAsync, "MediaStreamFascadeBase.CreateMediaMangerAsync() CloseMediaAsync", cancellationToken);
+                _asyncFifoWorker.Post(CloseMediaAsync, "MediaStreamFacadeBase.CreateMediaMangerAsync() CloseMediaAsync", cancellationToken);
 
                 await _asyncFifoWorker
-                    .PostAsync(async () => { mediaManager = await OpenMediaAsync(source).ConfigureAwait(false); }, "MediaStreamFascadeBase.CreateMediaMangerAsync() OpenMediaAsync", linkedToken.Token)
+                    .PostAsync(async () => { mediaManager = await OpenMediaAsync(source).ConfigureAwait(false); }, "MediaStreamFacadeBase.CreateMediaMangerAsync() OpenMediaAsync", linkedToken.Token)
                     .ConfigureAwait(false);
             }
 
@@ -297,7 +297,7 @@ namespace SM.Media
 
         async Task<IMediaManager> OpenMediaAsync(Uri source)
         {
-            Debug.WriteLine("MediaStreamFascadeBase.OpenMediaAsync({0})", source);
+            Debug.WriteLine("MediaStreamFacadeBase.OpenMediaAsync({0})", source);
 
             var mediaManager = MediaManager;
 
@@ -312,7 +312,7 @@ namespace SM.Media
 
             if (!source.IsAbsoluteUri)
             {
-                Debug.WriteLine("MediaStreamFascadeBase.OpenMediaAsync() source is not absolute: " + source);
+                Debug.WriteLine("MediaStreamFacadeBase.OpenMediaAsync() source is not absolute: " + source);
                 return null;
             }
 
@@ -338,7 +338,7 @@ namespace SM.Media
 
         async Task CloseMediaAsync()
         {
-            Debug.WriteLine("MediaStreamFascadeBase.CloseMediaAsync()");
+            Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync()");
 
             IMediaManager mediaManager;
 
@@ -360,7 +360,7 @@ namespace SM.Media
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("MediaStreamFascadeBase.CloseMediaAsync() Media manager close failed: " + ex.Message);
+                    Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() Media manager close failed: " + ex.Message);
                 }
 
                 CleanupMediaManager(mediaManager);
@@ -372,17 +372,17 @@ namespace SM.Media
             {
                 _playlist = null;
 
-                playlist.CleanupBackground("MediaStreamFascadeBase.CloseMediaAsync playlist");
+                playlist.CleanupBackground("MediaStreamFacadeBase.CloseMediaAsync playlist");
             }
 
             _source = null;
 
-            Debug.WriteLine("MediaStreamFascadeBase.CloseMediaAsync() completed");
+            Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() completed");
         }
 
         void MediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
         {
-            Debug.WriteLine("MediaStreamFascadeBase.MediaManagerOnStateChange() to {0}: {1}", e.State, e.Message);
+            Debug.WriteLine("MediaStreamFacadeBase.MediaManagerOnStateChange() to {0}: {1}", e.State, e.Message);
 
             if (e.State == TsMediaManager.MediaState.Closed)
             {
@@ -403,31 +403,31 @@ namespace SM.Media
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaStreamFascadeBase.MediaManagerOnStateChange() Exception in StateChange event handler: " + ex.Message);
+                Debug.WriteLine("MediaStreamFacadeBase.MediaManagerOnStateChange() Exception in StateChange event handler: " + ex.Message);
             }
         }
     }
 
-    public static class MediaStreamFascadeExtensions
+    public static class MediaStreamFacadeExtensions
     {
-        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IPlaylistSegmentManagerParameters parameters)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IPlaylistSegmentManagerParameters parameters)
         {
-            mediaStreamFascade.Builder.RegisterSingleton(parameters);
+            mediaStreamFacade.Builder.RegisterSingleton(parameters);
         }
 
-        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IMediaManagerParameters parameters)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IMediaManagerParameters parameters)
         {
-            mediaStreamFascade.Builder.RegisterSingleton(parameters);
+            mediaStreamFacade.Builder.RegisterSingleton(parameters);
         }
 
-        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IBufferingPolicy policy)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IBufferingPolicy policy)
         {
-            mediaStreamFascade.Builder.RegisterSingleton(policy);
+            mediaStreamFacade.Builder.RegisterSingleton(policy);
         }
 
-        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IMediaStreamSource mediaStreamSource)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IMediaStreamSource mediaStreamSource)
         {
-            mediaStreamFascade.Builder.RegisterSingleton(mediaStreamSource);
+            mediaStreamFacade.Builder.RegisterSingleton(mediaStreamSource);
         }
     }
 }

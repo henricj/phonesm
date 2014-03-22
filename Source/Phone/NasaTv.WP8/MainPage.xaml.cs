@@ -62,7 +62,7 @@ namespace NasaTv8
 
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly HttpClients _httpClients;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
         readonly PersistentSettings _settings = new PersistentSettings();
 
         public MainPage()
@@ -141,7 +141,7 @@ namespace NasaTv8
 
             try
             {
-                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
 
                 if (null == mss)
                 {
@@ -172,18 +172,18 @@ namespace NasaTv8
 
         void InitializeMediaStream()
         {
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
         void CleanupMedia()
         {
-            if (null != _mediaStreamFascade)
-                _mediaStreamFascade.RequestStop();
+            if (null != _mediaStreamFacade)
+                _mediaStreamFacade.RequestStop();
 
             if (null != mediaElement1)
             {

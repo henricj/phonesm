@@ -45,7 +45,7 @@ namespace NasaTv
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly HttpClients _httpClients;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
 
         // Constructor
         public MainPage()
@@ -113,19 +113,19 @@ namespace NasaTv
         {
             Debug.WriteLine("MainPage.PlayAsync() " + source);
 
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
             {
-                _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
-                _mediaStreamFascade.DisposeSafe();
+                _mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
+                _mediaStreamFacade.DisposeSafe();
             }
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
 
             try
             {
-                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
 
                 if (null == mss)
                 {
@@ -163,8 +163,8 @@ namespace NasaTv
 
         void CleanupMedia()
         {
-            if (null != _mediaStreamFascade)
-                _mediaStreamFascade.RequestStop();
+            if (null != _mediaStreamFacade)
+                _mediaStreamFacade.RequestStop();
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)

@@ -72,7 +72,7 @@ namespace SM.Media.MediaPlayer
         Stream _streamSource;
         HttpClients _httpClients;
         readonly IApplicationInformation _applicationInformation = ApplicationInformationFactory.Default;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
         Dispatcher _dispatcher;
         Uri _source;
 
@@ -329,7 +329,7 @@ namespace SM.Media.MediaPlayer
             {
                 if (MediaElement != null)
                 {
-                    _mediaStreamFascade.SeekTarget = value;
+                    _mediaStreamFacade.SeekTarget = value;
                     MediaElement.Position = value;
                     SeekCompleted.IfNotNull(i => i(this));
                 }
@@ -503,7 +503,7 @@ namespace SM.Media.MediaPlayer
 
                 _source = value;
 
-                if (null == _mediaStreamFascade)
+                if (null == _mediaStreamFacade)
                     return;
 
                 var task = SetSourceAsync();
@@ -581,7 +581,7 @@ namespace SM.Media.MediaPlayer
 
                 _dispatcher = MediaElement.Dispatcher;
 
-                _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+                _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
             }
             catch (Exception ex)
             {
@@ -598,10 +598,10 @@ namespace SM.Media.MediaPlayer
             {
                 IsLoaded = false;
 
-                if (null != _mediaStreamFascade)
+                if (null != _mediaStreamFacade)
                 {
-                    _mediaStreamFascade.DisposeSafe();
-                    _mediaStreamFascade = null;
+                    _mediaStreamFacade.DisposeSafe();
+                    _mediaStreamFacade = null;
                 }
 
                 if (null != _httpClients)
@@ -796,7 +796,7 @@ namespace SM.Media.MediaPlayer
 
             MediaElement.Source = null;
 
-            _mediaStreamFascade.RequestStop();
+            _mediaStreamFacade.RequestStop();
         }
 
         async Task SetSourceAsync()
@@ -809,7 +809,7 @@ namespace SM.Media.MediaPlayer
                 return;
             }
 
-            if (null == _mediaStreamFascade)
+            if (null == _mediaStreamFacade)
             {
                 Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync() null media stream facade");
                 return;
@@ -817,7 +817,7 @@ namespace SM.Media.MediaPlayer
 
             try
             {
-                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(_source, CancellationToken.None).ConfigureAwait(true);
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(_source, CancellationToken.None).ConfigureAwait(true);
 
                 if (null == MediaElement)
                 {

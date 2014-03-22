@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="DefaultMediaStreamFascadeParameters.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamFacadeParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -29,21 +29,8 @@ using SM.Media.Web;
 
 namespace SM.Media
 {
-    public static class DefaultMediaStreamFascadeParameters
+    public class MediaStreamFacadeParameters
     {
-        public static Func<IHttpClients, IMediaStreamFascadeBase> Factory =
-            httpClients =>
-            {
-                var mediaStreamFascade = new MediaStreamFascade(httpClients);
-
-                return mediaStreamFascade;
-            };
-
-        public static IMediaStreamFascade Create(this MediaStreamFascadeParameters parameters, IHttpClients httpClients)
-        {
-            var factory = parameters.Factory ?? Factory;
-
-            return (IMediaStreamFascade)factory(httpClients);
-        }
+        public Func<IHttpClients, IMediaStreamFacadeBase> Factory { get; set; }
     }
 }

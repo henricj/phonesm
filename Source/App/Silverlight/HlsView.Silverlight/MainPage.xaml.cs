@@ -56,7 +56,7 @@ namespace HlsView.Silverlight
 
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         readonly DispatcherTimer _positionSampler;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
         readonly IHttpClients _httpClients;
 
@@ -93,7 +93,7 @@ namespace HlsView.Silverlight
 
                                InitializeMediaStream();
 
-                               _mediaStreamFascade.Source = null == source ? null : new Uri(source);
+                               _mediaStreamFacade.Source = null == source ? null : new Uri(source);
 
                                if (++_count >= Sources.Length)
                                    _count = 0;
@@ -111,9 +111,9 @@ namespace HlsView.Silverlight
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
             {
-                var managerState = _mediaStreamFascade.State;
+                var managerState = _mediaStreamFacade.State;
 
                 if (MediaElementState.Closed == state)
                 {
@@ -218,7 +218,7 @@ namespace HlsView.Silverlight
 
             try
             {
-                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
 
                 if (null == mss)
                 {
@@ -240,14 +240,14 @@ namespace HlsView.Silverlight
 
         void InitializeMediaStream()
         {
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFascade.Builder.RegisterSingleton<IHttpClients, SilverlightHttpClients>();
+            _mediaStreamFacade.Builder.RegisterSingleton<IHttpClients, SilverlightHttpClients>();
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
         void StopMedia()
@@ -268,18 +268,18 @@ namespace HlsView.Silverlight
             if (null != mediaElement1)
                 mediaElement1.Source = null;
 
-            if (null == _mediaStreamFascade)
+            if (null == _mediaStreamFacade)
                 return;
 
-            var mediaStreamFascade = _mediaStreamFascade;
+            var mediaStreamFacade = _mediaStreamFacade;
 
-            _mediaStreamFascade = null;
+            _mediaStreamFacade = null;
 
-            mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+            mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
 
             // Don't block the cleanup in case someone is mashing the play button.
             // It could deadlock.
-            mediaStreamFascade.DisposeBackground("MainPage CloseMedia");
+            mediaStreamFacade.DisposeBackground("MainPage CloseMedia");
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
@@ -339,7 +339,7 @@ namespace HlsView.Silverlight
 
             var position = mediaElement1.Position;
 
-            _mediaStreamFascade.SeekTarget = position + StepSize; // WP7's MediaElement needs help.
+            _mediaStreamFacade.SeekTarget = position + StepSize; // WP7's MediaElement needs help.
             mediaElement1.Position = position + StepSize;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
@@ -357,7 +357,7 @@ namespace HlsView.Silverlight
             else
                 position -= StepSize;
 
-            _mediaStreamFascade.SeekTarget = position; // WP7's MediaElement needs help.
+            _mediaStreamFacade.SeekTarget = position; // WP7's MediaElement needs help.
             mediaElement1.Position = position;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);

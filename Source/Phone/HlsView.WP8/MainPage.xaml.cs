@@ -53,7 +53,7 @@ namespace HlsView
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly DispatcherTimer _positionSampler;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
         readonly IHttpClients _httpClients;
         int _track;
@@ -124,9 +124,9 @@ namespace HlsView
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
             {
-                var managerState = _mediaStreamFascade.State;
+                var managerState = _mediaStreamFacade.State;
 
                 if (MediaElementState.Closed == state)
                 {
@@ -240,7 +240,7 @@ namespace HlsView
 
             if (null == track)
             {
-                await _mediaStreamFascade.StopAsync(CancellationToken.None);
+                await _mediaStreamFacade.StopAsync(CancellationToken.None);
 
                 mediaElement1.Stop();
                 mediaElement1.Source = null;
@@ -250,8 +250,8 @@ namespace HlsView
 
             if (track.UseNativePlayer)
             {
-                if (null != _mediaStreamFascade)
-                    await _mediaStreamFascade.StopAsync(CancellationToken.None);
+                if (null != _mediaStreamFacade)
+                    await _mediaStreamFacade.StopAsync(CancellationToken.None);
 
                 mediaElement1.Source = track.Url;
             }
@@ -264,7 +264,7 @@ namespace HlsView
                 {
                     InitializeMediaStream();
 
-                    var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+                    var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
 
                     if (null == mss)
                     {
@@ -288,12 +288,12 @@ namespace HlsView
 
         void InitializeMediaStream()
         {
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
         void StopMedia()
@@ -308,18 +308,18 @@ namespace HlsView
         {
             StopMedia();
 
-            if (null == _mediaStreamFascade)
+            if (null == _mediaStreamFacade)
                 return;
 
-            var mediaStreamFascade = _mediaStreamFascade;
+            var mediaStreamFacade = _mediaStreamFacade;
 
-            _mediaStreamFascade = null;
+            _mediaStreamFacade = null;
 
-            mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+            mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
 
             // Don't block the cleanup in case someone is mashing the play button.
             // It could deadlock.
-            mediaStreamFascade.DisposeBackground("MainPage CloseMedia");
+            mediaStreamFacade.DisposeBackground("MainPage CloseMedia");
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)

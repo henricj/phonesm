@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaStreamFascadeSetting.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamFacadeSetting.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -28,14 +28,14 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public class MediaStreamFascadeSettings
+    public static class MediaStreamFacadeSettings
     {
-        static readonly ResettableParameters<MediaStreamFascadeParameters> MediaStreamFascadeParameters = new ResettableParameters<MediaStreamFascadeParameters>();
+        static readonly ResettableParameters<MediaStreamFacadeParameters> MediaStreamFacadeParameters = new ResettableParameters<MediaStreamFacadeParameters>();
 
-        public static MediaStreamFascadeParameters Parameters
+        public static MediaStreamFacadeParameters Parameters
         {
-            get { return MediaStreamFascadeParameters.Parameters; }
-            set { MediaStreamFascadeParameters.Parameters = value; }
+            get { return MediaStreamFacadeParameters.Parameters; }
+            set { MediaStreamFacadeParameters.Parameters = value; }
         }
     }
 }

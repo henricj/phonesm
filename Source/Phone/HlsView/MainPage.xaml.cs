@@ -56,7 +56,7 @@ namespace HlsView
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly HttpClients _httpClients;
         readonly DispatcherTimer _positionSampler;
-        MediaStreamFascade _mediaStreamFascade;
+        MediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
         static readonly MediaElementState[] NotStopStates = { MediaElementState.Closed, MediaElementState.Stopped };
         static readonly MediaElementState[] PlayStates = { MediaElementState.Closed, MediaElementState.Paused, MediaElementState.Stopped };
@@ -93,7 +93,6 @@ namespace HlsView
                                var task = PlayCurrentTrackAsync();
 
                                TaskCollector.Default.Add(task, "MainPage Play");
-
 
                                var track = CurrentTrack;
 
@@ -138,9 +137,9 @@ namespace HlsView
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
             {
-                var managerState = _mediaStreamFascade.State;
+                var managerState = _mediaStreamFacade.State;
 
                 if (MediaElementState.Closed == state)
                 {
@@ -233,7 +232,7 @@ namespace HlsView
                 {
                     InitializeMediaStream();
 
-                    var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+                    var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
 
                     if (null == mss)
                     {
@@ -261,7 +260,7 @@ namespace HlsView
             }
             else
             {
-                await _mediaStreamFascade.StopAsync(CancellationToken.None);
+                await _mediaStreamFacade.StopAsync(CancellationToken.None);
 
                 mediaElement1.Stop();
                 mediaElement1.Source = null;
@@ -270,12 +269,12 @@ namespace HlsView
 
         void InitializeMediaStream()
         {
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade = new MediaStreamFascade(_httpClients);
+            _mediaStreamFacade = new MediaStreamFacade(_httpClients);
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
         void StopMedia()
@@ -290,18 +289,18 @@ namespace HlsView
         {
             StopMedia();
 
-            if (null == _mediaStreamFascade)
+            if (null == _mediaStreamFacade)
                 return;
 
-            var mediaStreamFascade = _mediaStreamFascade;
+            var mediaStreamFacade = _mediaStreamFacade;
 
-            _mediaStreamFascade = null;
+            _mediaStreamFacade = null;
 
-            mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+            mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
 
             // Don't block the cleanup in case someone is mashing the play button.
             // It could deadlock.
-            mediaStreamFascade.DisposeBackground("MainPage CloseMedia");
+            mediaStreamFacade.DisposeBackground("MainPage CloseMedia");
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
@@ -399,7 +398,7 @@ namespace HlsView
 
             var position = mediaElement1.Position;
 
-            _mediaStreamFascade.SeekTarget = position + StepSize; // WP7's MediaElement needs help.
+            _mediaStreamFacade.SeekTarget = position + StepSize; // WP7's MediaElement needs help.
             mediaElement1.Position = position + StepSize;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);
@@ -417,7 +416,7 @@ namespace HlsView
             else
                 position -= StepSize;
 
-            _mediaStreamFascade.SeekTarget = position; // WP7's MediaElement needs help.
+            _mediaStreamFacade.SeekTarget = position; // WP7's MediaElement needs help.
             mediaElement1.Position = position;
 
             Debug.WriteLine("Step from {0} to {1} (CanSeek: {2} NaturalDuration: {3})", position, mediaElement1.Position, mediaElement1.CanSeek, mediaElement1.NaturalDuration);

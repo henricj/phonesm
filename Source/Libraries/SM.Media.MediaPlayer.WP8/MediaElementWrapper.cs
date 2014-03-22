@@ -52,7 +52,7 @@ namespace SM.Media.MediaPlayer
     /// </remarks>
     public sealed class MediaElementWrapper : ContentControl, IMediaElement
     {
-        readonly IMediaStreamFascade _mediaStreamFascade;
+        readonly IMediaStreamFacade _mediaStreamFacade;
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
         Uri _source;
 
@@ -64,18 +64,18 @@ namespace SM.Media.MediaPlayer
         /// <summary>
         ///     Creates a new instance of the MediaElementWrapper class.
         /// </summary>
-        /// <param name="mediaStreamFascade"></param>
-        public MediaElementWrapper(IMediaStreamFascade mediaStreamFascade)
+        /// <param name="mediaStreamFacade"></param>
+        public MediaElementWrapper(IMediaStreamFacade mediaStreamFacade)
         {
-            if (mediaStreamFascade == null)
-                throw new ArgumentNullException("mediaStreamFascade");
+            if (mediaStreamFacade == null)
+                throw new ArgumentNullException("mediaStreamFacade");
 
             Debug.WriteLine("MediaElementWrapper.ctor()");
 
             HorizontalContentAlignment = HorizontalAlignment.Stretch;
             VerticalContentAlignment = VerticalAlignment.Stretch;
 
-            _mediaStreamFascade = mediaStreamFascade;
+            _mediaStreamFacade = mediaStreamFacade;
 
             MediaElement = new MediaElement();
             MediaElement.MediaEnded += MediaElement_MediaEnded;
@@ -501,7 +501,7 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.SetSourceAsync()");
 
-            var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(_source, CancellationToken.None);
+            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(_source, CancellationToken.None);
 
             if (Dispatcher.CheckAccess())
                 SetSource(mss);
@@ -515,9 +515,9 @@ namespace SM.Media.MediaPlayer
 
             Close();
 
-            _mediaStreamFascade.CloseAsync().Wait();
+            _mediaStreamFacade.CloseAsync().Wait();
 
-            _mediaStreamFascade.DisposeSafe();
+            _mediaStreamFacade.DisposeSafe();
         }
 
         public void Close()
@@ -528,7 +528,7 @@ namespace SM.Media.MediaPlayer
 
             MediaElement.Source = null;
 
-            _mediaStreamFascade.RequestStop();
+            _mediaStreamFacade.RequestStop();
         }
     }
 }

@@ -50,7 +50,7 @@ namespace HlsView
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.DefaultTask.Result;
         readonly IHttpClients _httpClients;
         readonly DispatcherTimer _positionSampler;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
         int _track;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
@@ -187,9 +187,9 @@ namespace HlsView
         {
             var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
             {
-                var managerState = _mediaStreamFascade.State;
+                var managerState = _mediaStreamFacade.State;
 
                 if (MediaElementState.Closed == state)
                 {
@@ -329,8 +329,8 @@ namespace HlsView
             {
                 if (track.UseNativePlayer)
                 {
-                    if (null != _mediaStreamFascade)
-                        await _mediaStreamFascade.StopAsync(CancellationToken.None);
+                    if (null != _mediaStreamFacade)
+                        await _mediaStreamFacade.StopAsync(CancellationToken.None);
 
                     mediaElement1.Source = track.Url;
                 }
@@ -343,7 +343,7 @@ namespace HlsView
                     {
                         InitializeMediaStream();
 
-                        var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+                        var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
 
                         if (null == mss)
                         {
@@ -398,26 +398,26 @@ namespace HlsView
 
         void InitializeMediaStream()
         {
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
         void CleanupMediaStream()
         {
             mediaElement1.Source = null;
 
-            if (null == _mediaStreamFascade)
+            if (null == _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
 
-            _mediaStreamFascade.DisposeSafe();
+            _mediaStreamFacade.DisposeSafe();
 
-            _mediaStreamFascade = null;
+            _mediaStreamFacade = null;
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
@@ -580,10 +580,10 @@ namespace HlsView
 
             StopMedia();
 
-            var mediaStreamFascade = _mediaStreamFascade;
-            _mediaStreamFascade = null;
+            var mediaStreamFacade = _mediaStreamFacade;
+            _mediaStreamFacade = null;
 
-            mediaStreamFascade.DisposeBackground("MainPage unload");
+            mediaStreamFacade.DisposeBackground("MainPage unload");
         }
     }
 }

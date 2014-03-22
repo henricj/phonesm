@@ -106,9 +106,9 @@
     <Compile Include="MediaParser\MediaParserMediaStreamExtensions.cs" />
     <Compile Include="MediaParser\MediaParserParameters.cs" />
     <Compile Include="MediaReader.cs" />
-    <Compile Include="MediaStreamFascadeBase.cs" />
-    <Compile Include="MediaStreamFascadeParameters.cs" />
-    <Compile Include="MediaStreamFascadeSetting.cs" />
+    <Compile Include="MediaStreamFacadeBase.cs" />
+    <Compile Include="MediaStreamFacadeParameters.cs" />
+    <Compile Include="MediaStreamFacadeSetting.cs" />
     <Compile Include="MP3\Mp3StreamHandlerFactory.cs" />
     <Compile Include="Pes\DefaultPesStreamHandler.cs" />
     <Compile Include="Pes\IPesStreamFactoryInstance.cs" />

@@ -50,7 +50,7 @@ namespace SimulatedPlayer
 
         readonly IHttpClients _httpClients;
         int _count;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
 
         public Simulator(IHttpClients httpClients)
         {
@@ -64,7 +64,7 @@ namespace SimulatedPlayer
 
         public void Dispose()
         {
-            using (_mediaStreamFascade)
+            using (_mediaStreamFacade)
             { }
         }
 
@@ -74,16 +74,16 @@ namespace SimulatedPlayer
         {
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _mediaStreamFascade = new MediaStreamFascade(_httpClients);
+            _mediaStreamFacade = new MediaStreamFacade(_httpClients);
 
-            _mediaStreamFascade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
+            _mediaStreamFacade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
 
             var source = new Uri(
                 //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
                 "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
                 );
 
-            var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
 
             if (null == mss)
             {

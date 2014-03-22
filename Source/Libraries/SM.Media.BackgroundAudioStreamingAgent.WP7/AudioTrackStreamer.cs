@@ -46,7 +46,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         readonly IBufferingPolicy _bufferingPolicy;
         readonly IHttpClients _httpClients;
         readonly IMediaManagerParameters _mediaManagerParameters;
-        IMediaStreamFascade _mediaStreamFascade;
+        IMediaStreamFacade _mediaStreamFacade;
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
@@ -128,7 +128,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 InitializeMediaStream();
 
-                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(url, CancellationToken.None).ConfigureAwait(false);
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, CancellationToken.None).ConfigureAwait(false);
 
                 if (null == mss)
                 {
@@ -155,16 +155,16 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
         void InitializeMediaStream()
         {
-            if (null != _mediaStreamFascade)
+            if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFascade.SetParameter(_bufferingPolicy);
+            _mediaStreamFacade.SetParameter(_bufferingPolicy);
 
-            _mediaStreamFascade.SetParameter(_mediaManagerParameters);
+            _mediaStreamFacade.SetParameter(_mediaManagerParameters);
 
-            _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
@@ -173,20 +173,20 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             Debug.WriteLine("Media manager state in background agent: {0}, message: {1}", state, tsMediaManagerStateEventArgs.Message);
 
-            if (null == _mediaStreamFascade)
+            if (null == _mediaStreamFacade)
                 return;
 
             if (TsMediaManager.MediaState.Closed == state || TsMediaManager.MediaState.Error == state)
             {
-                var mediaStreamFascade = _mediaStreamFascade;
+                var mediaStreamFacade = _mediaStreamFacade;
 
-                _mediaStreamFascade = null;
+                _mediaStreamFacade = null;
 
-                mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
-                mediaStreamFascade.CloseAsync().ContinueWith(
+                mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
+                mediaStreamFacade.CloseAsync().ContinueWith(
                     t =>
                     {
-                        mediaStreamFascade.DisposeSafe();
+                        mediaStreamFacade.DisposeSafe();
 
                         var exception = t.Exception;
 
@@ -216,8 +216,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 Debug.WriteLine("AudioTrackStreamer.OnCancel() failed: " + ex.Message);
             }
 
-            if (null != _mediaStreamFascade)
-                _mediaStreamFascade.RequestStop();
+            if (null != _mediaStreamFacade)
+                _mediaStreamFacade.RequestStop();
 
             StopPoll();
 

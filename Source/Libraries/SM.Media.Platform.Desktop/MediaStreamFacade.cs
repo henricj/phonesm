@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaStreamFascade.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamFacade.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -28,24 +28,24 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
+using SimulatedPlayer;
 using SM.Media.Builder;
 using SM.Media.Web;
 
 namespace SM.Media
 {
-    public interface IMediaStreamFascade : IMediaStreamFascadeBase<MediaStreamSource>
+    public interface IMediaStreamFacade : IMediaStreamFacadeBase<SimulatedMediaStreamSource>
     { }
 
-    public class MediaStreamFascade : MediaStreamFascadeBase, IMediaStreamFascade
+    public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
     {
-        public MediaStreamFascade(IHttpClients httpClients)
+        public MediaStreamFacade(IHttpClients httpClients)
             : base(CreateBuilder(httpClients))
         { }
 
-        #region IMediaStreamFascade Members
+        #region IMediaStreamFacade Members
 
-        public async Task<MediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
+        public async Task<SimulatedMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
             Exception exception;
 
@@ -53,11 +53,11 @@ namespace SM.Media
             {
                 var mediaManager = await CreateMediaMangerAsync(source, cancellationToken).ConfigureAwait(false);
 
-                return (MediaStreamSource)mediaManager.MediaStreamSource;
+                return (SimulatedMediaStreamSource)mediaManager.MediaStreamSource;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaStreamFascade.CreateAsync() failed: " + ex.Message);
+                Debug.WriteLine("MediaStreamFacade.CreateAsync() failed: " + ex.Message);
 
                 exception = new AggregateException(ex.Message, ex);
             }

@@ -89,9 +89,9 @@
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
     <Compile Include="Builder\BuilderBase.cs" />
-    <Compile Include="MediaStreamFascade.cs" />
+    <Compile Include="MediaStreamFacade.cs" />
     <Compile Include="SmMediaModule.cs" />
-    <Compile Include="DefaultMediaStreamFascadeParameters.cs" />
+    <Compile Include="DefaultMediaStreamFacadeParameters.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="TsMediaModule.cs" />
     <Compile Include="Utility\ApplicationInformationFactory.cs" />

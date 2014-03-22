@@ -88,7 +88,7 @@ namespace SM.Media.MediaPlayer
                 if (null != _mediaElement)
                     return _mediaElement;
 
-                _mediaElement = new MediaElementWrapper(MediaStreamFascadeSettings.Parameters.Create(HttpClients));
+                _mediaElement = new MediaElementWrapper(MediaStreamFacadeSettings.Parameters.Create(HttpClients));
 
                 return _mediaElement;
             }

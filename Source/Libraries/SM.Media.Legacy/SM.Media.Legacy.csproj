@@ -348,14 +348,14 @@
     <Compile Include="..\SM.Media\MediaReader.cs">
       <Link>MediaReader.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\MediaStreamFascadeBase.cs">
-      <Link>MediaStreamFascadeBase.cs</Link>
+    <Compile Include="..\SM.Media\MediaStreamFacadeBase.cs">
+      <Link>MediaStreamFacadeBase.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\MediaStreamFascadeParameters.cs">
-      <Link>MediaStreamFascadeParameters.cs</Link>
+    <Compile Include="..\SM.Media\MediaStreamFacadeParameters.cs">
+      <Link>MediaStreamFacadeParameters.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\MediaStreamFascadeSetting.cs">
-      <Link>MediaStreamFascadeSetting.cs</Link>
+    <Compile Include="..\SM.Media\MediaStreamFacadeSetting.cs">
+      <Link>MediaStreamFacadeSetting.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3FrameHeader.cs">
       <Link>MP3\Mp3FrameHeader.cs</Link>

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaStreamFascade.cs" company="Henric Jungheim">
+//  <copyright file="WinRtMediaStreamFascade.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -28,13 +28,13 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
+using Windows.Media.Core;
 using SM.Media.Builder;
 using SM.Media.Web;
 
 namespace SM.Media
 {
-    public interface IMediaStreamFascade : IMediaStreamFascadeBase<MediaStreamSource>
+    public interface IMediaStreamFascade : IMediaStreamFascadeBase<IMediaSource>
     { }
 
     public class MediaStreamFascade : MediaStreamFascadeBase, IMediaStreamFascade
@@ -45,7 +45,7 @@ namespace SM.Media
 
         #region IMediaStreamFascade Members
 
-        public async Task<MediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
+        public async Task<IMediaSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
             Exception exception;
 
@@ -53,7 +53,13 @@ namespace SM.Media
             {
                 var mediaManager = await CreateMediaMangerAsync(source, cancellationToken).ConfigureAwait(false);
 
-                return (MediaStreamSource)mediaManager.MediaStreamSource;
+                var mss = (WinRtMediaStreamSource)mediaManager.MediaStreamSource;
+
+                var tcs = new TaskCompletionSource<IMediaSource>();
+
+                mss.RegisterMediaStreamSourceHandler(ms => tcs.TrySetResult(ms));
+
+                return await tcs.Task.ConfigureAwait(false);
             }
             catch (Exception ex)
             {

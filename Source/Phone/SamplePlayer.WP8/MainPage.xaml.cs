@@ -24,8 +24,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Windows.Navigation;
+//#define STREAM_SWITCHING
+
+using System;
+using System.Diagnostics;
+using System.Windows.Threading;
 using Microsoft.Phone.Controls;
+using Microsoft.Phone.Info;
+using Microsoft.PlayerFramework;
+using SM.Media.Utility;
 
 namespace SamplePlayer.WP8
 {
@@ -51,6 +58,15 @@ namespace SamplePlayer.WP8
             InitializeComponent();
 
 #if STREAM_SWITCHING
+            player.PlayerStateChanged += (sender, args) =>
+                                         {
+                                             if (PlayerState.Failed == args.NewValue || PlayerState.Ending == args.NewValue)
+                                             {
+                                                 if (_timer.Interval < TimeSpan.FromSeconds(3))
+                                                     _timer.Interval = TimeSpan.FromSeconds(3);
+                                             }
+                                         };
+
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
@@ -61,17 +77,23 @@ namespace SamplePlayer.WP8
 
                                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               var source = Uris[_count];
+                               var source = Sources[_count];
 
                                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
                                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
                                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
                                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               player.Source = source;
+                               player.Source = null == source ? null : new Uri(source);
 
-                               if (++_count >= Uris.Length)
+                               if (++_count >= Sources.Length)
                                    _count = 0;
+
+                               var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
+
+                               Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
+
+                               _timer.Interval = interval;
                            };
 
             //_timer.Tick += (sender, args) =>

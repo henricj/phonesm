@@ -30,6 +30,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Windows.Media;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
@@ -47,7 +49,6 @@ namespace HlsView
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.DefaultTask.Result;
         readonly IHttpClients _httpClients;
-        readonly IMediaElementManager _mediaElementManager;
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
@@ -72,15 +73,6 @@ namespace HlsView
         public MainPage()
         {
             InitializeComponent();
-
-            _mediaElementManager = new WinRtMediaElementManager(Dispatcher,
-                () =>
-                {
-                    UpdateState(MediaElementState.Opening);
-
-                    return mediaElement1;
-                },
-                me => UpdateState(MediaElementState.Closed));
 
             var userAgent = ApplicationInformation.CreateUserAgent();
 
@@ -110,7 +102,7 @@ namespace HlsView
 
                                UpdateNextPrev();
 
-                               PlayCurrentTrack();
+                               PlayCurrentTrackAsync();
 
                                var track = CurrentTrack;
 
@@ -321,10 +313,12 @@ namespace HlsView
                 return;
             }
 
-            PlayCurrentTrack();
+            var task = PlayCurrentTrackAsync();
+
+            TaskCollector.Default.Add(task, "MainPage.OnPlay() PlayCurrentTrackAsync");
         }
 
-        void PlayCurrentTrack()
+        async Task PlayCurrentTrackAsync()
         {
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
@@ -336,7 +330,7 @@ namespace HlsView
                 if (track.UseNativePlayer)
                 {
                     if (null != _mediaStreamFascade)
-                        _mediaStreamFascade.Source = null;
+                        await _mediaStreamFascade.StopAsync(CancellationToken.None);
 
                     mediaElement1.Source = track.Url;
                 }
@@ -345,9 +339,25 @@ namespace HlsView
                     if (null != mediaElement1.Source)
                         mediaElement1.Source = null;
 
-                    InitializeMediaStream();
+                    try
+                    {
+                        InitializeMediaStream();
 
-                    _mediaStreamFascade.Source = track.Url;
+                        var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+
+                        if (null == mss)
+                        {
+                            Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source");
+                            return;
+                        }
+
+                        mediaElement1.SetMediaStreamSource(mss);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source: " + ex.Message);
+                        return;
+                    }
                 }
             }
             else
@@ -367,7 +377,9 @@ namespace HlsView
 
             UpdateNextPrev();
 
-            PlayCurrentTrack();
+            var task = PlayCurrentTrackAsync();
+
+            TaskCollector.Default.Add(task, "MainPage.OnNext() PlayCurrentTrackAsync");
         }
 
         void OnPrevious()
@@ -379,7 +391,9 @@ namespace HlsView
 
             UpdateNextPrev();
 
-            PlayCurrentTrack();
+            var task = PlayCurrentTrackAsync();
+
+            TaskCollector.Default.Add(task, "MainPage.OnPrevious() PlayCurrentTrackAsync");
         }
 
         void InitializeMediaStream()
@@ -387,9 +401,7 @@ namespace HlsView
             if (null != _mediaStreamFascade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
-
-            _mediaStreamFascade.SetParameter(_mediaElementManager);
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
 
             _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
         }

@@ -26,8 +26,12 @@
 
 using System;
 using System.Diagnostics;
+using System.Net;
+using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using SM.Media;
+using SM.Media.Content;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -66,18 +70,28 @@ namespace SimulatedPlayer
 
         #endregion
 
-        public void Start()
+        public async Task StartAsync()
         {
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _mediaStreamFascade = new MediaStreamFascade(_httpClients, ((IMediaElementManager)mediaElementManager).SetSourceAsync);
+            _mediaStreamFascade = new MediaStreamFascade(_httpClients);
 
             _mediaStreamFascade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
 
-            _mediaStreamFascade.Source = new Uri(
+            var source = new Uri(
                 //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
                 "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
                 );
+
+            var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+
+            if (null == mss)
+            {
+                Debug.WriteLine("Unable to create media stream source");
+                return;
+            }
+
+            mediaElementManager.SetSource(mss);
 
             Thread.Sleep(750);
 
@@ -93,13 +107,11 @@ namespace SimulatedPlayer
 
                                       var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                                      var source = Sources[_count];
+                                      var source2 = Sources[_count];
 
                                       Debug.WriteLine("Switching to {0} (GC {1:F3} MiB)", source, gcMemory);
 
-                                      var url = null == source ? null : new Uri(source);
-
-                                      _mediaStreamFascade.Source = url;
+                                      var url = null == source ? null : new Uri(source2);
 
                                       if (++_count >= Sources.Length)
                                           _count = 0;

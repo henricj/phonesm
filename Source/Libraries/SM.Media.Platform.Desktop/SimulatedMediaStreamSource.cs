@@ -36,7 +36,7 @@ using SM.TsParser;
 
 namespace SimulatedPlayer
 {
-    class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
+    public class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly object _lock = new object();
@@ -149,6 +149,8 @@ namespace SimulatedPlayer
                         if (_isClosed)
                             return;
 
+                        Debug.WriteLine("SimulatedMediaStreamSource.SeekAsync({0}) actual {1}", seekTimestamp, position);
+
                         ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportSeekCompleted);
                         _mediaElement.ReportSeekCompleted(position.Ticks);
                     }
@@ -163,8 +165,8 @@ namespace SimulatedPlayer
                     }
 
                     if (0 != _pendingRequests)
-                        _asyncFifoWorker.Post(HandleSamples, _cancellationTokenSource.Token);
-                }, _cancellationTokenSource.Token);
+                        _asyncFifoWorker.Post(HandleSamples, "SimulatedMediaStreamSource.SeekAsync() HandleSamples", _cancellationTokenSource.Token);
+                }, "SimulatedMediaStreamSource.SeekAsync() SeekMediaAsync", _cancellationTokenSource.Token);
         }
 
         public void GetSampleAsync(int streamType)
@@ -175,7 +177,7 @@ namespace SimulatedPlayer
 
             RequestGet(streamType);
 
-            _asyncFifoWorker.Post(HandleSamples, _cancellationTokenSource.Token);
+            _asyncFifoWorker.Post(HandleSamples, "SimulatedMediaStreamSource.GetSampleAsync() HandleSamples", _cancellationTokenSource.Token);
         }
 
         public void CloseMedia()
@@ -200,8 +202,10 @@ namespace SimulatedPlayer
 
         public void CheckForSamples()
         {
+            Debug.WriteLine("SimulatedMediaStreamSource.CheckForSamples: pending {0}", _pendingRequests);
+
             if (0 != _pendingRequests)
-                _asyncFifoWorker.Post(HandleSamples, _cancellationTokenSource.Token);
+                _asyncFifoWorker.Post(HandleSamples, "SimulatedMediaStreamSource.CheckForSamples() HandleSamples", _cancellationTokenSource.Token);
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)

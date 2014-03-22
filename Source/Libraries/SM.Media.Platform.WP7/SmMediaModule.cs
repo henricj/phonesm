@@ -69,7 +69,6 @@ namespace SM.Media
             Bind<ISegmentManagerFactoryFinder>().To<SegmentManagerFactoryFinder>().InSingletonScope();
             Bind<ISegmentManagerFactory>().To<SegmentManagerFactory>().InSingletonScope();
             Bind<ISegmentReaderManagerFactory>().To<SegmentReaderManagerFactory>().InSingletonScope();
-            Bind<IMediaElementManager>().To<NullMediaElementManager>().InSingletonScope();
 
             Bind<ITsPesPacketPool>().To<TsPesPacketPool>().InScope(scope);
             Bind<IBufferPool>().To<BufferPool>().InScope(scope);

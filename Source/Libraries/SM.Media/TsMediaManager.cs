@@ -51,7 +51,7 @@ namespace SM.Media
         }
     }
 
-    public sealed class TsMediaManager : IMediaManager, IDisposable
+    public sealed class TsMediaManager : IMediaManager
     {
         #region MediaState enum
 
@@ -74,7 +74,6 @@ namespace SM.Media
         readonly Func<IBufferingManager> _bufferingManagerFactory;
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
-        readonly IMediaElementManager _mediaElementManager;
         readonly IMediaParserFactory _mediaParserFactory;
         readonly IMediaStreamSource _mediaStreamSource;
         readonly Action<IProgramStreams> _programStreamsHandler;
@@ -88,15 +87,13 @@ namespace SM.Media
         ISegmentReaderManager _readerManager;
         IMediaReader[] _readers;
 
-        public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory, IMediaElementManager mediaElementManager,
+        public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory,
             IMediaStreamSource mediaStreamSource, Func<IBufferingManager> bufferingManagerFactory,
             IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory,
             IPlatformServices platformServices)
         {
             if (null == segmentReaderManagerFactory)
                 throw new ArgumentNullException("segmentReaderManagerFactory");
-            if (null == mediaElementManager)
-                throw new ArgumentNullException("mediaElementManager");
             if (null == mediaStreamSource)
                 throw new ArgumentNullException("mediaStreamSource");
             if (null == bufferingManagerFactory)
@@ -105,7 +102,6 @@ namespace SM.Media
                 throw new ArgumentNullException("platformServices");
 
             _segmentReaderManagerFactory = segmentReaderManagerFactory;
-            _mediaElementManager = mediaElementManager;
             _mediaStreamSource = mediaStreamSource;
             _bufferingManagerFactory = bufferingManagerFactory;
             _mediaParserFactory = mediaParserFactory;
@@ -192,7 +188,7 @@ namespace SM.Media
                                       State = MediaState.OpenMedia;
 
                                       return OpenMediaAsync();
-                                  }, _closeCancellationTokenSource.Token);
+                                  }, "TsMediaManager.OpenMedia() OpenMediaAsync", _closeCancellationTokenSource.Token);
         }
 
         public void CloseMedia()
@@ -208,7 +204,7 @@ namespace SM.Media
             // at return is what the caller asked for (closed).
             try
             {
-                _asyncFifoWorker.Post(CloseAsync, CancellationToken.None);
+                _asyncFifoWorker.Post(CloseAsync, "TsMediaManager.CloseMedia() CloseAsync", CancellationToken.None);
             }
             catch (OperationCanceledException ex)
             {
@@ -228,7 +224,7 @@ namespace SM.Media
 
             TimeSpan actualPosition;
 
-            await _asyncFifoWorker.PostAsync(async () => actualPosition = await SeekAsync(position).ConfigureAwait(false), token).ConfigureAwait(false);
+            await _asyncFifoWorker.PostAsync(async () => actualPosition = await SeekAsync(position).ConfigureAwait(false), "TsMediaManager.SeekMediaAsync() SeekAsync", token).ConfigureAwait(false);
 
             return actualPosition;
         }
@@ -275,7 +271,7 @@ namespace SM.Media
 
             if (null != readerManager)
             {
-                //Debug.WriteLine("TsMediaManager.CloseAsync() calling readerManager.StopAsync()");
+                Debug.WriteLine("TsMediaManager.CloseAsync() calling readerManager.StopAsync()");
 
                 _readerManager = null;
 
@@ -288,7 +284,7 @@ namespace SM.Media
 
             if (null != mss)
             {
-                //Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaStreamSource.CloseAsync()");
+                Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaStreamSource.CloseAsync()");
 
                 drainTask = mss.CloseAsync();
             }
@@ -310,19 +306,6 @@ namespace SM.Media
                 {
                     Debug.WriteLine("TsMediaManager.CloseAsync() stop failed: " + ex.Message);
                 }
-            }
-
-            try
-            {
-                //Debug.WriteLine("TsMediaManager.CloseAsync() calling _mediaElementManager.CloseAsync()");
-
-                await _mediaElementManager.CloseAsync().ConfigureAwait(false);
-
-                //Debug.WriteLine("TsMediaManager.CloseAsync() returned from _mediaElementManager.CloseAsync()");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("TsMediaManager.CloseAsync() media element manager CloseAsync failed: " + ex.Message);
             }
 
             if (null != drainTask)

@@ -90,14 +90,11 @@
     <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFascadeParameters.cs">
       <Link>DefaultMediaStreamFascadeParameters.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFascade.cs">
-      <Link>MediaStreamFascade.cs</Link>
-    </Compile>
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="TsMediaModule.cs" />
-    <Compile Include="WinRtMediaElementManager.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Utility\SmDebug.cs" />
+    <Compile Include="WinRtMediaStreamFascade.cs" />
     <Compile Include="WinRtMediaStreamSource.cs" />
     <Compile Include="Aes128Pkcs7ReadStream.cs" />
     <Compile Include="PlatformServices.cs" />

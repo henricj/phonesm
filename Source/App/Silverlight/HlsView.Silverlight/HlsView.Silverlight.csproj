@@ -106,9 +106,6 @@
     <Reference Include="System.Windows.Browser" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\..\Libraries\SM.Media.Platform.WP7\MediaElementManager.cs">
-      <Link>MediaElementManager.cs</Link>
-    </Compile>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>

@@ -26,13 +26,14 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
+using NasaTv;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -61,52 +62,14 @@ namespace NasaTv8
 
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly HttpClients _httpClients;
-        readonly MediaElementManager _mediaElementManager;
         IMediaStreamFascade _mediaStreamFascade;
+        readonly PersistentSettings _settings = new PersistentSettings();
 
         public MainPage()
         {
             InitializeComponent();
 
             _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
-
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                () =>
-                {
-                    var me = new MediaElement
-                             {
-                                 Margin = new Thickness(0)
-                             };
-
-                    me.MediaFailed += mediaElement1_MediaFailed;
-                    me.MediaEnded += mediaElement1_MediaEnded;
-                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
-
-                    ContentPanel.Children.Add(me);
-
-                    mediaElement1 = me;
-
-                    UpdateState(MediaElementState.Opening);
-
-                    return me;
-                },
-                me =>
-                {
-                    if (null != mediaElement1)
-                    {
-                        Debug.Assert(ReferenceEquals(me, mediaElement1));
-
-                        ContentPanel.Children.Remove(me);
-
-                        me.MediaFailed -= mediaElement1_MediaFailed;
-                        me.MediaEnded -= mediaElement1_MediaEnded;
-                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
-
-                        mediaElement1 = null;
-                    }
-
-                    UpdateState(MediaElementState.Closed);
-                });
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
@@ -131,6 +94,7 @@ namespace NasaTv8
         {
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
+            stopButton.IsEnabled = true;
 
             if (null != mediaElement1)
                 mediaElement1.Visibility = Visibility.Visible;
@@ -150,38 +114,82 @@ namespace NasaTv8
             LayoutRoot.Background.Opacity = 1;
         }
 
-        void playButton_Click(object sender, EventArgs e)
+        async void playButton_Click(object sender, EventArgs e)
         {
             Debug.WriteLine("Play clicked");
 
-            // Try to avoid shattering MediaElement's glass jaw.
-            if (null != mediaElement1 && MediaElementState.Closed != mediaElement1.CurrentState)
+            OnStop();
+
+            if (null == mediaElement1)
+            {
+                Debug.WriteLine("MainPage Play no media element");
+                return;
+            }
+
+            if (MediaElementState.Closed != mediaElement1.CurrentState)
             {
                 CleanupMedia();
+
+                UpdateState();
 
                 return;
             }
 
-            OnPlay();
+            var source = _settings.PlaylistUrl;
 
-            if (null != _mediaStreamFascade)
+            InitializeMediaStream();
+
+            try
             {
-                _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
-                _mediaStreamFascade.DisposeSafe();
+                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+
+                if (null == mss)
+                {
+                    Debug.WriteLine("MainPage Play unable to create media stream source");
+                    return;
+                }
+
+                if (null == mediaElement1)
+                {
+                    Debug.WriteLine("MainPage Play null media element");
+                    return;
+                }
+
+                mediaElement1.SetSource(mss);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage Play unable to create media stream source: " + ex.Message);
+                return;
             }
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
+            mediaElement1.Play();
 
-            _mediaStreamFascade.Source = new Uri(
-                "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                );
+            OnPlay();
 
-            _mediaStreamFascade.SetParameter(_mediaElementManager);
+            UpdateState();
+        }
+
+        void InitializeMediaStream()
+        {
+            if (null != _mediaStreamFascade)
+                return;
+
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
 
             _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
+        }
 
-            _mediaStreamFascade.Play();
+        void CleanupMedia()
+        {
+            if (null != _mediaStreamFascade)
+                _mediaStreamFascade.RequestStop();
+
+            if (null != mediaElement1)
+            {
+                mediaElement1.Stop();
+                mediaElement1.Source = null;
+            }
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -194,15 +202,14 @@ namespace NasaTv8
             playButton.IsEnabled = true;
         }
 
-        void CleanupMedia()
-        {
-            if (null != _mediaStreamFascade)
-                _mediaStreamFascade.RequestStop();
-        }
-
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)
         {
             CleanupMedia();
+        }
+
+        void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
+        {
+            UpdateState();
         }
 
         void stopButton_Click(object sender, EventArgs e)
@@ -214,27 +221,29 @@ namespace NasaTv8
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
+            Debug.WriteLine("OnNavigatedFrom()");
+
             base.OnNavigatedFrom(e);
 
             CleanupMedia();
-
-            if (null != _mediaElementManager)
-                _mediaElementManager.CloseAsync().Wait();
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            Debug.WriteLine("OnNavigatedTo()");
+
             base.OnNavigatedTo(e);
 
-            if (null != _mediaElementManager)
-                _mediaElementManager.CloseAsync().Wait();
+            CleanupMedia();
+
+            UpdateState();
         }
 
         void PhoneApplicationPageTap(object sender, GestureEventArgs e)
         {
             Debug.WriteLine("Tapped");
 
-            var state = null == mediaElement1 ? MediaElementState .Closed : mediaElement1.CurrentState;
+            var state = null == mediaElement1 ? MediaElementState.Closed : mediaElement1.CurrentState;
 
             if (MediaElementState.Closed == state)
             {
@@ -272,11 +281,6 @@ namespace NasaTv8
             root.Navigate(new Uri(viewsAboutXaml, UriKind.Relative));
         }
 
-        void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
-        {
-            UpdateState();
-        }
-
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
@@ -310,7 +314,7 @@ namespace NasaTv8
             if (MediaElementState.Closed == state)
                 OnStop();
             else
-                stopButton.IsEnabled = true;
+                OnPlay();
         }
     }
 }

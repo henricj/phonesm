@@ -100,9 +100,6 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaElementManager.cs">
-      <Link>MediaElementManager.cs</Link>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamingMediaPlugin.cs" />
   </ItemGroup>

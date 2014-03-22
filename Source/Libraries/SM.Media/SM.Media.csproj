@@ -143,7 +143,6 @@
     <Compile Include="Content\ContentTypes.cs" />
     <Compile Include="H262\H262Configurator.cs" />
     <Compile Include="H262\H262StreamHandler.cs" />
-    <Compile Include="IMediaElementManager.cs" />
     <Compile Include="IMediaManager.cs" />
     <Compile Include="MediaParser\IMediaParser.cs" />
     <Compile Include="MediaParser\IMediaStreamSource.cs" />
@@ -160,7 +159,6 @@
     <Compile Include="MP3\Mp3FrameHeader.cs" />
     <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="MP3\Mp3Parser.cs" />
-    <Compile Include="NullMediaElementManager.cs" />
     <Compile Include="Buffering\NullBufferingManager.cs" />
     <Compile Include="Playlists\PlaylistParameters.cs" />
     <Compile Include="Playlists\PlaylistSegmentManager.cs" />

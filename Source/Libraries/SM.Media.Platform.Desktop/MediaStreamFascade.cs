@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="NullMediaElementManager.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamFascade.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,33 +25,55 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
+using SimulatedPlayer;
+using SM.Media.Builder;
+using SM.Media.Web;
 
 namespace SM.Media
 {
-    public class NullMediaElementManager : IMediaElementManager
+    public interface IMediaStreamFascade : IMediaStreamFascadeBase<SimulatedMediaStreamSource>
+    { }
+
+    public class MediaStreamFascade : MediaStreamFascadeBase, IMediaStreamFascade
     {
-        #region IMediaElementManager Members
+        public MediaStreamFascade(IHttpClients httpClients)
+            : base(CreateBuilder(httpClients))
+        { }
 
-        public Task SetSourceAsync(IMediaStreamSource source)
+        #region IMediaStreamFascade Members
+
+        public async Task<SimulatedMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
-            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
+            Exception exception;
 
-            return TplTaskExtensions.CompletedTask;
-        }
+            try
+            {
+                var mediaManager = await CreateMediaMangerAsync(source, cancellationToken).ConfigureAwait(false);
 
-        public Task CloseAsync()
-        {
-            return TplTaskExtensions.CompletedTask;
+                return (SimulatedMediaStreamSource)mediaManager.MediaStreamSource;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaStreamFascade.CreateAsync() failed: " + ex.Message);
+
+                exception = new AggregateException(ex.Message, ex);
+            }
+
+            await CloseAsync().ConfigureAwait(false);
+
+            throw exception;
         }
 
         #endregion
 
-        public Task Dispatch(Action action)
+        static IBuilder<IMediaManager> CreateBuilder(IHttpClients httpClients)
         {
-            return TplTaskExtensions.CompletedTask;
+            var builder = new TsMediaManagerBuilder(httpClients);
+
+            return builder;
         }
     }
 }

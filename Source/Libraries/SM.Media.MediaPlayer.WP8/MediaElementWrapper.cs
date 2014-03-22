@@ -27,13 +27,12 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.PlayerFramework;
-using SM.Media.MediaParser;
 using SM.Media.Utility;
 using LogReadyRoutedEventArgs = System.Windows.Media.LogReadyRoutedEventArgs;
 using LogReadyRoutedEventHandler = Microsoft.PlayerFramework.LogReadyRoutedEventHandler;
@@ -55,6 +54,7 @@ namespace SM.Media.MediaPlayer
     {
         readonly IMediaStreamFascade _mediaStreamFascade;
         readonly TaskCompletionSource<object> _templateAppliedTaskSource;
+        Uri _source;
 
         /// <summary>
         ///     The MediaElement being wrapped
@@ -64,18 +64,18 @@ namespace SM.Media.MediaPlayer
         /// <summary>
         ///     Creates a new instance of the MediaElementWrapper class.
         /// </summary>
-        /// <param name="mediaStreamFascadeFactory"></param>
-        public MediaElementWrapper(Func<Func<IMediaStreamSource, Task>, IMediaStreamFascade> mediaStreamFascadeFactory)
+        /// <param name="mediaStreamFascade"></param>
+        public MediaElementWrapper(IMediaStreamFascade mediaStreamFascade)
         {
-            if (mediaStreamFascadeFactory == null)
-                throw new ArgumentNullException("mediaStreamFascadeFactory");
+            if (mediaStreamFascade == null)
+                throw new ArgumentNullException("mediaStreamFascade");
 
             Debug.WriteLine("MediaElementWrapper.ctor()");
 
             HorizontalContentAlignment = HorizontalAlignment.Stretch;
             VerticalContentAlignment = VerticalAlignment.Stretch;
 
-            _mediaStreamFascade = mediaStreamFascadeFactory(SetSourceAsync);
+            _mediaStreamFascade = mediaStreamFascade;
 
             MediaElement = new MediaElement();
             MediaElement.MediaEnded += MediaElement_MediaEnded;
@@ -380,10 +380,12 @@ namespace SM.Media.MediaPlayer
         /// <inheritdoc />
         public Uri Source
         {
-            get { return _mediaStreamFascade.Source; }
+            get { return _source; }
             set
             {
                 Debug.WriteLine("MediaElementWrapper.Source setter: " + value);
+
+                _source = value;
 
                 if (value == null)
                 {
@@ -394,7 +396,9 @@ namespace SM.Media.MediaPlayer
                         CurrentStateChanged(this, new RoutedEventArgs());
                 }
 
-                _mediaStreamFascade.Source = value;
+                var t = SetSourceAsync();
+
+                TaskCollector.Default.Add(t, "MediaElementWrapper.Source setter");
             }
         }
 
@@ -493,55 +497,16 @@ namespace SM.Media.MediaPlayer
             Close();
         }
 
-        public Task SetSourceAsync(IMediaStreamSource mediaStreamSource)
+        async Task SetSourceAsync()
         {
             Debug.WriteLine("MediaElementWrapper.SetSourceAsync()");
 
-            var mss = (MediaStreamSource)mediaStreamSource;
-
-            return Dispatcher.DispatchAsync(() => SetSource(mss));
-        }
-
-        static readonly MediaElementState[] PlayableStates = { MediaElementState.Paused, MediaElementState.Stopped };
-
-        public Task<bool> TryStartPlaybackAsync()
-        {
-            Debug.WriteLine("MediaElementWrapper.TryStartPlaybackAsync()");
+            var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(_source, CancellationToken.None);
 
             if (Dispatcher.CheckAccess())
-                return TryStartPlayback() ? TplTaskExtensions.TrueTask : TplTaskExtensions.FalseTask;
-
-            return Dispatcher.DispatchAsync(() => TryStartPlayback());
-        }
-
-        bool TryStartPlayback()
-        {
-            Debug.WriteLine("MediaElementWrapper.TryStartPlayback()");
-
-            var state = MediaElement.CurrentState;
-
-            if (MediaElementState.Closed != state && MediaElementState.Opening != state)
-            {
-                if (PlayableStates.Contains(state))
-                    MediaElement.Play();
-
-                return true;
-            }
-
-            return false;
-        }
-
-        public async Task StartPlaybackAsync()
-        {
-            Debug.WriteLine("MediaElementWrapper.StartPlaybackAsync()");
-
-            if (null == Source)
-                return;
-
-            if (await TryStartPlaybackAsync().ConfigureAwait(false))
-                return;
-
-            _mediaStreamFascade.Play();
+                SetSource(mss);
+            else
+                await Dispatcher.DispatchAsync(() => SetSource(mss));
         }
 
         public void Cleanup()

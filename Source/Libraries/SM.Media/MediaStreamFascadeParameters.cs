@@ -25,17 +25,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading.Tasks;
-using SM.Media.Buffering;
-using SM.Media.MediaParser;
 using SM.Media.Web;
 
 namespace SM.Media
 {
     public class MediaStreamFascadeParameters
     {
-        public IBufferingPolicy BufferingPolicy { get; set; }
-
-        public Func<IHttpClients, Func<IMediaStreamSource, Task>, IMediaStreamFascade> Factory { get; set; }
+        public Func<IHttpClients, IMediaStreamFascadeBase> Factory { get; set; }
     }
 }

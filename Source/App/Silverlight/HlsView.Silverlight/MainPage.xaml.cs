@@ -26,8 +26,8 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -35,7 +35,6 @@ using System.Windows.Threading;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
-using SM.TsParser;
 
 namespace HlsView.Silverlight
 {
@@ -56,7 +55,6 @@ namespace HlsView.Silverlight
 #endif
 
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
-        readonly IMediaElementManager _mediaElementManager;
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
@@ -66,15 +64,6 @@ namespace HlsView.Silverlight
         public MainPage()
         {
             InitializeComponent();
-
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                () =>
-                {
-                    UpdateState(MediaElementState.Opening);
-
-                    return mediaElement1;
-                },
-                me => UpdateState(MediaElementState.Closed));
 
             _httpClients = new SilverlightHttpClients();
 
@@ -199,7 +188,7 @@ namespace HlsView.Silverlight
             return sb.ToString();
         }
 
-        void play_Click(object sender, RoutedEventArgs e)
+        async void play_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("Play clicked");
 
@@ -220,12 +209,29 @@ namespace HlsView.Silverlight
 
             InitializeMediaStream();
 
-            _mediaStreamFascade.Source = new Uri(
+            var source = new Uri(
                 //"http://www.npr.org/streams/mp3/nprlive24.pls"
                 //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
                 //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
                 "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
                 );
+
+            try
+            {
+                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+
+                if (null == mss)
+                {
+                    Debug.WriteLine("MainPage Play unable to create media stream source");
+                    return;
+                }
+
+                mediaElement1.SetSource(mss);
+            }
+            catch (Exception)
+            {
+                return;
+            }
 
             mediaElement1.Play();
 
@@ -237,31 +243,7 @@ namespace HlsView.Silverlight
             if (null != _mediaStreamFascade)
                 return;
 
-           var mediaManagerParameters = new MediaManagerParameters
-            {
-                ProgramStreamsHandler =
-                    streams =>
-                    {
-                        var gotFirst = false;
-
-                        foreach (var stream in streams.Streams)
-                        {
-                            if (!gotFirst && TsStreamType.StreamContents.Video == stream.StreamType.Contents)
-                            {
-                                gotFirst = true;
-                                continue;
-                            }
-
-                            stream.BlockStream = true;
-                        }
-                    }
-            };
-
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
-
-            _mediaStreamFascade.SetParameter(_mediaElementManager);
-
-            //_mediaStreamFascade.SetParameter(mediaManagerParameters);
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
 
             _mediaStreamFascade.Builder.RegisterSingleton<IHttpClients, SilverlightHttpClients>();
 

@@ -25,27 +25,25 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Threading.Tasks;
-using SM.Media.MediaParser;
 using SM.Media.Web;
 
 namespace SM.Media
 {
     public static class DefaultMediaStreamFascadeParameters
     {
-        public static Func<IHttpClients, Func<IMediaStreamSource, Task>, IMediaStreamFascade> Factory =
-            (httpClients, mediaStreamSourceSetter) =>
+        public static Func<IHttpClients, IMediaStreamFascadeBase> Factory =
+            httpClients =>
             {
-                var mediaStreamFascade = new MediaStreamFascade(httpClients, mediaStreamSourceSetter);
+                var mediaStreamFascade = new MediaStreamFascade(httpClients);
 
                 return mediaStreamFascade;
             };
 
-        public static IMediaStreamFascade Create(this MediaStreamFascadeParameters parameters, IHttpClients httpClients, Func<IMediaStreamSource, Task> mediaStreamSourceSetter)
+        public static IMediaStreamFascade Create(this MediaStreamFascadeParameters parameters, IHttpClients httpClients)
         {
             var factory = parameters.Factory ?? Factory;
 
-            return factory(httpClients, mediaStreamSourceSetter);
+            return (IMediaStreamFascade)factory(httpClients);
         }
     }
 }

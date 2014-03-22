@@ -38,6 +38,7 @@ namespace SM.Media.Utility
         readonly SignalTask _signalTask;
         readonly Queue<WorkHandle> _workQueue = new Queue<WorkHandle>();
         bool _isClosed;
+        WorkHandle _work;
 
         public AsyncFifoWorker(CancellationToken cancellationToken)
         {
@@ -87,6 +88,9 @@ namespace SM.Media.Utility
                     work = _workQueue.Dequeue();
                 }
 
+#if DEBUG
+                _work = work;
+#endif
                 try
                 {
                     work.TryDeregister();
@@ -98,6 +102,9 @@ namespace SM.Media.Utility
                     Debug.WriteLine("AsyncFifoWorker.Worker() failed: " + ex.ExtendedMessage());
                 }
 
+#if DEBUG
+                _work = null;
+#endif
                 work.Dispose();
             }
         }
@@ -115,19 +122,19 @@ namespace SM.Media.Utility
             work.Dispose();
         }
 
-        public void Post(Func<Task> workFunc, CancellationToken cancellationToken)
+        public void Post(Func<Task> workFunc, string description, CancellationToken cancellationToken)
         {
-            PostWork(workFunc, false, cancellationToken);
+            PostWork(workFunc, false, description, cancellationToken);
         }
 
-        public Task PostAsync(Func<Task> workFunc, CancellationToken cancellationToken)
+        public Task PostAsync(Func<Task> workFunc, string description, CancellationToken cancellationToken)
         {
-            var work = PostWork(workFunc, true, cancellationToken);
+            var work = PostWork(workFunc, true, description, cancellationToken);
 
             return work.Task;
         }
 
-        WorkHandle PostWork(Func<Task> workFunc, bool createTcs, CancellationToken cancellationToken)
+        WorkHandle PostWork(Func<Task> workFunc, bool createTcs, string description, CancellationToken cancellationToken)
         {
             if (workFunc == null)
                 throw new ArgumentNullException("workFunc");
@@ -143,6 +150,9 @@ namespace SM.Media.Utility
 
                 work = new WorkHandle(workFunc, createTcs ? new TaskCompletionSource<object>() : null);
 
+#if DEBUG
+                work.Description = description;
+#endif
                 _workQueue.Enqueue(work);
             }
 
@@ -198,6 +208,9 @@ namespace SM.Media.Utility
             readonly Func<Task> _work;
             CancellationTokenRegistration _cancellationTokenRegistration;
             int _state;
+#if DEBUG
+            public string Description { get; set; }
+#endif
 
             public WorkHandle(Func<Task> work, TaskCompletionSource<object> taskCompletionSource)
             {
@@ -296,18 +309,18 @@ namespace SM.Media.Utility
 
     public static class AsyncFifoWorkerExtensions
     {
-        public static void Post(this AsyncFifoWorker worker, Action action, CancellationToken cancellationToken)
+        public static void Post(this AsyncFifoWorker worker, Action action, string description, CancellationToken cancellationToken)
         {
             worker.Post(() =>
                         {
                             action();
                             return TplTaskExtensions.CompletedTask;
-                        }, cancellationToken);
+                        }, description, cancellationToken);
         }
 
-        public static void Post(this AsyncFifoWorker worker, Task work, CancellationToken cancellationToken)
+        public static void Post(this AsyncFifoWorker worker, Task work, string description, CancellationToken cancellationToken)
         {
-            worker.Post(() => work, cancellationToken);
+            worker.Post(() => work, description, cancellationToken);
         }
     }
 }

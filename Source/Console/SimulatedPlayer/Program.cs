@@ -57,7 +57,7 @@ namespace SimulatedPlayer
                 using (var httpClients = new HttpClients(userAgent: userAgent, cookieContainer: cookies))
                 using (var simulator = new Simulator(httpClients))
                 {
-                    simulator.Start();
+                    simulator.StartAsync().Wait();
 
                     Console.WriteLine("Press <enter> to exit");
 

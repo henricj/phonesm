@@ -38,7 +38,7 @@ using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public interface IMediaStreamFascade : IDisposable
+    public interface IMediaStreamFascadeBase : IDisposable
     {
         /// <summary>
         ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
@@ -47,37 +47,41 @@ namespace SM.Media
         /// <seealso cref="SM.Media.Content.ContentTypes" />
         ContentType ContentType { get; set; }
 
-        Uri Source { get; set; }
+        //Uri Source { get; set; }
         TimeSpan? SeekTarget { get; set; }
         TsMediaManager.MediaState State { get; }
         IBuilder<IMediaManager> Builder { get; }
 
         event EventHandler<TsMediaManagerStateEventArgs> StateChange;
+
         void Play();
         void RequestStop();
+        Task StopAsync(CancellationToken cancellationToken);
         Task CloseAsync();
     }
 
-    public class MediaStreamFascadeBase : IMediaStreamFascade
+    public interface IMediaStreamFascadeBase<TMediaStreamSource> : IMediaStreamFascadeBase
+        where TMediaStreamSource : class
+    {
+        Task<TMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken);
+    }
+
+    public abstract class MediaStreamFascadeBase : IMediaStreamFascadeBase
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
         readonly IBuilder<IMediaManager> _mediaManagerBuilder;
-        readonly Func<IMediaStreamSource, Task> _setSourceAsync;
         int _isDisposed;
         IMediaManager _mediaManager;
         ISegmentManager _playlist;
         Uri _source;
 
-        protected MediaStreamFascadeBase(IBuilder<IMediaManager> mediaManagerBuilder, Func<IMediaStreamSource, Task> setSourceAsync)
+        protected MediaStreamFascadeBase(IBuilder<IMediaManager> mediaManagerBuilder)
         {
             if (mediaManagerBuilder == null)
                 throw new ArgumentNullException("mediaManagerBuilder");
-            if (null == setSourceAsync)
-                throw new ArgumentNullException("setSourceAsync");
 
-            _setSourceAsync = setSourceAsync;
             _mediaManagerBuilder = mediaManagerBuilder;
         }
 
@@ -92,7 +96,7 @@ namespace SM.Media
             }
         }
 
-        #region IMediaStreamFascade Members
+        #region IMediaStreamFascadeBase Members
 
         public void Dispose()
         {
@@ -106,27 +110,6 @@ namespace SM.Media
 
         /// <inheritdoc />
         public ContentType ContentType { get; set; }
-
-        public virtual Uri Source
-        {
-            get { return _source; }
-            set
-            {
-                Debug.WriteLine("MediaStreamFascadeBase Source setter: " + value);
-
-                ThrowIfDisposed();
-
-                Post(CloseMediaAsync);
-
-                if (value == null)
-                    return;
-
-                if (value.IsAbsoluteUri)
-                    Post(() => SetMediaSourceAsync(value));
-                else
-                    Debug.WriteLine("MediaStreamFascade Source setter: invalid URL: " + value);
-            }
-        }
 
         public TimeSpan? SeekTarget
         {
@@ -175,16 +158,30 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
-            Post(StartPlaybackAsync);
+            Post(StartPlaybackAsync, "MediaStreamFascadeBase.Play() StartPlaybackAsync");
         }
 
         public void RequestStop()
         {
-            Debug.WriteLine("MediaStreamFascadeBase.Stop()");
+            Debug.WriteLine("MediaStreamFascadeBase.RequestStop()");
 
             ThrowIfDisposed();
 
-            Post(CloseMediaAsync);
+            Post(CloseMediaAsync, "MediaStreamFascadeBase.RequestStop() CloseMediaAsync");
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken)
+        {
+            Debug.WriteLine("MediaStreamFascadeBase.StopAsync()");
+
+            ThrowIfDisposed();
+
+            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCancellationTokenSource.Token))
+            {
+                await _asyncFifoWorker
+                    .PostAsync(CloseMediaAsync, "MediaStreamFascadeBase.StopAsync() CloseMediaAsync", linkedToken.Token)
+                    .ConfigureAwait(false);
+            }
         }
 
         public Task CloseAsync()
@@ -195,7 +192,7 @@ namespace SM.Media
 
             _disposeCancellationTokenSource.Cancel();
 
-            return _asyncFifoWorker.PostAsync(CloseMediaAsync, CancellationToken.None);
+            return _asyncFifoWorker.PostAsync(CloseMediaAsync, "MediaStreamFascadeBase.CloseAsync() CloseMediaAsync", CancellationToken.None);
         }
 
         #endregion
@@ -208,6 +205,8 @@ namespace SM.Media
 
         protected virtual void Dispose(bool disposing)
         {
+            Debug.WriteLine("MediaStreamFascadeBase.Dispose({0})", disposing);
+
             if (!disposing)
                 return;
 
@@ -250,33 +249,9 @@ namespace SM.Media
             Debug.WriteLine("MediaStreamFascadeBase.CleanupMediaManager() completed");
         }
 
-        void Post(Func<Task> work)
+        void Post(Func<Task> work, string description)
         {
-            _asyncFifoWorker.Post(work, _disposeCancellationTokenSource.Token);
-        }
-
-        async Task SetMediaSourceAsync(Uri source)
-        {
-            Debug.WriteLine("MediaStreamFascadeBase.SetMediaSourceAsync({0})", source);
-
-            try
-            {
-                await OpenMediaAsync(source).ConfigureAwait(true);
-
-                var mediaManager = MediaManager;
-
-                if (null == mediaManager)
-                {
-                    Debug.WriteLine("MediaStreamFascadeBase.SetMediaSourceAsync({0}) no media manager", source);
-                    return;
-                }
-
-                await _setSourceAsync(mediaManager.MediaStreamSource).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaStreamFascadeBase.SetMediaSourceAsync({0}) failed: {1}", source, ex.Message);
-            }
+            _asyncFifoWorker.Post(work, description, _disposeCancellationTokenSource.Token);
         }
 
         async Task StartPlaybackAsync()
@@ -304,7 +279,23 @@ namespace SM.Media
             }
         }
 
-        async Task OpenMediaAsync(Uri source)
+        protected async Task<IMediaManager> CreateMediaMangerAsync(Uri source, CancellationToken cancellationToken)
+        {
+            IMediaManager mediaManager = null;
+
+            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCancellationTokenSource.Token))
+            {
+                _asyncFifoWorker.Post(CloseMediaAsync, "MediaStreamFascadeBase.CreateMediaMangerAsync() CloseMediaAsync", cancellationToken);
+
+                await _asyncFifoWorker
+                    .PostAsync(async () => { mediaManager = await OpenMediaAsync(source).ConfigureAwait(false); }, "MediaStreamFascadeBase.CreateMediaMangerAsync() OpenMediaAsync", linkedToken.Token)
+                    .ConfigureAwait(false);
+            }
+
+            return mediaManager;
+        }
+
+        async Task<IMediaManager> OpenMediaAsync(Uri source)
         {
             Debug.WriteLine("MediaStreamFascadeBase.OpenMediaAsync({0})", source);
 
@@ -317,12 +308,12 @@ namespace SM.Media
             Debug.Assert(null == _playlist);
 
             if (null == source)
-                return;
+                return null;
 
             if (!source.IsAbsoluteUri)
             {
                 Debug.WriteLine("MediaStreamFascadeBase.OpenMediaAsync() source is not absolute: " + source);
-                return;
+                return null;
             }
 
             _source = source;
@@ -341,6 +332,8 @@ namespace SM.Media
             }
 
             mediaManager.Source = new[] { source };
+
+            return mediaManager;
         }
 
         async Task CloseMediaAsync()
@@ -359,11 +352,11 @@ namespace SM.Media
             {
                 try
                 {
-                    //Debug.WriteLine("MediaPlayerSource.CloseMediaAsync() calling mediaManager.CloseAsync()");
+                    Debug.WriteLine("MediaPlayerSource.CloseMediaAsync() calling mediaManager.CloseAsync()");
 
                     await mediaManager.CloseAsync().ConfigureAwait(false);
 
-                    //Debug.WriteLine("MediaPlayerSource.CloseMediaAsync() returned from mediaManager.CloseAsync()");
+                    Debug.WriteLine("MediaPlayerSource.CloseMediaAsync() returned from mediaManager.CloseAsync()");
                 }
                 catch (Exception ex)
                 {
@@ -417,29 +410,24 @@ namespace SM.Media
 
     public static class MediaStreamFascadeExtensions
     {
-        public static void SetParameter(this IMediaStreamFascade mediaStreamFascade, IPlaylistSegmentManagerParameters parameters)
+        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IPlaylistSegmentManagerParameters parameters)
         {
             mediaStreamFascade.Builder.RegisterSingleton(parameters);
         }
 
-        public static void SetParameter(this IMediaStreamFascade mediaStreamFascade, IMediaManagerParameters parameters)
+        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IMediaManagerParameters parameters)
         {
             mediaStreamFascade.Builder.RegisterSingleton(parameters);
         }
 
-        public static void SetParameter(this IMediaStreamFascade mediaStreamFascade, IBufferingPolicy policy)
+        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IBufferingPolicy policy)
         {
             mediaStreamFascade.Builder.RegisterSingleton(policy);
         }
 
-        public static void SetParameter(this IMediaStreamFascade mediaStreamFascade, IMediaStreamSource mediaStreamSource)
+        public static void SetParameter(this IMediaStreamFascadeBase mediaStreamFascade, IMediaStreamSource mediaStreamSource)
         {
             mediaStreamFascade.Builder.RegisterSingleton(mediaStreamSource);
-        }
-
-        public static void SetParameter(this IMediaStreamFascade mediaStreamFascade, IMediaElementManager mediaElementManager)
-        {
-            mediaStreamFascade.Builder.RegisterSingleton(mediaElementManager);
         }
     }
 }

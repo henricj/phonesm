@@ -51,13 +51,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ISimulatedMediaElement.cs" />
-    <Compile Include="ISimulatedMediaStreamSource.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RandomNumbers.cs" />
-    <Compile Include="SimulatedMediaElementManager.cs" />
-    <Compile Include="SimulatedMediaStreamSource.cs" />
     <Compile Include="Simulator.cs" />
   </ItemGroup>
   <ItemGroup>

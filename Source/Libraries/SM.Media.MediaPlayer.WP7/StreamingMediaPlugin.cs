@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -39,7 +39,6 @@ using Microsoft.SilverlightMediaFramework.Plugins;
 using Microsoft.SilverlightMediaFramework.Plugins.Metadata;
 using Microsoft.SilverlightMediaFramework.Plugins.Primitives;
 using Microsoft.SilverlightMediaFramework.Utilities.Extensions;
-using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -507,9 +506,9 @@ namespace SM.Media.MediaPlayer
                 if (null == _mediaStreamFascade)
                     return;
 
-                _mediaStreamFascade.Source = _source;
+                var task = SetSourceAsync();
 
-                _mediaStreamFascade.Play();
+                TaskCollector.Default.Add(task, "StreamingMediaPlugin.Source setter");
             }
         }
 
@@ -538,7 +537,9 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("StreamingMediaPlugin.Play()");
 
-            StartPlayback();
+            var task = SetSourceAsync();
+
+            TaskCollector.Default.Add(task, "StreamingMediaPlugin.Play() StartPlaybackAsync");
         }
 
         /// <summary>
@@ -580,7 +581,7 @@ namespace SM.Media.MediaPlayer
 
                 _dispatcher = MediaElement.Dispatcher;
 
-                _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, SetSourceAsync);
+                _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
             }
             catch (Exception ex)
             {
@@ -787,7 +788,7 @@ namespace SM.Media.MediaPlayer
             Close();
         }
 
-        public void Close()
+        void Close()
         {
             Debug.WriteLine("StreamingMediaPlugin.Close()");
 
@@ -798,44 +799,38 @@ namespace SM.Media.MediaPlayer
             _mediaStreamFascade.RequestStop();
         }
 
-        Task SetSourceAsync(IMediaStreamSource mediaStreamSource)
+        async Task SetSourceAsync()
         {
-            Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync()");
-
-            var mss = (MediaStreamSource)mediaStreamSource;
-
-            return _dispatcher.InvokeAsync(() =>
-                                           {
-                                               if (null == MediaElement)
-                                                   return;
-
-                                               MediaElement.SetSource(mss);
-                                           });
-        }
-
-        void StartPlayback()
-        {
-            Debug.WriteLine("StreamingMediaPlugin.StartPlayback()");
+            Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync() " + _source);
 
             if (null == MediaElement)
-                return;
-
-            if (null == _mediaStreamFascade)
-                return;
-
-            if (MediaElementState.Closed != MediaElement.CurrentState)
             {
-                if (new[] { MediaElementState.Paused, MediaElementState.Stopped }.Contains(MediaElement.CurrentState))
-                {
-                    MediaElement.Play();
-
-                    return;
-                }
+                Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync() null media element");
+                return;
             }
 
-            _mediaStreamFascade.Source = _source;
+            if (null == _mediaStreamFascade)
+            {
+                Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync() null media stream facade");
+                return;
+            }
 
-            _mediaStreamFascade.Play();
+            try
+            {
+                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(_source, CancellationToken.None).ConfigureAwait(true);
+
+                if (null == MediaElement)
+                {
+                    Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync() null MediaElement");
+                    return;
+                }
+
+                MediaElement.SetSource(mss);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("StreamingMediaPlugin.SetSourceAsync() failed: " + ex.Message);
+            }
         }
     }
 }

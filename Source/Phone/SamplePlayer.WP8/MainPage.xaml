@@ -18,7 +18,7 @@
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot"
           Background="Transparent">
-        <mmppf:MediaPlayer Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
+        <mmppf:MediaPlayer x:Name="player" Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
             <mmppf:MediaPlayer.Plugins>
                 <smmedia:StreamingMediaPlugin />
             </mmppf:MediaPlayer.Plugins>

@@ -24,14 +24,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+//#define STREAM_SWITCHING
+
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
+using Microsoft.Phone.Info;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -41,40 +47,22 @@ namespace HlsView
     public partial class MainPage : PhoneApplicationPage
     {
 #if STREAM_SWITCHING
-        static readonly string[] Sources =
-        {
-            "http://www.npr.org/streams/mp3/nprlive24.pls",
-            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
-            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
-            null,
-            "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
-        };
-
         readonly DispatcherTimer _timer;
-        int _count;
 #endif
 
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        readonly IMediaElementManager _mediaElementManager;
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFascade _mediaStreamFascade;
         TimeSpan _previousPosition;
         readonly IHttpClients _httpClients;
+        int _track;
+        readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
 
         // Constructor
         public MainPage()
         {
             InitializeComponent();
-
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                () =>
-                {
-                    UpdateState(MediaElementState.Opening);
-
-                    return mediaElement1;
-                },
-                me => UpdateState(MediaElementState.Closed));
 
             _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
@@ -95,27 +83,41 @@ namespace HlsView
 
                                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               var source = Sources[_count];
+                               _track = (int)(_tracks.Count * GlobalPlatformServices.Default.GetRandomNumber());
 
-                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
+                               var task = PlayCurrentTrackAsync();
+                               TaskCollector.Default.Add(task, "MainPage Timer PlayCurrentTrackAsync");
+
+                               var track = CurrentTrack;
+
+                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)",
+                                   null == track ? "<none>" : track.Url.ToString(), gcMemory,
                                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
                                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
                                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               InitializeMediaStream();
+                               var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
 
-                               _mediaStreamFascade.Source = null == source ? null : new Uri(source);
+                               Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
 
-                               if (++_count >= Sources.Length)
-                                   _count = 0;
-
-                               _positionSampler.Start();
+                               _timer.Interval = interval;
                            };
 
-            _timer.Interval = TimeSpan.FromSeconds(15);
+            _timer.Interval = TimeSpan.FromSeconds(25);
 
             _timer.Start();
 #endif // STREAM_SWITCHING
+        }
+
+        MediaTrack CurrentTrack
+        {
+            get
+            {
+                if (_track < 0 || _track >= _tracks.Count)
+                    return null;
+
+                return _tracks[_track];
+            }
         }
 
         void mediaElement1_CurrentStateChanged(object sender, RoutedEventArgs e)
@@ -224,16 +226,60 @@ namespace HlsView
                 return;
             }
 
+            var task = PlayCurrentTrackAsync();
+
+            TaskCollector.Default.Add(task, "MainPage Play OnPlayAsync");
+        }
+
+        async Task PlayCurrentTrackAsync()
+        {
             errorBox.Visibility = Visibility.Collapsed;
             playButton.IsEnabled = false;
 
-            InitializeMediaStream();
+            var track = CurrentTrack;
 
-            _mediaStreamFascade.Source = new Uri(
-                //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
-                );
+            if (null == track)
+            {
+                await _mediaStreamFascade.StopAsync(CancellationToken.None);
+
+                mediaElement1.Stop();
+                mediaElement1.Source = null;
+
+                return;
+            }
+
+            if (track.UseNativePlayer)
+            {
+                if (null != _mediaStreamFascade)
+                    await _mediaStreamFascade.StopAsync(CancellationToken.None);
+
+                mediaElement1.Source = track.Url;
+            }
+            else
+            {
+                if (null != mediaElement1.Source)
+                    mediaElement1.Source = null;
+
+                try
+                {
+                    InitializeMediaStream();
+
+                    var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+
+                    if (null == mss)
+                    {
+                        Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source");
+                        return;
+                    }
+
+                    mediaElement1.SetSource(mss);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source: " + ex.Message);
+                    return;
+                }
+            }
 
             mediaElement1.Play();
 
@@ -245,9 +291,7 @@ namespace HlsView
             if (null != _mediaStreamFascade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
-
-            _mediaStreamFascade.SetParameter(_mediaElementManager);
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
 
             _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
         }
@@ -302,6 +346,11 @@ namespace HlsView
             CloseMedia();
 
             playButton.IsEnabled = true;
+
+#if STREAM_SWITCHING
+            if (_timer.Interval > TimeSpan.FromSeconds(3))
+                _timer.Interval = TimeSpan.FromSeconds(3);
+#endif
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)
@@ -309,6 +358,11 @@ namespace HlsView
             Debug.WriteLine("MainPage MediaEnded");
 
             StopMedia();
+
+#if STREAM_SWITCHING
+            if (_timer.Interval > TimeSpan.FromSeconds(3))
+                _timer.Interval = TimeSpan.FromSeconds(3);
+#endif
         }
 
         void stopButton_Click(object sender, RoutedEventArgs e)
@@ -333,12 +387,6 @@ namespace HlsView
             base.OnNavigatedFrom(e);
 
             CloseMedia();
-
-            if (null != _mediaElementManager)
-            {
-                _mediaElementManager.CloseAsync()
-                                    .Wait();
-            }
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -346,12 +394,6 @@ namespace HlsView
             base.OnNavigatedTo(e);
 
             CloseMedia();
-
-            if (null != _mediaElementManager)
-            {
-                _mediaElementManager.CloseAsync()
-                                    .Wait();
-            }
         }
 
         void plusButton_Click(object sender, RoutedEventArgs e)

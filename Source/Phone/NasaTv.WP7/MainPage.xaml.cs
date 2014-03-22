@@ -26,6 +26,8 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -43,8 +45,6 @@ namespace NasaTv
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly HttpClients _httpClients;
-        readonly MediaElementManager _mediaElementManager;
-        readonly MediaManagerParameters _mediaManagerParameters;
         IMediaStreamFascade _mediaStreamFascade;
 
         // Constructor
@@ -54,54 +54,16 @@ namespace NasaTv
 
             _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
 
-            _mediaElementManager = new MediaElementManager(Dispatcher,
-                () =>
-                {
-                    var me = new MediaElement
-                             {
-                                 Margin = new Thickness(0)
-                             };
-
-                    me.MediaFailed += mediaElement1_MediaFailed;
-                    me.MediaEnded += mediaElement1_MediaEnded;
-                    me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
-
-                    ContentPanel.Children.Add(me);
-
-                    mediaElement1 = me;
-
-                    UpdateState(MediaElementState.Opening);
-
-                    return me;
-                },
-                me =>
-                {
-                    if (null != mediaElement1)
-                    {
-                        Debug.Assert(ReferenceEquals(me, mediaElement1));
-
-                        ContentPanel.Children.Remove(me);
-
-                        me.MediaFailed -= mediaElement1_MediaFailed;
-                        me.MediaEnded -= mediaElement1_MediaEnded;
-                        me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
-
-                        mediaElement1 = null;
-                    }
-
-                    UpdateState(MediaElementState.Closed);
-                });
-
             foreach (ApplicationBarIconButton ib in ApplicationBar.Buttons)
             {
                 switch (ib.Text)
                 {
-                    case "stop":
-                        stopButton = ib;
-                        break;
-                    case "play":
-                        playButton = ib;
-                        break;
+                case "stop":
+                    stopButton = ib;
+                    break;
+                case "play":
+                    playButton = ib;
+                    break;
                 }
             }
 
@@ -137,24 +99,56 @@ namespace NasaTv
 
             OnPlay();
 
+            var source = new Uri(
+                "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
+                //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                );
+
+            var task = PlayAsync(source);
+
+            TaskCollector.Default.Add(task, "MainPage Play PlayAsync");
+        }
+
+        async Task PlayAsync(Uri source)
+        {
+            Debug.WriteLine("MainPage.PlayAsync() " + source);
+
             if (null != _mediaStreamFascade)
             {
                 _mediaStreamFascade.StateChange -= TsMediaManagerOnStateChange;
                 _mediaStreamFascade.DisposeSafe();
             }
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, _mediaElementManager.SetSourceAsync);
-
-            _mediaStreamFascade.SetParameter(_mediaElementManager);
-
-            _mediaStreamFascade.Source = new Uri(
-                "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                //"http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                );
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
 
             _mediaStreamFascade.StateChange += TsMediaManagerOnStateChange;
 
-            _mediaStreamFascade.Play();
+            try
+            {
+                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+
+                if (null == mss)
+                {
+                    Debug.WriteLine("MainPage.PlayAsync() unable to create media stream source");
+                    return;
+                }
+
+                if (null == mediaElement1)
+                {
+                    Debug.WriteLine("MainPage.PlayAsync() null media element");
+                    return;
+                }
+
+                mediaElement1.SetSource(mss);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage.PlayAsync() failed to set source: " + ex.Message);
+
+                return;
+            }
+
+            mediaElement1.Play();
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -191,16 +185,33 @@ namespace NasaTv
 
             CleanupMedia();
 
-            if (null != _mediaElementManager)
-                _mediaElementManager.CloseAsync().Wait();
+            var me = mediaElement1;
+
+            ContentPanel.Children.Remove(me);
+
+            me.MediaFailed -= mediaElement1_MediaFailed;
+            me.MediaEnded -= mediaElement1_MediaEnded;
+            me.CurrentStateChanged -= mediaElement1_CurrentStateChanged;
+
+            mediaElement1 = null;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
-            if (null != _mediaElementManager)
-                _mediaElementManager.CloseAsync().Wait();
+            var me = new MediaElement
+                     {
+                         Margin = new Thickness(0)
+                     };
+
+            me.MediaFailed += mediaElement1_MediaFailed;
+            me.MediaEnded += mediaElement1_MediaEnded;
+            me.CurrentStateChanged += mediaElement1_CurrentStateChanged;
+
+            ContentPanel.Children.Add(me);
+
+            mediaElement1 = me;
         }
 
         void PhoneApplicationPageTap(object sender, GestureEventArgs e)

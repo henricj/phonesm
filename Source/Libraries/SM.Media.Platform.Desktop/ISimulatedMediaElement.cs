@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="ISimulatedMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  <copyright file="ISimulatedMediaElement.cs" company="Henric Jungheim">
+//  Copyright (c) 2012, 2013.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,15 +24,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.MediaParser;
+using SM.Media;
+using SM.TsParser;
 
 namespace SimulatedPlayer
 {
-    interface ISimulatedMediaStreamSource : IMediaStreamSource
+    public interface ISimulatedMediaElement
     {
-        void OpenMediaAsync();
-        void SeekAsync(long seekToTime);
-        void GetSampleAsync(int streamType);
-        void CloseMedia();
+        void ReportOpenMediaCompleted();
+        void ReportSeekCompleted(long ticks);
+        void ReportGetSampleProgress(float progress);
+        void ReportGetSampleCompleted(int streamType, IStreamSource streamSource, TsPesPacket packet);
+        void ErrorOccurred(string message);
     }
 }

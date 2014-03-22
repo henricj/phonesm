@@ -30,7 +30,7 @@ using System.Security.Cryptography;
 
 namespace SimulatedPlayer
 {
-    sealed class RandomNumbers
+    public sealed class RandomNumbers
     {
         readonly object _lock = new object();
         readonly Func<Random> _randomFactory;

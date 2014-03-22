@@ -57,7 +57,6 @@ namespace SM.Media
             builder.RegisterType<SegmentManagerFactoryFinder>().As<ISegmentManagerFactoryFinder>().SingleInstance();
             builder.RegisterType<SegmentManagerFactory>().As<ISegmentManagerFactory>().SingleInstance();
             builder.RegisterType<SegmentReaderManagerFactory>().As<ISegmentReaderManagerFactory>().SingleInstance();
-            builder.RegisterType<NullMediaElementManager>().As<IMediaElementManager>().SingleInstance();
 
             builder.RegisterType<TsPesPacketPool>().As<ITsPesPacketPool>().SingleInstance();
             builder.RegisterType<BufferPool>().As<IBufferPool>().SingleInstance();

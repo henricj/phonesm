@@ -29,12 +29,9 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Media;
 using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
-using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;
@@ -51,6 +48,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         readonly IMediaManagerParameters _mediaManagerParameters;
         IMediaStreamFascade _mediaStreamFascade;
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
+        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
         public AudioTrackStreamer()
         {
@@ -102,11 +100,13 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 #endif
         }
 
-        protected override void OnBeginStreaming(AudioTrack track, AudioStreamer streamer)
+        protected override async void OnBeginStreaming(AudioTrack track, AudioStreamer streamer)
         {
             Debug.WriteLine("AudioPlayer.OnBeginStreaming() track.Source {0} track.Tag {1}",
                 null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
                 null == track ? "<no track>" : track.Tag ?? "<none>");
+
+            var callNotifyComplete = true;
 
             try
             {
@@ -116,9 +116,6 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 if (null == track || null == track.Tag)
                 {
                     Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() null url");
-
-                    NotifyComplete();
-
                     return;
                 }
 
@@ -126,33 +123,42 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 if (!Uri.TryCreate(track.Tag, UriKind.Absolute, out url))
                 {
                     Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() invalid url: " + track.Tag);
-
-                    NotifyComplete();
-
                     return;
                 }
 
-                InitializeMediaStream(streamer);
+                InitializeMediaStream();
 
-                _mediaStreamFascade.Source = url;
+                var mss = await _mediaStreamFascade.CreateMediaStreamSourceAsync(url, CancellationToken.None).ConfigureAwait(false);
 
-                _mediaStreamFascade.Play();
+                if (null == mss)
+                {
+                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreamingAudio() unable to create media stream source");
+                    return;
+                }
+
+                streamer.SetSource(mss);
 
                 StartPoll();
+
+                callNotifyComplete = false;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("AudioTrackStreamer.OnBeginStreamingAudio() failed: " + ex.Message);
-                NotifyComplete();
+            }
+            finally
+            {
+                if (callNotifyComplete)
+                    NotifyComplete();
             }
         }
 
-        void InitializeMediaStream(AudioStreamer streamer)
+        void InitializeMediaStream()
         {
             if (null != _mediaStreamFascade)
                 return;
 
-            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients, mss => SetSourceAsync(mss, streamer));
+            _mediaStreamFascade = MediaStreamFascadeSettings.Parameters.Create(_httpClients);
 
             _mediaStreamFascade.SetParameter(_bufferingPolicy);
 
@@ -200,23 +206,24 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         {
             Debug.WriteLine("AudioTrackStreamer.OnCancel()");
 
+            try
+            {
+                if (!_cancellationTokenSource.IsCancellationRequested)
+                    _cancellationTokenSource.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.OnCancel() failed: " + ex.Message);
+            }
+
             if (null != _mediaStreamFascade)
                 _mediaStreamFascade.RequestStop();
 
             StopPoll();
 
             base.OnCancel();
-        }
 
-        Task SetSourceAsync(IMediaStreamSource source, AudioStreamer streamer)
-        {
-            Debug.WriteLine("AudioTrackStreamer.SetSourceAsync()");
-
-            var mediaStreamSource = (MediaStreamSource)source;
-
-            streamer.SetSource(mediaStreamSource);
-
-            return TplTaskExtensions.CompletedTask;
+            _cancellationTokenSource.Dispose();
         }
     }
 }

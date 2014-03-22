@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="NasaTvSettings.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,11 +28,10 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using NasaTv;
-using NasaTv.Annotations;
 
 namespace NasaTv8.ViewModels
 {
-    public class NasaTvSettings : INotifyPropertyChanged
+    public sealed class NasaTvSettings : INotifyPropertyChanged
     {
         Uri _videoUrl;
 
@@ -84,28 +83,12 @@ namespace NasaTv8.ViewModels
             settings.PlaylistUrl = new Uri(VideoUrl);
         }
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "<invalid>")
+        void OnPropertyChanged([CallerMemberName] string propertyName = "<invalid>")
         {
             var handler = PropertyChanged;
 
             if (handler != null)
                 handler(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-
-    class Foo : INotifyPropertyChanged
-    {
-        #region INotifyPropertyChanged Members
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        #endregion
-
-        [NotifyPropertyChangedInvocator]
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            var handler = PropertyChanged;
-            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

@@ -38,7 +38,7 @@ namespace SM.Media.Content
         readonly string _mimeType;
         readonly string _name;
 
-        public ContentType(string name, ContentKind kind, string fileExt, string mimeType, IEnumerable<string> alternateMimeTypes = null)
+        public ContentType(string name, ContentKind kind, string mimeType, string fileExt, IEnumerable<string> alternateMimeTypes = null)
             : this(name, kind, mimeType, new[] { fileExt }, alternateMimeTypes)
         { }
 

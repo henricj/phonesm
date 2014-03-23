@@ -409,6 +409,8 @@ namespace SM.Media.Playlists
 
         bool UpdatePlaylist()
         {
+            Url = _programStream.ActualUrl;
+
             var segments = _programStream.Segments.ToArray();
 
             var isDynamicPlaylist = _programStream.IsDyanmicPlaylist;

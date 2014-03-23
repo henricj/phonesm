@@ -231,6 +231,12 @@ namespace SM.Media
 
                 contentType = ContentTypes.TransportStream;
             }
+            else if (ContentTypes.Binary == contentType)
+            {
+                Debug.WriteLine("TsMediaManager.CreateReaderPipeline() detected binary content, defaulting to transport stream");
+
+                contentType = ContentTypes.TransportStream;
+            }
 
             var mediaParserParameters = new MediaParserParameters();
 

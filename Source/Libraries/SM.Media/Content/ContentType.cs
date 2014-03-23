@@ -87,6 +87,9 @@ namespace SM.Media.Content
 
         public bool Equals(ContentType other)
         {
+            if (ReferenceEquals(this, other))
+                return true;
+
             if (ReferenceEquals(null, other))
                 return false;
 
@@ -108,6 +111,22 @@ namespace SM.Media.Content
                 return false;
 
             return Equals(other);
+        }
+
+        public static bool operator ==(ContentType a, ContentType b)
+        {
+            if (ReferenceEquals(a, b))
+                return true;
+
+            if (ReferenceEquals(a, null))
+                return false;
+
+            return a.Equals(b);
+        }
+
+        public static bool operator !=(ContentType a, ContentType b)
+        {
+            return !(a == b);
         }
 
         public override string ToString()

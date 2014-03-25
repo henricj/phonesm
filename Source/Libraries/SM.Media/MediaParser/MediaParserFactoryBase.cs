@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media.Buffering;
 using SM.Media.Content;
 
 namespace SM.Media.MediaParser
@@ -36,12 +35,6 @@ namespace SM.Media.MediaParser
     public abstract class MediaParserFactoryBase<TMediaParser> : IMediaParserFactoryInstance
         where TMediaParser : IMediaParser
     {
-        #region Delegates
-
-        public delegate TMediaParser FactoryDelegate(IBufferingManager bufferingManager, Action checkForSamples);
-
-        #endregion
-
         readonly Func<TMediaParser> _parserFactory;
 
         protected MediaParserFactoryBase(Func<TMediaParser> parserFactory)

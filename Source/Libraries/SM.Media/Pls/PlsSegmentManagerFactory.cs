@@ -29,8 +29,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -44,22 +42,14 @@ namespace SM.Media.Pls
     {
         static readonly ICollection<ContentType> Types = new[] { ContentTypes.Pls };
 
-        readonly IContentTypeDetector _contentTypeDetector;
-        readonly IHttpHeaderReader _headerReader;
-        readonly IHttpClients _httpClients;
+        readonly IWebReader _rootWebReader;
 
-        public PlsSegmentManagerFactory(IHttpClients httpClients, IHttpHeaderReader headerReader, IContentTypeDetector contentTypeDetector)
+        public PlsSegmentManagerFactory(IWebReaderManager webReaderManager)
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
-            if (null == headerReader)
-                throw new ArgumentNullException("headerReader");
-            if (null == contentTypeDetector)
-                throw new ArgumentNullException("contentTypeDetector");
+            if (null == webReaderManager)
+                throw new ArgumentNullException("webReaderManager");
 
-            _httpClients = httpClients;
-            _headerReader = headerReader;
-            _contentTypeDetector = contentTypeDetector;
+            _rootWebReader = webReaderManager.RootWebReader;
         }
 
         #region ISegmentManagerFactoryInstance Members
@@ -69,30 +59,55 @@ namespace SM.Media.Pls
             get { return Types; }
         }
 
-        public async Task<ISegmentManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        public async Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
-            var httpClient = _httpClients.RootPlaylistClient;
-            var pls = new PlsParser();
-
-            foreach (var url in source)
+            foreach (var url in parameters.Source)
             {
-                var retry = new Retry(3, 333, RetryPolicy.IsWebExceptionRetryable);
-
                 var localUrl = url;
 
-                var segmentManager = await retry.CallAsync(() => ReadPlaylistAsync(localUrl, httpClient, pls, cancellationToken), cancellationToken);
+                var retry = new Retry(3, 333, RetryPolicy.IsWebExceptionRetryable);
+
+                var segmentManager = await retry.CallAsync(
+                    async () =>
+                    {
+                        var webReader = _rootWebReader.CreateChild(localUrl, ContentTypes.Pls);
+
+                        try
+                        {
+                            using (var webStream = await webReader.GetWebStreamAsync(localUrl, false, cancellationToken).ConfigureAwait(false))
+                            {
+                                if (!webStream.IsSuccessStatusCode)
+                                {
+                                    webReader.Dispose();
+                                    return null;
+                                }
+
+                                using (var stream = await webStream.GetStreamAsync().ConfigureAwait(false))
+                                {
+                                    return await ReadPlaylistAsync(webReader, webStream.ActualUrl, stream, cancellationToken).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            webReader.Dispose();
+                            throw;
+                        }
+                    },
+                    cancellationToken);
 
                 if (null != segmentManager)
                     return segmentManager;
             }
-
             return null;
         }
 
         #endregion
 
-        async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, Uri playlistUri, CancellationToken cancellationToken)
+        async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, IWebReader webReader, CancellationToken cancellationToken)
         {
+            var playlistUri = webReader.RequestUri;
+
             var tracks = pls.Tracks;
 
             if (tracks.Count < 1)
@@ -113,17 +128,9 @@ namespace SM.Media.Pls
                 return null;
             }
 
-            var headers = await _headerReader.GetHeadersAsync(trackUrl, false, cancellationToken).ConfigureAwait(false);
+            var contentType = await webReader.DetectContentTypeAsync(trackUrl, cancellationToken).ConfigureAwait(false);
 
-            if (null == headers)
-            {
-                Debug.WriteLine("PlsSegmentManagerFactory.CreateSegmentManager() unable fetch headers for " + trackUrl);
-                return null;
-            }
-
-            DumpIcy(headers.ResponseHeaders);
-
-            var contentType = _contentTypeDetector.GetContentType(headers.Url, headers.ContentHeaders).SingleOrDefault();
+            //DumpIcy(headers.ResponseHeaders);
 
             if (null == contentType)
             {
@@ -131,11 +138,11 @@ namespace SM.Media.Pls
                 return null;
             }
 
-            return new SimpleSegmentManager(playlistUri, new[] { trackUrl }, contentType);
+            return new SimpleSegmentManager(webReader, new[] { trackUrl }, contentType);
         }
 
         [Conditional("DEBUG")]
-        void DumpIcy(HttpResponseHeaders httpResponseHeaders)
+        void DumpIcy(IEnumerable<KeyValuePair<string, IEnumerable<string>>> httpResponseHeaders)
         {
             var icys = httpResponseHeaders.Where(kv => kv.Key.StartsWith("icy-", StringComparison.OrdinalIgnoreCase));
 
@@ -148,25 +155,19 @@ namespace SM.Media.Pls
             }
         }
 
-        async Task<ISegmentManager> ReadPlaylistAsync(Uri url, HttpClient httpClient, PlsParser pls, CancellationToken cancellationToken)
+        async Task<ISegmentManager> ReadPlaylistAsync(IWebReader webReader, Uri url, Stream stream, CancellationToken cancellationToken)
         {
-            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
-            using (var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+            var pls = new PlsParser();
+
+            using (var tr = new StreamReader(stream))
             {
-                response.EnsureSuccessStatusCode();
-
-                bool ret;
-
-                using (var tr = new StreamReader(await response.Content.ReadAsStreamAsync().ConfigureAwait(false)))
-                {
-                    ret = await pls.Parse(tr).ConfigureAwait(false);
-                }
+                var ret = await pls.Parse(tr).ConfigureAwait(false);
 
                 if (!ret)
                     return null;
-
-                return await CreateManagerAsync(pls, response.RequestMessage.RequestUri, cancellationToken).ConfigureAwait(false);
             }
+
+            return await CreateManagerAsync(pls, webReader, cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -99,46 +98,22 @@ namespace SM.Media.M3U8
         /// <summary>
         /// </summary>
         /// <param name="parser"></param>
-        /// <param name="httpClient"></param>
+        /// <param name="webReader"></param>
         /// <param name="playlist"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static Task<Uri> ParseAsync(this M3U8Parser parser, HttpClient httpClient, Uri playlist, CancellationToken cancellationToken)
+        public static Task<Uri> ParseAsync(this M3U8Parser parser, IWebReader webReader, Uri playlist, CancellationToken cancellationToken)
         {
             var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
 
-            return retry
-                .CallAsync(async () =>
-                                 {
-                                     for (; ; )
-                                     {
-                                         using (var response = await httpClient.GetAsync(playlist, HttpCompletionOption.ResponseContentRead, cancellationToken)
-                                                                               .ConfigureAwait(false))
-                                         {
-                                             if (response.IsSuccessStatusCode)
-                                             {
-                                                 playlist = response.RequestMessage.RequestUri;
+            return retry.CallAsync(() =>
+                webReader.ReadStreamAsync(playlist, retry, (actualPlaylist, stream) =>
+                                                           {
+                                                               parser.Parse(actualPlaylist, stream);
 
-                                                 using (var stream = await response.Content.ReadAsStreamAsync()
-                                                                                   .ConfigureAwait(false))
-                                                 {
-                                                     parser.Parse(playlist, stream);
-                                                 }
-
-                                                 return playlist;
-                                             }
-
-                                             if (!RetryPolicy.IsRetryable(response.StatusCode))
-                                                 response.EnsureSuccessStatusCode();
-
-                                             var canRetry = await retry.CanRetryAfterDelay(cancellationToken)
-                                                                       .ConfigureAwait(false);
-
-                                             if (!canRetry)
-                                                 response.EnsureSuccessStatusCode();
-                                         }
-                                     }
-                                 }, cancellationToken);
+                                                               return actualPlaylist;
+                                                           }, cancellationToken),
+                cancellationToken);
         }
 
         /// <summary>

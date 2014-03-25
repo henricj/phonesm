@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSegmentManager.cs" company="Henric Jungheim">
+//  <copyright file="HlsPlaylistSegmentManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -32,15 +32,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public interface IPlaylistSegmentManagerParameters
-    { }
-
-    public class PlaylistSegmentManager : ISegmentManager
+    public class HlsPlaylistSegmentManager : ISegmentManager
     {
         readonly CancellationToken _cancellationToken;
         readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
@@ -65,7 +64,7 @@ namespace SM.Media.Playlists
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
 
-        public PlaylistSegmentManager(IProgramStream programStream, ContentType playlistType, CancellationToken cancellationToken)
+        public HlsPlaylistSegmentManager(IProgramStream programStream, ContentType playlistType, CancellationToken cancellationToken)
         {
             if (null == programStream)
                 throw new ArgumentNullException("programStream");
@@ -76,7 +75,7 @@ namespace SM.Media.Playlists
             _playlistType = playlistType;
             _cancellationToken = cancellationToken;
 
-            var p = PlaylistSettings.Parameters;
+            var p = HlsPlaylistSettings.Parameters;
 
             _minimumRetry = p.MinimumRetry;
             _minimumReload = p.MinimumReload;
@@ -101,7 +100,7 @@ namespace SM.Media.Playlists
 
         #region ISegmentManager Members
 
-        public Uri Url { get; private set; }
+        public IWebReader WebReader { get; private set; }
         public TimeSpan StartPosition { get; private set; }
         public TimeSpan? Duration { get; private set; }
         public ContentType ContentType { get; private set; }
@@ -171,6 +170,8 @@ namespace SM.Media.Playlists
             }
 
             ContentType = await _programStream.GetContentTypeAsync(_cancellationToken).ConfigureAwait(false);
+
+            WebReader = _programStream.WebReader.CreateChild(null, ContentType);
         }
 
         public Task StopAsync()
@@ -409,8 +410,6 @@ namespace SM.Media.Playlists
 
         bool UpdatePlaylist()
         {
-            Url = _programStream.ActualUrl;
-
             var segments = _programStream.Segments.ToArray();
 
             var isDynamicPlaylist = _programStream.IsDyanmicPlaylist;
@@ -430,7 +429,7 @@ namespace SM.Media.Playlists
             }
 
             Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries. index: {2} dynamic: {3} expires: {4} ({5})",
-                _programStream.ActualUrl, _segments.Length, _startSegmentIndex, isDynamicPlaylist,
+                _programStream.WebReader, _segments.Length, _startSegmentIndex, isDynamicPlaylist,
                 isDynamicPlaylist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                 DateTimeOffset.Now);
 
@@ -461,7 +460,7 @@ namespace SM.Media.Playlists
                         // same list as last time.
                         Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
 
-                        var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
+                        var expiration = Environment.TickCount + (int) (Math.Round(2 * _minimumRetry.TotalMilliseconds));
 
                         if (_segmentsExpiration < expiration)
                             _segmentsExpiration = expiration;
@@ -600,7 +599,7 @@ namespace SM.Media.Playlists
             // TODO: Make sure the TickCount doesn't get confused by steps in the system time.
             var segmentsExpiration = Environment.TickCount;
 
-            segmentsExpiration += (int)expire.TotalMilliseconds;
+            segmentsExpiration += (int) expire.TotalMilliseconds;
 
             _segmentsExpiration = segmentsExpiration;
         }
@@ -657,9 +656,9 @@ namespace SM.Media.Playlists
 
         class PlaylistEnumerable : IAsyncEnumerable<ISegment>
         {
-            readonly PlaylistSegmentManager _segmentManager;
+            readonly HlsPlaylistSegmentManager _segmentManager;
 
-            public PlaylistEnumerable(PlaylistSegmentManager segmentManager)
+            public PlaylistEnumerable(HlsPlaylistSegmentManager segmentManager)
             {
                 if (null == segmentManager)
                     throw new ArgumentNullException("segmentManager");
@@ -683,11 +682,11 @@ namespace SM.Media.Playlists
 
         class PlaylistEnumerator : IAsyncEnumerator<ISegment>
         {
-            readonly PlaylistSegmentManager _segmentManager;
+            readonly HlsPlaylistSegmentManager _segmentManager;
             int _index = -1;
             ISegment[] _segments;
 
-            public PlaylistEnumerator(PlaylistSegmentManager segmentManager)
+            public PlaylistEnumerator(HlsPlaylistSegmentManager segmentManager)
             {
                 if (null == segmentManager)
                     throw new ArgumentNullException("segmentManager");
@@ -704,7 +703,7 @@ namespace SM.Media.Playlists
 
             public async Task<bool> MoveNextAsync()
             {
-                for (; ; )
+                for (;;)
                 {
                     await _segmentManager.CheckReload(_index).ConfigureAwait(false);
 
@@ -752,7 +751,7 @@ namespace SM.Media.Playlists
                         var lastSegment = segments[segments.Length - 1];
 
                         if (lastSegment.Duration.HasValue)
-                            delay = (int)(lastSegment.Duration.Value.TotalMilliseconds / 2);
+                            delay = (int) (lastSegment.Duration.Value.TotalMilliseconds / 2);
                     }
 
                     await TaskEx.Delay(delay, _segmentManager.CancellationToken).ConfigureAwait(false);
@@ -816,7 +815,7 @@ namespace SM.Media.Playlists
                 if (mediaSequence < firstMediaSequence.Value)
                     return -1;
 
-                var offset = (int)(mediaSequence - firstMediaSequence.Value);
+                var offset = (int) (mediaSequence - firstMediaSequence.Value);
 
                 if (offset >= segments.Count)
                     return -1;

@@ -24,29 +24,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using SM.Media.Content;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactoryFinder : IContentServiceFactoryFinder<ISegmentManager, ICollection<Uri>>
+    public interface ISegmentManagerFactoryFinder : IContentServiceFactoryFinder<ISegmentManager, ISegmentManagerParameters>
     {
         void Register(ContentType contentType, ISegmentManagerFactoryInstance factory);
     }
 
-    public class SegmentManagerFactoryFinder : ContentServiceFactoryFinder<ISegmentManager, ICollection<Uri>>, ISegmentManagerFactoryFinder
+    public class SegmentManagerFactoryFinder : ContentServiceFactoryFinder<ISegmentManager, ISegmentManagerParameters>, ISegmentManagerFactoryFinder
     {
         public SegmentManagerFactoryFinder(IEnumerable<ISegmentManagerFactoryInstance> factoryInstances)
-            : base(factoryInstances.OfType<IContentServiceFactoryInstance<ISegmentManager, ICollection<Uri>>>())
+            : base(factoryInstances.OfType<IContentServiceFactoryInstance<ISegmentManager, ISegmentManagerParameters>>())
         { }
 
         #region ISegmentManagerFactoryFinder Members
 
         public void Register(ContentType contentType, ISegmentManagerFactoryInstance factory)
         {
-            Register(contentType, (IContentServiceFactoryInstance<ISegmentManager, ICollection<Uri>>)factory);
+            Register(contentType, (IContentServiceFactoryInstance<ISegmentManager, ISegmentManagerParameters>)factory);
         }
 
         #endregion

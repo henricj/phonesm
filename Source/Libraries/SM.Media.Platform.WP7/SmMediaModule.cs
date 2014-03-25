@@ -35,10 +35,10 @@ using SM.Media.Builder;
 using SM.Media.Content;
 using SM.Media.H262;
 using SM.Media.H264;
+using SM.Media.Hls;
 using SM.Media.MediaParser;
 using SM.Media.MP3;
 using SM.Media.Pes;
-using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
@@ -62,9 +62,7 @@ namespace SM.Media
 
             Bind<IMediaManager>().To<TsMediaManager>().InScope(scope);
 
-            Bind<IHttpHeaderReader>().To<HttpHeaderReader>().InSingletonScope();
             Bind<IContentTypeDetector>().ToConstant(new ContentTypeDetector(ContentTypes.AllTypes));
-            Bind<IWebContentTypeDetector>().To<WebContentTypeDetector>().InSingletonScope();
 
             Bind<ISegmentManagerFactoryFinder>().To<SegmentManagerFactoryFinder>().InSingletonScope();
             Bind<ISegmentManagerFactory>().To<SegmentManagerFactory>().InSingletonScope();
@@ -75,10 +73,10 @@ namespace SM.Media
             Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
             Bind<Func<IBufferPool>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferPool>());
 
-            Bind<IWebCacheFactory>().To<WebCacheFactory>().InSingletonScope();
+            Bind<IWebReaderManager>().To<HttpClientWebReaderManager>().InSingletonScope();
 
             Bind<ISegmentManagerFactoryInstance>().To<SimpleSegmentManagerFactory>().InSingletonScope();
-            Bind<ISegmentManagerFactoryInstance>().To<PlaylistSegmentManagerFactory>().InSingletonScope();
+            Bind<ISegmentManagerFactoryInstance>().To<HlsPlaylistSegmentManagerFactory>().InSingletonScope();
             Bind<ISegmentManagerFactoryInstance>().To<PlsSegmentManagerFactory>().InSingletonScope();
 
             Bind<IMediaParserFactoryFinder>().To<MediaParserFactoryFinder>().InSingletonScope();
@@ -112,8 +110,7 @@ namespace SM.Media
             Bind<IPesHandlers>().To<PesHandlers>();
 
             Bind<IMediaManagerParameters>().To<MediaManagerParameters>().InSingletonScope();
-            Bind<IPlaylistSegmentManagerParameters>().To<PlaylistSegmentManagerParameters>().InSingletonScope();
-            Bind<IPlaylistSegmentManagerPolicy>().To<PlaylistSegmentManagerPolicy>().InSingletonScope();
+            Bind<IHlsPlaylistSegmentManagerPolicy>().To<HlsPlaylistSegmentManagerPolicy>().InSingletonScope();
             Bind<IBufferingPolicy>().To<DefaultBufferingPolicy>();
             Bind<IBufferingManager>().To<BufferingManager>();
             Bind<Func<IBufferingManager>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferingManager>());

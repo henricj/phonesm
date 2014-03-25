@@ -33,11 +33,18 @@ namespace SM.Media.Playlists
 {
     public class SubStreamSegment : ISegment
     {
+        readonly Uri _parentUrl;
         readonly Uri _url;
 
-        public SubStreamSegment(Uri url)
+        public SubStreamSegment(Uri url, Uri parentUrl)
         {
+            if (null == url)
+                throw new ArgumentNullException("url");
+            if (null == parentUrl)
+                throw new ArgumentNullException("parentUrl");
+
             _url = url;
+            _parentUrl = parentUrl;
         }
 
         public Func<Stream, Task<Stream>> AsyncStreamFilter { get; set; }
@@ -63,6 +70,11 @@ namespace SM.Media.Playlists
         public Uri Url
         {
             get { return _url; }
+        }
+
+        public Uri ParentUrl
+        {
+            get { return _parentUrl; }
         }
 
         #endregion

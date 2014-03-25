@@ -466,7 +466,11 @@ namespace SM.Media
 
             try
             {
-                _readerManager = await _segmentReaderManagerFactory.CreateAsync(Source.ToArray(), ContentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
+                _readerManager = await _segmentReaderManagerFactory.CreateAsync(
+                    new SegmentManagerParameters
+                    {
+                        Source = Source.ToArray()
+                    }, ContentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
                 if (null == _readerManager)
                 {
@@ -507,21 +511,22 @@ namespace SM.Media
             if (null == _readers && null != readerTasks)
             {
                 // Clean up any stragglers.
-                _readers = readerTasks.Where(r =>
-                                             {
-                                                 if (null == r)
-                                                     return false;
+                _readers = readerTasks.Where(
+                    r =>
+                    {
+                        if (null == r)
+                            return false;
 
-                                                 var readerException = r.Exception;
+                        var readerException = r.Exception;
 
-                                                 if (null != readerException)
-                                                 {
-                                                     Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader create failed: " + readerException.Message);
-                                                     return false;
-                                                 }
+                        if (null != readerException)
+                        {
+                            Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader create failed: " + readerException.Message);
+                            return false;
+                        }
 
-                                                 return r.IsCompleted;
-                                             })
+                        return r.IsCompleted;
+                    })
                                       .Select(r => r.Result)
                                       .ToArray();
 
@@ -543,10 +548,13 @@ namespace SM.Media
         {
             var reader = new MediaReader(_bufferingManagerFactory(), _mediaParserFactory, segmentManagerReaders, new BlockingPool<WorkBuffer>(MaxBuffers));
 
-            await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted, () => _mediaStreamSource.CheckForSamples(), _playbackCancellationTokenSource.Token, _programStreamsHandler)
+            await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted,
+                () => _mediaStreamSource.CheckForSamples(),
+                _playbackCancellationTokenSource.Token, _programStreamsHandler)
                         .ConfigureAwait(false);
 
-            return reader;
+            return
+                reader;
         }
 
         void CheckConfigurationCompleted()
@@ -585,22 +593,23 @@ namespace SM.Media
 
             try
             {
-                var tasks = _readers.Select(reader =>
-                                            {
-                                                if (null == reader)
-                                                    return null;
+                var tasks = _readers.Select(
+                    reader =>
+                    {
+                        if (null == reader)
+                            return null;
 
-                                                try
-                                                {
-                                                    return reader.CloseAsync();
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    Debug.WriteLine("TsMediaManager.CloseReadersAsync(): reader.CloseAsync failed: " + ex.Message);
-                                                }
+                        try
+                        {
+                            return reader.CloseAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("TsMediaManager.CloseReadersAsync(): reader.CloseAsync failed: " + ex.Message);
+                        }
 
-                                                return null;
-                                            })
+                        return null;
+                    })
                                     .Where(t => null != t);
 
                 await TaskEx.WhenAll(tasks).ConfigureAwait(false);

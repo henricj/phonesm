@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SimpleSegment.cs" company="Henric Jungheim">
+//  <copyright file="HlsPlaylistSegmentManagerFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,48 +25,43 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.IO;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Content;
+using SM.Media.Segments;
 
-namespace SM.Media.Segments
+namespace SM.Media.Hls
 {
-    public class SimpleSegment : ISegment
+    public class HlsPlaylistSegmentManagerFactory : ISegmentManagerFactoryInstance
     {
-        readonly Uri _parentUrl;
-        readonly Uri _url;
+        static readonly ICollection<ContentType> Types = new[] { ContentTypes.M3U8, ContentTypes.M3U };
+        readonly IHlsPlaylistSegmentManagerPolicy _hlsPlaylistSegmentManagerPolicy;
 
-        public SimpleSegment(Uri url, Uri parentUrl)
+        public HlsPlaylistSegmentManagerFactory(IHlsPlaylistSegmentManagerPolicy hlsPlaylistSegmentManagerPolicy)
         {
-            if (null == url)
-                throw new ArgumentNullException("url");
+            if (null == hlsPlaylistSegmentManagerPolicy)
+                throw new ArgumentNullException("hlsPlaylistSegmentManagerPolicy");
 
-            _url = url;
-            _parentUrl = parentUrl;
+            _hlsPlaylistSegmentManagerPolicy = hlsPlaylistSegmentManagerPolicy;
         }
 
-        #region ISegment Members
+        #region ISegmentManagerFactoryInstance Members
 
-        public Uri Url
+        public ICollection<ContentType> KnownContentTypes
         {
-            get { return _url; }
+            get { return Types; }
         }
 
-        public Uri ParentUrl
+        public async Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
-            get { return _parentUrl; }
-        }
+            var subProgram = await _hlsPlaylistSegmentManagerPolicy.CreateSubProgramAsync(parameters.Source, contentType, cancellationToken).ConfigureAwait(false);
 
-        public long Offset { get; set; }
+            var segmentManager = new HlsPlaylistSegmentManager(subProgram.Video, contentType, cancellationToken);
 
-        public long Length { get; set; }
+            await segmentManager.StartAsync().ConfigureAwait(false);
 
-        public TimeSpan? Duration { get; set; }
-
-        public long? MediaSequence { get; set; }
-
-        public Task<Stream> CreateFilterAsync(Stream stream)
-        {
-            return null;
+            return segmentManager;
         }
 
         #endregion

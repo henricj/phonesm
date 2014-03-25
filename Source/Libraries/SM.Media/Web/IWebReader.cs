@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSegmentManagerFactory.cs" company="Henric Jungheim">
+//  <copyright file="IWebReader.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,44 +26,45 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
-using SM.Media.Segments;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Web
 {
-    public class PlaylistSegmentManagerFactory : ISegmentManagerFactoryInstance
+    public interface IWebStreamResponse : IDisposable
     {
-        static readonly ICollection<ContentType> Types = new[] { ContentTypes.M3U8, ContentTypes.M3U };
-        readonly IPlaylistSegmentManagerPolicy _playlistSegmentManagerPolicy;
+        bool IsSuccessStatusCode { get; }
+        Uri ActualUrl { get; }
+        int HttpStatusCode { get; }
+        long? ContentLength { get; }
+        void EnsureSuccessStatusCode();
+        Task<Stream> GetStreamAsync();
+    }
 
-        public PlaylistSegmentManagerFactory(IPlaylistSegmentManagerPolicy playlistSegmentManagerPolicy)
-        {
-            if (null == playlistSegmentManagerPolicy)
-                throw new ArgumentNullException("playlistSegmentManagerPolicy");
+    public class WebResponse
+    {
+        public Uri RequestUri { get; set; }
+        public long? ContentLength { get; set; }
+        public IEnumerable<KeyValuePair<string, IEnumerable<string>>> Headers { get; set; }
+        public ContentType ContentType { get; set; }
+    }
 
-            _playlistSegmentManagerPolicy = playlistSegmentManagerPolicy;
-        }
+    public interface IWebReader : IDisposable
+    {
+        Uri BaseAddress { get; }
+        Uri RequestUri { get; }
+        ContentType ContentType { get; }
 
-        #region ISegmentManagerFactoryInstance Members
+        Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
+            Uri referrer = null, long? from = null, long? to = null, WebResponse response = null);
 
-        public ICollection<ContentType> KnownContentTypes
-        {
-            get { return Types; }
-        }
+        Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null);
 
-        public async Task<ISegmentManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
-        {
-            var subProgram = await _playlistSegmentManagerPolicy.CreateSubProgramAsync(source, contentType, cancellationToken).ConfigureAwait(false);
+        IWebReader CreateChild(Uri url, ContentType contentType = null);
+        IWebCache CreateWebCache(Uri uri, ContentType contentType = null);
 
-            var segmentManager = new PlaylistSegmentManager(subProgram.Video, contentType, cancellationToken);
-
-            await segmentManager.StartAsync().ConfigureAwait(false);
-
-            return segmentManager;
-        }
-
-        #endregion
+        Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken);
     }
 }

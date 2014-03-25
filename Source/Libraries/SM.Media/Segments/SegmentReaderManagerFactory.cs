@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,40 +35,40 @@ namespace SM.Media.Segments
 {
     public interface ISegmentReaderManagerFactory
     {
-        Task<ISegmentReaderManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken);
+        Task<ISegmentReaderManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken);
     }
 
     public class SegmentReaderManagerFactory : ISegmentReaderManagerFactory
     {
-        readonly IHttpClients _httpClients;
         readonly ISegmentManagerFactory _segmentManagerFactory;
+        readonly IWebReaderManager _webReaderManager;
 
-        public SegmentReaderManagerFactory(IHttpClients httpClients, ISegmentManagerFactory segmentManagerFactory)
+        public SegmentReaderManagerFactory(IWebReaderManager webReaderManager, ISegmentManagerFactory segmentManagerFactory)
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
+            if (null == webReaderManager)
+                throw new ArgumentNullException("webReaderManager");
             if (null == segmentManagerFactory)
                 throw new ArgumentNullException("segmentManagerFactory");
 
-            _httpClients = httpClients;
+            _webReaderManager = webReaderManager;
             _segmentManagerFactory = segmentManagerFactory;
         }
 
         #region ISegmentReaderManagerFactory Members
 
-        public async Task<ISegmentReaderManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        public async Task<ISegmentReaderManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
             ISegmentManager playlist;
 
             if (null == contentType)
-                playlist = await _segmentManagerFactory.CreateAsync(source, cancellationToken).ConfigureAwait(false);
+                playlist = await _segmentManagerFactory.CreateAsync(parameters, cancellationToken).ConfigureAwait(false);
             else
-                playlist = await _segmentManagerFactory.CreateAsync(source, contentType, cancellationToken).ConfigureAwait(false);
+                playlist = await _segmentManagerFactory.CreateAsync(parameters, contentType, cancellationToken).ConfigureAwait(false);
 
             if (null == playlist)
                 throw new FileNotFoundException("Unable to create playlist");
 
-            return new SegmentReaderManager(new[] { playlist }, _httpClients.CreateSegmentClient);
+            return new SegmentReaderManager(new[] { playlist }, _webReaderManager.RootWebReader);
         }
 
         #endregion
@@ -77,9 +76,9 @@ namespace SM.Media.Segments
 
     public static class SegmentReaderManagerFactoryExtensions
     {
-        public static Task<ISegmentReaderManager> CreateAsync(this ISegmentReaderManagerFactory factory, ICollection<Uri> source, CancellationToken cancellationToken)
+        public static Task<ISegmentReaderManager> CreateAsync(this ISegmentReaderManagerFactory factory, ISegmentManagerParameters parameters, CancellationToken cancellationToken)
         {
-            return factory.CreateAsync(source, null, cancellationToken);
+            return factory.CreateAsync(parameters, null, cancellationToken);
         }
     }
 }

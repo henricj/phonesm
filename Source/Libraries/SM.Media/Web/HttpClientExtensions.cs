@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="SimpleSegmentManager.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="HttpClientExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,17 +25,26 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using SM.Media.Content;
-using SM.Media.Web;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media.Segments
+namespace SM.Media.Web
 {
-    public class SimpleSegmentManager : SimpleSegmentManagerBase
+    public static class HttpClientExtensions
     {
-        public SimpleSegmentManager(IWebReader webReader, IEnumerable<Uri> urls, ContentType contentType)
-            : base(webReader, urls.Select<Uri, ISegment>(url => new SimpleSegment(url, null == webReader ? null : webReader.RequestUri ?? webReader.BaseAddress)).ToArray(), contentType)
-        { }
+        public static async Task<HttpResponseMessage> SendAsync(this HttpClient httpClient, HttpRequestMessage request,
+            HttpCompletionOption completionOption, CancellationToken cancellationToken,
+            Uri referrer, long? fromBytes, long? toBytes)
+        {
+            if (null != referrer)
+                request.Headers.Referrer = referrer;
+
+            if (null != fromBytes || null != toBytes)
+                request.Headers.Range = new RangeHeaderValue(fromBytes, toBytes);
+
+            return await httpClient.SendAsync(request, completionOption, cancellationToken).ConfigureAwait(false);
+        }
     }
 }

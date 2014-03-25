@@ -26,6 +26,8 @@
 
 using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using SM.Media.Content;
 
 namespace SM.Media.Web
 {
@@ -61,6 +63,29 @@ namespace SM.Media.Web
             }
         }
 
+        public HttpClient CreateClient(Uri url, Uri referrer = null, ContentType contentType = null)
+        {
+            var httpClient = CreateHttpClient(referrer);
+
+            //if (null != referrer)
+            //    httpClient.DefaultRequestHeaders.Referrer = referrer;
+
+            if (null != contentType)
+            {
+                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType.MimeType));
+
+                if (null != contentType.AlternateMimeTypes)
+                {
+                    foreach (var mimeType in contentType.AlternateMimeTypes)
+                        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(mimeType));
+                }
+            }
+
+            return httpClient;
+        }
+
+        #endregion
+
         public HttpClient CreatePlaylistClient(Uri rootPlaylist)
         {
             return CreateHttpClient(rootPlaylist);
@@ -75,8 +100,6 @@ namespace SM.Media.Web
         {
             return CreateHttpClient(referrer);
         }
-
-        #endregion
 
         static HttpClient CreateHttpClient(Uri baseAddress)
         {

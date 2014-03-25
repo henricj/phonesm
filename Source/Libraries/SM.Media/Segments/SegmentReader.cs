@@ -29,37 +29,39 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
-        readonly HttpClient _httpClient;
         readonly ISegment _segment;
-        long _endOffset;
+        readonly IWebReader _webReader;
+        long? _endOffset;
         long? _expectedBytes;
         Stream _readStream;
-        HttpRequestMessage _request;
-        HttpResponseMessage _response;
+        IWebStreamResponse _response;
         Stream _responseStream;
-        long _startOffset;
+        long? _startOffset;
 
-        public SegmentReader(ISegment segment, HttpClient httpClient)
+        public SegmentReader(ISegment segment, IWebReader webReader)
         {
             if (null == segment)
                 throw new ArgumentNullException("segment");
-
-            if (httpClient == null)
-                throw new ArgumentNullException("httpClient");
+            if (null == webReader)
+                throw new ArgumentNullException("webReader");
 
             _segment = segment;
-            _httpClient = httpClient;
-            _startOffset = segment.Offset;
-            _endOffset = _startOffset + segment.Length - 1;
+            _webReader = webReader;
+
+            if (segment.Offset >= 0 && segment.Length > 0)
+            {
+                _startOffset = segment.Offset;
+                _endOffset = segment.Offset + segment.Length - 1;
+            }
         }
 
         #region ISegmentReader Members
@@ -204,23 +206,6 @@ namespace SM.Media.Segments
             {
                 Debug.WriteLine("SegmentReader.Close() response cleanup failed: " + ex.Message);
             }
-
-            try
-            {
-                var request = _request;
-
-                if (null != request)
-                {
-                    _request = null;
-
-                    using (request)
-                    { }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("SegmentReader.Close() request cleanup failed: " + ex.Message);
-            }
         }
 
         #endregion
@@ -250,30 +235,26 @@ namespace SM.Media.Segments
                 {
                     for (; ; )
                     {
-                        _request = new HttpRequestMessage(HttpMethod.Get, _segment.Url);
-
-                        if (_startOffset >= 0 && _endOffset >= 0)
-                        {
-                            _request.Headers.Range = new RangeHeaderValue(_startOffset, _endOffset);
+                        if (_startOffset.HasValue && _endOffset.HasValue)
                             _expectedBytes = _endOffset - _startOffset + 1;
-                        }
                         else
                             _expectedBytes = null;
 
-                        _response = await _httpClient.SendAsync(_request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-                                                     .ConfigureAwait(false);
+                        _response = await _webReader.GetWebStreamAsync(_segment.Url, false, cancellationToken,
+                            _segment.ParentUrl, _startOffset, _endOffset)
+                                                    .ConfigureAwait(false);
 
                         if (_response.IsSuccessStatusCode)
                         {
-                            var contentLength = _response.Content.Headers.ContentLength;
+                            var contentLength = _response.ContentLength;
 
-                            if (_endOffset <= 0)
-                                _endOffset = (contentLength - 1) ?? 0;
+                            if (!_endOffset.HasValue)
+                                _endOffset = contentLength - 1;
 
                             if (!_expectedBytes.HasValue)
                                 _expectedBytes = contentLength;
 
-                            _responseStream = new PositionStream(await _response.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                            _responseStream = new PositionStream(await _response.GetStreamAsync().ConfigureAwait(false));
 
                             var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
 
@@ -285,11 +266,9 @@ namespace SM.Media.Segments
                             return;
                         }
 
-                        _request.Dispose();
-                        _request = null;
-
                         // Special-case 404s.
-                        if (HttpStatusCode.NotFound != _response.StatusCode && !RetryPolicy.IsRetryable(_response.StatusCode))
+                        var statusCode = (HttpStatusCode)_response.HttpStatusCode;
+                        if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
                             _response.EnsureSuccessStatusCode();
 
                         var canRetry = await retry.CanRetryAfterDelay(cancellationToken)

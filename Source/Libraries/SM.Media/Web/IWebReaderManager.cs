@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PlaylistSegmentManagerParameters.cs" company="Henric Jungheim">
+//  <copyright file="IWebReaderManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,8 +24,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-namespace SM.Media.Playlists
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using SM.Media.Content;
+
+namespace SM.Media.Web
 {
-    public class PlaylistSegmentManagerParameters : IPlaylistSegmentManagerParameters
-    { }
+    public interface IWebReaderManager
+    {
+        IWebReader RootWebReader { get; }
+
+        IWebReader CreateReader(Uri url, IWebReader parent = null, ContentType contentType = null);
+        IWebCache CreateWebCache(Uri url, IWebReader parent = null, ContentType contentType = null);
+        Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken, IWebReader parent = null);
+    }
 }

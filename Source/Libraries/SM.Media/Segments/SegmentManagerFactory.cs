@@ -24,8 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -33,33 +31,33 @@ using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactory : IContentServiceFactory<ISegmentManager, ICollection<Uri>>
+    public interface ISegmentManagerFactory : IContentServiceFactory<ISegmentManager, ISegmentManagerParameters>
     {
-        Task<ISegmentManager> CreateAsync(ICollection<Uri> sources, CancellationToken cancellationToken);
+        Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, CancellationToken cancellationToken);
     }
 
-    public class SegmentManagerFactory : ContentServiceFactory<ISegmentManager, ICollection<Uri>>, ISegmentManagerFactory
+    public class SegmentManagerFactory : ContentServiceFactory<ISegmentManager, ISegmentManagerParameters>, ISegmentManagerFactory
     {
-        readonly IWebContentTypeDetector _webContentTypeDetector;
+        readonly IWebReaderManager _webReaderManager;
 
-        public SegmentManagerFactory(ISegmentManagerFactoryFinder factoryFinder, IWebContentTypeDetector webContentTypeDetector)
+        public SegmentManagerFactory(ISegmentManagerFactoryFinder factoryFinder, IWebReaderManager webReaderManager)
             : base(factoryFinder)
         {
-            _webContentTypeDetector = webContentTypeDetector;
+            _webReaderManager = webReaderManager;
         }
 
         #region ISegmentManagerFactory Members
 
-        public async Task<ISegmentManager> CreateAsync(ICollection<Uri> sources, CancellationToken cancellationToken)
+        public async Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, CancellationToken cancellationToken)
         {
-            foreach (var source in sources)
+            foreach (var source in parameters.Source)
             {
-                var contentType = await _webContentTypeDetector.GetContentTypeAsync(source, cancellationToken).ConfigureAwait(false);
+                var contentType = await _webReaderManager.DetectContentTypeAsync(source, cancellationToken).ConfigureAwait(false);
 
                 if (null == contentType)
                     continue;
 
-                return await CreateAsync(sources, contentType, cancellationToken).ConfigureAwait(false);
+                return await CreateAsync(parameters, contentType, cancellationToken).ConfigureAwait(false);
             }
 
             return null;

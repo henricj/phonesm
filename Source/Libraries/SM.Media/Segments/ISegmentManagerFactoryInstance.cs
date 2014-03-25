@@ -24,12 +24,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
 using SM.Media.Content;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManagerFactoryInstance : IContentServiceFactoryInstance<ISegmentManager, ICollection<Uri>>
+    public interface ISegmentManagerFactoryInstance : IContentServiceFactoryInstance<ISegmentManager, ISegmentManagerParameters>
     { }
 }

@@ -36,10 +36,9 @@ namespace SM.Media.Web
 {
     public interface IWebCache
     {
-        Uri Url { get; }
-        Uri RequestUri { get; }
+        IWebReader WebReader { get; }
 
-        Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
+        Task<TCached> ReadAsync<TCached>(Func<Uri, byte[], TCached> factory, CancellationToken cancellationToken, WebResponse webResponse = null)
             where TCached : class;
     }
 
@@ -50,40 +49,30 @@ namespace SM.Media.Web
                                                                     NoCache = true
                                                                 };
 
-        readonly HttpClient _httpClient;
-        readonly Uri _url;
+        readonly HttpClientWebReader _webReader;
         CacheControlHeaderValue _cacheControl;
         object _cachedObject;
         EntityTagHeaderValue _etag;
+        bool _firstRequestCompleted;
         DateTimeOffset? _lastModified;
         string _noCache;
-        Uri _requestUri;
 
-        public WebCache(Uri url, HttpClient httpClient)
+        public WebCache(HttpClientWebReader webReader)
         {
-            if (null == url)
-                throw new ArgumentNullException("url");
+            if (webReader == null)
+                throw new ArgumentNullException("webReader");
 
-            if (httpClient == null)
-                throw new ArgumentNullException("httpClient");
-
-            _url = url;
-            _httpClient = httpClient;
+            _webReader = webReader;
         }
 
         #region IWebCache Members
 
-        public Uri Url
+        public IWebReader WebReader
         {
-            get { return _url; }
+            get { return _webReader; }
         }
 
-        public Uri RequestUri
-        {
-            get { return _requestUri; }
-        }
-
-        public async Task<TCached> ReadAsync<TCached>(Func<byte[], TCached> factory, CancellationToken cancellationToken)
+        public async Task<TCached> ReadAsync<TCached>(Func<Uri, byte[], TCached> factory, CancellationToken cancellationToken, WebResponse webResponse = null)
             where TCached : class
         {
             if (null == _cachedObject as TCached)
@@ -92,7 +81,7 @@ namespace SM.Media.Web
             var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
 
             await retry
-                .CallAsync(() => Fetch(retry, factory, cancellationToken), cancellationToken)
+                .CallAsync(() => Fetch(retry, factory, webResponse, cancellationToken), cancellationToken)
                 .ConfigureAwait(false);
 
             return _cachedObject as TCached;
@@ -100,20 +89,19 @@ namespace SM.Media.Web
 
         #endregion
 
-        async Task Fetch<TCached>(Retry retry, Func<byte[], TCached> factory, CancellationToken cancellationToken)
+        async Task Fetch<TCached>(Retry retry, Func<Uri, byte[], TCached> factory, WebResponse webResponse, CancellationToken cancellationToken)
             where TCached : class
         {
             for (; ; )
             {
                 using (var request = CreateRequest())
-                using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
-                                                       .ConfigureAwait(false))
+                using (var response = await _webReader.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken, webResponse)
+                                                      .ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
                     {
-                        _requestUri = response.RequestMessage.RequestUri;
-
-                        _cachedObject = factory(await FetchObject(response).ConfigureAwait(false));
+                        _firstRequestCompleted = true;
+                        _cachedObject = factory(response.RequestMessage.RequestUri, await FetchObject(response).ConfigureAwait(false));
                         return;
                     }
 
@@ -146,7 +134,7 @@ namespace SM.Media.Web
 
         HttpRequestMessage CreateRequest()
         {
-            var url = _url;
+            var url = WebReader.BaseAddress;
 
             var haveConditional = false;
 
@@ -160,7 +148,7 @@ namespace SM.Media.Web
             }
 
             // Do not rotate the nocache query string if the server has an explicit cache policy.
-            if ((!haveConditional && null == _cacheControl) || null == _noCache)
+            if (_firstRequestCompleted && (!haveConditional && null == _cacheControl))
                 _noCache = "nocache=" + Guid.NewGuid().ToString("N");
 
             if (null != _noCache)

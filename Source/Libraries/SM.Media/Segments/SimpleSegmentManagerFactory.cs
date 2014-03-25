@@ -26,10 +26,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
@@ -43,6 +43,16 @@ namespace SM.Media.Segments
                                                              ContentTypes.TransportStream
                                                          };
 
+        readonly IWebReaderManager _webReaderManager;
+
+        public SimpleSegmentManagerFactory(IWebReaderManager webReaderManager)
+        {
+            if (null == webReaderManager)
+                throw new ArgumentNullException("webReaderManager");
+
+            _webReaderManager = webReaderManager;
+        }
+
         #region ISegmentManagerFactoryInstance Members
 
         public ICollection<ContentType> KnownContentTypes
@@ -50,9 +60,9 @@ namespace SM.Media.Segments
             get { return Types; }
         }
 
-        public Task<ISegmentManager> CreateAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        public Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
-            return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(source.FirstOrDefault(), source, contentType));
+            return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(parameters.WebReader ?? _webReaderManager.RootWebReader, parameters.Source, contentType));
         }
 
         #endregion

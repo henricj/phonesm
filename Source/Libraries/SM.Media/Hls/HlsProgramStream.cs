@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ProgramStream.cs" company="Henric Jungheim">
+//  <copyright file="HlsProgramStream.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -32,52 +32,31 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.M3U8;
+using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public interface IProgramStream
-    {
-        string StreamType { get; }
-        string Language { get; }
-
-        /// <summary>
-        ///     A list of URLs representing the same data.  They are provided in order of preference.
-        /// </summary>
-        ICollection<Uri> Urls { get; }
-
-        Uri ActualUrl { get; }
-        bool IsDyanmicPlaylist { get; }
-        ICollection<ISegment> Segments { get; }
-
-        Task RefreshPlaylistAsync(CancellationToken cancellationToken);
-        Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken);
-    }
-
-    public class ProgramStream : IProgramStream
+    public class HlsProgramStream : IProgramStream
     {
         static readonly ISegment[] NoPlaylist = new ISegment[0];
-        readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
-        readonly IWebCacheFactory _webCacheFactory;
-        readonly IWebContentTypeDetector _webContentTypeDetector;
+        readonly IHlsSegmentsFactory _segmentsFactory;
+        readonly IWebReader _webReader;
         Uri _actualUrl;
+        ContentType _contentType;
         bool _isDyanmicPlaylist = true;
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
-        public ProgramStream(Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebCacheFactory webCacheFactory, IWebContentTypeDetector webContentTypeDetector, M3U8Parser parser = null)
+        public HlsProgramStream(IWebReader webReader, M3U8Parser parser = null)
         {
-            if (null == segmentsFactory)
-                throw new ArgumentNullException("segmentsFactory");
-            if (null == webCacheFactory)
-                throw new ArgumentNullException("webCacheFactory");
-            if (null == webContentTypeDetector)
-                throw new ArgumentNullException("webContentTypeDetector");
+            if (null == webReader)
+                throw new ArgumentNullException("webReader");
 
-            _segmentsFactory = segmentsFactory;
-            _webCacheFactory = webCacheFactory;
-            _webContentTypeDetector = webContentTypeDetector;
+            _webReader = webReader;
+
+            _segmentsFactory = new HlsSegmentsFactory();
 
             if (null != parser)
                 Update(parser);
@@ -85,14 +64,14 @@ namespace SM.Media.Playlists
 
         #region IProgramStream Members
 
+        public IWebReader WebReader
+        {
+            get { return _webReader; }
+        }
+
         public string StreamType { get; internal set; }
         public string Language { get; internal set; }
         public ICollection<Uri> Urls { get; internal set; }
-
-        public Uri ActualUrl
-        {
-            get { return _actualUrl; }
-        }
 
         public bool IsDyanmicPlaylist
         {
@@ -106,7 +85,7 @@ namespace SM.Media.Playlists
 
         public async Task RefreshPlaylistAsync(CancellationToken cancellationToken)
         {
-            if (!_isDyanmicPlaylist && null != _segments)
+            if (!_isDyanmicPlaylist && null != _segments && _segments.Count > 0)
                 return;
 
             var parser = await FetchPlaylistAsync(cancellationToken).ConfigureAwait(false);
@@ -114,7 +93,7 @@ namespace SM.Media.Playlists
             Update(parser);
         }
 
-        public Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken)
+        public async Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken)
         {
             if (null == _segments)
                 return null;
@@ -124,18 +103,17 @@ namespace SM.Media.Playlists
             if (null == segment0 || null == segment0.Url)
                 return null;
 
-            return _webContentTypeDetector.GetContentTypeAsync(segment0.Url, cancellationToken);
+            _contentType = await _subPlaylistCache.WebReader.DetectContentTypeAsync(segment0.Url, cancellationToken).ConfigureAwait(false);
+
+            return _contentType;
         }
 
         #endregion
 
         void Update(M3U8Parser parser)
         {
-            var segments = _segmentsFactory(parser)
-                .GetPlaylist();
-
-            _segments = segments;
-            _isDyanmicPlaylist = PlaylistSettings.Parameters.IsDyanmicPlaylist(parser);
+            _segments = _segmentsFactory.CreateSegments(parser, _subPlaylistCache.WebReader);
+            _isDyanmicPlaylist = HlsPlaylistSettings.Parameters.IsDyanmicPlaylist(parser);
             _actualUrl = parser.BaseUrl;
         }
 
@@ -148,13 +126,13 @@ namespace SM.Media.Playlists
 
             foreach (var playlist in urls)
             {
-                if (null == _subPlaylistCache || _subPlaylistCache.Url != playlist)
-                    _subPlaylistCache = await _webCacheFactory.CreateAsync(playlist).ConfigureAwait(false);
+                if (null == _subPlaylistCache || _subPlaylistCache.WebReader.BaseAddress != playlist)
+                    _subPlaylistCache = _webReader.CreateWebCache(playlist);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var parsedPlaylist = await _subPlaylistCache.ReadAsync(
-                    bytes =>
+                    (actualUri, bytes) =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -165,7 +143,7 @@ namespace SM.Media.Playlists
 
                         using (var ms = new MemoryStream(bytes))
                         {
-                            parser.Parse(_subPlaylistCache.RequestUri, ms);
+                            parser.Parse(actualUri, ms);
                         }
 
                         return parser;

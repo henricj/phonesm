@@ -34,7 +34,7 @@ namespace SM.Media.Content
 {
     public interface IContentTypeDetector
     {
-        ICollection<ContentType> GetContentType(Uri url, HttpContentHeaders headers = null);
+        ICollection<ContentType> GetContentType(Uri url, string mimeType = null);
     }
 
     public class ContentTypeDetector : IContentTypeDetector
@@ -81,17 +81,17 @@ namespace SM.Media.Content
 
         #region IContentTypeDetector Members
 
-        public virtual ICollection<ContentType> GetContentType(Uri url, HttpContentHeaders headers = null)
+        public virtual ICollection<ContentType> GetContentType(Uri url, string mimeType = null)
         {
             var contentType = GetContentTypeByUrl(url);
 
             if (null != contentType && contentType.Any())
                 return contentType;
 
-            if (null == headers)
+            if (null == mimeType)
                 return NoContent;
 
-            return GetContentTypeByContentHeaders(headers) ?? NoContent;
+            return GetContentTypeByContentHeaders(mimeType) ?? NoContent;
         }
 
         #endregion
@@ -106,12 +106,26 @@ namespace SM.Media.Content
             return ExtensionLookup[ext].ToArray();
         }
 
-        protected virtual ICollection<ContentType> GetContentTypeByContentHeaders(HttpContentHeaders httpHeaders)
+        protected virtual ICollection<ContentType> GetContentTypeByContentHeaders(string mimeType)
         {
-            if (null == httpHeaders || null == httpHeaders.ContentType)
+            if (null == mimeType)
                 return null;
 
-            return MimeLookup[httpHeaders.ContentType.MediaType].ToArray();
+            return MimeLookup[mimeType].ToArray();
+        }
+    }
+
+    public static class ContentTypeDetectorExtensions
+    {
+        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaders headers)
+        {
+            var mimeType = default(string);
+
+            var contentTypeHeader = headers.ContentType;
+            if (null != contentTypeHeader)
+                mimeType = contentTypeHeader.MediaType;
+
+            return contentTypeDetector.GetContentType(url, mimeType);
         }
     }
 }

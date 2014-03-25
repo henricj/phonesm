@@ -193,6 +193,33 @@
     <Compile Include="..\SM.Media\H264\H264StreamHandlerFactory.cs">
       <Link>H264\H264StreamHandlerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsPlaylistParameters.cs">
+      <Link>Hls\HlsPlaylistParameters.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsPlaylistSegmentManager.cs">
+      <Link>Hls\HlsPlaylistSegmentManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsPlaylistSegmentManagerFactory.cs">
+      <Link>Hls\HlsPlaylistSegmentManagerFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsPlaylistSegmentManagerPolicy.cs">
+      <Link>Hls\HlsPlaylistSegmentManagerPolicy.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsPlaylistSettings.cs">
+      <Link>Hls\HlsPlaylistSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsProgramManager.cs">
+      <Link>Hls\HlsProgramManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsProgramStream.cs">
+      <Link>Hls\HlsProgramStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsSegmentsFactory.cs">
+      <Link>Hls\HlsSegmentsFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsStreamSegments.cs">
+      <Link>Hls\HlsStreamSegments.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\IMediaManager.cs" />
     <Compile Include="..\SM.Media\ITsTimestamp.cs" />
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\ByterangeAttributeInstance.cs">
@@ -387,41 +414,17 @@
     <Compile Include="..\SM.Media\Pes\PesStreamFactoryFinder.cs">
       <Link>Pes\PesStreamFactoryFinder.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Playlists\IProgramManager.cs">
+      <Link>Playlists\IProgramManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Playlists\IProgramStream.cs">
+      <Link>Playlists\IProgramStream.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistDefaults.cs">
       <Link>Playlists\PlaylistDefaults.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistParameters.cs">
-      <Link>Playlists\PlaylistParameters.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManager.cs">
-      <Link>Playlists\PlaylistSegmentManager.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerFactory.cs">
-      <Link>Playlists\PlaylistSegmentManagerFactory.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerParameters.cs">
-      <Link>Playlists\PlaylistSegmentManagerParameters.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSegmentManagerPolicy.cs">
-      <Link>Playlists\PlaylistSegmentManagerPolicy.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\PlaylistSettings.cs">
-      <Link>Playlists\PlaylistSettings.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Playlists\PlaylistSubProgram.cs">
       <Link>Playlists\PlaylistSubProgram.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\ProgramManager.cs">
-      <Link>Playlists\ProgramManager.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\ProgramStream.cs">
-      <Link>Playlists\ProgramStream.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\SegmentsFactory.cs">
-      <Link>Playlists\SegmentsFactory.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\StreamSegments.cs">
-      <Link>Playlists\StreamSegments.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Pls\PlsParser.cs">
       <Link>Pls\PlsParser.cs</Link>
@@ -440,6 +443,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Segments\SegmentManagerFactoryFinder.cs">
       <Link>Segments\SegmentManagerFactoryFinder.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Segments\SegmentManagerParameters.cs">
+      <Link>Segments\SegmentManagerParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Segments\SegmentReaderManagerFactory.cs">
       <Link>Segments\SegmentReaderManagerFactory.cs</Link>
@@ -504,17 +510,32 @@
     <Compile Include="..\SM.Media\Web\ApplicationInformationExtensions.cs">
       <Link>Web\ApplicationInformationExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientExtensions.cs">
+      <Link>Web\HttpClientExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientWebReader.cs">
+      <Link>Web\HttpClientWebReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientWebReaderManager.cs">
+      <Link>Web\HttpClientWebReaderManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientWebStreamResponse.cs">
+      <Link>Web\HttpClientWebStreamResponse.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpDefaults.cs">
       <Link>Web\HttpDefaults.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpHeaderReader.cs">
-      <Link>Web\HttpHeaderReader.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpParameters.cs">
       <Link>Web\HttpParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpSettings.cs">
       <Link>Web\HttpSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\IWebReader.cs">
+      <Link>Web\IWebReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\IWebReaderManager.cs">
+      <Link>Web\IWebReaderManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\Rfc2047Encoding.cs">
       <Link>Web\Rfc2047Encoding.cs</Link>
@@ -525,11 +546,8 @@
     <Compile Include="..\SM.Media\Web\WebCache.cs">
       <Link>Web\WebCache.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\WebCacheFactory.cs">
-      <Link>Web\WebCacheFactory.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\WebContentTypeDetector.cs">
-      <Link>Web\WebContentTypeDetector.cs</Link>
+    <Compile Include="..\SM.Media\Web\WebReaderExtensions.cs">
+      <Link>Web\WebReaderExtensions.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="..\SM.Media\Configuration\IAudioConfigurationSource.cs">
@@ -616,9 +634,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Playlists\Program.cs">
       <Link>Playlists\Program.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Playlists\ProgramManagerBase.cs">
-      <Link>Playlists\ProgramManagerBase.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Playlists\SubProgram.cs">
       <Link>Playlists\SubProgram.cs</Link>

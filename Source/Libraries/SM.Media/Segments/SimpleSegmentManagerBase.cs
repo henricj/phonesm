@@ -29,22 +29,25 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
     public class SimpleSegmentManagerBase : ISegmentManager, IAsyncEnumerable<ISegment>
     {
         static readonly Task<TimeSpan> TimeSpanZeroTask = TaskEx.FromResult(TimeSpan.Zero);
-        readonly Uri _baseUrl;
         readonly ContentType _contentType;
         readonly ICollection<ISegment> _segments;
+        readonly IWebReader _webReader;
 
-        public SimpleSegmentManagerBase(Uri baseUrl, ICollection<ISegment> segments, ContentType contentType)
+        protected SimpleSegmentManagerBase(IWebReader webReader, ICollection<ISegment> segments, ContentType contentType)
         {
-            if (segments == null)
+            if (null == webReader)
+                throw new ArgumentNullException("webReader");
+            if (null == segments)
                 throw new ArgumentNullException("segments");
 
-            _baseUrl = baseUrl;
+            _webReader = webReader;
             _contentType = contentType;
             _segments = segments;
         }
@@ -61,7 +64,9 @@ namespace SM.Media.Segments
         #region ISegmentManager Members
 
         public void Dispose()
-        { }
+        {
+            _webReader.Dispose();
+        }
 
         public Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
@@ -83,9 +88,9 @@ namespace SM.Media.Segments
             return TplTaskExtensions.CompletedTask;
         }
 
-        public Uri Url
+        public IWebReader WebReader
         {
-            get { return _baseUrl; }
+            get { return _webReader; }
         }
 
         public TimeSpan StartPosition

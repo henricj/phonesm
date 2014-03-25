@@ -32,7 +32,6 @@ using SM.Media.Buffering;
 using SM.Media.Builder;
 using SM.Media.Content;
 using SM.Media.MediaParser;
-using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
 
@@ -410,11 +409,6 @@ namespace SM.Media
 
     public static class MediaStreamFacadeExtensions
     {
-        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IPlaylistSegmentManagerParameters parameters)
-        {
-            mediaStreamFacade.Builder.RegisterSingleton(parameters);
-        }
-
         public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IMediaManagerParameters parameters)
         {
             mediaStreamFacade.Builder.RegisterSingleton(parameters);

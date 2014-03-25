@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SimpleSegmentManager.cs" company="Henric Jungheim">
+//  <copyright file="IProgramStream.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,16 +26,29 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Segments;
 using SM.Media.Web;
 
-namespace SM.Media.Segments
+namespace SM.Media.Playlists
 {
-    public class SimpleSegmentManager : SimpleSegmentManagerBase
+    public interface IProgramStream
     {
-        public SimpleSegmentManager(IWebReader webReader, IEnumerable<Uri> urls, ContentType contentType)
-            : base(webReader, urls.Select<Uri, ISegment>(url => new SimpleSegment(url, null == webReader ? null : webReader.RequestUri ?? webReader.BaseAddress)).ToArray(), contentType)
-        { }
+        string StreamType { get; }
+        string Language { get; }
+
+        /// <summary>
+        ///     A list of URLs representing the same data.  They are provided in order of preference.
+        /// </summary>
+        ICollection<Uri> Urls { get; }
+
+        IWebReader WebReader { get; }
+        bool IsDyanmicPlaylist { get; }
+        ICollection<ISegment> Segments { get; }
+
+        Task RefreshPlaylistAsync(CancellationToken cancellationToken);
+        Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken);
     }
 }

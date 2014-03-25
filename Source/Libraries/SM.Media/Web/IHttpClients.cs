@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IHttpClients.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,14 +26,14 @@
 
 using System;
 using System.Net.Http;
+using SM.Media.Content;
 
 namespace SM.Media.Web
 {
     public interface IHttpClients
     {
         HttpClient RootPlaylistClient { get; }
-        HttpClient CreatePlaylistClient(Uri rootPlaylist);
-        HttpClient CreateSegmentClient(Uri segmentPlaylist /*, MediaTypeWithQualityHeaderValue mediaType = null*/);
-        HttpClient CreateBinaryClient(Uri referrer);
+
+        HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null);
     }
 }

@@ -95,6 +95,8 @@
     <Compile Include="Content\IContentServiceFactoryInstance.cs" />
     <Compile Include="H262\H262StreamHandlerFactory.cs" />
     <Compile Include="H264\H264StreamHandlerFactory.cs" />
+    <Compile Include="Hls\HlsPlaylistSegmentManager.cs" />
+    <Compile Include="Hls\HlsPlaylistSegmentManagerFactory.cs" />
     <Compile Include="M3U8\TagSupport\DateTimeTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8DateTimeTag.cs" />
     <Compile Include="MediaParser\IMediaParserFactoryInstance.cs" />
@@ -116,11 +118,13 @@
     <Compile Include="Pes\PesStreamFactory.cs" />
     <Compile Include="Pes\PesStreamFactoryFinder.cs" />
     <Compile Include="MP3\Mp3MediaParserFactory.cs" />
+    <Compile Include="Hls\HlsSegmentsFactory.cs" />
+    <Compile Include="Playlists\IProgramStream.cs" />
     <Compile Include="Playlists\PlaylistDefaults.cs" />
-    <Compile Include="Playlists\PlaylistSegmentManagerParameters.cs" />
-    <Compile Include="Playlists\PlaylistSegmentManagerPolicy.cs" />
-    <Compile Include="Playlists\ProgramStream.cs" />
+    <Compile Include="Hls\HlsPlaylistSegmentManagerPolicy.cs" />
+    <Compile Include="Hls\HlsProgramStream.cs" />
     <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
+    <Compile Include="Segments\SegmentManagerParameters.cs" />
     <Compile Include="Segments\SegmentReaderManagerFactory.cs" />
     <Compile Include="Segments\SimpleSegmentManager.cs" />
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
@@ -160,13 +164,10 @@
     <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="MP3\Mp3Parser.cs" />
     <Compile Include="Buffering\NullBufferingManager.cs" />
-    <Compile Include="Playlists\PlaylistParameters.cs" />
-    <Compile Include="Playlists\PlaylistSegmentManager.cs" />
-    <Compile Include="Playlists\PlaylistSegmentManagerFactory.cs" />
-    <Compile Include="Playlists\PlaylistSettings.cs" />
-    <Compile Include="Playlists\ProgramManager.cs" />
-    <Compile Include="Playlists\SegmentsFactory.cs" />
-    <Compile Include="Playlists\StreamSegments.cs" />
+    <Compile Include="Hls\HlsPlaylistParameters.cs" />
+    <Compile Include="Hls\HlsPlaylistSettings.cs" />
+    <Compile Include="Playlists\IProgramManager.cs" />
+    <Compile Include="Hls\HlsStreamSegments.cs" />
     <Compile Include="Pls\PlsParser.cs" />
     <Compile Include="Pls\PlsSegmentManagerFactory.cs" />
     <Compile Include="Pls\PlsTrack.cs" />
@@ -252,7 +253,7 @@
     <Compile Include="Playlists\PlaylistSubProgram.cs" />
     <Compile Include="Playlists\PlaylistSubStream.cs" />
     <Compile Include="Playlists\Program.cs" />
-    <Compile Include="Playlists\ProgramManagerBase.cs" />
+    <Compile Include="Hls\HlsProgramManager.cs" />
     <Compile Include="Playlists\SubProgram.cs" />
     <Compile Include="Playlists\SubStream.cs" />
     <Compile Include="Playlists\SubStreamSegment.cs" />
@@ -286,17 +287,21 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Web\ApplicationInformationExtensions.cs" />
+    <Compile Include="Web\HttpClientExtensions.cs" />
+    <Compile Include="Web\HttpClientWebStreamResponse.cs" />
+    <Compile Include="Web\HttpClientWebReader.cs" />
+    <Compile Include="Web\IWebReader.cs" />
+    <Compile Include="Web\IWebReaderManager.cs" />
     <Compile Include="Web\WebCache.cs" />
     <Compile Include="Web\HttpClients.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
-    <Compile Include="Web\HttpHeaderReader.cs" />
     <Compile Include="Web\HttpParameters.cs" />
     <Compile Include="Web\HttpSettings.cs" />
     <Compile Include="Web\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />
-    <Compile Include="Web\WebCacheFactory.cs" />
-    <Compile Include="Web\WebContentTypeDetector.cs" />
+    <Compile Include="Web\HttpClientWebReaderManager.cs" />
+    <Compile Include="Web\WebReaderExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

@@ -1,5 +1,5 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="PlaylistSettings.cs" company="Henric Jungheim">
+// -----------------------------------------------------------------------
+//  <copyright file="SegmentManagerParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,18 +24,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.Utility;
+using System;
+using System.Collections.Generic;
+using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Segments
 {
-    public static class PlaylistSettings
+    public interface ISegmentManagerParameters
     {
-        static readonly ResettableParameters<PlaylistParameters> PlaylistParameters = new ResettableParameters<PlaylistParameters>();
+        ICollection<Uri> Source { get; set; }
+        IWebReader WebReader { get; set; }
+    }
 
-        public static PlaylistParameters Parameters
-        {
-            get { return PlaylistParameters.Parameters; }
-            set { PlaylistParameters.Parameters = value; }
-        }
+    public class SegmentManagerParameters : ISegmentManagerParameters
+    {
+        #region ISegmentManagerParameters Members
+
+        public ICollection<Uri> Source { get; set; }
+        public IWebReader WebReader { get; set; }
+
+        #endregion
     }
 }

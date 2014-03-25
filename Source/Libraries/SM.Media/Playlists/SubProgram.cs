@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using SM.Media.Hls;
 
 namespace SM.Media.Playlists
 {
@@ -59,7 +60,7 @@ namespace SM.Media.Playlists
             _program = program;
         }
 
-        public ProgramManagerBase.MediaGroup AudioGroup { get; set; }
+        public HlsProgramManager.MediaGroup AudioGroup { get; set; }
 
         #region ISubProgram Members
 

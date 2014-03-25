@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="PlaylistSegmentManagerPolicy.cs" company="Henric Jungheim">
+//  <copyright file="HlsPlaylistSegmentManagerPolicy.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -32,59 +32,49 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
-using SM.Media.M3U8;
+using SM.Media.Playlists;
 using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public interface IPlaylistSegmentManagerPolicy
+    public interface IHlsPlaylistSegmentManagerPolicy
     {
         Task<ISubProgram> CreateSubProgramAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken);
     }
 
-    public class PlaylistSegmentManagerPolicy : IPlaylistSegmentManagerPolicy
+    public class HlsPlaylistSegmentManagerPolicy : IHlsPlaylistSegmentManagerPolicy
     {
         public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
-        readonly IHttpClients _httpClients;
-        readonly SegmentsFactory _segmentsFactory;
-        readonly IWebCacheFactory _webCacheFactory;
-        readonly IWebContentTypeDetector _webContentTypeDetector;
+        readonly IWebReaderManager _webReaderManager;
 
-        public PlaylistSegmentManagerPolicy(IHttpClients httpClients, IWebCacheFactory webCacheFactory,
-            IWebContentTypeDetector webContentTypeDetector)
+        public HlsPlaylistSegmentManagerPolicy(IWebReaderManager webReaderManager)
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
-            if (null == webCacheFactory)
-                throw new ArgumentNullException("webCacheFactory");
-            if (null == webContentTypeDetector)
-                throw new ArgumentNullException("webContentTypeDetector");
+            if (null == webReaderManager)
+                throw new ArgumentNullException("webReaderManager");
 
-            _httpClients = httpClients;
-            _webCacheFactory = webCacheFactory;
-            _webContentTypeDetector = webContentTypeDetector;
-            _segmentsFactory = new SegmentsFactory(httpClients);
+            _webReaderManager = webReaderManager;
         }
 
-        #region IPlaylistSegmentManagerPolicy Members
+        #region IHlsPlaylistSegmentManagerPolicy Members
 
         public Task<ISubProgram> CreateSubProgramAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
         {
-            var programManager = CreateProgramManager(source, contentType, cancellationToken);
+            var programManager = CreateProgramManager(source, contentType);
 
             return LoadSubProgram(programManager, contentType, cancellationToken);
         }
 
         #endregion
 
-        protected virtual IStreamSegments CreateStreamSegments(M3U8Parser parser)
+        protected virtual IProgramManager CreateProgramManager(ICollection<Uri> source, ContentType contentType)
         {
-            return _segmentsFactory.CreateStreamSegments(parser);
-        }
+            if (ContentTypes.M3U != contentType && ContentTypes.M3U8 != contentType)
+            {
+                throw new NotSupportedException(string.Format("Content type {0} not supported by this program manager",
+                    null == contentType ? "<unknown>" : contentType.ToString()));
+            }
 
-        protected virtual IProgramManager CreateProgramManager(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
-        {
-            var programManager = new ProgramManager(_httpClients, CreateStreamSegments, _webCacheFactory, _webContentTypeDetector)
+            var programManager = new HlsProgramManager(_webReaderManager)
                                  {
                                      Playlists = source
                                  };

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SegmentsFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  <copyright file="HlsSegmentsFactory.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,23 +24,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Collections.Generic;
 using SM.Media.M3U8;
+using SM.Media.Segments;
 using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public class SegmentsFactory
+    public interface IHlsSegmentsFactory
     {
-        readonly IHttpClients _httpClients;
+        ICollection<ISegment> CreateSegments(M3U8Parser parser, IWebReader binaryWebReader);
+    }
 
-        public SegmentsFactory(IHttpClients httpClients)
+    public class HlsSegmentsFactory : IHlsSegmentsFactory
+    {
+        #region IHlsSegmentsFactory Members
+
+        public ICollection<ISegment> CreateSegments(M3U8Parser parser, IWebReader binaryWebReader)
         {
-            _httpClients = httpClients;
+            var streamSegments = new HlsStreamSegments(parser, binaryWebReader);
+
+            return streamSegments.CreateSegments();
         }
 
-        public IStreamSegments CreateStreamSegments(M3U8Parser parser)
-        {
-            return new StreamSegments(parser, _httpClients);
-        }
+        #endregion
     }
 }

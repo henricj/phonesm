@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="StreamSegments.cs" company="Henric Jungheim">
+//  <copyright file="HlsStreamSegments.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -28,70 +28,58 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
 using SM.Media.M3U8.AttributeSupport;
 using SM.Media.M3U8.TagSupport;
+using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public interface IStreamSegments
-    {
-        ICollection<ISegment> GetPlaylist();
-    }
-
-    public class StreamSegments : IStreamSegments
+    public class HlsStreamSegments
     {
         const string MethodAes = "AES-128";
         const string MethodNone = "NONE";
         const string MethodSampleAes = "SAMPLE-AES";
-        readonly IHttpClients _httpClients;
 
         readonly Dictionary<Uri, Task<byte[]>> _keyCache = new Dictionary<Uri, Task<byte[]>>();
         readonly M3U8Parser _parser;
+        readonly IWebReader _webReader;
         long _byteRangeOffset;
         long? _mediaSequence;
         ISegment[] _playlist;
         int _segmentIndex;
 
-        public StreamSegments(M3U8Parser parser, IHttpClients httpClients)
+        public HlsStreamSegments(M3U8Parser parser, IWebReader webReader)
         {
             if (parser == null)
                 throw new ArgumentNullException("parser");
-
-            if (httpClients == null)
-                throw new ArgumentNullException("httpClients");
+            if (null == webReader)
+                throw new ArgumentNullException("webReader");
 
             _parser = parser;
-            _httpClients = httpClients;
+            _webReader = webReader;
 
             _mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
         }
 
-        #region IStreamSegments Members
-
-        public ICollection<ISegment> GetPlaylist()
+        public ICollection<ISegment> CreateSegments()
         {
-            if (null == _playlist)
-            {
-                _playlist = _parser.Playlist.Select(CreateStreamSegment)
-                                   .ToArray();
-            }
+            _playlist = _parser.Playlist.Select(CreateStreamSegment)
+                               .ToArray();
 
             return _playlist;
         }
 
-        #endregion
-
-        protected virtual ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri)
+        ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri)
         {
             var url = _parser.ResolveUrl(uri.Uri);
 
-            var segment = new SubStreamSegment(url);
+            var segment = new SubStreamSegment(url, _parser.BaseUrl);
 
             if (_mediaSequence.HasValue)
                 segment.MediaSequence = _mediaSequence + _segmentIndex;
@@ -148,15 +136,15 @@ namespace SM.Media.Playlists
             {
                 var method = key.AttributeObject(ExtKeySupport.AttrMethod);
 
-                if (String.Equals(MethodNone, method, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(MethodNone, method, StringComparison.OrdinalIgnoreCase))
                 {
                     keyUri = null;
                     continue;
                 }
 
-                if (!String.Equals(MethodAes, method, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(MethodAes, method, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (String.Equals(MethodSampleAes, method, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(MethodSampleAes, method, StringComparison.OrdinalIgnoreCase))
                         throw new NotImplementedException("Method SAMPLE-AES decryption is not implemented");
 
                     throw new NotSupportedException("Unknown decryption method type: " + method);
@@ -190,15 +178,13 @@ namespace SM.Media.Playlists
 
             var uri = _parser.ResolveUrl(keyUri);
 
-            HttpClient binaryClient = null;
+            IWebReader binaryClient = null;
 
             Task<byte[]> keyTask;
 
             if (!_keyCache.TryGetValue(uri, out keyTask))
             {
-                binaryClient = _httpClients.CreateBinaryClient(_parser.BaseUrl);
-
-                keyTask = binaryClient.GetByteArrayAsync(uri);
+                keyTask = _webReader.GetByteArrayAsync(uri, CancellationToken.None);
 
                 _keyCache[uri] = keyTask;
             }

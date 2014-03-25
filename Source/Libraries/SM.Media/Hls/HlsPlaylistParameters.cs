@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="PlaylistParameters.cs" company="Henric Jungheim">
+//  <copyright file="HlsPlaylistParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,10 +26,11 @@
 
 using System;
 using SM.Media.M3U8;
+using SM.Media.Playlists;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public class PlaylistParameters
+    public class HlsPlaylistParameters
     {
         TimeSpan _excessiveDuration = TimeSpan.FromMinutes(5);
         Func<M3U8Parser, bool> _isDynamicPlaylist;

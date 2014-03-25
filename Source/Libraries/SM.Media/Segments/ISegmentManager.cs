@@ -28,12 +28,13 @@ using System;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
     public interface ISegmentManager : IStopClose
     {
-        Uri Url { get; }
+        IWebReader WebReader { get; }
         TimeSpan StartPosition { get; }
         TimeSpan? Duration { get; }
 

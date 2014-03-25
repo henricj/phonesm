@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="SimpleSegmentManager.cs" company="Henric Jungheim">
+//  <copyright file="IProgramManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,16 +26,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using SM.Media.Content;
-using SM.Media.Web;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media.Segments
+namespace SM.Media.Playlists
 {
-    public class SimpleSegmentManager : SimpleSegmentManagerBase
+    public interface IProgramManager : IDisposable
     {
-        public SimpleSegmentManager(IWebReader webReader, IEnumerable<Uri> urls, ContentType contentType)
-            : base(webReader, urls.Select<Uri, ISegment>(url => new SimpleSegment(url, null == webReader ? null : webReader.RequestUri ?? webReader.BaseAddress)).ToArray(), contentType)
-        { }
+        ICollection<Uri> Playlists { get; }
+
+        Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken);
     }
 }

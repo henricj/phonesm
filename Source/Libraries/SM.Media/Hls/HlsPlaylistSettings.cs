@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="WebCacheFactory.cs" company="Henric Jungheim">
+//  <copyright file="HlsPlaylistSettings.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,40 +24,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Threading.Tasks;
-using SM.Media.Content;
+using SM.Media.Utility;
 
-namespace SM.Media.Web
+namespace SM.Media.Hls
 {
-    public interface IWebCacheFactory
+    public static class HlsPlaylistSettings
     {
-        Task<IWebCache> CreateAsync(Uri url, Uri baseUrl = null, ContentType contentType = null);
-    }
+        static readonly ResettableParameters<HlsPlaylistParameters> PlaylistParameters = new ResettableParameters<HlsPlaylistParameters>();
 
-    public class WebCacheFactory : IWebCacheFactory
-    {
-        readonly IHttpClients _httpClients;
-
-        public WebCacheFactory(IHttpClients httpClients)
+        public static HlsPlaylistParameters Parameters
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
-
-            _httpClients = httpClients;
+            get { return PlaylistParameters.Parameters; }
+            set { PlaylistParameters.Parameters = value; }
         }
-
-        #region IWebCacheFactory Members
-
-        public Task<IWebCache> CreateAsync(Uri url, Uri baseUrl = null, ContentType contentType = null)
-        {
-            // TODO: Detect the content type, if none is provided.
-
-            // TODO: Do stuff with the contentType to select the right HttpClient
-
-            return TaskEx.FromResult<IWebCache>(new WebCache(url, _httpClients.CreatePlaylistClient(baseUrl)));
-        }
-
-        #endregion
     }
 }

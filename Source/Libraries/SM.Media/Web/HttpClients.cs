@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpClients.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,16 +29,12 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
+using SM.Media.Content;
 
 namespace SM.Media.Web
 {
     public class HttpClients : IHttpClients, IDisposable
     {
-        public static readonly MediaTypeWithQualityHeaderValue AcceptMpegurlHeader = new MediaTypeWithQualityHeaderValue("application/vnd.apple.mpegurl");
-        public static readonly MediaTypeWithQualityHeaderValue AcceptMp2tHeader = new MediaTypeWithQualityHeaderValue("video/MP2T");
-        public static readonly MediaTypeWithQualityHeaderValue AcceptMp3Header = new MediaTypeWithQualityHeaderValue("audio/mpeg");
-        public static readonly MediaTypeWithQualityHeaderValue AcceptOctetHeader = new MediaTypeWithQualityHeaderValue("application/octet-stream");
-        public static readonly MediaTypeWithQualityHeaderValue AcceptAnyHeader = new MediaTypeWithQualityHeaderValue("*/*");
         readonly CookieContainer _cookieContainer;
         readonly ICredentials _credentials;
 
@@ -76,39 +72,26 @@ namespace SM.Media.Web
             get
             {
                 if (null == _rootPlaylistClient)
-                    _rootPlaylistClient = CreatePlaylistHttpClient(_referrer);
+                    _rootPlaylistClient = CreateClient(_referrer);
 
                 return _rootPlaylistClient;
             }
         }
 
-        public virtual HttpClient CreatePlaylistClient(Uri referrer)
+        public virtual HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null)
         {
-            return CreatePlaylistHttpClient(referrer);
-        }
+            var httpClient = CreateHttpClient(baseAddress, referrer);
 
-        public virtual HttpClient CreateSegmentClient(Uri segmentPlaylist /*, MediaTypeWithQualityHeaderValue mediaType = null*/)
-        {
-            var httpClient = CreateHttpClient(segmentPlaylist);
+            if (null != contentType)
+            {
+                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType.MimeType));
 
-            //if (null == mediaType)
-            //    return httpClient;
-
-            //var headers = httpClient.DefaultRequestHeaders;
-
-            //headers.Accept.Add(mediaType);
-            //headers.Accept.Add(AcceptAnyHeader);
-
-            return httpClient;
-        }
-
-        public virtual HttpClient CreateBinaryClient(Uri referrer)
-        {
-            var httpClient = CreateHttpClient(referrer);
-
-            var headers = httpClient.DefaultRequestHeaders;
-
-            headers.Accept.Add(AcceptOctetHeader);
+                if (null != contentType.AlternateMimeTypes)
+                {
+                    foreach (var mimeType in contentType.AlternateMimeTypes)
+                        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(mimeType));
+                }
+            }
 
             return httpClient;
         }
@@ -133,27 +116,20 @@ namespace SM.Media.Web
             return httpClientHandler;
         }
 
-        protected virtual HttpClient CreatePlaylistHttpClient(Uri referrer)
-        {
-            var httpClient = CreateHttpClient(referrer);
-
-            var headers = httpClient.DefaultRequestHeaders;
-
-            headers.Accept.Add(AcceptMpegurlHeader);
-            headers.Accept.Add(AcceptAnyHeader);
-
-            return httpClient;
-        }
-
-        protected virtual HttpClient CreateHttpClient(Uri referrer)
+        protected virtual HttpClient CreateHttpClient(Uri baseAddress, Uri referrer)
         {
             var httpClient = new HttpClient(CreateClientHandler());
 
             var headers = httpClient.DefaultRequestHeaders;
 
+            if (null != baseAddress)
+                httpClient.BaseAddress = baseAddress;
+
             if (null != referrer)
             {
-                httpClient.BaseAddress = referrer;
+                if (null == baseAddress)
+                    httpClient.BaseAddress = referrer;
+
                 headers.Referrer = referrer;
             }
 

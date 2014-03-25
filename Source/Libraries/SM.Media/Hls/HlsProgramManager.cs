@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ProgramManagerBase.cs" company="Henric Jungheim">
+//  <copyright file="HlsProgramManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,33 +26,81 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using SM.Media.M3U8;
 using SM.Media.M3U8.AttributeSupport;
+using SM.Media.Playlists;
 using SM.Media.Web;
 
-namespace SM.Media.Playlists
+namespace SM.Media.Hls
 {
-    public class ProgramManagerBase
+    public class HlsProgramManager : IProgramManager
     {
-        readonly Func<M3U8Parser, IStreamSegments> _segmentsFactory;
-        readonly IWebCacheFactory _webCacheFactory;
-        readonly IWebContentTypeDetector _webContentTypeDetector;
+        static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
+        readonly IWebReader _rootWebReader;
+        IWebReader _playlistWebReader;
 
-        protected ProgramManagerBase(Func<M3U8Parser, IStreamSegments> segmentsFactory, IWebCacheFactory webCacheFactory, IWebContentTypeDetector webContentTypeDetector)
+        public HlsProgramManager(IWebReaderManager webReaderManager)
         {
-            if (null == segmentsFactory)
-                throw new ArgumentNullException("segmentsFactory");
-            if (null == webCacheFactory)
-                throw new ArgumentNullException("webCacheFactory");
-            if (null == webContentTypeDetector)
-                throw new ArgumentNullException("webContentTypeDetector");
+            if (null == webReaderManager)
+                throw new ArgumentNullException("webReaderManager");
 
-            _segmentsFactory = segmentsFactory;
-            _webCacheFactory = webCacheFactory;
-            _webContentTypeDetector = webContentTypeDetector;
+            _rootWebReader = webReaderManager.RootWebReader;
         }
 
-        protected IDictionary<long, Program> Load(Uri playlist, M3U8Parser parser)
+        #region IProgramManager Members
+
+        public ICollection<Uri> Playlists { get; set; }
+
+        public async Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken)
+        {
+            var playlists = Playlists;
+
+            foreach (var playlist in playlists)
+            {
+                try
+                {
+                    var parser = new M3U8Parser();
+
+                    if (null != _playlistWebReader)
+                        _playlistWebReader.Dispose();
+
+                    _playlistWebReader = _rootWebReader.CreateChild(playlist);
+
+                    var actualPlaylist = await parser.ParseAsync(_playlistWebReader, playlist, cancellationToken)
+                                                     .ConfigureAwait(false);
+
+                    return Load(_playlistWebReader, parser);
+                }
+                catch (HttpRequestException e)
+                {
+                    // This one didn't work, so try the next playlist url.
+                    Debug.WriteLine("HlsProgramManager.LoadAsync: " + e.Message);
+                }
+                catch (WebException e)
+                {
+                    // This one didn't work, so try the next playlist url.
+                    Debug.WriteLine("HlsProgramManager.LoadAsync: " + e.Message);
+                }
+            }
+
+            return NoPrograms;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+
+            GC.KeepAlive(this);
+        }
+
+        #endregion
+
+        IDictionary<long, Program> Load(IWebReader webReader, M3U8Parser parser)
         {
             var audioStreams = new Dictionary<string, MediaGroup>();
 
@@ -65,7 +113,7 @@ namespace SM.Media.Playlists
                         var audioAttribute = gt.Attribute(ExtMediaSupport.AttrType, "AUDIO");
 
                         if (null != audioAttribute)
-                            AddMedia(playlist, gt, audioStreams);
+                            AddMedia(parser.BaseUrl, gt, audioStreams);
                     }
                     catch (NullReferenceException)
                     {
@@ -107,7 +155,7 @@ namespace SM.Media.Playlists
 
                     var program = GetProgram(programs, programId, programUrl);
 
-                    var subProgram = new PlaylistSubProgram(program, new ProgramStream(_segmentsFactory, _webCacheFactory, _webContentTypeDetector)
+                    var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader)
                                                                      {
                                                                          Urls = new[] { playlistUrl }
                                                                      })
@@ -127,9 +175,9 @@ namespace SM.Media.Playlists
             {
                 var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
-                var subProgram = new PlaylistSubProgram(program, new ProgramStream(_segmentsFactory, _webCacheFactory, _webContentTypeDetector, parser)
+                var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, parser)
                                                                  {
-                                                                     Urls = new[] { playlist }
+                                                                     Urls = new[] { webReader.RequestUri }
                                                                  });
 
                 program.SubPrograms.Add(subProgram);
@@ -154,13 +202,6 @@ namespace SM.Media.Playlists
             }
 
             return program;
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-
-            GC.KeepAlive(this);
         }
 
         protected virtual void Dispose(bool disposing)

@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using SM.Media.Content;
@@ -58,7 +59,7 @@ namespace SM.Media.Web
             get
             {
                 if (null == _rootHttpClient)
-                    _rootHttpClient = new HttpClient();
+                    _rootHttpClient = CreateHttpClient(null);
 
                 return _rootHttpClient;
             }
@@ -87,24 +88,14 @@ namespace SM.Media.Web
 
         #endregion
 
-        public HttpClient CreatePlaylistClient(Uri rootPlaylist)
-        {
-            return CreateHttpClient(rootPlaylist);
-        }
-
-        public HttpClient CreateSegmentClient(Uri segmentPlaylist)
-        {
-            return CreateHttpClient(segmentPlaylist);
-        }
-
-        public HttpClient CreateBinaryClient(Uri referrer)
-        {
-            return CreateHttpClient(referrer);
-        }
-
         static HttpClient CreateHttpClient(Uri baseAddress)
         {
-            var httpClient = new HttpClient
+            var httpClientHandler = new HttpClientHandler();
+
+            if (httpClientHandler.SupportsAutomaticDecompression)
+                httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip;
+
+            var httpClient = new HttpClient(httpClientHandler)
                              {
                                  BaseAddress = baseAddress
                              };

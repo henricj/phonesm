@@ -36,14 +36,17 @@ namespace SM.Media.Utility
             if (null == ex)
                 throw new ArgumentNullException("ex");
 
-            var aggregateException = ex as AggregateException;
+            if (null == ex.InnerException)
+            {
+                var aggregateException = ex as AggregateException;
 
-            if (null == aggregateException)
-                return ex.Message;
+                if (null == aggregateException)
+                    return ex.Message;
+            }
 
             var sb = new StringBuilder();
 
-            DumpException(sb, 0, aggregateException);
+            DumpException(sb, 0, ex);
 
             return sb.ToString();
         }
@@ -70,6 +73,9 @@ namespace SM.Media.Utility
         {
             sb.Append(' ', indent * 3);
             sb.AppendLine(exception.GetType().FullName + ": " + exception.Message);
+
+            if (null != exception.InnerException)
+                DumpException(sb, indent + 1, exception.InnerException);
         }
     }
 }

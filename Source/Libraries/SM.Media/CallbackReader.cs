@@ -152,7 +152,7 @@ namespace SM.Media
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("CallbackReader.ReadAsync() failed: " + ex.Message);
+                Debug.WriteLine("CallbackReader.ReadAsync() failed: " + ex.ExtendedMessage());
             }
             finally
             {

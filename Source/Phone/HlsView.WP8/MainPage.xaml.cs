@@ -41,6 +41,8 @@ using Microsoft.Phone.Info;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
+using SM.Media.Web.WebRequestReader;
 
 namespace HlsView
 {

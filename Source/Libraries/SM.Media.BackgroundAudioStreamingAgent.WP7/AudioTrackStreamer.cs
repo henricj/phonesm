@@ -34,6 +34,7 @@ using Microsoft.Phone.Info;
 using SM.Media.Buffering;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 using SM.TsParser;
 
 namespace SM.Media.BackgroundAudioStreamingAgent

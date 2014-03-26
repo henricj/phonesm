@@ -37,6 +37,7 @@ using NasaTv;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace NasaTv8
 {
@@ -62,8 +63,8 @@ namespace NasaTv8
 
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly HttpClients _httpClients;
-        IMediaStreamFacade _mediaStreamFacade;
         readonly PersistentSettings _settings = new PersistentSettings();
+        IMediaStreamFacade _mediaStreamFacade;
 
         public MainPage()
         {

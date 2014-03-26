@@ -31,7 +31,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using SM.Media.Content;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.HttpClientReader
 {
     public class HttpClients : IHttpClients, IDisposable
     {

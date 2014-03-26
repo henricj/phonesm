@@ -29,6 +29,7 @@ using System.Windows;
 using Microsoft.PlayerFramework;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.MediaPlayer
 {

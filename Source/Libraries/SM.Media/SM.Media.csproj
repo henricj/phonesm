@@ -287,21 +287,29 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Web\ApplicationInformationExtensions.cs" />
-    <Compile Include="Web\HttpClientExtensions.cs" />
-    <Compile Include="Web\HttpClientWebStreamResponse.cs" />
-    <Compile Include="Web\HttpClientWebReader.cs" />
+    <Compile Include="Web\HttpClientReader\HttpClientExtensions.cs" />
+    <Compile Include="Web\HttpClientReader\HttpClientWebStreamResponse.cs" />
+    <Compile Include="Web\HttpClientReader\HttpClientWebReader.cs" />
+    <Compile Include="Web\WebRequestReader\HttpWebRequestExtensions.cs" />
+    <Compile Include="Web\WebRequestReader\HttpWebRequestWebCache.cs" />
+    <Compile Include="Web\WebRequestReader\HttpWebRequestWebReader.cs" />
+    <Compile Include="Web\WebRequestReader\HttpWebRequestWebReaderManager.cs" />
+    <Compile Include="Web\WebRequestReader\HttpWebRequestWebStreamResponse.cs" />
+    <Compile Include="Web\WebRequestReader\IHttpWebRequests.cs" />
+    <Compile Include="Web\IWebCache.cs" />
     <Compile Include="Web\IWebReader.cs" />
     <Compile Include="Web\IWebReaderManager.cs" />
-    <Compile Include="Web\WebCache.cs" />
-    <Compile Include="Web\HttpClients.cs" />
+    <Compile Include="Web\HttpClientReader\HttpClientWebCache.cs" />
+    <Compile Include="Web\HttpClientReader\HttpClients.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
     <Compile Include="Web\HttpParameters.cs" />
     <Compile Include="Web\HttpSettings.cs" />
-    <Compile Include="Web\IHttpClients.cs" />
+    <Compile Include="Web\HttpClientReader\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />
-    <Compile Include="Web\HttpClientWebReaderManager.cs" />
+    <Compile Include="Web\HttpClientReader\HttpClientWebReaderManager.cs" />
     <Compile Include="Web\WebReaderExtensions.cs" />
+    <Compile Include="Web\WebRequestReader\PclHttpWebRequests.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

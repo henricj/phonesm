@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="DefaultMediaStreamFacadeParameters.cs" company="Henric Jungheim">
+//  <copyright file="IWebCache.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,25 +25,16 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Web.HttpClientReader;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media
+namespace SM.Media.Web
 {
-    public static class DefaultMediaStreamFacadeParameters
+    public interface IWebCache
     {
-        public static Func<IHttpClients, IMediaStreamFacadeBase> Factory =
-            httpClients =>
-            {
-                var mediaStreamFacade = new MediaStreamFacade(httpClients);
+        IWebReader WebReader { get; }
 
-                return mediaStreamFacade;
-            };
-
-        public static IMediaStreamFacade Create(this MediaStreamFacadeParameters parameters, IHttpClients httpClients)
-        {
-            var factory = parameters.Factory ?? Factory;
-
-            return (IMediaStreamFacade)factory(httpClients);
-        }
+        Task<TCached> ReadAsync<TCached>(Func<Uri, byte[], TCached> factory, CancellationToken cancellationToken, WebResponse webResponse = null)
+            where TCached : class;
     }
 }

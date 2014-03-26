@@ -78,6 +78,7 @@
     <Compile Include="SimulatedMediaElementManager.cs" />
     <Compile Include="SimulatedMediaStreamSource.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
+    <Compile Include="Web\HttpWebRequests.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Autofac">

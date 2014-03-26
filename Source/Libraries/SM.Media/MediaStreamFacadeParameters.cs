@@ -25,7 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {

@@ -30,7 +30,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.HttpClientReader
 {
     public static class HttpClientExtensions
     {

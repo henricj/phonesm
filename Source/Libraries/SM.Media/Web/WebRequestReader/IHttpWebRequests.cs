@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IHttpClients.cs" company="Henric Jungheim">
+//  <copyright file="IHttpWebRequests.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,15 +25,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Net.Http;
+using System.Net;
 using SM.Media.Content;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.WebRequestReader
 {
-    public interface IHttpClients
+    public interface IHttpWebRequests
     {
-        HttpClient RootPlaylistClient { get; }
-
-        HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null);
+        HttpWebRequest CreateWebRequest(Uri url, Uri referrer = null, string method = null, ContentType contentType = null, bool allowBuffering = true, long? fromBytes = null, long? toBytes = null);
     }
 }

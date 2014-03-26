@@ -26,7 +26,7 @@
 
 using Ninject.Modules;
 using SM.Media.Builder;
-using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {

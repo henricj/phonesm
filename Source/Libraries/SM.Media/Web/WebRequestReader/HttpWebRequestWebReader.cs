@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="HttpClientWebReader.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="HttpWebRequestWebReader.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,86 +25,70 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Linq;
-using System.Net.Http;
+using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.WebRequestReader
 {
-    public sealed class HttpClientWebReader : IWebReader
+    public class HttpWebRequestWebReader : IWebReader
     {
+        readonly Uri _baseAddress;
         readonly IContentTypeDetector _contentTypeDetector;
-        readonly HttpClient _httpClient;
-        readonly IWebReaderManager _webReaderManager;
+        readonly Uri _referrer;
+        readonly HttpWebRequestWebReaderManager _webReaderManager;
 
-        public HttpClientWebReader(IWebReaderManager webReaderManager, HttpClient httpClient, ContentType contentType, IContentTypeDetector contentTypeDetector)
+        public HttpWebRequestWebReader(HttpWebRequestWebReaderManager webReaderManager, Uri baseAddress, Uri referrer, ContentType contentType, IContentTypeDetector contentTypeDetector)
         {
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
-            if (null == httpClient)
-                throw new ArgumentNullException("httpClient");
             if (contentTypeDetector == null)
                 throw new ArgumentNullException("contentTypeDetector");
 
             _webReaderManager = webReaderManager;
-            _httpClient = httpClient;
+            _baseAddress = baseAddress;
+            _referrer = referrer;
             ContentType = contentType;
             _contentTypeDetector = contentTypeDetector;
         }
 
         #region IWebReader Members
 
-        public void Dispose()
-        {
-            _httpClient.Dispose();
-        }
-
         public Uri BaseAddress
         {
-            get { return _httpClient.BaseAddress; }
+            get { return _baseAddress; }
         }
 
         public Uri RequestUri { get; private set; }
 
         public ContentType ContentType { get; private set; }
 
+        public void Dispose()
+        { }
+
         public async Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse webResponse = null)
         {
-            var completionOption = waitForContent ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead;
+            var response = await _webReaderManager.SendAsync(url, this, cancellationToken, allowBuffering: waitForContent, referrer: referrer, fromBytes: from, toBytes: to);
 
-            if (null == referrer && null == from && null == to)
-            {
-                var response = await _httpClient.GetAsync(url, completionOption, cancellationToken).ConfigureAwait(false);
+            Update(url, response, webResponse);
 
-                Update(url, response, webResponse);
-
-                return new HttpClientWebStreamResponse(response);
-            }
-            else
-            {
-                var request = new HttpRequestMessage(HttpMethod.Get, url);
-
-                var response = await _httpClient.SendAsync(request, completionOption, cancellationToken, referrer, from, to);
-
-                Update(url, response, webResponse);
-
-                return new HttpClientWebStreamResponse(request, response);
-            }
+            return new HttpWebRequestWebStreamResponse(response);
         }
 
         public async Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
-            using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false))
-            {
-                response.EnsureSuccessStatusCode();
+            if (null != _baseAddress && !url.IsAbsoluteUri)
+                url = new Uri(_baseAddress, url);
 
+            using (var response = await _webReaderManager.SendAsync(url, this, cancellationToken, allowBuffering: true).ConfigureAwait(false))
+            {
                 Update(url, response, webResponse);
 
-                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                return await response.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -125,37 +109,54 @@ namespace SM.Media.Web
 
         #endregion
 
-        public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption responseContentRead, CancellationToken cancellationToken, WebResponse webResponse = null)
+        public async Task<HttpWebResponse> SendAsync(HttpWebRequest request, bool allowBuffering, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
             var url = request.RequestUri;
 
-            var response = await _httpClient.SendAsync(request, responseContentRead, cancellationToken).ConfigureAwait(false);
+            var response = await _webReaderManager.SendAsync(_baseAddress, this, cancellationToken, allowBuffering: allowBuffering).ConfigureAwait(false);
 
             Update(url, response, webResponse);
 
             return response;
         }
 
-        void Update(Uri url, HttpResponseMessage response, WebResponse webResponse)
+        public HttpWebRequest CreateWebRequest(Uri url)
         {
-            if (!response.IsSuccessStatusCode)
-                return;
+            return _webReaderManager.CreateRequest(url, null, this, ContentType);
+        }
 
+        void Update(Uri url, HttpWebResponse response, WebResponse webResponse)
+        {
             if (null != webResponse)
             {
-                webResponse.RequestUri = response.RequestMessage.RequestUri;
-                webResponse.ContentLength = response.Content.Headers.ContentLength;
-                webResponse.Headers = response.Headers.Concat(response.Content.Headers);
-                webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+                webResponse.RequestUri = response.ResponseUri;
+                webResponse.ContentLength = response.ContentLength >= 0 ? response.ContentLength : null as long?;
+                webResponse.Headers = GetHeaders(response.Headers);
+                webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
             }
 
             if (url != BaseAddress)
                 return;
 
-            RequestUri = response.RequestMessage.RequestUri;
+            RequestUri = response.ResponseUri;
 
             if (null == ContentType)
-                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
+        }
+
+        IEnumerable<KeyValuePair<string, IEnumerable<string>>> GetHeaders(WebHeaderCollection myWebHeaderCollection)
+        {
+            foreach (var key in myWebHeaderCollection.AllKeys)
+            {
+                var joinedValues = myWebHeaderCollection[key];
+
+                if (null != joinedValues)
+                {
+                    var values = joinedValues.Split(',');
+
+                    yield return new KeyValuePair<string, IEnumerable<string>>(key, values);
+                }
+            }
         }
 
         public override string ToString()

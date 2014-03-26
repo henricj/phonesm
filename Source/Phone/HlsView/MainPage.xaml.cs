@@ -43,6 +43,7 @@ using Microsoft.Phone.Info;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace HlsView
 {
@@ -54,7 +55,7 @@ namespace HlsView
 
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        readonly HttpClients _httpClients;
+        readonly IHttpClients _httpClients;
         readonly DispatcherTimer _positionSampler;
         MediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;

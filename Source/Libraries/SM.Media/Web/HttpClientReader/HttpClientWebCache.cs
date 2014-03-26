@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="WebCache.cs" company="Henric Jungheim">
+//  <copyright file="HttpClientWebCache.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -32,17 +32,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.HttpClientReader
 {
-    public interface IWebCache
-    {
-        IWebReader WebReader { get; }
-
-        Task<TCached> ReadAsync<TCached>(Func<Uri, byte[], TCached> factory, CancellationToken cancellationToken, WebResponse webResponse = null)
-            where TCached : class;
-    }
-
-    public class WebCache : IWebCache
+    public class HttpClientWebCache : IWebCache
     {
         static readonly CacheControlHeaderValue NoCacheHeader = new CacheControlHeaderValue
                                                                 {
@@ -57,7 +49,7 @@ namespace SM.Media.Web
         DateTimeOffset? _lastModified;
         string _noCache;
 
-        public WebCache(HttpClientWebReader webReader)
+        public HttpClientWebCache(HttpClientWebReader webReader)
         {
             if (webReader == null)
                 throw new ArgumentNullException("webReader");

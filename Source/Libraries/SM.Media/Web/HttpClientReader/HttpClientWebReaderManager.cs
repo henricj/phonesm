@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.HttpClientReader
 {
     public class HttpClientWebReaderManager : IWebReaderManager, IDisposable
     {
@@ -83,7 +83,7 @@ namespace SM.Media.Web
         {
             var webReader = CreateHttpClientWebReader(url, parent, contentType);
 
-            return new WebCache(webReader);
+            return new HttpClientWebCache(webReader);
         }
 
         public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken, IWebReader parent = null)

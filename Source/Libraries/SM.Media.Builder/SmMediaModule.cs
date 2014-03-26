@@ -39,6 +39,7 @@ using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 using SM.TsParser;
 using SM.TsParser.Utility;
 

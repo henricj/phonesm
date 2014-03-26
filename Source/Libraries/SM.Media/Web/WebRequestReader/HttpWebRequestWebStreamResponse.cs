@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="HttpClientWebStreamResponse.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="HttpWebRequestWebStreamResponse.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,75 +26,67 @@
 
 using System;
 using System.IO;
-using System.Net.Http;
+using System.Net;
 using System.Threading.Tasks;
 
-namespace SM.Media.Web
+namespace SM.Media.Web.WebRequestReader
 {
-    public sealed class HttpClientWebStreamResponse : IWebStreamResponse
+    public sealed class HttpWebRequestWebStreamResponse : IWebStreamResponse
     {
-        readonly HttpRequestMessage _request;
-        readonly HttpResponseMessage _response;
-        Stream _stream;
+        readonly int _httpStatusCode;
+        readonly HttpWebResponse _webResponse;
 
-        public HttpClientWebStreamResponse(HttpResponseMessage response)
+        public HttpWebRequestWebStreamResponse(HttpWebResponse webResponse)
         {
-            if (null == response)
-                throw new ArgumentNullException("response");
+            if (null == webResponse)
+                throw new ArgumentNullException("webResponse");
 
-            _response = response;
+            _webResponse = webResponse;
+            _httpStatusCode = (int)_webResponse.StatusCode;
         }
 
-        public HttpClientWebStreamResponse(HttpRequestMessage request, HttpResponseMessage response)
-            : this(response)
+        public HttpWebRequestWebStreamResponse(HttpStatusCode statusCode)
         {
-            _request = request;
+            _httpStatusCode = (int)statusCode;
         }
 
         #region IWebStreamResponse Members
 
         public void Dispose()
         {
-            using (_stream)
-            { }
-
-            _response.Dispose();
-
-            using (_request)
+            using (_webResponse)
             { }
         }
 
         public bool IsSuccessStatusCode
         {
-            get { return _response.IsSuccessStatusCode; }
-        }
-
-        public void EnsureSuccessStatusCode()
-        {
-            _response.EnsureSuccessStatusCode();
+            get { return null != _webResponse; }
         }
 
         public Uri ActualUrl
         {
-            get { return _response.RequestMessage.RequestUri; }
+            get { return null == _webResponse ? null : _webResponse.ResponseUri; }
         }
 
         public int HttpStatusCode
         {
-            get { return (int)_response.StatusCode; }
-        }
-
-        public async Task<Stream> GetStreamAsync()
-        {
-            if (null == _stream)
-                _stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-            return _stream;
+            get { return _httpStatusCode; }
         }
 
         public long? ContentLength
         {
-            get { return _response.Content.Headers.ContentLength; }
+            get { return null == _webResponse ? null : _webResponse.ContentLength >= 0 ? _webResponse.ContentLength : null as long?; }
+        }
+
+        public void EnsureSuccessStatusCode()
+        {
+            if (_httpStatusCode < 200 || _httpStatusCode >= 300)
+                throw new WebException("Invalid status: " + _httpStatusCode);
+        }
+
+        public Task<Stream> GetStreamAsync()
+        {
+            return TaskEx.FromResult(_webResponse.GetResponseStream());
         }
 
         #endregion

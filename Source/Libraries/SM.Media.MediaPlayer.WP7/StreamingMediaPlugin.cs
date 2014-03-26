@@ -41,6 +41,7 @@ using Microsoft.SilverlightMediaFramework.Plugins.Primitives;
 using Microsoft.SilverlightMediaFramework.Utilities.Extensions;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.MediaPlayer
 {

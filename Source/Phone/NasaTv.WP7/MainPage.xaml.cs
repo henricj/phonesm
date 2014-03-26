@@ -38,13 +38,14 @@ using Microsoft.Phone.Shell;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace NasaTv
 {
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        readonly HttpClients _httpClients;
+        readonly IHttpClients _httpClients;
         IMediaStreamFacade _mediaStreamFacade;
 
         // Constructor
@@ -58,12 +59,12 @@ namespace NasaTv
             {
                 switch (ib.Text)
                 {
-                case "stop":
-                    stopButton = ib;
-                    break;
-                case "play":
-                    playButton = ib;
-                    break;
+                    case "stop":
+                        stopButton = ib;
+                        break;
+                    case "play":
+                        playButton = ib;
+                        break;
                 }
             }
 

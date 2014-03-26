@@ -30,7 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media.Core;
 using SM.Media.Builder;
-using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {

@@ -510,17 +510,26 @@
     <Compile Include="..\SM.Media\Web\ApplicationInformationExtensions.cs">
       <Link>Web\ApplicationInformationExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientExtensions.cs">
-      <Link>Web\HttpClientExtensions.cs</Link>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientExtensions.cs">
+      <Link>Web\HttpClientReader\HttpClientExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientWebReader.cs">
-      <Link>Web\HttpClientWebReader.cs</Link>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClients.cs">
+      <Link>Web\HttpClientReader\HttpClients.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientWebReaderManager.cs">
-      <Link>Web\HttpClientWebReaderManager.cs</Link>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebCache.cs">
+      <Link>Web\HttpClientReader\HttpClientWebCache.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientWebStreamResponse.cs">
-      <Link>Web\HttpClientWebStreamResponse.cs</Link>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebReader.cs">
+      <Link>Web\HttpClientReader\HttpClientWebReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebReaderManager.cs">
+      <Link>Web\HttpClientReader\HttpClientWebReaderManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebStreamResponse.cs">
+      <Link>Web\HttpClientReader\HttpClientWebStreamResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\IHttpClients.cs">
+      <Link>Web\HttpClientReader\IHttpClients.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpDefaults.cs">
       <Link>Web\HttpDefaults.cs</Link>
@@ -530,6 +539,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpSettings.cs">
       <Link>Web\HttpSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\IWebCache.cs">
+      <Link>Web\IWebCache.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\IWebReader.cs">
       <Link>Web\IWebReader.cs</Link>
@@ -543,11 +555,29 @@
     <Compile Include="..\SM.Media\Web\UriExtensions.cs">
       <Link>Web\UriExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\WebCache.cs">
-      <Link>Web\WebCache.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Web\WebReaderExtensions.cs">
       <Link>Web\WebReaderExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestExtensions.cs">
+      <Link>Web\WebRequestReader\HttpWebRequestExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestWebCache.cs">
+      <Link>Web\WebRequestReader\HttpWebRequestWebCache.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestWebReader.cs">
+      <Link>Web\WebRequestReader\HttpWebRequestWebReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestWebReaderManager.cs">
+      <Link>Web\WebRequestReader\HttpWebRequestWebReaderManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestWebStreamResponse.cs">
+      <Link>Web\WebRequestReader\HttpWebRequestWebStreamResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\IHttpWebRequests.cs">
+      <Link>Web\WebRequestReader\IHttpWebRequests.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\PclHttpWebRequests.cs">
+      <Link>Web\WebRequestReader\PclHttpWebRequests.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="..\SM.Media\Configuration\IAudioConfigurationSource.cs">
@@ -715,12 +745,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\WorkBuffer.cs">
       <Link>Utility\WorkBuffer.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClients.cs">
-      <Link>Web\HttpClients.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\IHttpClients.cs">
-      <Link>Web\IHttpClients.cs</Link>
     </Compile>
     <Compile Include="Utility\SingleUseTaskTimer.cs" />
   </ItemGroup>

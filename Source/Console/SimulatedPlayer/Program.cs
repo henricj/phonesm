@@ -31,6 +31,7 @@ using System.Threading.Tasks;
 using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SimulatedPlayer
 {

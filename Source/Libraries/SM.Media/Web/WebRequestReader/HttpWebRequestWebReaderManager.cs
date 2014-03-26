@@ -84,7 +84,7 @@ namespace SM.Media.Web.WebRequestReader
         {
             var webReader = CreateHttpWebRequestWebReader(url, parent, contentType);
 
-            return new HttpWebRequestWebCache(webReader);
+            return new HttpWebRequestWebCache(webReader, _httpWebRequests);
         }
 
         public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken, IWebReader parent = null)

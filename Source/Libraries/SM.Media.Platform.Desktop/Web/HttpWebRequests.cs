@@ -25,67 +25,69 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using SM.Media.Content;
 using SM.Media.Web.WebRequestReader;
 
 namespace SM.Media.Web
 {
-    public class HttpWebRequests : IHttpWebRequests
+    public class HttpWebRequests : HttpWebRequestsBase
     {
-        static bool _canSetAllowReadStreamBuffering = true;
-        readonly CookieContainer _cookieContainer;
-        readonly ICredentials _credentials;
-
         public HttpWebRequests(ICredentials credentials = null, CookieContainer cookieContainer = null)
+            : base(credentials, cookieContainer)
+        { }
+
+        public override bool SetReferrer(HttpWebRequest request, Uri referrer)
         {
-            _credentials = credentials;
-            _cookieContainer = cookieContainer;
+            request.Referer = null == referrer ? null : referrer.ToString();
+
+            return true;
         }
 
-        #region IHttpWebRequests Members
-
-        public HttpWebRequest CreateWebRequest(Uri url, Uri referrer = null, string method = null, ContentType contentType = null, bool allowBuffering = true, long? fromBytes = null, long? toBytes = null)
+        public override bool SetIfModifiedSince(HttpWebRequest request, string ifModifiedSince)
         {
-            var request = WebRequest.CreateHttp(url);
-
-            if (null != _cookieContainer && request.SupportsCookieContainer)
-                request.CookieContainer = _cookieContainer;
-
-            if (null != _credentials)
-                request.Credentials = _credentials;
-
-            // TODO: We need to encode these headers properly.
-
-            if (null != referrer)
-                request.Referer = referrer.ToString();
-
-            if (null != contentType)
+            if (null == ifModifiedSince)
             {
-                if (null != contentType.AlternateMimeTypes && contentType.AlternateMimeTypes.Count > 0)
-                    request.Accept = string.Join(", ", new[] { contentType.MimeType }.Concat(contentType.AlternateMimeTypes));
-                else
-                    request.Accept = contentType.MimeType;
+                request.IfModifiedSince = DateTime.MinValue;
+
+                return true;
             }
 
-            if (null != method)
-                request.Method = method;
+            DateTime dateTime;
 
-            if (_canSetAllowReadStreamBuffering && request.AllowReadStreamBuffering != allowBuffering)
+            if (!DateTime.TryParse(ifModifiedSince, out dateTime))
             {
-                try
-                {
-                    request.AllowReadStreamBuffering = allowBuffering;
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Debug.WriteLine("HttpWebRequests.SendAsync() unable to set AllowReadStreamBuffering to {0}: {1}", allowBuffering, ex.Message);
-                    _canSetAllowReadStreamBuffering = false;
-                }
+                request.IfModifiedSince = DateTime.MinValue;
+
+                return false;
             }
 
+            request.IfModifiedSince = dateTime;
+
+            return true;
+        }
+
+        public override bool SetIfNoneMatch(HttpWebRequest request, string etag)
+        {
+            if (string.IsNullOrEmpty(etag))
+                request.Headers.Remove(HttpRequestHeader.IfNoneMatch);
+            else
+                request.Headers[HttpRequestHeader.IfNoneMatch] = etag;
+
+            return true;
+        }
+
+        public override bool SetCacheControl(HttpWebRequest request, string cacheControl)
+        {
+            if (string.IsNullOrEmpty(cacheControl))
+                request.Headers.Remove(HttpRequestHeader.CacheControl);
+            else
+                request.Headers[HttpRequestHeader.CacheControl] = cacheControl;
+
+            return true;
+        }
+
+        protected override void SetRange(HttpWebRequest request, long? fromBytes, long? toBytes)
+        {
             if (fromBytes.HasValue || toBytes.HasValue)
             {
                 if (fromBytes.HasValue && toBytes.HasValue)
@@ -95,10 +97,6 @@ namespace SM.Media.Web
                 else
                     request.AddRange(-toBytes.Value);
             }
-
-            return request;
         }
-
-        #endregion
     }
 }

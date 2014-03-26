@@ -34,8 +34,9 @@ namespace SM.Media.Web.WebRequestReader
 {
     public class HttpWebRequestWebCache : IWebCache
     {
-        const string NoCacheHeader = "no-cache";
+        const string NoCache = "no-cache";
 
+        readonly IHttpWebRequests _httpWebRequests;
         readonly HttpWebRequestWebReader _webReader;
         string _cacheControl;
         object _cachedObject;
@@ -44,12 +45,15 @@ namespace SM.Media.Web.WebRequestReader
         string _lastModified;
         string _noCache;
 
-        public HttpWebRequestWebCache(HttpWebRequestWebReader webReader)
+        public HttpWebRequestWebCache(HttpWebRequestWebReader webReader, IHttpWebRequests httpWebRequests)
         {
             if (webReader == null)
                 throw new ArgumentNullException("webReader");
+            if (null == httpWebRequests)
+                throw new ArgumentNullException("httpWebRequests");
 
             _webReader = webReader;
+            _httpWebRequests = httpWebRequests;
         }
 
         #region IWebCache Members
@@ -157,15 +161,17 @@ namespace SM.Media.Web.WebRequestReader
 
             if (null != _cachedObject && haveConditional)
             {
-                if (null != _lastModified)
-                    request.Headers[HttpRequestHeader.IfModifiedSince] = _lastModified;
+                haveConditional = false;
 
-                if (null != _etag)
-                    request.Headers[HttpRequestHeader.IfNoneMatch] = _etag;
+                if (_httpWebRequests.SetIfModifiedSince(request, _lastModified))
+                    haveConditional = true;
+
+                if (_httpWebRequests.SetIfNoneMatch(request, _etag))
+                    haveConditional = true;
             }
 
             if (!haveConditional)
-                request.Headers[HttpRequestHeader.CacheControl] = NoCacheHeader;
+                _httpWebRequests.SetCacheControl(request, NoCache);
 
             return request;
         }

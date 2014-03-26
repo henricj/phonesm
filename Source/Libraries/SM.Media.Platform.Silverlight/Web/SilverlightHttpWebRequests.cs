@@ -25,74 +25,38 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using SM.Media.Content;
 using SM.Media.Web.WebRequestReader;
 
 namespace SM.Media.Web
 {
-    public class SilverlightHttpWebRequests : IHttpWebRequests
+    public class SilverlightHttpWebRequests : PclHttpWebRequests
     {
-        static bool _canSetAllowReadStreamBuffering = true;
-        readonly CookieContainer _cookieContainer;
-        readonly ICredentials _credentials;
-
         public SilverlightHttpWebRequests(ICredentials credentials = null, CookieContainer cookieContainer = null)
-        {
-            _credentials = credentials;
-            _cookieContainer = cookieContainer;
-        }
+            : base(credentials, cookieContainer)
+        { }
 
-        #region IHttpWebRequests Members
-
-        public HttpWebRequest CreateWebRequest(Uri url, Uri referrer = null, string method = null, ContentType contentType = null, bool allowBuffering = true, long? fromBytes = null, long? toBytes = null)
+        public override HttpWebRequest CreateWebRequest(Uri url, Uri referrer = null, string method = null, ContentType contentType = null, bool allowBuffering = true, long? fromBytes = null, long? toBytes = null)
         {
             var request = WebRequest.CreateHttp(url);
-
-            if (null != _cookieContainer && request.SupportsCookieContainer)
-                request.CookieContainer = _cookieContainer;
-
-            if (null != _credentials)
-                request.Credentials = _credentials;
-
-            // TODO: We need to encode these headers properly.
-
-            if (null != contentType)
-            {
-                if (null != contentType.AlternateMimeTypes && contentType.AlternateMimeTypes.Count > 0)
-                    request.Accept = string.Join(", ", new[] { contentType.MimeType }.Concat(contentType.AlternateMimeTypes));
-                else
-                    request.Accept = contentType.MimeType;
-            }
 
             if (null != method)
                 request.Method = method;
 
-            if (_canSetAllowReadStreamBuffering && request.AllowReadStreamBuffering != allowBuffering)
-            {
-                try
-                {
-                    request.AllowReadStreamBuffering = allowBuffering;
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Debug.WriteLine("SilverlightHttpWebRequests.CreateWebRequest() unable to set AllowReadStreamBuffering to {0}: {1}", allowBuffering, ex.Message);
-                    _canSetAllowReadStreamBuffering = false;
-                }
-            }
+            SetDefaultCookies(request);
 
-            if (fromBytes.HasValue || toBytes.HasValue)
-            {
-                request.Headers[HttpRequestHeader.Range] = String.Format("bytes={0}-{1}",
-                    fromBytes.HasValue ? fromBytes.ToString() : String.Empty,
-                    toBytes.HasValue ? toBytes.ToString() : String.Empty);
-            }
+            SetDefaultCredentials(request);
+
+            //SetReferrer(request, referrer);
+
+            SetContentType(request, contentType);
+
+            SetBuffering(request, allowBuffering);
+
+            SetRange(request, fromBytes, toBytes);
 
             return request;
         }
-
-        #endregion
     }
 }

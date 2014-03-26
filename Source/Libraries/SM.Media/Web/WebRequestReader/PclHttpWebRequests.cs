@@ -26,84 +26,86 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using SM.Media.Content;
 
 namespace SM.Media.Web.WebRequestReader
 {
-    public class PclHttpWebRequests : IHttpWebRequests
+    public class PclHttpWebRequests : HttpWebRequestsBase
     {
-        static bool _canSetAllowReadStreamBuffering = true;
-        readonly CookieContainer _cookieContainer;
-        readonly ICredentials _credentials;
-
         public PclHttpWebRequests(ICredentials credentials = null, CookieContainer cookieContainer = null)
+            : base(credentials, cookieContainer)
+        { }
+
+        public override bool SetReferrer(HttpWebRequest request, Uri referrer)
         {
-            _credentials = credentials;
-            _cookieContainer = cookieContainer;
+            try
+            {
+                if (null != referrer)
+                    request.Headers[HttpRequestHeader.Referer] = referrer.ToString();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("HttpWebRequestsBase.SetReferrer() unable to set referrer: " + ex.Message);
+
+                return false;
+            }
         }
 
-        #region IHttpWebRequests Members
-
-        public HttpWebRequest CreateWebRequest(Uri url, Uri referrer = null, string method = null, ContentType contentType = null, bool allowBuffering = true, long? fromBytes = null, long? toBytes = null)
+        public override bool SetIfModifiedSince(HttpWebRequest request, string ifModifiedSince)
         {
-            var request = WebRequest.CreateHttp(url);
-
-            if (null != _cookieContainer && request.SupportsCookieContainer)
-                request.CookieContainer = _cookieContainer;
-
-            if (null != _credentials)
-                request.Credentials = _credentials;
-
-            if (null != referrer)
+            try
             {
-                try
-                {
-                    request.Headers[HttpRequestHeader.Referer] = referrer.ToString();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("PclHttpWebRequests.CreateWebRequest() unable to set referrer: " + ex.Message);
-                }
-            }
+                if (null != ifModifiedSince)
+                    request.Headers[HttpRequestHeader.IfModifiedSince] = ifModifiedSince;
 
-            if (null != contentType)
+                return true;
+            }
+            catch (Exception)
             {
-                if (null != contentType.AlternateMimeTypes && contentType.AlternateMimeTypes.Count > 0)
-                    request.Accept = string.Join(", ", new[] { contentType.MimeType }.Concat(contentType.AlternateMimeTypes));
-                else
-                    request.Accept = contentType.MimeType;
+                return false;
             }
+        }
 
-            if (null != method)
-                request.Method = method;
-
-#if !SM_MEDIA_LEGACY
-            if (_canSetAllowReadStreamBuffering && request.AllowReadStreamBuffering != allowBuffering)
+        public override bool SetIfNoneMatch(HttpWebRequest request, string etag)
+        {
+            try
             {
-                try
-                {
-                    request.AllowReadStreamBuffering = allowBuffering;
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Debug.WriteLine("PclHttpWebRequests.SendAsync() unable to set AllowReadStreamBuffering to {0}: {1}", allowBuffering, ex.Message);
-                    _canSetAllowReadStreamBuffering = false;
-                }
-            }
-#endif // !SM_MEDIA_LEGACY
+                if (null != etag)
+                    request.Headers[HttpRequestHeader.IfNoneMatch] = etag;
 
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public override bool SetCacheControl(HttpWebRequest request, string cacheControl)
+        {
+            try
+            {
+                if (null != cacheControl)
+                    request.Headers[HttpRequestHeader.CacheControl] = cacheControl;
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        protected override void SetRange(HttpWebRequest request, long? fromBytes, long? toBytes)
+        {
             if (fromBytes.HasValue || toBytes.HasValue)
             {
-                request.Headers[HttpRequestHeader.Range] = String.Format("{0}-{1}",
+                request.Headers[HttpRequestHeader.Range] = String.Format("bytes={0}-{1}",
                     fromBytes.HasValue ? fromBytes.ToString() : String.Empty,
                     toBytes.HasValue ? toBytes.ToString() : String.Empty);
             }
-
-            return request;
         }
-
-        #endregion
     }
 }

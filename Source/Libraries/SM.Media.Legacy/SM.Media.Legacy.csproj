@@ -561,6 +561,9 @@
     <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestExtensions.cs">
       <Link>Web\WebRequestReader\HttpWebRequestExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestsBase.cs">
+      <Link>Web\WebRequestReader\HttpWebRequestsBase.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestWebCache.cs">
       <Link>Web\WebRequestReader\HttpWebRequestWebCache.cs</Link>
     </Compile>

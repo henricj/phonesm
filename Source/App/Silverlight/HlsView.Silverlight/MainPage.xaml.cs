@@ -246,8 +246,6 @@ namespace HlsView.Silverlight
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
 
-            _mediaStreamFacade.Builder.RegisterSingleton<IHttpClients, SilverlightHttpClients>();
-
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 

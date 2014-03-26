@@ -41,7 +41,7 @@ namespace SM.Media.Utility
                 var aggregateException = ex as AggregateException;
 
                 if (null == aggregateException)
-                    return ex.Message;
+                    return string.IsNullOrEmpty(ex.Message) ? ex.GetType().FullName : ex.Message;
             }
 
             var sb = new StringBuilder();

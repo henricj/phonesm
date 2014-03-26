@@ -27,6 +27,7 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Web.WebRequestReader
@@ -34,15 +35,18 @@ namespace SM.Media.Web.WebRequestReader
     public sealed class HttpWebRequestWebStreamResponse : IWebStreamResponse
     {
         readonly int _httpStatusCode;
-        readonly HttpWebResponse _webResponse;
+        readonly HttpWebRequest _request;
+        readonly HttpWebResponse _response;
+        Task<Stream> _streamTask;
 
-        public HttpWebRequestWebStreamResponse(HttpWebResponse webResponse)
+        public HttpWebRequestWebStreamResponse(HttpWebRequest request, HttpWebResponse response)
         {
-            if (null == webResponse)
-                throw new ArgumentNullException("webResponse");
+            if (null == response)
+                throw new ArgumentNullException("response");
 
-            _webResponse = webResponse;
-            _httpStatusCode = (int)_webResponse.StatusCode;
+            _request = request;
+            _response = response;
+            _httpStatusCode = (int)_response.StatusCode;
         }
 
         public HttpWebRequestWebStreamResponse(HttpStatusCode statusCode)
@@ -54,18 +58,21 @@ namespace SM.Media.Web.WebRequestReader
 
         public void Dispose()
         {
-            using (_webResponse)
+            if (null != _streamTask && _streamTask.IsCompleted)
+                _streamTask.Result.Dispose();
+
+            using (_response)
             { }
         }
 
         public bool IsSuccessStatusCode
         {
-            get { return null != _webResponse; }
+            get { return null != _response; }
         }
 
         public Uri ActualUrl
         {
-            get { return null == _webResponse ? null : _webResponse.ResponseUri; }
+            get { return null == _response ? null : _response.ResponseUri; }
         }
 
         public int HttpStatusCode
@@ -75,7 +82,7 @@ namespace SM.Media.Web.WebRequestReader
 
         public long? ContentLength
         {
-            get { return null == _webResponse ? null : _webResponse.ContentLength >= 0 ? _webResponse.ContentLength : null as long?; }
+            get { return null == _response ? null : _response.ContentLength >= 0 ? _response.ContentLength : null as long?; }
         }
 
         public void EnsureSuccessStatusCode()
@@ -84,9 +91,19 @@ namespace SM.Media.Web.WebRequestReader
                 throw new WebException("Invalid status: " + _httpStatusCode);
         }
 
-        public Task<Stream> GetStreamAsync()
+        public Task<Stream> GetStreamAsync(CancellationToken cancellationToken)
         {
-            return TaskEx.FromResult(_webResponse.GetResponseStream());
+            if (null != _streamTask)
+                return _streamTask;
+
+            using (cancellationToken.Register(r => ((HttpWebRequest)r).Abort(), _request))
+            {
+                var stream = _response.GetResponseStream();
+
+                _streamTask = TaskEx.FromResult(stream);
+
+                return _streamTask;
+            }
         }
 
         #endregion

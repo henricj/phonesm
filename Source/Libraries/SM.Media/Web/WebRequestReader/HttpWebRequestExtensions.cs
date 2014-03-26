@@ -60,7 +60,7 @@ namespace SM.Media.Web.WebRequestReader
         {
             var task = Task<System.Net.WebResponse>.Factory.FromAsync(request.BeginGetResponse, request.EndGetResponse, null);
 
-            using (cancellationToken.Register(r => ((WebRequest)r).Abort(), request))
+            using (cancellationToken.Register(r => ((WebRequest)r).Abort(), request, false))
             {
                 return (HttpWebResponse)await task.ConfigureAwait(false);
             }

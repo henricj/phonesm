@@ -40,7 +40,7 @@ namespace SM.Media.Web
         int HttpStatusCode { get; }
         long? ContentLength { get; }
         void EnsureSuccessStatusCode();
-        Task<Stream> GetStreamAsync();
+        Task<Stream> GetStreamAsync(CancellationToken cancellationToken);
     }
 
     public class WebResponse

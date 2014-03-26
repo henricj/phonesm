@@ -72,11 +72,13 @@ namespace SM.Media.Web.WebRequestReader
         public async Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse webResponse = null)
         {
-            var response = await _webReaderManager.SendAsync(url, this, cancellationToken, allowBuffering: waitForContent, referrer: referrer, fromBytes: from, toBytes: to);
+            var request = _webReaderManager.CreateRequest(url, referrer, this, ContentType, allowBuffering: waitForContent, fromBytes: from, toBytes: to);
+
+            var response = await request.SendAsync(cancellationToken);
 
             Update(url, response, webResponse);
 
-            return new HttpWebRequestWebStreamResponse(response);
+            return new HttpWebRequestWebStreamResponse(request, response);
         }
 
         public async Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null)

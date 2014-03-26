@@ -82,7 +82,7 @@ namespace SM.Media.Pls
                                     return null;
                                 }
 
-                                using (var stream = await webStream.GetStreamAsync().ConfigureAwait(false))
+                                using (var stream = await webStream.GetStreamAsync(cancellationToken).ConfigureAwait(false))
                                 {
                                     return await ReadPlaylistAsync(webReader, webStream.ActualUrl, stream, cancellationToken).ConfigureAwait(false);
                                 }
@@ -99,6 +99,7 @@ namespace SM.Media.Pls
                 if (null != segmentManager)
                     return segmentManager;
             }
+
             return null;
         }
 

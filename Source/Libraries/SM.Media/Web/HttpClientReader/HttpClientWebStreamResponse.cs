@@ -26,7 +26,9 @@
 
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Web.HttpClientReader
@@ -84,10 +86,15 @@ namespace SM.Media.Web.HttpClientReader
             get { return (int)_response.StatusCode; }
         }
 
-        public async Task<Stream> GetStreamAsync()
+        public async Task<Stream> GetStreamAsync(CancellationToken cancellationToken)
         {
             if (null == _stream)
-                _stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            {
+                using (cancellationToken.Register(r => ((WebRequest)r).Abort(), _request, false))
+                {
+                    _stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                }
+            }
 
             return _stream;
         }

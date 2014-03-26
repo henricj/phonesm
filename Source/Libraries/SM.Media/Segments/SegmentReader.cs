@@ -254,7 +254,7 @@ namespace SM.Media.Segments
                             if (!_expectedBytes.HasValue)
                                 _expectedBytes = contentLength;
 
-                            _responseStream = new PositionStream(await _response.GetStreamAsync().ConfigureAwait(false));
+                            _responseStream = new PositionStream(await _response.GetStreamAsync(cancellationToken).ConfigureAwait(false));
 
                             var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
 

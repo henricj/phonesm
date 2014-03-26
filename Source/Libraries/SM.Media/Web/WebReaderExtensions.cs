@@ -46,7 +46,7 @@ namespace SM.Media.Web
                     {
                         var actualUrl = response.ActualUrl;
 
-                        using (var stream = await response.GetStreamAsync().ConfigureAwait(false))
+                        using (var stream = await response.GetStreamAsync(cancellationToken).ConfigureAwait(false))
                         {
                             return reader(actualUrl, stream);
                         }
@@ -75,7 +75,7 @@ namespace SM.Media.Web
                     {
                         var actualUrl = response.ActualUrl;
 
-                        using (var stream = await response.GetStreamAsync().ConfigureAwait(false))
+                        using (var stream = await response.GetStreamAsync(cancellationToken).ConfigureAwait(false))
                         {
                             return await reader(actualUrl, stream, cancellationToken).ConfigureAwait(false);
                         }

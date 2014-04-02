@@ -59,7 +59,11 @@ namespace SM.Media.Hls
             _segmentsFactory = new HlsSegmentsFactory();
 
             if (null != parser)
+            {
+                UpdateSubPlaylistCache(parser.BaseUrl);
+
                 Update(parser);
+            }
         }
 
         #region IProgramStream Members
@@ -117,6 +121,12 @@ namespace SM.Media.Hls
             _actualUrl = parser.BaseUrl;
         }
 
+        void UpdateSubPlaylistCache(Uri playlist)
+        {
+            if (null == _subPlaylistCache || _subPlaylistCache.WebReader.BaseAddress != playlist)
+                _subPlaylistCache = _webReader.CreateWebCache(playlist);
+        }
+
         async Task<M3U8Parser> FetchPlaylistAsync(CancellationToken cancellationToken)
         {
             var urls = Urls;
@@ -126,8 +136,7 @@ namespace SM.Media.Hls
 
             foreach (var playlist in urls)
             {
-                if (null == _subPlaylistCache || _subPlaylistCache.WebReader.BaseAddress != playlist)
-                    _subPlaylistCache = _webReader.CreateWebCache(playlist);
+                UpdateSubPlaylistCache(playlist);
 
                 cancellationToken.ThrowIfCancellationRequested();
 

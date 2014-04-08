@@ -83,6 +83,9 @@ namespace SM.Media.Content
 
         public virtual ICollection<ContentType> GetContentType(Uri url, string mimeType = null)
         {
+            if (null == url)
+                throw new ArgumentNullException("url");
+
             var contentType = GetContentTypeByUrl(url);
 
             if (null != contentType && contentType.Any())

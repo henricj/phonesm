@@ -40,6 +40,7 @@ namespace SM.Media.Segments
     {
         readonly ISegment _segment;
         readonly IWebReader _webReader;
+        Uri _actualUrl;
         long? _endOffset;
         long? _expectedBytes;
         Stream _readStream;
@@ -243,12 +244,14 @@ namespace SM.Media.Segments
                         else
                             _expectedBytes = null;
 
-                        _response = await _webReader.GetWebStreamAsync(_segment.Url, false, cancellationToken,
+                        _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, cancellationToken,
                             _segment.ParentUrl, _startOffset, _endOffset)
                                                     .ConfigureAwait(false);
 
                         if (_response.IsSuccessStatusCode)
                         {
+                            _actualUrl = _response.ActualUrl;
+
                             var contentLength = _response.ContentLength;
 
                             if (!_endOffset.HasValue)
@@ -278,7 +281,12 @@ namespace SM.Media.Segments
                                                   .ConfigureAwait(false);
 
                         if (!canRetry)
-                            _response.EnsureSuccessStatusCode();
+                        {
+                            if (null != _actualUrl && _actualUrl != _segment.Url)
+                                _actualUrl = null;
+                            else
+                                _response.EnsureSuccessStatusCode();
+                        }
 
                         _response.Dispose();
                         _response = null;

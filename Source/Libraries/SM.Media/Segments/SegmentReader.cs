@@ -114,7 +114,10 @@ namespace SM.Media.Segments
 
                     retryCount = 3;
 
-                    _startOffset += count;
+                    if (!_startOffset.HasValue)
+                        _startOffset = count;
+                    else
+                        _startOffset += count;
 
                     index += count;
                 }

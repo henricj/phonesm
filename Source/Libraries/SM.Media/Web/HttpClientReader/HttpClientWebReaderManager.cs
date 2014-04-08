@@ -176,6 +176,8 @@ namespace SM.Media.Web.HttpClientReader
 
         protected virtual HttpClientWebReader CreateHttpClientWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
         {
+            url = GetUrl(url, parent);
+
             if (null == contentType)
                 contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
 
@@ -186,8 +188,7 @@ namespace SM.Media.Web.HttpClientReader
 
         protected virtual HttpClient CreateHttpClient(Uri url, IWebReader parent, ContentType contentType)
         {
-            if (null == url && null != parent)
-                url = parent.RequestUri ?? parent.BaseAddress;
+            url = GetUrl(url, parent);
 
             var referrer = GetReferrer(parent);
 
@@ -197,6 +198,14 @@ namespace SM.Media.Web.HttpClientReader
             var httpClient = _httpClients.CreateClient(url, referrer, contentType);
 
             return httpClient;
+        }
+
+        protected static Uri GetUrl(Uri url, IWebReader parent)
+        {
+            if (null == url && null != parent)
+                url = parent.RequestUri ?? parent.BaseAddress;
+
+            return url;
         }
 
         protected static Uri GetReferrer(IWebReader parent)

@@ -66,6 +66,11 @@ namespace SM.Media.Web.WebRequestReader
 
         public ContentType ContentType { get; private set; }
 
+        public IWebReaderManager Manager
+        {
+            get { return _webReaderManager; }
+        }
+
         public void Dispose()
         { }
 
@@ -92,21 +97,6 @@ namespace SM.Media.Web.WebRequestReader
 
                 return await response.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
             }
-        }
-
-        public IWebReader CreateChild(Uri url, ContentKind contentKind, ContentType contentType = null)
-        {
-            return _webReaderManager.CreateReader(url, contentKind, this, contentType);
-        }
-
-        public IWebCache CreateWebCache(Uri url, ContentKind contentKind, ContentType contentType = null)
-        {
-            return _webReaderManager.CreateWebCache(url, contentKind, this, contentType);
-        }
-
-        public Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken)
-        {
-            return _webReaderManager.DetectContentTypeAsync(url, contentKind, cancellationToken, this);
         }
 
         #endregion

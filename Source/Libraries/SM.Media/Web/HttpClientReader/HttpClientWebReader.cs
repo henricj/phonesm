@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -72,6 +71,11 @@ namespace SM.Media.Web.HttpClientReader
 
         public ContentType ContentType { get; private set; }
 
+        public IWebReaderManager Manager
+        {
+            get { return _webReaderManager; }
+        }
+
         public async Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse webResponse = null)
         {
@@ -112,21 +116,6 @@ namespace SM.Media.Web.HttpClientReader
 
                 return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
-        }
-
-        public IWebReader CreateChild(Uri url, ContentKind contentKind, ContentType contentType = null)
-        {
-            return _webReaderManager.CreateReader(url, contentKind, this, contentType);
-        }
-
-        public IWebCache CreateWebCache(Uri url, ContentKind contentKind, ContentType contentType = null)
-        {
-            return _webReaderManager.CreateWebCache(url, contentKind, this, contentType);
-        }
-
-        public Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken)
-        {
-            return _webReaderManager.DetectContentTypeAsync(url, contentKind, cancellationToken, this);
         }
 
         #endregion

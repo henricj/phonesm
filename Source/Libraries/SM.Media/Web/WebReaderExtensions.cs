@@ -29,12 +29,28 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Content;
 using SM.Media.Utility;
 
 namespace SM.Media.Web
 {
     public static class WebReaderExtensions
     {
+        public static IWebReader CreateChild(this IWebReader webReader, Uri url, ContentKind contentKind, ContentType contentType = null)
+        {
+            return webReader.Manager.CreateReader(url, contentKind, webReader, contentType);
+        }
+
+        public static IWebCache CreateWebCache(this IWebReader webReader, Uri url, ContentKind contentKind, ContentType contentType = null)
+        {
+            return webReader.Manager.CreateWebCache(url, contentKind, webReader, contentType);
+        }
+
+        public static Task<ContentType> DetectContentTypeAsync(this IWebReader webReader, Uri url, ContentKind contentKind, CancellationToken cancellationToken)
+        {
+            return webReader.Manager.DetectContentTypeAsync(url, contentKind, cancellationToken, webReader);
+        }
+
         public static async Task<TReturn> ReadStreamAsync<TReturn>(this IWebReader webReader, Uri url, Retry retry,
             Func<Uri, Stream, TReturn> reader, CancellationToken cancellationToken)
         {

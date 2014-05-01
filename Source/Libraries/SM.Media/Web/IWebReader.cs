@@ -56,15 +56,11 @@ namespace SM.Media.Web
         Uri BaseAddress { get; }
         Uri RequestUri { get; }
         ContentType ContentType { get; }
+        IWebReaderManager Manager { get; }
 
         Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse response = null);
 
         Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null);
-
-        IWebReader CreateChild(Uri url, ContentKind contentKind, ContentType contentType = null);
-        IWebCache CreateWebCache(Uri url, ContentKind contentKind, ContentType contentType = null);
-
-        Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken);
     }
 }

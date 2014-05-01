@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -78,6 +79,8 @@ namespace SM.Media.Web.HttpClientReader
 
             if (null == referrer && null == from && null == to)
             {
+                //Debug.WriteLine("HttpClientWebReader.GetWebStreamAsync() url {0} wait {1}", url, waitForContent);
+
                 var response = await _httpClient.GetAsync(url, completionOption, cancellationToken).ConfigureAwait(false);
 
                 Update(url, response, webResponse);
@@ -86,6 +89,9 @@ namespace SM.Media.Web.HttpClientReader
             }
             else
             {
+                //Debug.WriteLine("HttpClientWebReader.GetWebStreamAsync() url {0} wait {1} referrer {2} [{3}-{4}]",
+                //    url, waitForContent, null == referrer ? "<none>" : referrer.ToString(), from, to);
+
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
 
                 var response = await _httpClient.SendAsync(request, completionOption, cancellationToken, referrer, from, to);
@@ -108,19 +114,19 @@ namespace SM.Media.Web.HttpClientReader
             }
         }
 
-        public IWebReader CreateChild(Uri url, ContentType contentType = null)
+        public IWebReader CreateChild(Uri url, ContentKind contentKind, ContentType contentType = null)
         {
-            return _webReaderManager.CreateReader(url, this, contentType);
+            return _webReaderManager.CreateReader(url, contentKind, this, contentType);
         }
 
-        public IWebCache CreateWebCache(Uri url, ContentType contentType = null)
+        public IWebCache CreateWebCache(Uri url, ContentKind contentKind, ContentType contentType = null)
         {
-            return _webReaderManager.CreateWebCache(url, this, contentType);
+            return _webReaderManager.CreateWebCache(url, contentKind, this, contentType);
         }
 
-        public Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken)
+        public Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken)
         {
-            return _webReaderManager.DetectContentTypeAsync(url, cancellationToken, this);
+            return _webReaderManager.DetectContentTypeAsync(url, contentKind, cancellationToken, this);
         }
 
         #endregion

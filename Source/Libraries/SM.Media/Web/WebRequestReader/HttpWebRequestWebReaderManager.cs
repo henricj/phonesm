@@ -75,19 +75,19 @@ namespace SM.Media.Web.WebRequestReader
             get { return _rootWebReader; }
         }
 
-        public virtual IWebReader CreateReader(Uri url, IWebReader parent, ContentType contentType)
+        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent, ContentType contentType)
         {
             return CreateHttpWebRequestWebReader(url, parent, contentType);
         }
 
-        public virtual IWebCache CreateWebCache(Uri url, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
         {
             var webReader = CreateHttpWebRequestWebReader(url, parent, contentType);
 
             return new HttpWebRequestWebCache(webReader, _httpWebRequests);
         }
 
-        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken, IWebReader parent = null)
+        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
         {
             var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
 

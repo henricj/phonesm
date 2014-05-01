@@ -70,7 +70,7 @@ namespace SM.Media.Pls
                 var segmentManager = await retry.CallAsync(
                     async () =>
                     {
-                        var webReader = _rootWebReader.CreateChild(localUrl, ContentTypes.Pls);
+                        var webReader = _rootWebReader.CreateChild(localUrl, ContentTypes.Pls.Kind, ContentTypes.Pls);
 
                         try
                         {
@@ -129,7 +129,7 @@ namespace SM.Media.Pls
                 return null;
             }
 
-            var contentType = await webReader.DetectContentTypeAsync(trackUrl, cancellationToken).ConfigureAwait(false);
+            var contentType = await webReader.DetectContentTypeAsync(trackUrl, ContentKind.AnyMedia, cancellationToken).ConfigureAwait(false);
 
             //DumpIcy(headers.ResponseHeaders);
 

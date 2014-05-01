@@ -171,7 +171,7 @@ namespace SM.Media.Hls
 
             ContentType = await _programStream.GetContentTypeAsync(_cancellationToken).ConfigureAwait(false);
 
-            WebReader = _programStream.WebReader.CreateChild(null, ContentType);
+            WebReader = _programStream.WebReader.CreateChild(null, ContentKind.AnyMedia, ContentType);
         }
 
         public Task StopAsync()

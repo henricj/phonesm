@@ -107,7 +107,7 @@ namespace SM.Media.Hls
             if (null == segment0 || null == segment0.Url)
                 return null;
 
-            _contentType = await _subPlaylistCache.WebReader.DetectContentTypeAsync(segment0.Url, cancellationToken).ConfigureAwait(false);
+            _contentType = await _subPlaylistCache.WebReader.DetectContentTypeAsync(segment0.Url, ContentKind.AnyMedia, cancellationToken).ConfigureAwait(false);
 
             return _contentType;
         }
@@ -124,7 +124,7 @@ namespace SM.Media.Hls
         void UpdateSubPlaylistCache(Uri playlist)
         {
             if (null == _subPlaylistCache || _subPlaylistCache.WebReader.BaseAddress != playlist)
-                _subPlaylistCache = _webReader.CreateWebCache(playlist);
+                _subPlaylistCache = _webReader.CreateWebCache(playlist, ContentKind.Playlist);
         }
 
         async Task<M3U8Parser> FetchPlaylistAsync(CancellationToken cancellationToken)

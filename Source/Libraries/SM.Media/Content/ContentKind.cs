@@ -34,6 +34,7 @@ namespace SM.Media.Content
         Playlist,
         Captions,
         Other,
-        Unknown
+        Unknown,
+        AnyMedia // Audio, Video, Container, or Captions
     };
 }

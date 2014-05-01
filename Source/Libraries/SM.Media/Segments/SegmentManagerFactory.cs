@@ -52,7 +52,7 @@ namespace SM.Media.Segments
         {
             foreach (var source in parameters.Source)
             {
-                var contentType = await _webReaderManager.DetectContentTypeAsync(source, cancellationToken).ConfigureAwait(false);
+                var contentType = await _webReaderManager.DetectContentTypeAsync(source, ContentKind.Unknown, cancellationToken).ConfigureAwait(false);
 
                 if (null == contentType)
                     continue;

@@ -62,9 +62,9 @@ namespace SM.Media.Web
 
         Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null);
 
-        IWebReader CreateChild(Uri url, ContentType contentType = null);
-        IWebCache CreateWebCache(Uri url, ContentType contentType = null);
+        IWebReader CreateChild(Uri url, ContentKind contentKind, ContentType contentType = null);
+        IWebCache CreateWebCache(Uri url, ContentKind contentKind, ContentType contentType = null);
 
-        Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken);
+        Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken);
     }
 }

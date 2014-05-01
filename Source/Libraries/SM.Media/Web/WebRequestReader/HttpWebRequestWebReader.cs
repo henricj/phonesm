@@ -94,19 +94,19 @@ namespace SM.Media.Web.WebRequestReader
             }
         }
 
-        public IWebReader CreateChild(Uri url, ContentType contentType = null)
+        public IWebReader CreateChild(Uri url, ContentKind contentKind, ContentType contentType = null)
         {
-            return _webReaderManager.CreateReader(url, this, contentType);
+            return _webReaderManager.CreateReader(url, contentKind, this, contentType);
         }
 
-        public IWebCache CreateWebCache(Uri url, ContentType contentType = null)
+        public IWebCache CreateWebCache(Uri url, ContentKind contentKind, ContentType contentType = null)
         {
-            return _webReaderManager.CreateWebCache(url, this, contentType);
+            return _webReaderManager.CreateWebCache(url, contentKind, this, contentType);
         }
 
-        public Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken)
+        public Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken)
         {
-            return _webReaderManager.DetectContentTypeAsync(url, cancellationToken, this);
+            return _webReaderManager.DetectContentTypeAsync(url, contentKind, cancellationToken, this);
         }
 
         #endregion

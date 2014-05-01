@@ -31,6 +31,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Content;
 using SM.Media.M3U8;
 using SM.Media.M3U8.AttributeSupport;
 using SM.Media.Playlists;
@@ -69,7 +70,7 @@ namespace SM.Media.Hls
                     if (null != _playlistWebReader)
                         _playlistWebReader.Dispose();
 
-                    _playlistWebReader = _rootWebReader.CreateChild(playlist);
+                    _playlistWebReader = _rootWebReader.CreateChild(playlist, ContentKind.Playlist);
 
                     var actualPlaylist = await parser.ParseAsync(_playlistWebReader, playlist, cancellationToken)
                                                      .ConfigureAwait(false);

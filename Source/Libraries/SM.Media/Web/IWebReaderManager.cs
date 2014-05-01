@@ -35,8 +35,8 @@ namespace SM.Media.Web
     {
         IWebReader RootWebReader { get; }
 
-        IWebReader CreateReader(Uri url, IWebReader parent = null, ContentType contentType = null);
-        IWebCache CreateWebCache(Uri url, IWebReader parent = null, ContentType contentType = null);
-        Task<ContentType> DetectContentTypeAsync(Uri url, CancellationToken cancellationToken, IWebReader parent = null);
+        IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null);
+        IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null);
+        Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null);
     }
 }

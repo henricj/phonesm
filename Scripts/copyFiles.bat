@@ -160,8 +160,6 @@ copy App\Silverlight\HlsView.Silverlight\Properties\*.xml ..\Distribution\App\Si
 copy App\Silverlight\HlsView.Silverlight\app.config ..\Distribution\App\Silverlight\HlsView.Silverlight\
 copy App\Silverlight\HlsView.Silverlight\packages.config ..\Distribution\App\Silverlight\HlsView.Silverlight\
 
-copy .nuget\NuGet.exe ..\Distribution\.nuget\
-copy .nuget\NuGet.targets ..\Distribution\.nuget\
 copy .nuget\NuGet.config ..\Distribution\.nuget\
 
 copy smf\readme.txt ..\Distribution\smf\

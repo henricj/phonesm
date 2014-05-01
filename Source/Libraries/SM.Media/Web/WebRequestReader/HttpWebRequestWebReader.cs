@@ -34,7 +34,7 @@ using SM.Media.Utility;
 
 namespace SM.Media.Web.WebRequestReader
 {
-    public class HttpWebRequestWebReader : IWebReader
+    public sealed class HttpWebRequestWebReader : IWebReader
     {
         readonly Uri _baseAddress;
         readonly IContentTypeDetector _contentTypeDetector;

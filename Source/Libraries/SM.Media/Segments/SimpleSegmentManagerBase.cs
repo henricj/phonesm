@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
@@ -39,6 +40,7 @@ namespace SM.Media.Segments
         readonly ContentType _contentType;
         readonly ICollection<ISegment> _segments;
         readonly IWebReader _webReader;
+        int _isDisposed;
 
         protected SimpleSegmentManagerBase(IWebReader webReader, ICollection<ISegment> segments, ContentType contentType)
         {
@@ -54,7 +56,7 @@ namespace SM.Media.Segments
 
         #region IAsyncEnumerable<ISegment> Members
 
-        IAsyncEnumerator<ISegment> IAsyncEnumerable<ISegment>.GetEnumerator()
+        public IAsyncEnumerator<ISegment> GetEnumerator()
         {
             return new SimpleEnumerator(_segments);
         }
@@ -65,7 +67,12 @@ namespace SM.Media.Segments
 
         public void Dispose()
         {
-            _webReader.Dispose();
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            Dispose(true);
+
+            GC.SuppressFinalize(this);
         }
 
         public Task<TimeSpan> SeekAsync(TimeSpan timestamp)
@@ -114,6 +121,14 @@ namespace SM.Media.Segments
         }
 
         #endregion
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing)
+                return;
+
+            _webReader.Dispose();
+        }
 
         #region Nested type: SimpleEnumerator
 

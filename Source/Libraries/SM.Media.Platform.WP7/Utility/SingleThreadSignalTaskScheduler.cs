@@ -32,7 +32,7 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public class SingleThreadSignalTaskScheduler : TaskScheduler, IDisposable
+    public sealed class SingleThreadSignalTaskScheduler : TaskScheduler, IDisposable
     {
         readonly object _lock = new object();
         readonly Queue<Task> _tasks = new Queue<Task>();

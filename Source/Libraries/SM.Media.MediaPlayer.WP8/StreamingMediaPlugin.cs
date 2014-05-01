@@ -24,7 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Windows;
 using Microsoft.PlayerFramework;
 using SM.Media.Utility;
@@ -73,8 +72,7 @@ namespace SM.Media.MediaPlayer
 
             if (null != _httpClients)
             {
-                using (_httpClients as IDisposable)
-                { }
+                _httpClients.Dispose();
 
                 _httpClients = null;
             }

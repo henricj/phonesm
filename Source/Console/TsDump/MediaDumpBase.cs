@@ -78,6 +78,7 @@ namespace TsDump
         {
             if (disposing)
             {
+                using (_bufferingManager)
                 using (BufferPool)
                 using (PacketPool)
                 using (Parser)

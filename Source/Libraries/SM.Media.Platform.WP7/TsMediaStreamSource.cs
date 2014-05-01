@@ -140,6 +140,8 @@ namespace SM.Media
 
             _videoStreamSource = null;
             _videoStreamDescription = null;
+
+            _pesStream.Dispose();
         }
 
         void ForceClose()

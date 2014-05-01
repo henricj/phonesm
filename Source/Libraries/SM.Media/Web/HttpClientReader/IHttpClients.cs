@@ -30,7 +30,7 @@ using SM.Media.Content;
 
 namespace SM.Media.Web.HttpClientReader
 {
-    public interface IHttpClients
+    public interface IHttpClients : IDisposable
     {
         HttpClient RootPlaylistClient { get; }
 

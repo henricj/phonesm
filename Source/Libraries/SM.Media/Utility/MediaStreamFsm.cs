@@ -72,105 +72,102 @@ namespace SM.Media.Utility
 
         #endregion
 
-        static readonly Dictionary<MediaState, Dictionary<MediaEvent, MediaState>> ValidTransitions;
+        static readonly Dictionary<MediaState, Dictionary<MediaEvent, MediaState>> ValidTransitions =
+            new Dictionary<MediaState, Dictionary<MediaEvent, MediaState>>
+            {
+                {
+                    MediaState.Idle,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        // A MediaStreamSource is assigned to the MediaElement
+                        { MediaEvent.MediaStreamSourceAssigned, MediaState.Assigned },
+                        // OpenMediaAsync() has been called
+                        { MediaEvent.OpenMediaAsyncCalled, MediaState.Opening }
+                    }
+                },
+                {
+                    MediaState.Assigned,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        // OpenMediaAsync() has been called
+                        { MediaEvent.OpenMediaAsyncCalled, MediaState.Opening }
+                    }
+                },
+                {
+                    MediaState.Opening,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        // ReportOpenMediaCompleted() has been called on a non-seekable stream
+                        { MediaEvent.CallingReportOpenMediaCompleted, MediaState.AwaitSeek },
+                        // ReportOpenMediaCompleted() has been called on a seekable stream
+                        { MediaEvent.CallingReportOpenMediaCompletedLive, MediaState.Playing },
+                        { MediaEvent.CloseMediaCalled, MediaState.Closing }
+                    }
+                },
+                {
+                    MediaState.AwaitSeek,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        // SeekAsync() has been called
+                        { MediaEvent.SeekAsyncCalled, MediaState.Seeking }
+                    }
+                },
+                {
+                    MediaState.Seeking,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        // ReportSeekCompleted() has been called
+                        { MediaEvent.CallingReportSeekCompleted, MediaState.Playing },
+                        { MediaEvent.GetSampleAsyncCalled, MediaState.Seeking },
+                        // Should we wait to ReportGetSampleCompleted() until after ReportSeekCompleted?
+                        { MediaEvent.CallingReportSampleCompleted, MediaState.Seeking },
+                        { MediaEvent.CloseMediaCalled, MediaState.Closing },
+                    }
+                },
+                //{
+                //    MediaState.AwaitPlaying,
+                //    new Dictionary<MediaEvent, MediaState>
+                //    {
+                //        // We have seen a GetSampleAsync()
+                //        { MediaEvent.GetSampleAsyncCalled, MediaState.Playing },
+                //        // Since we we are getting GetSampleAsync()s while waiting for ReportSeekCompleted,
+                //        // we need to deal with ReportSampleCompleted() as well.
+                //        { MediaEvent.CallingReportSampleCompleted, MediaState.AwaitPlaying }
+                //    }
+                //},
+                {
+                    MediaState.Playing,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        { MediaEvent.GetSampleAsyncCalled, MediaState.Playing },
+                        { MediaEvent.CloseMediaCalled, MediaState.Draining },
+                        { MediaEvent.CallingReportSampleCompleted, MediaState.Playing },
+                        { MediaEvent.SeekAsyncCalled, MediaState.Seeking }
+                    }
+                },
+                {
+                    MediaState.Draining,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        { MediaEvent.StreamsClosed, MediaState.Closing },
+                        { MediaEvent.GetSampleAsyncCalled, MediaState.Draining },
+                        { MediaEvent.CallingReportSampleCompleted, MediaState.Draining },
+                        { MediaEvent.SeekAsyncCalled, MediaState.Draining },
+                        { MediaEvent.CallingReportSeekCompleted, MediaState.Draining },
+                    }
+                },
+                {
+                    MediaState.Closing,
+                    new Dictionary<MediaEvent, MediaState>
+                    {
+                        // The MediaStreamSource has been disposed (by MediaElement)
+                        { MediaEvent.DisposeCalled, MediaState.Idle }
+                    }
+                },
+            };
+
         static bool NoisyLogging = false;
         volatile int _mediaState;
-
-        static MediaStreamFsm()
-        {
-            ValidTransitions = new Dictionary<MediaState, Dictionary<MediaEvent, MediaState>>
-                               {
-                                   {
-                                       MediaState.Idle,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           // A MediaStreamSource is assigned to the MediaElement
-                                           { MediaEvent.MediaStreamSourceAssigned, MediaState.Assigned },
-                                           // OpenMediaAsync() has been called
-                                           { MediaEvent.OpenMediaAsyncCalled, MediaState.Opening }
-                                       }
-                                   },
-                                   {
-                                       MediaState.Assigned,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           // OpenMediaAsync() has been called
-                                           { MediaEvent.OpenMediaAsyncCalled, MediaState.Opening }
-                                       }
-                                   },
-                                   {
-                                       MediaState.Opening,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           // ReportOpenMediaCompleted() has been called on a non-seekable stream
-                                           { MediaEvent.CallingReportOpenMediaCompleted, MediaState.AwaitSeek },
-                                           // ReportOpenMediaCompleted() has been called on a seekable stream
-                                           { MediaEvent.CallingReportOpenMediaCompletedLive, MediaState.Playing },
-                                           { MediaEvent.CloseMediaCalled, MediaState.Closing }
-                                       }
-                                   },
-                                   {
-                                       MediaState.AwaitSeek,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           // SeekAsync() has been called
-                                           { MediaEvent.SeekAsyncCalled, MediaState.Seeking }
-                                       }
-                                   },
-                                   {
-                                       MediaState.Seeking,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           // ReportSeekCompleted() has been called
-                                           { MediaEvent.CallingReportSeekCompleted, MediaState.Playing },
-                                           { MediaEvent.GetSampleAsyncCalled, MediaState.Seeking },
-                                           // Should we wait to ReportGetSampleCompleted() until after ReportSeekCompleted?
-                                           { MediaEvent.CallingReportSampleCompleted, MediaState.Seeking },
-                                           { MediaEvent.CloseMediaCalled, MediaState.Closing },
-                                       }
-                                   },
-                                   //{
-                                   //    MediaState.AwaitPlaying,
-                                   //    new Dictionary<MediaEvent, MediaState>
-                                   //    {
-                                   //        // We have seen a GetSampleAsync()
-                                   //        { MediaEvent.GetSampleAsyncCalled, MediaState.Playing },
-                                   //        // Since we we are getting GetSampleAsync()s while waiting for ReportSeekCompleted,
-                                   //        // we need to deal with ReportSampleCompleted() as well.
-                                   //        { MediaEvent.CallingReportSampleCompleted, MediaState.AwaitPlaying }
-                                   //    }
-                                   //},
-                                   {
-                                       MediaState.Playing,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           { MediaEvent.GetSampleAsyncCalled, MediaState.Playing },
-                                           { MediaEvent.CloseMediaCalled, MediaState.Draining },
-                                           { MediaEvent.CallingReportSampleCompleted, MediaState.Playing },
-                                           { MediaEvent.SeekAsyncCalled, MediaState.Seeking }
-                                       }
-                                   },
-                                   {
-                                       MediaState.Draining,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           { MediaEvent.StreamsClosed, MediaState.Closing },
-                                           { MediaEvent.GetSampleAsyncCalled, MediaState.Draining },
-                                           { MediaEvent.CallingReportSampleCompleted, MediaState.Draining },
-                                           { MediaEvent.SeekAsyncCalled, MediaState.Draining },
-                                           { MediaEvent.CallingReportSeekCompleted, MediaState.Draining },
-                                       }
-                                   },
-                                   {
-                                       MediaState.Closing,
-                                       new Dictionary<MediaEvent, MediaState>
-                                       {
-                                           // The MediaStreamSource has been disposed (by MediaElement)
-                                           { MediaEvent.DisposeCalled, MediaState.Idle }
-                                       }
-                                   },
-                               };
-        }
 
         MediaState? Find(MediaState source, MediaEvent mediaEvent)
         {

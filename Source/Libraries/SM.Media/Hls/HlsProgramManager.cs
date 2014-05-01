@@ -96,7 +96,7 @@ namespace SM.Media.Hls
         {
             Dispose(true);
 
-            GC.KeepAlive(this);
+            GC.SuppressFinalize(this);
         }
 
         #endregion

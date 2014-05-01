@@ -25,6 +25,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("SM.Media")]
 [assembly: AssemblyDescription("")]
+
+[assembly: ComVisible(false)]

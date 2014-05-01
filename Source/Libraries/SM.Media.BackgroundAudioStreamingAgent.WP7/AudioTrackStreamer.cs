@@ -42,7 +42,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     /// <summary>
     ///     A background agent that performs per-track streaming for playback
     /// </summary>
-    public class AudioTrackStreamer : AudioStreamingAgent
+    public sealed class AudioTrackStreamer : AudioStreamingAgent, IDisposable
     {
         readonly IBufferingPolicy _bufferingPolicy;
         readonly IHttpClients _httpClients;
@@ -50,6 +50,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         IMediaStreamFacade _mediaStreamFacade;
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        int _isDisposed;
 
         public AudioTrackStreamer()
         {
@@ -81,7 +82,6 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             _ => Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
                 DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
                 DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB()));
-
 #endif
 
         [Conditional("DEBUG")]
@@ -207,6 +207,20 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         {
             Debug.WriteLine("AudioTrackStreamer.OnCancel()");
 
+            TryCancel();
+
+            if (null != _mediaStreamFacade)
+                _mediaStreamFacade.RequestStop();
+
+            StopPoll();
+
+            base.OnCancel();
+
+            Dispose();
+        }
+
+        void TryCancel()
+        {
             try
             {
                 if (!_cancellationTokenSource.IsCancellationRequested)
@@ -216,13 +230,20 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             {
                 Debug.WriteLine("AudioTrackStreamer.OnCancel() failed: " + ex.Message);
             }
+        }
 
-            if (null != _mediaStreamFacade)
-                _mediaStreamFacade.RequestStop();
+        public void Dispose()
+        {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
 
-            StopPoll();
+            TryCancel();
 
-            base.OnCancel();
+            _httpClients.Dispose();
+
+#if DEBUG
+            _memoryPoll.Dispose();
+#endif
 
             _cancellationTokenSource.Dispose();
         }

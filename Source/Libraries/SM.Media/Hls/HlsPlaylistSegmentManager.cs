@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -39,7 +40,7 @@ using SM.Media.Web;
 
 namespace SM.Media.Hls
 {
-    public class HlsPlaylistSegmentManager : ISegmentManager
+    public sealed class HlsPlaylistSegmentManager : ISegmentManager
     {
         readonly CancellationToken _cancellationToken;
         readonly List<ISegment[]> _dynamicPlaylists = new List<ISegment[]>();
@@ -106,6 +107,7 @@ namespace SM.Media.Hls
         public ContentType ContentType { get; private set; }
         public IAsyncEnumerable<ISegment> Playlist { get; private set; }
 
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "_readTask", Justification = "CleanupReader does dispose _readTask")]
         public void Dispose()
         {
             if (0 != Interlocked.Exchange(ref _isDisposed, 1))
@@ -460,7 +462,7 @@ namespace SM.Media.Hls
                         // same list as last time.
                         Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
 
-                        var expiration = Environment.TickCount + (int) (Math.Round(2 * _minimumRetry.TotalMilliseconds));
+                        var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
 
                         if (_segmentsExpiration < expiration)
                             _segmentsExpiration = expiration;
@@ -599,7 +601,7 @@ namespace SM.Media.Hls
             // TODO: Make sure the TickCount doesn't get confused by steps in the system time.
             var segmentsExpiration = Environment.TickCount;
 
-            segmentsExpiration += (int) expire.TotalMilliseconds;
+            segmentsExpiration += (int)expire.TotalMilliseconds;
 
             _segmentsExpiration = segmentsExpiration;
         }
@@ -703,7 +705,7 @@ namespace SM.Media.Hls
 
             public async Task<bool> MoveNextAsync()
             {
-                for (;;)
+                for (; ; )
                 {
                     await _segmentManager.CheckReload(_index).ConfigureAwait(false);
 
@@ -751,7 +753,7 @@ namespace SM.Media.Hls
                         var lastSegment = segments[segments.Length - 1];
 
                         if (lastSegment.Duration.HasValue)
-                            delay = (int) (lastSegment.Duration.Value.TotalMilliseconds / 2);
+                            delay = (int)(lastSegment.Duration.Value.TotalMilliseconds / 2);
                     }
 
                     await TaskEx.Delay(delay, _segmentManager.CancellationToken).ConfigureAwait(false);
@@ -815,7 +817,7 @@ namespace SM.Media.Hls
                 if (mediaSequence < firstMediaSequence.Value)
                     return -1;
 
-                var offset = (int) (mediaSequence - firstMediaSequence.Value);
+                var offset = (int)(mediaSequence - firstMediaSequence.Value);
 
                 if (offset >= segments.Count)
                     return -1;

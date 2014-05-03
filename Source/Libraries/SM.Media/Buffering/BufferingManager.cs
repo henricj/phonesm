@@ -248,6 +248,8 @@ namespace SM.Media.Buffering
 
                 _isEof = true;
 
+                UnlockedUpdateQueueStatus();
+
                 UnlockedReport();
             }
 
@@ -330,6 +332,9 @@ namespace SM.Media.Buffering
             {
                 if (!status.IsDone)
                     allDone = false;
+
+                if (!status.IsMedia)
+                    continue;
 
                 if (0 == status.PacketCount)
                     isExhausted = true;

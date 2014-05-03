@@ -50,6 +50,7 @@ namespace SM.Media.Buffering
         public int PacketCount { get; set; }
         public bool IsDone { get; set; }
         public bool IsValid { get; set; }
+        public bool IsMedia { get; set; }
     }
 
     public interface IBufferingQueue

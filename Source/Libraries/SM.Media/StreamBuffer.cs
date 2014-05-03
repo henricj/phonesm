@@ -50,6 +50,7 @@ namespace SM.Media
         TimeSpan? _oldest;
         TimeSpan? _newest;
         int _size;
+        readonly bool _isMedia;
 
 #if DEBUG
         static int _streamBufferCounter;
@@ -73,6 +74,7 @@ namespace SM.Media
             _streamType = streamType;
             _freePesPacket = freePesPacket;
             _bufferingManager = bufferingManager;
+            _isMedia = TsStreamType.StreamContents.Audio == _streamType.Contents || TsStreamType.StreamContents.Video == _streamType.Contents;
         }
 
         #region IDisposable Members
@@ -242,6 +244,7 @@ namespace SM.Media
                 bufferStatus.Oldest = _oldest;
                 bufferStatus.IsValid = _packets.Count > 0 && _newest.HasValue && _oldest.HasValue;
                 bufferStatus.IsDone = _isDone;
+                bufferStatus.IsMedia = _isMedia;
             }
         }
 

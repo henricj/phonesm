@@ -42,8 +42,6 @@ namespace SM.Media
 
         public MediaStream(IConfigurationSource configurator, IStreamBuffer streamBuffer, Action<TsPesPacket> freePacket)
         {
-            if (null == configurator)
-                throw new ArgumentNullException("configurator");
             if (null == streamBuffer)
                 throw new ArgumentNullException("streamBuffer");
             if (null == freePacket)

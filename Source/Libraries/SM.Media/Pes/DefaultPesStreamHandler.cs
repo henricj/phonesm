@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using SM.Media.Configuration;
 using SM.TsParser;
 
@@ -31,13 +32,27 @@ namespace SM.Media.Pes
 {
     public class DefaultPesStreamHandler : PesStreamHandler
     {
-        public DefaultPesStreamHandler(uint pid, TsStreamType streamType)
+        readonly Action<TsPesPacket> _nextHandler;
+
+        public DefaultPesStreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType)
-        { }
+        {
+            if (null == nextHandler)
+                throw new ArgumentNullException("nextHandler");
+
+            _nextHandler = nextHandler;
+        }
 
         public override IConfigurationSource Configurator
         {
             get { return null; }
+        }
+
+        public override void PacketHandler(TsPesPacket packet)
+        {
+            base.PacketHandler(packet);
+
+            _nextHandler(packet);
         }
     }
 }

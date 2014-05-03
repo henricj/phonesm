@@ -25,24 +25,27 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using SM.Media.Content;
 using SM.Media.Pes;
 using SM.TsParser;
 
 namespace SM.Media.AAC
 {
-    public class AacStreamHandlerFactory : PesStreamFactoryBase<AacStreamHandler>
+    public class AacStreamHandlerFactory : IPesStreamFactoryInstance
     {
-        static readonly ContentType[] Types = { ContentTypes.Aac };
+        static readonly byte[] Types = { TsStreamType.AacStreamType };
 
-        public override ICollection<ContentType> KnownContentTypes
+        #region IPesStreamFactoryInstance Members
+
+        public ICollection<byte> SupportedStreamTypes
         {
             get { return Types; }
         }
 
-        protected override AacStreamHandler Create(PesStreamParameters parameter, ContentType contentType)
+        public PesStreamHandler Create(PesStreamParameters parameter)
         {
             return new AacStreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
         }
+
+        #endregion
     }
 }

@@ -88,8 +88,6 @@ namespace SM.Media
 
             builder.RegisterType<PesHandlerFactory>().As<IPesHandlerFactory>().SingleInstance();
 
-            builder.RegisterType<PesStreamFactoryFinder>().As<IPesStreamFactoryFinder>().SingleInstance();
-            builder.RegisterType<PesStreamFactory>().As<IPesStreamFactory>().SingleInstance();
             builder.RegisterType<PesStreamParameters>().AsSelf();
 
             builder.RegisterType<TsDecoder>().As<ITsDecoder>();

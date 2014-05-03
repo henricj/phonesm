@@ -25,24 +25,27 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using SM.Media.Content;
 using SM.Media.Pes;
 using SM.TsParser;
 
 namespace SM.Media.H262
 {
-    public class H262StreamHandlerFactory : PesStreamFactoryBase<H262StreamHandler>
+    public class H262StreamHandlerFactory : IPesStreamFactoryInstance
     {
-        static readonly ContentType[] Types = { ContentTypes.H262 };
+        static readonly byte[] Types = { TsStreamType.H262StreamType };
 
-        public override ICollection<ContentType> KnownContentTypes
+        #region IPesStreamFactoryInstance Members
+
+        public ICollection<byte> SupportedStreamTypes
         {
             get { return Types; }
         }
 
-        protected override H262StreamHandler Create(PesStreamParameters parameter, ContentType contentType)
+        public PesStreamHandler Create(PesStreamParameters parameter)
         {
             return new H262StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
         }
+
+        #endregion
     }
 }

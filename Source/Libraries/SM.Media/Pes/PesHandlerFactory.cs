@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 using SM.Media.Content;
 using SM.TsParser;
 
@@ -53,17 +53,25 @@ namespace SM.Media.Pes
                 { TsStreamType.Ac3StreamType, ContentTypes.Ac3 }
             };
 
+        readonly Dictionary<byte, IPesStreamFactoryInstance> _factories;
         readonly Func<PesStreamParameters> _parameterFactory;
-        readonly IPesStreamFactory _pesStreamFactory;
 
-        public PesHandlerFactory(IPesStreamFactory pesStreamFactory, Func<PesStreamParameters> parameterFactory)
+        public PesHandlerFactory(IEnumerable<IPesStreamFactoryInstance> factoryInstances, Func<PesStreamParameters> parameterFactory)
         {
-            if (null == pesStreamFactory)
-                throw new ArgumentNullException("pesStreamFactory");
+            if (factoryInstances == null)
+                throw new ArgumentNullException("factoryInstances");
             if (null == parameterFactory)
                 throw new ArgumentNullException("parameterFactory");
 
-            _pesStreamFactory = pesStreamFactory;
+            _factories = factoryInstances
+                .SelectMany(fi => fi.SupportedStreamTypes,
+                    (fi, contentType) => new
+                                         {
+                                             ContentType = contentType,
+                                             Instance = fi
+                                         })
+                .ToDictionary(v => v.ContentType, v => v.Instance);
+
             _parameterFactory = parameterFactory;
         }
 
@@ -71,12 +79,9 @@ namespace SM.Media.Pes
 
         public PesStreamHandler CreateHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
         {
-            ContentType contentType;
-
-            TsStreamTypeContentTypes.TryGetValue(streamType.StreamType, out contentType);
-
-            if (null == contentType)
-                return new DefaultPesStreamHandler(pid, streamType);
+            IPesStreamFactoryInstance factory;
+            if (!_factories.TryGetValue(streamType.StreamType, out factory))
+                return new DefaultPesStreamHandler(pid, streamType, nextHandler);
 
             var parameters = _parameterFactory();
 
@@ -84,7 +89,7 @@ namespace SM.Media.Pes
             parameters.StreamType = streamType;
             parameters.NextHandler = nextHandler;
 
-            return _pesStreamFactory.CreateAsync(parameters, contentType, CancellationToken.None).Result;
+            return factory.Create(parameters);
         }
 
         #endregion

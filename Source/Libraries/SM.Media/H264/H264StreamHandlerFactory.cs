@@ -25,24 +25,27 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using SM.Media.Content;
 using SM.Media.Pes;
 using SM.TsParser;
 
 namespace SM.Media.H264
 {
-    public class H264StreamHandlerFactory : PesStreamFactoryBase<H264StreamHandler>
+    public class H264StreamHandlerFactory : IPesStreamFactoryInstance
     {
-        static readonly ContentType[] Types = { ContentTypes.H264 };
+        static readonly byte[] Types = { TsStreamType.H264StreamType };
 
-        public override ICollection<ContentType> KnownContentTypes
+        #region IPesStreamFactoryInstance Members
+
+        public ICollection<byte> SupportedStreamTypes
         {
             get { return Types; }
         }
 
-        protected override H264StreamHandler Create(PesStreamParameters parameter, ContentType contentType)
+        public PesStreamHandler Create(PesStreamParameters parameter)
         {
             return new H264StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
         }
+
+        #endregion
     }
 }

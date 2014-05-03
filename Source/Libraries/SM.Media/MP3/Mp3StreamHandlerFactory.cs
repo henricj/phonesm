@@ -25,24 +25,27 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using SM.Media.Content;
 using SM.Media.Pes;
 using SM.TsParser;
 
 namespace SM.Media.MP3
 {
-    public class Mp3StreamHandlerFactory : PesStreamFactoryBase<Mp3StreamHandler>
+    public class Mp3StreamHandlerFactory : IPesStreamFactoryInstance
     {
-        static readonly ContentType[] Types = { ContentTypes.Mp3 };
+        static readonly byte[] Types = { TsStreamType.Mp3Iso11172, TsStreamType.Mp3Iso13818 };
 
-        public override ICollection<ContentType> KnownContentTypes
+        #region IPesStreamFactoryInstance Members
+
+        public ICollection<byte> SupportedStreamTypes
         {
             get { return Types; }
         }
 
-        protected override Mp3StreamHandler Create(PesStreamParameters parameter, ContentType contentType)
+        public PesStreamHandler Create(PesStreamParameters parameter)
         {
             return new Mp3StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
         }
+
+        #endregion
     }
 }

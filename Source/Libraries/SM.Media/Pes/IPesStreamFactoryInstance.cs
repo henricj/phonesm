@@ -24,11 +24,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.Content;
+using System.Collections.Generic;
 using SM.TsParser;
 
 namespace SM.Media.Pes
 {
-    public interface IPesStreamFactoryInstance : IContentServiceFactoryInstance<PesStreamHandler, PesStreamParameters>
-    { }
+    public interface IPesStreamFactoryInstance
+    {
+        ICollection<byte> SupportedStreamTypes { get; }
+        PesStreamHandler Create(PesStreamParameters parameter);
+    }
 }

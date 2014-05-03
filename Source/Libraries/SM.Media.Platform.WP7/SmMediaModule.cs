@@ -103,9 +103,6 @@ namespace SM.Media
 
             Bind<Func<PesStreamParameters>>().ToMethod(ctx => () => ctx.Kernel.Get<PesStreamParameters>());
 
-            Bind<IPesStreamFactoryFinder>().To<PesStreamFactoryFinder>().InSingletonScope();
-            Bind<IPesStreamFactory>().To<PesStreamFactory>().InSingletonScope();
-
             Bind<ITsDecoder>().To<TsDecoder>();
             Bind<ITsTimestamp>().To<TsTimestamp>();
             Bind<IPesHandlers>().To<PesHandlers>();

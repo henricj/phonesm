@@ -114,9 +114,6 @@
     <Compile Include="MP3\Mp3StreamHandlerFactory.cs" />
     <Compile Include="Pes\DefaultPesStreamHandler.cs" />
     <Compile Include="Pes\IPesStreamFactoryInstance.cs" />
-    <Compile Include="Pes\PesStreamFactoryBase.cs" />
-    <Compile Include="Pes\PesStreamFactory.cs" />
-    <Compile Include="Pes\PesStreamFactoryFinder.cs" />
     <Compile Include="MP3\Mp3MediaParserFactory.cs" />
     <Compile Include="Hls\HlsSegmentsFactory.cs" />
     <Compile Include="Playlists\IProgramStream.cs" />

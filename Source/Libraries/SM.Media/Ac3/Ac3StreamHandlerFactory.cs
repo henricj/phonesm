@@ -25,24 +25,27 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using SM.Media.Content;
 using SM.Media.Pes;
 using SM.TsParser;
 
 namespace SM.Media.Ac3
 {
-    public class Ac3StreamHandlerFactory : PesStreamFactoryBase<Ac3StreamHandler>
+    public class Ac3StreamHandlerFactory : IPesStreamFactoryInstance
     {
-        static readonly ContentType[] Types = { ContentTypes.Ac3 };
+        static readonly byte[] Types = { TsStreamType.Ac3StreamType };
 
-        public override ICollection<ContentType> KnownContentTypes
+        #region IPesStreamFactoryInstance Members
+
+        public ICollection<byte> SupportedStreamTypes
         {
             get { return Types; }
         }
 
-        protected override Ac3StreamHandler Create(PesStreamParameters parameter, ContentType contentType)
+        public PesStreamHandler Create(PesStreamParameters parameter)
         {
             return new Ac3StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
         }
+
+        #endregion
     }
 }

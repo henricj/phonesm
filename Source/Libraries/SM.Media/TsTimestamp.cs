@@ -73,6 +73,9 @@ namespace SM.Media
                 {
                     var validData = false;
 
+                    if (!state.IsMedia)
+                        continue;
+
                     foreach (var packet in state.Packets)
                     {
                         if (null == packet)
@@ -168,12 +171,13 @@ namespace SM.Media
             return true;
         }
 
-        public void RegisterPackets(ICollection<TsPesPacket> packets, Func<TsPesPacket, TimeSpan?> getDuration)
+        public void RegisterMediaStream(MediaStream mediaStream, Func<TsPesPacket, TimeSpan?> getDuration)
         {
             _packetsStates.Add(new PacketsState
                                {
-                                   Packets = packets,
-                                   GetDuration = getDuration
+                                   Packets = mediaStream.Packets,
+                                   GetDuration = getDuration,
+                                   IsMedia = null != mediaStream.ConfigurationSource
                                });
         }
 
@@ -205,6 +209,7 @@ namespace SM.Media
             public Func<TsPesPacket, TimeSpan?> GetDuration;
             public ICollection<TsPesPacket> Packets;
             public TimeSpan? PresentationTimestamp;
+            public bool IsMedia;
         }
 
         #endregion

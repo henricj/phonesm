@@ -236,7 +236,7 @@ namespace SM.Media
             if (!_streamCount.HasValue || _streamCount.Value != streams.Count)
                 return;
 
-            if (streams.Any(stream => null == stream.ConfigurationSource || !stream.ConfigurationSource.IsConfigured))
+            if (streams.Any(stream => null != stream.ConfigurationSource && !stream.ConfigurationSource.IsConfigured))
                 return;
 
             FireConfigurationComplete();
@@ -277,22 +277,28 @@ namespace SM.Media
 
             var configurator = pesStreamHandler.Configurator;
 
-            EventHandler configuratorOnConfigurationComplete = null;
+            if (null != configurator)
+            {
+                EventHandler configuratorOnConfigurationComplete = null;
 
-            configuratorOnConfigurationComplete = (o, e) =>
-                                                  {
-                                                      configurator.ConfigurationComplete -= configuratorOnConfigurationComplete;
+                configuratorOnConfigurationComplete = (o, e) =>
+                                                      {
+                                                          configurator.ConfigurationComplete -= configuratorOnConfigurationComplete;
 
-                                                      CheckConfigurationComplete();
-                                                  };
+                                                          CheckConfigurationComplete();
+                                                      };
 
-            configurator.ConfigurationComplete += configuratorOnConfigurationComplete;
+                configurator.ConfigurationComplete += configuratorOnConfigurationComplete;
+            }
 
             mediaStream = new MediaStream(configurator, streamBuffer, _tsPesPacketPool.FreePesPacket);
 
             AddMediaStream(mediaStream);
 
-            _tsTimemestamp.RegisterPackets(mediaStream.Packets, pesStreamHandler.GetDuration);
+            _tsTimemestamp.RegisterMediaStream(mediaStream, pesStreamHandler.GetDuration);
+
+            if (null == configurator)
+                CheckConfigurationComplete();
 
             return pes;
         }

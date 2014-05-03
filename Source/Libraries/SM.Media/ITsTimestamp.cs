@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ITsTimestamp.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using SM.TsParser;
 
 namespace SM.Media
@@ -36,6 +35,6 @@ namespace SM.Media
         TimeSpan? Offset { get; }
         void Flush();
         bool ProcessPackets();
-        void RegisterPackets(ICollection<TsPesPacket> packets, Func<TsPesPacket, TimeSpan?> getDuration);
+        void RegisterMediaStream(MediaStream mediaStream, Func<TsPesPacket, TimeSpan?> getDuration);
     }
 }

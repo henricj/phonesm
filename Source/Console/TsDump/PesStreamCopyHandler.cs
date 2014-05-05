@@ -50,8 +50,12 @@ namespace TsDump
         {
             _nextHandler = nextHandler;
 
-            if (!string.IsNullOrWhiteSpace(streamType.FileExtension))
-                _stream = File.Create(string.Format("TS_PID{0}{1}", pid, streamType.FileExtension));
+            var ext = streamType.FileExtension;
+
+            if (string.IsNullOrWhiteSpace(ext))
+                ext = "_" + streamType.StreamType.ToString("x2") + ".bin";
+
+            _stream = File.Create(string.Format("TS_PID{0}{1}", pid, ext));
         }
 
         public override IConfigurationSource Configurator

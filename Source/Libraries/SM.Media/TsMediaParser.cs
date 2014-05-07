@@ -268,7 +268,7 @@ namespace SM.Media
                     // ReSharper disable AccessToModifiedClosure
                     if (null != mediaStream)
                         mediaStream.EnqueuePacket(packet);
-                    else
+                    else if (null != packet)
                         _tsPesPacketPool.FreePesPacket(packet);
                     // ReSharper restore AccessToModifiedClosure
                 });

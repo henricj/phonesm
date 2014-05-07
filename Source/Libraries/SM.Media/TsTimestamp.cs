@@ -110,9 +110,9 @@ namespace SM.Media
                 foreach (var state in _packetsStates)
                 {
                     if (state.Packets.Count <= 0)
-                        return false;
+                        continue;
 
-                    if (!state.Duration.HasValue)
+                    if (!state.Duration.HasValue || !state.PresentationTimestamp.HasValue)
                         continue;
 
                     var packet = state.Packets.First();
@@ -122,7 +122,7 @@ namespace SM.Media
 
                     var actualPts = packet.PresentationTimestamp - _timestampOffset.Value;
 
-                    var expectedPts = state.PresentationTimestamp + state.Duration.Value;
+                    var expectedPts = state.PresentationTimestamp.Value + state.Duration.Value;
 
                     var error = actualPts - expectedPts;
 
@@ -137,9 +137,6 @@ namespace SM.Media
                     _timestampOffset = timestampOffset;
                 }
             }
-
-            if (!_timestampOffset.HasValue)
-                return false;
 
             if (_timestampOffset != TimeSpan.Zero)
                 AdjustTimestamps(_timestampOffset.Value);
@@ -207,9 +204,9 @@ namespace SM.Media
             public TimeSpan? DecodeTimestamp;
             public TimeSpan? Duration;
             public Func<TsPesPacket, TimeSpan?> GetDuration;
+            public bool IsMedia;
             public ICollection<TsPesPacket> Packets;
             public TimeSpan? PresentationTimestamp;
-            public bool IsMedia;
         }
 
         #endregion

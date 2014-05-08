@@ -45,7 +45,7 @@ namespace SM.Media.Playlists
         ICollection<Uri> Urls { get; }
 
         IWebReader WebReader { get; }
-        bool IsDyanmicPlaylist { get; }
+        bool IsDynamicPlaylist { get; }
         ICollection<ISegment> Segments { get; }
 
         Task RefreshPlaylistAsync(CancellationToken cancellationToken);

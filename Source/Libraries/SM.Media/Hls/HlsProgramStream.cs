@@ -45,7 +45,7 @@ namespace SM.Media.Hls
         readonly IWebReader _webReader;
         Uri _actualUrl;
         ContentType _contentType;
-        bool _isDyanmicPlaylist = true;
+        bool _isDynamicPlaylist = true;
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
@@ -77,9 +77,9 @@ namespace SM.Media.Hls
         public string Language { get; internal set; }
         public ICollection<Uri> Urls { get; internal set; }
 
-        public bool IsDyanmicPlaylist
+        public bool IsDynamicPlaylist
         {
-            get { return _isDyanmicPlaylist; }
+            get { return _isDynamicPlaylist; }
         }
 
         public ICollection<ISegment> Segments
@@ -89,7 +89,7 @@ namespace SM.Media.Hls
 
         public async Task RefreshPlaylistAsync(CancellationToken cancellationToken)
         {
-            if (!_isDyanmicPlaylist && null != _segments && _segments.Count > 0)
+            if (!_isDynamicPlaylist && null != _segments && _segments.Count > 0)
                 return;
 
             var parser = await FetchPlaylistAsync(cancellationToken).ConfigureAwait(false);
@@ -117,7 +117,7 @@ namespace SM.Media.Hls
         void Update(M3U8Parser parser)
         {
             _segments = _segmentsFactory.CreateSegments(parser, _subPlaylistCache.WebReader);
-            _isDyanmicPlaylist = HlsPlaylistSettings.Parameters.IsDyanmicPlaylist(parser);
+            _isDynamicPlaylist = HlsPlaylistSettings.Parameters.IsDynamicPlaylist(parser);
             _actualUrl = parser.BaseUrl;
         }
 
@@ -168,7 +168,7 @@ namespace SM.Media.Hls
 
         public override string ToString()
         {
-            return string.Format("dynamic {0} segments {1} url {2}", _isDyanmicPlaylist, null == _segments ? 0 : _segments.Count, _actualUrl);
+            return string.Format("dynamic {0} segments {1} url {2}", _isDynamicPlaylist, null == _segments ? 0 : _segments.Count, _actualUrl);
         }
     }
 }

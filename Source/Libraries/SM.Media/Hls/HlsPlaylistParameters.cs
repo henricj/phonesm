@@ -76,7 +76,7 @@ namespace SM.Media.Hls
             set { _minimumRetry = value; }
         }
 
-        public Func<M3U8Parser, bool> IsDyanmicPlaylist
+        public Func<M3U8Parser, bool> IsDynamicPlaylist
         {
             get { return _isDynamicPlaylist ?? PlaylistDefaults.IsDynamicPlayist; }
             set { _isDynamicPlaylist = value; }

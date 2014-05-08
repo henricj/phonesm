@@ -414,7 +414,7 @@ namespace SM.Media.Hls
         {
             var segments = _programStream.Segments.ToArray();
 
-            var isDynamicPlaylist = _programStream.IsDyanmicPlaylist;
+            var isDynamicPlaylist = _programStream.IsDynamicPlaylist;
 
             Duration = isDynamicPlaylist ? null : GetDuration(segments);
 

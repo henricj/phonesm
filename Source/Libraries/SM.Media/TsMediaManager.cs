@@ -654,9 +654,17 @@ namespace SM.Media
                 if (IsSeekInRange(position))
                     return position;
 
-                await TaskEx.WhenAll(_readers.Select(reader => reader.StopAsync())).ConfigureAwait(false);
+                var readers = _readers;
 
-                foreach (var reader in _readers)
+                if (null == readers || readers.Length < 1)
+                    return TimeSpan.MinValue;
+
+                await TaskEx.WhenAll(readers.Select(reader => reader.StopAsync())).ConfigureAwait(false);
+
+                if (_playbackCancellationTokenSource.IsCancellationRequested)
+                    return TimeSpan.MinValue;
+
+                foreach (var reader in readers)
                     reader.IsEnabled = true;
 
                 State = MediaState.Seeking;

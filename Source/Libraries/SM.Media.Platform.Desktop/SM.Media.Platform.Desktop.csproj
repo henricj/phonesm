@@ -61,22 +61,20 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFacadeParameters.cs">
-      <Link>DefaultMediaStreamFacadeParameters.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\Utility\SingleThreadSignalTaskScheduler.cs">
       <Link>Utility\SingleThreadSignalTaskScheduler.cs</Link>
     </Compile>
-    <Compile Include="ISimulatedMediaElement.cs" />
-    <Compile Include="ISimulatedMediaStreamSource.cs" />
-    <Compile Include="MediaStreamFacade.cs" />
+    <Compile Include="Simulator\DefaultMediaStreamFacadeParameters.cs" />
+    <Compile Include="Simulator\ISimulatedMediaElement.cs" />
+    <Compile Include="Simulator\ISimulatedMediaStreamSource.cs" />
+    <Compile Include="Simulator\MediaStreamFacade.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utility\RandomNumbers.cs" />
-    <Compile Include="SimulatedMediaElementManager.cs" />
-    <Compile Include="SimulatedMediaStreamSource.cs" />
+    <Compile Include="Simulator\SimulatedMediaElementManager.cs" />
+    <Compile Include="Simulator\SimulatedMediaStreamSource.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="Web\HttpWebRequests.cs" />
   </ItemGroup>

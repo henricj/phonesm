@@ -30,11 +30,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SimulatedPlayer;
 using SM.Media.Utility;
 using SM.TsParser;
 
-namespace SM.Media
+namespace SM.Media.Simulator
 {
     public sealed class SimulatedMediaElementManager : ISimulatedMediaElement, IDisposable
     {

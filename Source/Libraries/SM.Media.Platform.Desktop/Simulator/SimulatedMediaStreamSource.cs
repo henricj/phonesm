@@ -29,12 +29,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.TsParser;
 
-namespace SimulatedPlayer
+namespace SM.Media.Simulator
 {
     public class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {

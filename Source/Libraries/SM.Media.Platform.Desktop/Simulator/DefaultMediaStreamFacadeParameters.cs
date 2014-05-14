@@ -1,5 +1,5 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="ISimulatedMediaElement.cs" company="Henric Jungheim">
+// -----------------------------------------------------------------------
+//  <copyright file="DefaultMediaStreamFacadeParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,16 +24,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.TsParser;
+using System;
+using SM.Media.Web.HttpClientReader;
 
-namespace SM.Media
+namespace SM.Media.Simulator
 {
-    public interface ISimulatedMediaElement
+    public static class DefaultMediaStreamFacadeParameters
     {
-        void ReportOpenMediaCompleted(int streamCount);
-        void ReportSeekCompleted(long ticks);
-        void ReportGetSampleProgress(float progress);
-        void ReportGetSampleCompleted(int streamType, IStreamSource streamSource, TsPesPacket packet);
-        void ErrorOccurred(string message);
+        public static Func<IHttpClients, IMediaStreamFacadeBase> Factory =
+            httpClients =>
+            {
+                var mediaStreamFacade = new MediaStreamFacade(httpClients);
+
+                return mediaStreamFacade;
+            };
+
+        public static IMediaStreamFacade Create(this MediaStreamFacadeParameters parameters, IHttpClients httpClients)
+        {
+            var factory = parameters.Factory ?? Factory;
+
+            return (IMediaStreamFacade)factory(httpClients);
+        }
     }
 }

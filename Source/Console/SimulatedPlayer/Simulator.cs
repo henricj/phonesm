@@ -29,6 +29,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media;
+using SM.Media.Simulator;
 using SM.Media.Utility;
 using SM.Media.Web.HttpClientReader;
 
@@ -38,7 +39,6 @@ namespace SimulatedPlayer
     {
         static readonly string[] Sources =
         {
-            "http://46.20.4.58:8030/",
             "http://www.npr.org/streams/mp3/nprlive24.pls",
             "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
             "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",

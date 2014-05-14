@@ -28,11 +28,10 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using SimulatedPlayer;
 using SM.Media.Builder;
 using SM.Media.Web.HttpClientReader;
 
-namespace SM.Media
+namespace SM.Media.Simulator
 {
     public interface IMediaStreamFacade : IMediaStreamFacadeBase<SimulatedMediaStreamSource>
     { }
@@ -43,9 +42,13 @@ namespace SM.Media
             : base(CreateBuilder(httpClients))
         { }
 
+        protected MediaStreamFacade(IBuilder<IMediaManager> mediaManagerBuilder)
+            : base(mediaManagerBuilder)
+        { }
+
         #region IMediaStreamFacade Members
 
-        public async Task<SimulatedMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
+        public virtual async Task<SimulatedMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
             Exception exception;
 
@@ -69,7 +72,7 @@ namespace SM.Media
 
         #endregion
 
-        static IBuilder<IMediaManager> CreateBuilder(IHttpClients httpClients)
+        protected static IBuilder<IMediaManager> CreateBuilder(IHttpClients httpClients)
         {
             var builder = new TsMediaManagerBuilder(httpClients);
 

@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="ThreadSafeRandom.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  <copyright file="RandomNumbers.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 
-namespace SimulatedPlayer
+namespace SM.Media.Utility
 {
     public sealed class RandomNumbers
     {
@@ -88,7 +88,7 @@ namespace SimulatedPlayer
         }
 
         /// <summary>
-        /// Returns a random number greater than or equal to 0 and less than 1.
+        ///     Returns a random number greater than or equal to 0 and less than 1.
         /// </summary>
         /// <returns></returns>
         public double GetRandomNumber()
@@ -98,6 +98,7 @@ namespace SimulatedPlayer
                 return _random.NextDouble();
             }
         }
+
         /// <summary>
         ///     Fisher–Yates shuffle
         /// </summary>

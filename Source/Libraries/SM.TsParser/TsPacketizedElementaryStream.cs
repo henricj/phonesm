@@ -362,7 +362,7 @@ namespace SM.TsParser
             Debug.Assert(pes.PresentationTimestamp >= TimeSpan.Zero);
 
 #if DEBUG
-            //Debug.WriteLine("Create PES Packet({0}) Index {1} Length {2} Time {3} {4}", pes.PacketId, pes.Index, pes.Length, pes.Timestamp, pes.BufferEntry);
+            //Debug.WriteLine("Create PES Packet({0}) Index {1} Length {2} Time {3} ({4}s) {5}", pes.PacketId, pes.Index, pes.Length, pes.PresentationTimestamp, pes.PresentationTimestamp.TotalSeconds, pes.BufferEntry);
 #endif
 
             return pes;

@@ -39,11 +39,11 @@ namespace SimulatedPlayer
     public class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
+        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
         readonly ISimulatedMediaElement _mediaElement;
         readonly List<IStreamSource> _mediaStreams = new List<IStreamSource>();
         readonly object _stateLock = new object();
-        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         bool _isClosed;
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         int _pendingRequests;
@@ -99,7 +99,7 @@ namespace SimulatedPlayer
 
             ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
 
-            _mediaElement.ReportOpenMediaCompleted();
+            _mediaElement.ReportOpenMediaCompleted(_mediaStreams.Count);
         }
 
         public void ReportError(string message)
@@ -270,6 +270,12 @@ namespace SimulatedPlayer
 
         void RequestGet(int streamType)
         {
+            if (streamType >= _mediaStreams.Count)
+            {
+                Debug.WriteLine("SimulatedMediaStreamSource.RequestGet() requesting unknown stream " + streamType);
+                return;
+            }
+
             var current = _pendingRequests;
 
             for (; ; )

@@ -30,12 +30,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SM.Media;
-using SM.Media.MediaParser;
+using SimulatedPlayer;
 using SM.Media.Utility;
 using SM.TsParser;
 
-namespace SimulatedPlayer
+namespace SM.Media
 {
     public sealed class SimulatedMediaElementManager : ISimulatedMediaElement, IDisposable
     {
@@ -48,6 +47,7 @@ namespace SimulatedPlayer
         readonly RandomNumbers _random = new RandomNumbers();
         readonly Dictionary<int, SampleState> _streams = new Dictionary<int, SampleState>();
         ISimulatedMediaStreamSource _mediaStreamSource;
+        int _streamCount;
 
         public SimulatedMediaElementManager()
         {
@@ -69,32 +69,13 @@ namespace SimulatedPlayer
 
         #endregion
 
-        public void SetSource(ISimulatedMediaStreamSource source)
-        {
-            Debug.WriteLine("SimulatedMediaElementManager.SetSourceAsync()");
+        #region ISimulatedMediaElement Members
 
-            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
-
-            _mediaStreamSource = source;
-
-            _asyncFifoWorker.Post(OpenMediaAsync, "SimulatedMediaElementManager.SetSourceAsync() OpenMediaAsync", _cancellationTokenSource.Token);
-        }
-
-        public Task CloseAsync()
-        {
-            Debug.WriteLine("SimulatedMediaElementManager.CloseAsync()");
-
-            if (null != _mediaStreamSource)
-                _mediaStreamSource.Dispose();
-
-            _mediaStreamSource = null;
-
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        public void ReportOpenMediaCompleted()
+        public void ReportOpenMediaCompleted(int streamCount)
         {
             Debug.WriteLine("SimulatedMediaElementManager.ReportOpenMediaCompleted()");
+
+            _streamCount = streamCount;
 
             _asyncFifoWorker.Post(PlayMediaAsync, "SimulatedMediaElementManager.ReportOpenMediaCompleted() PlayMediaAsync", _cancellationTokenSource.Token);
         }
@@ -192,6 +173,31 @@ namespace SimulatedPlayer
             TaskCollector.Default.Add(task, "SimulatedMediaElement.ErrorOccurred");
         }
 
+        #endregion
+
+        public void SetSource(ISimulatedMediaStreamSource source)
+        {
+            Debug.WriteLine("SimulatedMediaElementManager.SetSourceAsync()");
+
+            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
+
+            _mediaStreamSource = source;
+
+            _asyncFifoWorker.Post(OpenMediaAsync, "SimulatedMediaElementManager.SetSourceAsync() OpenMediaAsync", _cancellationTokenSource.Token);
+        }
+
+        public Task CloseAsync()
+        {
+            Debug.WriteLine("SimulatedMediaElementManager.CloseAsync()");
+
+            if (null != _mediaStreamSource)
+                _mediaStreamSource.Dispose();
+
+            _mediaStreamSource = null;
+
+            return TplTaskExtensions.CompletedTask;
+        }
+
         public Task Dispatch(Action action)
         {
             action();
@@ -212,7 +218,7 @@ namespace SimulatedPlayer
         {
             Debug.WriteLine("SimulatedMediaElementManager.PlayMediaAsync()");
 
-            var random = _random.GetRandomNumbers(4);
+            var random = _random.GetRandomNumbers(2 + _streamCount);
 
             await Task.Delay((int)(50 * (1 + random[0]))).ConfigureAwait(false);
 
@@ -231,23 +237,19 @@ namespace SimulatedPlayer
 
             taskActions.Add(t);
 
-            t = async () =>
-                      {
-                          await Task.Delay((int)(30 * (1 + random[2]))).ConfigureAwait(false);
+            for (var i = 0; i < _streamCount; ++i)
+            {
+                var streamType = i;
 
-                          _mediaStreamSource.GetSampleAsync(0);
-                      };
+                t = async () =>
+                          {
+                              await Task.Delay((int)(30 * (1 + random[2 + streamType]))).ConfigureAwait(false);
 
-            taskActions.Add(t);
+                              _mediaStreamSource.GetSampleAsync(streamType);
+                          };
 
-            t = async () =>
-                      {
-                          await Task.Delay((int)(30 * (1 + random[3]))).ConfigureAwait(false);
-
-                          _mediaStreamSource.GetSampleAsync(1);
-                      };
-
-            taskActions.Add(t);
+                taskActions.Add(t);
+            }
 
             _random.Shuffle(taskActions);
 

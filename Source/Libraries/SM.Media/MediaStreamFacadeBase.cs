@@ -166,7 +166,18 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
-            Post(CloseMediaAsync, "MediaStreamFacadeBase.RequestStop() CloseMediaAsync");
+            if (_disposeCancellationTokenSource.IsCancellationRequested)
+                return; // CloseAsync has already been called.
+
+            try
+            {
+                Post(CloseMediaAsync, "MediaStreamFacadeBase.RequestStop() CloseMediaAsync");
+            }
+            catch (Exception ex)
+            {
+                // We have probably just lost a race with CloseAsync()
+                Debug.WriteLine("MediaStreamFacadeBase.RequestStop() Post failed: " + ex.Message);
+            }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

@@ -30,13 +30,13 @@ using System.Net.Http.Headers;
 
 namespace SM.Media.Web
 {
-    public class HttpDefaults
+    public static class HttpDefaults
     {
         public static ProductInfoHeaderValue DefaultUserAgentFactory(string productName, string productVersion)
         {
             try
             {
-                var userAgent = new ProductInfoHeaderValue(productName, productVersion);
+                var userAgent = new ProductInfoHeaderValue(productName.Replace(' ', '-'), productVersion);
 
                 return userAgent;
             }

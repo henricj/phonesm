@@ -119,6 +119,7 @@ namespace SM.Media.MP3
 
         public int FrameLength { get; private set; }
         public int HeaderLength { get; private set; }
+        public int HeaderOffset { get; private set; }
         public int SamplingFrequency { get; private set; }
         public TimeSpan Duration { get; private set; }
 
@@ -128,9 +129,12 @@ namespace SM.Media.MP3
         {
             MarkerIndex = null;
 
+            HeaderOffset = 0;
+
             if (length < 4)
                 return false;
 
+            var index0 = index;
             var lastIndex = index + length;
 
             // http://www.mpgedit.org/mpgedit/mpeg_format/mpeghdr.htm
@@ -164,6 +168,11 @@ namespace SM.Media.MP3
                 if (7 == frameSync2)
                     break;
             }
+
+            HeaderOffset = index - index0 - 2;
+
+            if (HeaderOffset < 0)
+                return false;
 
             MarkerIndex = markerIndex;
 

@@ -99,6 +99,8 @@ namespace SM.Media.Ac3
             get { return 5; }
         }
 
+        public int HeaderOffset { get; private set; }
+
         public string Name { get; private set; }
 
         public TimeSpan Duration
@@ -110,6 +112,9 @@ namespace SM.Media.Ac3
         {
             // http://stnsoft.com/DVD/ac3hdr.html
 
+            HeaderOffset = 0;
+
+            var index0 = index;
             var lastIndex = index + length;
 
             if (length < 5)
@@ -136,6 +141,11 @@ namespace SM.Media.Ac3
                 if (0x77 == frameSync2)
                     break;
             }
+
+            HeaderOffset = index - index0 - 2;
+
+            if (HeaderOffset < 0)
+                return false;
 
             var crc = buffer[index++] << 8;
             crc |= buffer[index++];

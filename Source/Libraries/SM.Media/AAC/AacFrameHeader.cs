@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacFrameHeader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -132,6 +132,8 @@ namespace SM.Media.AAC
             get { return CrcFlag ? 9 : 7; }
         }
 
+        public int HeaderOffset { get; private set; }
+
         public TimeSpan Duration
         {
             get { return FullResolutionTimeSpan.FromSeconds(_frames * 1024.0 / SamplingFrequency); }
@@ -145,7 +147,10 @@ namespace SM.Media.AAC
         {
             // http://wiki.multimedia.cx/index.php?title=ADTS
 
+            var index0 = index;
             var lastIndex = index + length;
+
+            HeaderOffset = 0;
 
             if (length < 7)
                 return false;
@@ -176,12 +181,20 @@ namespace SM.Media.AAC
                     break;
             }
 
+            HeaderOffset = index - index0 - 2;
+
+            if (HeaderOffset < 0)
+                return false;
+
             var mpeg4Flag = 0 == (h1 & (1 << 3));
 
             Layer = (h1 >> 1) & 3;
 
             if (0 != Layer)
-                return false;
+            {
+                Debug.WriteLine("AacFrameHeader.Parse() unknown layer: " + Layer);
+                //return false;
+            }
 
             CrcFlag = 0 == (h1 & 1);
 

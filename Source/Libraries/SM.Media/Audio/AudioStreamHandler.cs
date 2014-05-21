@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
@@ -77,13 +78,33 @@ namespace SM.Media.Audio
 
             var length = packet.Length;
             var endOffset = packet.Index + length;
+            int nextFrameOffset;
+            var skipLength = 0;
 
-            for (var i = packet.Index; i < endOffset; i += _frameHeader.FrameLength, length -= _frameHeader.FrameLength)
+            for (var i = packet.Index; i < endOffset; i += nextFrameOffset, length -= nextFrameOffset)
             {
                 if (_frameHeader.Parse(packet.Buffer, i, length))
+                {
                     duration += _frameHeader.Duration;
+
+                    if (_frameHeader.HeaderOffset > 0)
+                        Debug.WriteLine("AudioStreamHandler.GetDuration() skipping {0} bytes before frame", _frameHeader.HeaderOffset);
+
+                    nextFrameOffset = _frameHeader.HeaderOffset + _frameHeader.FrameLength;
+                    skipLength = 0;
+                }
                 else
-                    return null;
+                {
+                    if (length > _frameHeader.HeaderOffset + _minimumPacketSize)
+                    {
+                        nextFrameOffset = _frameHeader.HeaderOffset + 1;
+                        skipLength += nextFrameOffset;
+                        continue;
+                    }
+
+                    Debug.WriteLine("AudioStreamHandler.GetDuration() unable to find frame, skipping {0} bytes", length + skipLength);
+                    break;
+                }
             }
 
             packet.Duration = duration;

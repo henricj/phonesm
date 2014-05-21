@@ -30,7 +30,7 @@ using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
     {
         static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule() };
 

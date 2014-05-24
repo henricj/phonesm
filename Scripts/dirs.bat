@@ -73,6 +73,4 @@ md Phone\SamplePlayer.WP8\Assets\
 md Phone\SamplePlayer.WP8\Assets\Tiles\
 md Phone\SamplePlayer.WP8\Resources\
 
-md smf\
-
 popd

@@ -53,6 +53,12 @@ copy Libraries\SM.Media.Builder\bin\Debug\SM.Media.Builder.pdb ..\Distribution\b
 copy Libraries\SM.Media.Builder\bin\Release\SM.Media.Builder.dll ..\Distribution\bin\Release\
 copy Libraries\SM.Media.Builder\bin\Release\SM.Media.Builder.pdb ..\Distribution\bin\Release\
 
+copy playerframework\Phone.SL\Bin\Debug\Microsoft.PlayerFramework.dll ..\Distribution\bin\Debug\WP7\
+copy playerframework\Phone.SL\Bin\Debug\Microsoft.PlayerFramework.pdb ..\Distribution\bin\Debug\WP7\
+
+copy playerframework\Phone.SL\Bin\Release\Microsoft.PlayerFramework.dll ..\Distribution\bin\Release\WP7\
+copy playerframework\Phone.SL\Bin\Release\Microsoft.PlayerFramework.pdb ..\Distribution\bin\Release\WP7\
+
 copy Global\GlobalAssemblyInfo.cs ..\Distribution\Global\
 copy Global\SM.MediaVersion.cs ..\Distribution\Global\
 copy Global\readme.txt ..\Distribution\
@@ -161,8 +167,6 @@ copy App\Silverlight\HlsView.Silverlight\app.config ..\Distribution\App\Silverli
 copy App\Silverlight\HlsView.Silverlight\packages.config ..\Distribution\App\Silverlight\HlsView.Silverlight\
 
 copy .nuget\NuGet.config ..\Distribution\.nuget\
-
-copy smf\readme.txt ..\Distribution\smf\
 
 copy Sample*.sln ..\Distribution\
 

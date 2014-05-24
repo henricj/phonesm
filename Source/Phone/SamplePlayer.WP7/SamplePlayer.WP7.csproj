@@ -52,22 +52,6 @@
   <ItemGroup>
     <Reference Include="Microsoft.Phone" />
     <Reference Include="Microsoft.Phone.Interop" />
-    <Reference Include="Microsoft.SilverlightMediaFramework.Compatibility.Phone, Version=2.2012.605.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\smf\Microsoft.SilverlightMediaFramework.Compatibility.Phone.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SilverlightMediaFramework.Core.Phone, Version=2.2012.605.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\smf\Microsoft.SilverlightMediaFramework.Core.Phone.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SilverlightMediaFramework.Plugins.Phone, Version=2.2012.605.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\smf\Microsoft.SilverlightMediaFramework.Plugins.Phone.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SilverlightMediaFramework.Utilities.Phone, Version=2.2012.605.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\smf\Microsoft.SilverlightMediaFramework.Utilities.Phone.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Microsoft.Bcl.Async.1.0.168\lib\sl4-windowsphone71\Microsoft.Threading.Tasks.dll</HintPath>
@@ -153,6 +137,23 @@
       <Name>SM.Media.MediaPlayer.WP7</Name>
     </ProjectReference>
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\..\playerframework\Phone.SL\Microsoft.WP7.PlayerFramework.SL.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\playerframework\Phone.SL\Microsoft.WP7.PlayerFramework.SL.csproj">
+          <Project>{93CA50DC-F398-4DB6-9752-43FDD594C2C0}</Project>
+          <Name>Microsoft.WP7.PlayerFramework.SL</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Legacy">
+          <HintPath>..\..\bin\$(Configuration)\WP7\Microsoft.PlayerFramework.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.Legacy\SM.Media.Legacy.csproj')">
       <ItemGroup>

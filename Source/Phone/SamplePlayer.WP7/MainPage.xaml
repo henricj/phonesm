@@ -5,8 +5,8 @@
                             xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
                             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                            xmlns:Core="clr-namespace:Microsoft.SilverlightMediaFramework.Core;assembly=Microsoft.SilverlightMediaFramework.Core.Phone"
-                            xmlns:Media="clr-namespace:Microsoft.SilverlightMediaFramework.Core.Media;assembly=Microsoft.SilverlightMediaFramework.Core.Phone"
+                            xmlns:playerFramework="clr-namespace:Microsoft.PlayerFramework;assembly=Microsoft.PlayerFramework"
+                            xmlns:mediaPlayer="clr-namespace:SM.Media.MediaPlayer;assembly=SM.Media.MediaPlayer.WP7"
                             mc:Ignorable="d"
                             d:DesignWidth="480"
                             d:DesignHeight="768"
@@ -20,13 +20,11 @@
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot"
           Background="Transparent">
-        <Core:SMFPlayer VolumeLevel="1">
-            <Core:SMFPlayer.Playlist>
-                <Media:PlaylistItem DeliveryMethod="Streaming"
-                                    MediaType="application/vnd.apple.mpegurl"
-                                    MediaSource="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8" />
-            </Core:SMFPlayer.Playlist>
-        </Core:SMFPlayer>
+        <playerFramework:MediaPlayer x:Name="player" Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
+            <playerFramework:MediaPlayer.Plugins>
+                <mediaPlayer:StreamingMediaPlugin />
+            </playerFramework:MediaPlayer.Plugins>
+        </playerFramework:MediaPlayer>
     </Grid>
 
 </phone:PhoneApplicationPage>

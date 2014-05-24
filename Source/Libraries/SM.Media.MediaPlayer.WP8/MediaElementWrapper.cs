@@ -368,7 +368,14 @@ namespace SM.Media.MediaPlayer
         public TimeSpan Position
         {
             get { return MediaElement.Position; }
-            set { MediaElement.Position = value; }
+            set
+            {
+#if WINDOWS_PHONE7
+                // Setting WP7's MediaElement.Position always seeks to 0.
+                _mediaStreamFacade.SeekTarget = value;
+#endif
+                MediaElement.Position = value;
+            }
         }
 
         /// <inheritdoc />

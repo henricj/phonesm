@@ -98,6 +98,9 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Platform.WP8\Utility\DispatcherExtensions.cs">
+      <Link>Utility\DispatcherExtensions.cs</Link>
+    </Compile>
     <Compile Include="Builder\BuilderBase.cs" />
     <Compile Include="MediaStreamFacade.cs" />
     <Compile Include="SmMediaModule.cs" />

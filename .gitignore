@@ -161,5 +161,5 @@ $RECYCLE.BIN/
 .DS_Store
 
 # smf directory
-Source/smf/*
-!Source/smf/readme.txt
+Source/playerframework/*
+!Source/playerframework/readme.wp7.txt

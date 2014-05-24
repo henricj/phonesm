@@ -46,11 +46,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplePlayer.WP8", "Phone\S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.MediaPlayer.WP7", "Libraries\SM.Media.MediaPlayer.WP7\SM.Media.MediaPlayer.WP7.csproj", "{C7D17600-4DF4-4E0F-B906-30E68C69BDD4}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "smf", "smf", "{BEEF0850-CDBC-4803-AA89-2D8842030406}"
-	ProjectSection(SolutionItems) = preProject
-		smf\readme.txt = smf\readme.txt
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplePlayer.WP7", "Phone\SamplePlayer.WP7\SamplePlayer.WP7.csproj", "{CE75F4CA-239E-4BBA-8E7F-C0576050FA9A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NalDump", "Console\NalDump\NalDump.csproj", "{79634A92-D8B5-4965-BFC3-D95BC28BCFB6}"
@@ -90,6 +85,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.Builder", "Libraries\SM.Media.Builder\SM.Media.Builder.csproj", "{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mp3Dump", "Console\Mp3Dump\Mp3Dump.csproj", "{9DE79360-A0EE-41DA-AB45-A3448BE20AAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.WP7.PlayerFramework.SL", "playerframework\Phone.SL\Microsoft.WP7.PlayerFramework.SL.csproj", "{93CA50DC-F398-4DB6-9752-43FDD594C2C0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "playerframework", "playerframework", "{676F327F-117F-485C-BD77-C2B241035EAB}"
+	ProjectSection(SolutionItems) = preProject
+		playerframework\readme.wp7.txt = playerframework\readme.wp7.txt
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -332,6 +334,12 @@ Global
 		{9DE79360-A0EE-41DA-AB45-A3448BE20AAE}.Release|ARM.ActiveCfg = Release|Any CPU
 		{9DE79360-A0EE-41DA-AB45-A3448BE20AAE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{9DE79360-A0EE-41DA-AB45-A3448BE20AAE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0}.Release|ARM.ActiveCfg = Release|Any CPU
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -352,6 +360,7 @@ Global
 		{1638317D-AE34-4B93-B2B0-012D8745433B} = {0D6454AD-8755-4AA4-82CD-391508D91DDB}
 		{E8AEE890-1934-4396-83DE-9CC4371500C0} = {0D6454AD-8755-4AA4-82CD-391508D91DDB}
 		{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB} = {0D6454AD-8755-4AA4-82CD-391508D91DDB}
+		{93CA50DC-F398-4DB6-9752-43FDD594C2C0} = {0D6454AD-8755-4AA4-82CD-391508D91DDB}
 		{7643E59E-B01D-4A63-8917-8D10150111E9} = {2AF7A58D-0250-49E7-886F-1D46A978D814}
 		{AAD0A00B-CEC2-4DC0-9C88-743973C587F8} = {2AF7A58D-0250-49E7-886F-1D46A978D814}
 		{25B0AFE8-BE3A-4C36-A8D3-9B5D5AF5C325} = {2AF7A58D-0250-49E7-886F-1D46A978D814}

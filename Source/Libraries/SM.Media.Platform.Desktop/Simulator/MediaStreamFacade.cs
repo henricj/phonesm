@@ -54,7 +54,7 @@ namespace SM.Media.Simulator
 
             try
             {
-                var mediaManager = await CreateMediaMangerAsync(source, cancellationToken).ConfigureAwait(false);
+                var mediaManager = await CreateMediaManagerAsync(source, cancellationToken).ConfigureAwait(false);
 
                 return (SimulatedMediaStreamSource)mediaManager.MediaStreamSource;
             }

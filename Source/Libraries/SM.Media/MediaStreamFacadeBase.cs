@@ -289,7 +289,7 @@ namespace SM.Media
             }
         }
 
-        protected async Task<IMediaManager> CreateMediaMangerAsync(Uri source, CancellationToken cancellationToken)
+        protected async Task<IMediaManager> CreateMediaManagerAsync(Uri source, CancellationToken cancellationToken)
         {
             IMediaManager mediaManager = null;
 

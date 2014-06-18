@@ -90,7 +90,7 @@ namespace SM.Media.Web.HttpClientReader
         {
             if (null == _stream)
             {
-                using (cancellationToken.Register(r => ((WebRequest)r).Abort(), _request, false))
+                using (cancellationToken.Register(r => ((HttpRequestMessage)r).Dispose(), _request, false))
                 {
                     _stream = await _response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 }

@@ -11,6 +11,10 @@ md App\WinRT\
 md App\WinRT\HlsView.Win81\
 md App\WinRT\HlsView.Win81\Assets\
 md App\WinRT\HlsView.Win81\Properties\
+md App\WinRT\HlsView.WinRT.Shared\
+md App\WinRT\HlsView.WP81\
+md App\WinRT\HlsView.WP81\Assets\
+md App\WinRT\HlsView.WP81\Properties\
 md App\Silverlight\
 md App\Silverlight\HlsView.Silverlight\
 md App\Silverlight\HlsView.Silverlight\Properties\

@@ -1,0 +1,120 @@
+﻿<Page
+    x:Class="HlsView.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="MinWidth" Value="50"/>
+        </Style>
+    </Page.Resources>
+    
+    <!--LayoutRoot is the root grid where all page content is placed-->
+    <Grid x:Name="LayoutRoot"
+          Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition MinHeight="50" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- LOCALIZATION NOTE:
+            To localize the displayed strings copy their values to appropriately named
+            keys in the app's neutral language resource file (AppResources.resx) then
+            replace the hard-coded text value between the attributes' quotation marks
+            with the binding clause whose path points to that string name.
+
+            For example:
+
+                Text="{Binding Path=LocalizedResources.ApplicationTitle, Source={StaticResource LocalizedStrings}}"
+
+            This binding points to the template's string resource named "ApplicationTitle".
+
+            Adding supported languages in the Project Properties tab will create a
+            new resx file per language that can carry the translated values of your
+            UI strings. The binding in these examples will cause the value of the
+            attributes to be drawn from the .resx file that matches the
+            CurrentUICulture of the app at run time.
+         -->
+
+        <!--TitlePanel contains the name of the application and page title-->
+        <StackPanel x:Name="TitlePanel"
+                    Grid.Row="1"
+                    Margin="0"
+                    Orientation="Horizontal" VerticalAlignment="Top">
+            <Button Content="Play"
+                    Name="playButton"
+                    Click="play_Click"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                     />
+            <Button Content="Stop"
+                    Name="stopButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Click="stopButton_Click" />
+            <Button Content="Wake"
+                    Name="wakeButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Click="wakeButton_Click" />
+            <Button Content="Previous"
+                    Height="Auto"
+                    Name="previousButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Click="prevButton_Click" />
+            <Button Content="Next"
+                    Height="Auto"
+                    Name="nextButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Click="nextButton_Click" />
+            <Button Content="-"
+                    Click="minusButton_Click" />
+            <Button Content="+"
+                    Click="plusButton_Click" />
+        </StackPanel>
+        <StackPanel x:Name="TitlePanel2"
+                    Grid.Row="2"
+                    Margin="0"
+                    Orientation="Horizontal">
+            <TextBlock Name="PositionBox"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       FontFamily="Courier New" />
+            <TextBlock Name="MediaStateBox"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+        <Grid x:Name="ContentPanel"
+              Grid.Row="0"
+              Margin="0">
+            <TextBlock Name="errorBox"
+                       Visibility="Collapsed" />
+            <MediaElement HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Name="mediaElement1"
+                          AutoPlay="True"
+                          MediaOpened="mediaElement1_MediaOpened"
+                          MediaFailed="mediaElement1_MediaFailed"
+                          MediaEnded="mediaElement1_MediaEnded"
+                          CurrentStateChanged="mediaElement1_CurrentStateChanged"
+                          BufferingProgressChanged="mediaElement1_BufferingProgressChanged"
+                          AudioCategory="BackgroundCapableMedia" AreTransportControlsEnabled="True" />
+        </Grid>
+
+        <!--Uncomment to see an alignment grid to help ensure your controls are
+            aligned on common boundaries.  The image has a top margin of -32px to
+            account for the System Tray. Set this to 0 (or remove the margin altogether)
+            if the System Tray is hidden.
+
+            Before shipping remove this XAML and the image itself.-->
+        <!--<Image Source="/Assets/AlignmentGrid.png" VerticalAlignment="Top" Height="800" Width="480" Margin="0,-32,0,0" Grid.Row="0" Grid.RowSpan="2" IsHitTestVisible="False" />-->
+    </Grid>
+
+</Page>

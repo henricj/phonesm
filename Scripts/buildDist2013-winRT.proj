@@ -8,7 +8,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <SolutionToBuild Include="..\Distribution\Sample.Win81.sln" />
+    <SolutionToBuild Include="..\Distribution\Sample.WinRT.sln" />
   </ItemGroup>
 
   <Import Project="shared.proj" />

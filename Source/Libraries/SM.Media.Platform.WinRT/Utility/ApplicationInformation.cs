@@ -48,13 +48,30 @@ namespace SM.Media.Utility
                     xmldoc = XDocument.Load(manifestStream);
                 }
 
+                var identity = XName.Get("Identity", "http://schemas.microsoft.com/appx/2010/manifest");
+
+                var version = xmldoc.Descendants(identity).Select(i => i.Attribute("Version").Value).FirstOrDefault();
+
+                var processor = xmldoc.Descendants(identity).Select(i => i.Attribute("ProcessorArchitecture").Value);
+
+
                 var visualElements = XName.Get("VisualElements", "http://schemas.microsoft.com/appx/2013/manifest");
 
-                var applicationInformation = xmldoc.Descendants(visualElements)
-                                                   .Select(ve => new ApplicationInformation(ve.Attribute("DisplayName").Value, ve.Attribute("DisplayName").Value))
+                var displayName = xmldoc.Descendants(visualElements)
+                                                   .Select(ve => ve.Attribute("DisplayName").Value)
                                                    .FirstOrDefault();
 
-                return applicationInformation;
+                if (null == displayName)
+                {
+
+                    var displayNameElementName = XName.Get("DisplayName", "http://schemas.microsoft.com/appx/2010/manifest");
+
+                    var displayNameElement = xmldoc.Descendants(displayNameElementName).FirstOrDefault();
+
+                    displayName = null == displayNameElement ? "unknown" : displayNameElement.Value;
+                }
+
+                return new ApplicationInformation(displayName, version);
             }
             catch (Exception ex)
             {

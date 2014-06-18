@@ -3,7 +3,7 @@
          DefaultTargets="Build">
 
   <ItemGroup>
-    <ProjectsToBuild Include="buildDist2013-win81.proj; buildDist2013-wp8.proj" />
+    <ProjectsToBuild Include="buildDist2013-winRT.proj; buildDist2013-wp8.proj" />
   </ItemGroup>
 
   <Target Name="Build">

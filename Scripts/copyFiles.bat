@@ -26,12 +26,12 @@ copy Libraries\SM.Media.Platform.WP8\bin\x86\Debug\SM.Media.Platform.WP8.dll ..\
 copy Libraries\SM.Media.Platform.WP8\bin\x86\Debug\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Debug\WP8\x86\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Debug\SM.Media.Platform.Silverlight.dll ..\Distribution\bin\Debug\Silverlight\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Debug\SM.Media.Platform.Silverlight.pdb ..\Distribution\bin\Debug\Silverlight\
-copy bin\ARM\Debug\SM.Media.Platform.Win81.dll ..\Distribution\bin\Debug\WinRT\ARM\
-copy bin\ARM\Debug\SM.Media.Platform.Win81.pdb ..\Distribution\bin\Debug\WinRT\ARM\
-copy bin\x86\Debug\SM.Media.Platform.Win81.dll ..\Distribution\bin\Debug\WinRT\x86\
-copy bin\x86\Debug\SM.Media.Platform.Win81.pdb ..\Distribution\bin\Debug\WinRT\x86\
-copy bin\x64\Debug\SM.Media.Platform.Win81.dll ..\Distribution\bin\Debug\WinRT\x64\
-copy bin\x64\Debug\SM.Media.Platform.Win81.pdb ..\Distribution\bin\Debug\WinRT\x64\
+copy bin\ARM\Debug\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Debug\WinRT\ARM\
+copy bin\ARM\Debug\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Debug\WinRT\ARM\
+copy bin\x86\Debug\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Debug\WinRT\x86\
+copy bin\x86\Debug\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Debug\WinRT\x86\
+copy bin\x64\Debug\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Debug\WinRT\x64\
+copy bin\x64\Debug\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Debug\WinRT\x64\
 
 copy Libraries\SM.Media.Platform.WP7\bin\Release\SM.Media.Platform.WP7.dll ..\Distribution\bin\Release\WP7\
 copy Libraries\SM.Media.Platform.WP7\bin\Release\SM.Media.Platform.WP7.pdb ..\Distribution\bin\Release\WP7\
@@ -41,12 +41,12 @@ copy Libraries\SM.Media.Platform.WP8\bin\x86\Release\SM.Media.Platform.WP8.dll .
 copy Libraries\SM.Media.Platform.WP8\bin\x86\Release\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Release\WP8\x86\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Release\SM.Media.Platform.Silverlight.dll ..\Distribution\bin\Release\Silverlight\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Release\SM.Media.Platform.Silverlight.pdb ..\Distribution\bin\Release\Silverlight\
-copy bin\ARM\Release\SM.Media.Platform.Win81.dll ..\Distribution\bin\Release\WinRT\ARM\
-copy bin\ARM\Release\SM.Media.Platform.Win81.pdb ..\Distribution\bin\Release\WinRT\ARM\
-copy bin\x86\Release\SM.Media.Platform.Win81.dll ..\Distribution\bin\Release\WinRT\x86\
-copy bin\x86\Release\SM.Media.Platform.Win81.pdb ..\Distribution\bin\Release\WinRT\x86\
-copy bin\x64\Release\SM.Media.Platform.Win81.dll ..\Distribution\bin\Release\WinRT\x64\
-copy bin\x64\Release\SM.Media.Platform.Win81.pdb ..\Distribution\bin\Release\WinRT\x64\
+copy bin\ARM\Release\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Release\WinRT\ARM\
+copy bin\ARM\Release\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Release\WinRT\ARM\
+copy bin\x86\Release\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Release\WinRT\x86\
+copy bin\x86\Release\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Release\WinRT\x86\
+copy bin\x64\Release\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Release\WinRT\x64\
+copy bin\x64\Release\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Release\WinRT\x64\
 
 copy Libraries\SM.Media.Builder\bin\Debug\SM.Media.Builder.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Builder\bin\Debug\SM.Media.Builder.pdb ..\Distribution\bin\Debug\
@@ -157,6 +157,19 @@ copy App\WinRT\HlsView.Win81\Properties\*.cs ..\Distribution\App\WinRT\HlsView.W
 copy App\WinRT\HlsView.Win81\HlsView.Win81_TemporaryKey.pfx ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\Package.appxmanifest ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\packages.config ..\Distribution\App\WinRT\HlsView.Win81\
+
+copy App\WinRT\HlsView.WinRT.Shared\*.cs ..\Distribution\App\WinRT\HlsView.WinRT.Shared\
+copy App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.projitems ..\Distribution\App\WinRT\HlsView.WinRT.Shared\
+copy App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.shproj ..\Distribution\App\WinRT\HlsView.WinRT.Shared\
+
+copy App\WinRT\HlsView.WP81\*.xaml ..\Distribution\App\WinRT\HlsView.WP81\
+copy App\WinRT\HlsView.WP81\*.cs ..\Distribution\App\WinRT\HlsView.WP81\
+copy App\WinRT\HlsView.WP81\HlsView.WP81.csproj ..\Distribution\App\WinRT\HlsView.WP81\
+copy App\WinRT\HlsView.WP81\Assets\*.png ..\Distribution\App\WinRT\HlsView.WP81\Assets\
+copy App\WinRT\HlsView.WP81\Properties\*.cs ..\Distribution\App\WinRT\HlsView.WP81\Properties\
+copy App\WinRT\HlsView.WP81\Package.appxmanifest ..\Distribution\App\WinRT\HlsView.WP81\
+copy App\WinRT\HlsView.WP81\app.config ..\Distribution\App\WinRT\HlsView.WP81\
+copy App\WinRT\HlsView.WP81\packages.config ..\Distribution\App\WinRT\HlsView.WP81\
 
 copy App\Silverlight\HlsView.Silverlight\*.xaml ..\Distribution\App\Silverlight\HlsView.Silverlight\
 copy App\Silverlight\HlsView.Silverlight\*.cs ..\Distribution\App\Silverlight\HlsView.Silverlight\

@@ -33,6 +33,9 @@ namespace SM.Media.Web
     {
         public static ProductInfoHeaderValue CreateUserAgent(this IApplicationInformation applicationInformation)
         {
+            if (null == applicationInformation)
+                return null;
+
             var userAgent = HttpSettings.Parameters.UserAgentFactory(applicationInformation.Title ?? "Unknown", applicationInformation.Version ?? "0.0");
 
             return userAgent;

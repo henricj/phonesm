@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Diagnostics;
 using System.Windows;
 using Microsoft.PlayerFramework;
 using SM.Media.Utility;
@@ -53,14 +54,20 @@ namespace SM.Media.MediaPlayer
 
         public void Load()
         {
+            Debug.WriteLine("StreamingMediaPlugin.Load()");
+
             MediaPlayer.MediaClosed += MediaPlayer_MediaClosed;
         }
 
         public void Update(IMediaSource mediaSource)
-        { }
+        {
+            Debug.WriteLine("StreamingMediaPlugin.Update()");
+        }
 
         public void Unload()
         {
+            Debug.WriteLine("StreamingMediaPlugin.Unload()");
+
             MediaPlayer.MediaClosed -= MediaPlayer_MediaClosed;
 
             if (null != _mediaElement)
@@ -84,6 +91,8 @@ namespace SM.Media.MediaPlayer
         {
             get
             {
+                Debug.WriteLine("StreamingMediaPlugin MediaElement getter ({0})", null == _mediaElement ? "not cached" : "cached");
+
                 if (null != _mediaElement)
                     return _mediaElement;
 
@@ -97,6 +106,8 @@ namespace SM.Media.MediaPlayer
 
         void MediaPlayer_MediaClosed(object sender, RoutedEventArgs e)
         {
+            Debug.WriteLine("StreamingMediaPlugin MediaClosed");
+
             if (null == _mediaElement)
                 return;
 

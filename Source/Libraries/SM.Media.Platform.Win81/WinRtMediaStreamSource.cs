@@ -205,6 +205,12 @@ namespace SM.Media
             if (null == encodingProperties)
                 throw new ArgumentOutOfRangeException();
 
+            if (configurationSource.Height.HasValue)
+                encodingProperties.Height = (uint)configurationSource.Height.Value;
+
+            if (configurationSource.Width.HasValue)
+                encodingProperties.Width = (uint)configurationSource.Width.Value;
+
             var descriptor = new VideoStreamDescriptor(encodingProperties);
 
             if (string.IsNullOrEmpty(descriptor.Name))

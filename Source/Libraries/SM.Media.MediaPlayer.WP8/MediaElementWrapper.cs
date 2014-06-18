@@ -239,7 +239,10 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.SetSource(MediaStreamSource)");
 
-            MediaElement.SetSource(mediaStreamSource);
+            if (null != mediaStreamSource)
+                MediaElement.SetSource(mediaStreamSource);
+            else
+                MediaElement.Source = null;
         }
 
         /// <inheritdoc />
@@ -371,7 +374,7 @@ namespace SM.Media.MediaPlayer
             set
             {
 #if WINDOWS_PHONE7
-                // Setting WP7's MediaElement.Position always seeks to 0.
+    // Setting WP7's MediaElement.Position always seeks to 0.
                 _mediaStreamFacade.SeekTarget = value;
 #endif
                 MediaElement.Position = value;

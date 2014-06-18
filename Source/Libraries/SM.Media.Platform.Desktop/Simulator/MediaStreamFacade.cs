@@ -50,6 +50,9 @@ namespace SM.Media.Simulator
 
         public virtual async Task<SimulatedMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
+            if (null == source)
+                return null;
+
             Exception exception;
 
             try

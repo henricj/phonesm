@@ -47,6 +47,9 @@ namespace SM.Media
 
         public async Task<IMediaSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
         {
+            if (null == source)
+                return null;
+
             Exception exception;
 
             try

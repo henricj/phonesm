@@ -31,7 +31,7 @@ namespace SM.Media.Content
     public static class ContentTypes
     {
         public static readonly ContentType Mp3 = new ContentType("MP3", ContentKind.Audio, "audio/mpeg", ".mp3", new[] { "audio/mpeg3", "audio/x-mpeg-3", "audio/x-mp3" });
-        public static readonly ContentType Aac = new ContentType("AAC", ContentKind.Audio, "audio/aac", ".aac");
+        public static readonly ContentType Aac = new ContentType("AAC", ContentKind.Audio, "audio/aac", ".aac", new[] { "audio/aacp" });
         public static readonly ContentType Ac3 = new ContentType("AC3", ContentKind.Audio, "audio/ac3", ".ac3");
         public static readonly ContentType TransportStream = new ContentType("MPEG-2 Transport Stream", ContentKind.Container, "video/MP2T", ".ts");
         public static readonly ContentType M3U8 = new ContentType("M3U8", ContentKind.Playlist, "application/vnd.apple.mpegurl", ".m3u8", new[] { "application/x-mpegURL" });

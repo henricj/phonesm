@@ -128,6 +128,7 @@ namespace SM.Media.Buffering
 
                 _isStarting = true;
                 _isBuffering = true;
+                _isEof = false;
 
                 hasQueues = _queues.Count > 0;
             }

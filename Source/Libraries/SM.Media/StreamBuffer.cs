@@ -51,6 +51,7 @@ namespace SM.Media
         TimeSpan? _newest;
         int _size;
         readonly bool _isMedia;
+        bool _eofPacketRead;
 
 #if DEBUG
         static int _streamBufferCounter;
@@ -158,6 +159,8 @@ namespace SM.Media
 
                             _size -= packet.Length;
                         }
+                        else
+                            _eofPacketRead = true;
                     }
                     else
                         isEmpty = true;
@@ -220,6 +223,9 @@ namespace SM.Media
                 _size = 0;
                 _newest = null;
                 _oldest = null;
+
+                if (!_eofPacketRead)
+                    _isDone = false;
             }
 
             if (null == packets)

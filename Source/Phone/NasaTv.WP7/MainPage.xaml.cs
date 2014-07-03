@@ -45,7 +45,7 @@ namespace NasaTv
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientsParameters _httpClientsParameters;
         IMediaStreamFacade _mediaStreamFacade;
 
         // Constructor
@@ -53,7 +53,7 @@ namespace NasaTv
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
 
             foreach (ApplicationBarIconButton ib in ApplicationBar.Buttons)
             {
@@ -122,7 +122,7 @@ namespace NasaTv
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
 

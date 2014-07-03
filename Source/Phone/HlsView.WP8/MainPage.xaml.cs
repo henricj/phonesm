@@ -56,7 +56,7 @@ namespace HlsView
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientsParameters _httpClientsParameters;
         int _track;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
 
@@ -65,7 +65,7 @@ namespace HlsView
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
 
             _positionSampler = new DispatcherTimer
                                {
@@ -301,7 +301,7 @@ namespace HlsView
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

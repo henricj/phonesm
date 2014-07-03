@@ -62,7 +62,7 @@ namespace NasaTv8
         //}
 
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        readonly HttpClients _httpClients;
+        readonly HttpClientsParameters _httpClientsParameters;
         readonly PersistentSettings _settings = new PersistentSettings();
         IMediaStreamFacade _mediaStreamFacade;
 
@@ -70,7 +70,7 @@ namespace NasaTv8
         {
             InitializeComponent();
 
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
@@ -178,7 +178,7 @@ namespace NasaTv8
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

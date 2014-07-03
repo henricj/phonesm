@@ -45,7 +45,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     public sealed class AudioTrackStreamer : AudioStreamingAgent, IDisposable
     {
         readonly IBufferingPolicy _bufferingPolicy;
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientsParameters _httpClientsParameters;
         readonly IMediaManagerParameters _mediaManagerParameters;
         IMediaStreamFacade _mediaStreamFacade;
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
@@ -54,7 +54,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
         public AudioTrackStreamer()
         {
-            _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
 
             _mediaManagerParameters = new MediaManagerParameters
                                       {
@@ -158,7 +158,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.SetParameter(_bufferingPolicy);
 
@@ -237,8 +237,6 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 return;
 
             TryCancel();
-
-            _httpClients.Dispose();
 
 #if DEBUG
             _memoryPoll.Dispose();

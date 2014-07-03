@@ -46,16 +46,16 @@ namespace SimulatedPlayer
             "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
         };
 
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientsParameters _httpClientsParameters;
         int _count;
         IMediaStreamFacade _mediaStreamFacade;
 
-        public Simulator(IHttpClients httpClients)
+        public Simulator(IHttpClientsParameters httpClientsParameters)
         {
-            if (httpClients == null)
-                throw new ArgumentNullException("httpClients");
+            if (httpClientsParameters == null)
+                throw new ArgumentNullException("httpClientsParameters");
 
-            _httpClients = httpClients;
+            _httpClientsParameters = httpClientsParameters;
         }
 
         #region IDisposable Members
@@ -74,7 +74,7 @@ namespace SimulatedPlayer
 
             _mediaStreamFacade = new MediaStreamFacade();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
 

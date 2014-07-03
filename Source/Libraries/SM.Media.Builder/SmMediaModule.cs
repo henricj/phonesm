@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Net.Http;
 using Autofac;
 using SM.Media.AAC;
 using SM.Media.Ac3;
@@ -101,6 +102,11 @@ namespace SM.Media
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();
 
             builder.RegisterType<RetryManager>().As<IRetryManager>().SingleInstance();
+
+            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
+            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
+
+            builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();
         }
     }
 }

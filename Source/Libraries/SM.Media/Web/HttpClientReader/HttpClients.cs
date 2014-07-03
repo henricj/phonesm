@@ -33,25 +33,32 @@ using SM.Media.Content;
 
 namespace SM.Media.Web.HttpClientReader
 {
-    public class HttpClients : IHttpClients, IDisposable
+    public class HttpClients : IHttpClients
     {
         readonly CookieContainer _cookieContainer;
         readonly ICredentials _credentials;
-
         readonly Uri _referrer;
         readonly ProductInfoHeaderValue _userAgent;
         int _disposed;
         HttpClient _rootPlaylistClient;
+        readonly Func<HttpClientHandler> _httpClientHandlerFactory; 
 
-        public HttpClients(Uri referrer = null, ProductInfoHeaderValue userAgent = null, ICredentials credentials = null, CookieContainer cookieContainer = null)
+        public HttpClients(IHttpClientsParameters parameters, Func<HttpClientHandler> httpClientHandlerFactory)
         {
-            _referrer = referrer;
-            _userAgent = userAgent;
-            _credentials = credentials;
-            _cookieContainer = cookieContainer;
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+            if (null == httpClientHandlerFactory)
+                throw new ArgumentNullException("httpClientHandlerFactory");
+
+            _referrer = parameters.Referrer;
+            _userAgent = parameters.UserAgent;
+            _credentials = parameters.Credentials;
+            _cookieContainer = parameters.CookieContainer;
+
+            _httpClientHandlerFactory = httpClientHandlerFactory;
         }
 
-        #region IDisposable Members
+        #region IHttpClients Members
 
         public void Dispose()
         {
@@ -62,10 +69,6 @@ namespace SM.Media.Web.HttpClientReader
 
             GC.SuppressFinalize(this);
         }
-
-        #endregion
-
-        #region IHttpClients Members
 
         public virtual HttpClient RootPlaylistClient
         {
@@ -98,12 +101,11 @@ namespace SM.Media.Web.HttpClientReader
 
         #endregion
 
-        protected virtual HttpClientHandler CreateClientHandler()
+        protected virtual HttpMessageHandler CreateClientHandler()
         {
-            var httpClientHandler = new HttpClientHandler
-                                    {
-                                        AutomaticDecompression = DecompressionMethods.GZip
-                                    };
+            var httpClientHandler = _httpClientHandlerFactory();
+
+            httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip;
 
             if (null != _credentials)
                 httpClientHandler.Credentials = _credentials;

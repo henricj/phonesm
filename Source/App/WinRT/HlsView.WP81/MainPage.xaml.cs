@@ -49,7 +49,7 @@ namespace HlsView
     {
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.DefaultTask.Result;
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientsParameters _httpClientsParameters;
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
@@ -77,7 +77,7 @@ namespace HlsView
 
             var userAgent = ApplicationInformation.CreateUserAgent();
 
-            _httpClients = new HttpClients(userAgent: userAgent);
+            _httpClientsParameters = new HttpClientsParameters { UserAgent = userAgent };
 
             _positionSampler = new DispatcherTimer
                                {
@@ -404,7 +404,7 @@ namespace HlsView
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

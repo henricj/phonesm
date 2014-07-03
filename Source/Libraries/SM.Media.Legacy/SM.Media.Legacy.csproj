@@ -513,6 +513,9 @@
     <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientsExtensions.cs">
       <Link>Web\HttpClientReader\HttpClientsExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientsParameters.cs">
+      <Link>Web\HttpClientReader\HttpClientsParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebCache.cs">
       <Link>Web\HttpClientReader\HttpClientWebCache.cs</Link>
     </Compile>

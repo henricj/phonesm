@@ -36,15 +36,15 @@ namespace SM.Media.MediaPlayer
     public class StreamingMediaPlugin : IMediaPlugin
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        IHttpClients _httpClients;
+        IHttpClientsParameters _httpClients;
         MediaElementWrapper _mediaElement;
 
-        IHttpClients HttpClients
+        IHttpClientsParameters HttpClients
         {
             get
             {
                 if (null == _httpClients)
-                    _httpClients = new HttpClients(userAgent: ApplicationInformation.CreateUserAgent());
+                    _httpClients = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
 
                 return _httpClients;
             }
@@ -75,13 +75,6 @@ namespace SM.Media.MediaPlayer
                 _mediaElement.Cleanup();
 
                 _mediaElement = null;
-            }
-
-            if (null != _httpClients)
-            {
-                _httpClients.Dispose();
-
-                _httpClients = null;
             }
         }
 

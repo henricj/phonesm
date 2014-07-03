@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Net.Http;
 using Ninject;
 using Ninject.Activation;
 using Ninject.Modules;
@@ -114,6 +115,11 @@ namespace SM.Media
             Bind<Func<IBufferingManager>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferingManager>());
 
             Bind<IRetryManager>().To<RetryManager>().InSingletonScope();
+
+            Bind<IHttpClients>().To<HttpClients>().InSingletonScope();
+            Bind<IHttpClientsParameters>().To<HttpClientsParameters>().InSingletonScope();
+
+            Bind<Func<HttpClientHandler>>().ToMethod(ctx => () => ctx.Kernel.Get<HttpClientHandler>());
         }
     }
 }

@@ -28,7 +28,6 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
-using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.Media.Web.HttpClientReader;
@@ -50,12 +49,13 @@ namespace SimulatedPlayer
 
             try
             {
-                var cookies = new CookieContainer();
+                var hcp = new HttpClientsParameters
+                          {
+                              CookieContainer = new CookieContainer(),
+                              UserAgent = HttpSettings.Parameters.UserAgentFactory("SimulatedPlayer", "1.0")
+                          };
 
-                var userAgent = HttpSettings.Parameters.UserAgentFactory("SimulatedPlayer", "1.0");
-
-                using (var httpClients = new HttpClients(userAgent: userAgent, cookieContainer: cookies))
-                using (var simulator = new Simulator(httpClients))
+                using (var simulator = new Simulator(hcp))
                 {
                     simulator.StartAsync().Wait();
 

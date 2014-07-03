@@ -138,11 +138,11 @@
     </ProjectReference>
   </ItemGroup>
   <Choose>
-    <When Condition="Exists('..\..\playerframework\Phone.SL\Microsoft.WP7.PlayerFramework.SL.csproj')">
+    <When Condition="Exists('..\..\playerframework\WP7.SL.Core\Microsoft.PlayerFramework.Core.csproj')">
       <ItemGroup>
-        <ProjectReference Include="..\..\playerframework\Phone.SL\Microsoft.WP7.PlayerFramework.SL.csproj">
-          <Project>{93CA50DC-F398-4DB6-9752-43FDD594C2C0}</Project>
-          <Name>Microsoft.WP7.PlayerFramework.SL</Name>
+        <ProjectReference Include="..\..\playerframework\WP7.SL.Core\Microsoft.PlayerFramework.Core.csproj">
+          <Project>{4C23C737-EDE1-4E5B-84DA-1E72DD5E2DE3}</Project>
+          <Name>Microsoft.PlayerFramework.Core</Name>
         </ProjectReference>
       </ItemGroup>
     </When>

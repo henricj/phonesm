@@ -42,7 +42,6 @@ using SM.Media;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.Media.Web.HttpClientReader;
-using SM.Media.Web.WebRequestReader;
 
 namespace HlsView
 {
@@ -183,14 +182,21 @@ namespace HlsView
                 return;
             }
 
-            var positionSample = mediaElement1.Position;
+            try
+            {
+                var positionSample = mediaElement1.Position;
 
-            if (positionSample == _previousPosition)
-                return;
+                if (positionSample == _previousPosition)
+                    return;
 
-            _previousPosition = positionSample;
+                _previousPosition = positionSample;
 
-            PositionBox.Text = FormatTimeSpan(positionSample);
+                PositionBox.Text = FormatTimeSpan(positionSample);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Position sampler failed: " + ex.Message);
+            }
         }
 
         string FormatTimeSpan(TimeSpan timeSpan)
@@ -293,7 +299,9 @@ namespace HlsView
             if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
+
+            _mediaStreamFacade.SetParameter(_httpClients);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

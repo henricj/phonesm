@@ -25,25 +25,24 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {
     public static class DefaultMediaStreamFacadeParameters
     {
-        public static Func<IHttpClients, IMediaStreamFacadeBase> Factory =
-            httpClients =>
+        public static Func<IMediaStreamFacadeBase> Factory =
+            () =>
             {
-                var mediaStreamFacade = new MediaStreamFacade(httpClients);
+                var mediaStreamFacade = new MediaStreamFacade();
 
                 return mediaStreamFacade;
             };
 
-        public static IMediaStreamFacade Create(this MediaStreamFacadeParameters parameters, IHttpClients httpClients)
+        public static IMediaStreamFacade Create(this MediaStreamFacadeParameters parameters)
         {
             var factory = parameters.Factory ?? Factory;
 
-            return (IMediaStreamFacade)factory(httpClients);
+            return (IMediaStreamFacade)factory();
         }
     }
 }

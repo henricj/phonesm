@@ -120,7 +120,9 @@ namespace NasaTv
                 _mediaStreamFacade.DisposeSafe();
             }
 
-            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create(_httpClients);
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
+
+            _mediaStreamFacade.SetParameter(_httpClients);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
 

@@ -30,7 +30,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using SM.Media.Builder;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {
@@ -39,8 +38,8 @@ namespace SM.Media
 
     public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
     {
-        public MediaStreamFacade(IHttpClients httpClients)
-            : base(CreateBuilder(httpClients))
+        public MediaStreamFacade()
+            : base(CreateBuilder())
         { }
 
         #region IMediaStreamFacade Members
@@ -72,9 +71,9 @@ namespace SM.Media
 
         #endregion
 
-        static IBuilder<IMediaManager> CreateBuilder(IHttpClients httpClients)
+        static IBuilder<IMediaManager> CreateBuilder()
         {
-            var builder = new TsMediaManagerBuilder(httpClients);
+            var builder = new TsMediaManagerBuilder();
 
             return builder;
         }

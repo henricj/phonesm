@@ -39,9 +39,9 @@ namespace SimulatedPlayer
     {
         static readonly string[] Sources =
         {
+            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
             "http://www.npr.org/streams/mp3/nprlive24.pls",
             "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
-            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
             null,
             "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
         };
@@ -72,14 +72,13 @@ namespace SimulatedPlayer
         {
             var mediaElementManager = new SimulatedMediaElementManager();
 
-            _mediaStreamFacade = new MediaStreamFacade(_httpClients);
+            _mediaStreamFacade = new MediaStreamFacade();
+
+            _mediaStreamFacade.SetParameter(_httpClients);
 
             _mediaStreamFacade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
 
-            var source = new Uri(
-                //"http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8"
-                "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
-                );
+            var source = new Uri(Sources[0]);
 
             var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
 

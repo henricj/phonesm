@@ -25,12 +25,11 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {
     public class MediaStreamFacadeParameters
     {
-        public Func<IHttpClients, IMediaStreamFacadeBase> Factory { get; set; }
+        public Func<IMediaStreamFacadeBase> Factory { get; set; }
     }
 }

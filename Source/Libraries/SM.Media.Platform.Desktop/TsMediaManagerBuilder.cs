@@ -27,7 +27,6 @@
 using Autofac.Core;
 using SM.Media.Builder;
 using SM.Media.Utility;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {
@@ -35,11 +34,9 @@ namespace SM.Media
     {
         static readonly IModule[] Modules = { new SmMediaModule() };
 
-        public TsMediaManagerBuilder(IHttpClients httpClients)
+        public TsMediaManagerBuilder()
             : base(Modules)
         {
-            RegisterSingleton(httpClients);
-
             RegisterSingleton<IPlatformServices, PlatformServices>();
         }
     }

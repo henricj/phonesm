@@ -29,7 +29,6 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Builder;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.Simulator
 {
@@ -38,8 +37,8 @@ namespace SM.Media.Simulator
 
     public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
     {
-        public MediaStreamFacade(IHttpClients httpClients)
-            : base(CreateBuilder(httpClients))
+        public MediaStreamFacade()
+            : base(CreateBuilder())
         { }
 
         protected MediaStreamFacade(IBuilder<IMediaManager> mediaManagerBuilder)
@@ -75,9 +74,9 @@ namespace SM.Media.Simulator
 
         #endregion
 
-        protected static IBuilder<IMediaManager> CreateBuilder(IHttpClients httpClients)
+        protected static IBuilder<IMediaManager> CreateBuilder()
         {
-            var builder = new TsMediaManagerBuilder(httpClients);
+            var builder = new TsMediaManagerBuilder();
 
             return builder;
         }

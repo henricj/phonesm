@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="DefaultMediaStreamFacadeParameters.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="HttpClientsExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,25 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-
-namespace SM.Media.Simulator
+namespace SM.Media.Web.HttpClientReader
 {
-    public static class DefaultMediaStreamFacadeParameters
+    public static class HttpClientsExtensions
     {
-        public static Func<IMediaStreamFacadeBase> Factory =
-            () =>
-            {
-                var mediaStreamFacade = new MediaStreamFacade();
-
-                return mediaStreamFacade;
-            };
-
-        public static IMediaStreamFacade Create(this MediaStreamFacadeParameters parameters)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IHttpClients httpClients)
         {
-            var factory = parameters.Factory ?? Factory;
-
-            return (IMediaStreamFacade)factory();
+            mediaStreamFacade.Builder.RegisterSingleton(httpClients);
         }
     }
 }

@@ -273,7 +273,9 @@ namespace HlsView
             if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFacade = new MediaStreamFacade(_httpClients);
+            _mediaStreamFacade = new MediaStreamFacade();
+
+            _mediaStreamFacade.SetParameter(_httpClients);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

@@ -27,7 +27,6 @@
 using Autofac.Core;
 using SM.Media.Builder;
 using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 using SM.Media.Web.WebRequestReader;
 
 namespace SM.Media
@@ -36,11 +35,9 @@ namespace SM.Media
     {
         static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule() };
 
-        public TsMediaManagerBuilder(IHttpClients httpClients)
+        public TsMediaManagerBuilder()
             : base(Modules)
         {
-            RegisterSingleton(httpClients);
-
             RegisterSingleton<IHttpWebRequests, SilverlightHttpWebRequests>();
 
             RegisterSingleton<IWebReaderManager, HttpWebRequestWebReaderManager>();

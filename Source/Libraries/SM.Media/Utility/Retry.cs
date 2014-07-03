@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Retry.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,22 +31,41 @@ using System.Threading.Tasks;
 
 namespace SM.Media.Utility
 {
-    public class Retry
+    public interface IRetry
+    {
+        Task<TResult> CallAsync<TResult>(Func<Task<TResult>> operation, CancellationToken cancellationToken);
+        Task<bool> CanRetryAfterDelayAsync(CancellationToken cancellationToken);
+    }
+
+    public class Retry : IRetry
     {
         readonly int _delayMilliseconds;
         readonly int _maxRetries;
+        readonly IPlatformServices _platformServices;
         readonly Func<Exception, bool> _retryableException;
         int _delay;
         int _retry;
 
-        public Retry(int maxRetries, int delayMilliseconds, Func<Exception, bool> retryableException)
+        public Retry(int maxRetries, int delayMilliseconds, Func<Exception, bool> retryableException, IPlatformServices platformServices)
         {
+            if (maxRetries < 1)
+                throw new ArgumentOutOfRangeException("maxRetries", "The number of retries must be positive.");
+            if (delayMilliseconds < 0)
+                throw new ArgumentOutOfRangeException("delayMilliseconds", "The delay cannot be negative");
+            if (null == retryableException)
+                throw new ArgumentNullException("retryableException");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
+
             _maxRetries = maxRetries;
             _delayMilliseconds = delayMilliseconds;
             _retryableException = retryableException;
+            _platformServices = platformServices;
             _retry = 0;
             _delay = 0;
         }
+
+        #region IRetry Members
 
         public async Task<TResult> CallAsync<TResult>(Func<Task<TResult>> operation, CancellationToken cancellationToken)
         {
@@ -69,35 +88,37 @@ namespace SM.Media.Utility
                     Debug.WriteLine("Retry {0} after: {1}", _retry, ex.Message);
                 }
 
-                await Delay(cancellationToken).ConfigureAwait(false);
+                await DelayAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
-        async Task Delay(CancellationToken cancellationToken)
-        {
-            var actualDelay = (int)(_delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
-
-            _delay += _delay;
-
-            await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task<bool> CanRetryAfterDelay(CancellationToken cancellationToken)
+        public async Task<bool> CanRetryAfterDelayAsync(CancellationToken cancellationToken)
         {
             if (_retry >= _maxRetries)
                 return false;
 
             ++_retry;
 
-            await Delay(cancellationToken).ConfigureAwait(false);
+            await DelayAsync(cancellationToken).ConfigureAwait(false);
 
             return true;
+        }
+
+        #endregion
+
+        async Task DelayAsync(CancellationToken cancellationToken)
+        {
+            var actualDelay = (int)(_delay * (0.5 + _platformServices.GetRandomNumber()));
+
+            _delay += _delay;
+
+            await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
         }
     }
 
     public static class RetryExtensions
     {
-        public static Task CallAsync(this Retry retry, Func<Task> operation, CancellationToken cancellationToken)
+        public static Task CallAsync(this IRetry retry, Func<Task> operation, CancellationToken cancellationToken)
         {
             return retry.CallAsync(async () =>
                                          {

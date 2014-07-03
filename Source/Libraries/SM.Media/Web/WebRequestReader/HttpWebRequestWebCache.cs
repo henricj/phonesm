@@ -37,6 +37,7 @@ namespace SM.Media.Web.WebRequestReader
         const string NoCache = "no-cache";
 
         readonly IHttpWebRequests _httpWebRequests;
+        readonly IRetryManager _retryManager;
         readonly HttpWebRequestWebReader _webReader;
         string _cacheControl;
         object _cachedObject;
@@ -45,15 +46,18 @@ namespace SM.Media.Web.WebRequestReader
         string _lastModified;
         string _noCache;
 
-        public HttpWebRequestWebCache(HttpWebRequestWebReader webReader, IHttpWebRequests httpWebRequests)
+        public HttpWebRequestWebCache(HttpWebRequestWebReader webReader, IHttpWebRequests httpWebRequests, IRetryManager retryManager)
         {
             if (webReader == null)
                 throw new ArgumentNullException("webReader");
             if (null == httpWebRequests)
                 throw new ArgumentNullException("httpWebRequests");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _webReader = webReader;
             _httpWebRequests = httpWebRequests;
+            _retryManager = retryManager;
         }
 
         #region IWebCache Members
@@ -69,7 +73,7 @@ namespace SM.Media.Web.WebRequestReader
             if (null == _cachedObject as TCached)
                 _cachedObject = null;
 
-            var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
+            var retry = _retryManager.CreateWebRetry(2, 250);
 
             await retry
                 .CallAsync(() => Fetch(retry, factory, webResponse, cancellationToken), cancellationToken)
@@ -80,7 +84,7 @@ namespace SM.Media.Web.WebRequestReader
 
         #endregion
 
-        async Task Fetch<TCached>(Retry retry, Func<Uri, byte[], TCached> factory, WebResponse webResponse, CancellationToken cancellationToken)
+        async Task Fetch<TCached>(IRetry retry, Func<Uri, byte[], TCached> factory, WebResponse webResponse, CancellationToken cancellationToken)
             where TCached : class
         {
             for (; ; )
@@ -105,7 +109,7 @@ namespace SM.Media.Web.WebRequestReader
                     if (!RetryPolicy.IsRetryable(response.StatusCode))
                         goto fail;
 
-                    if (await retry.CanRetryAfterDelay(cancellationToken).ConfigureAwait(false))
+                    if (await retry.CanRetryAfterDelayAsync(cancellationToken).ConfigureAwait(false))
                         continue;
 
                 fail:

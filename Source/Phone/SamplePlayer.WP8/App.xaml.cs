@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="App.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,8 +31,6 @@ using System.Windows.Markup;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
-using SM.Media;
-using SM.Media.Utility;
 using SamplePlayer.WP8.Resources;
 
 namespace SamplePlayer.WP8
@@ -46,8 +44,6 @@ namespace SamplePlayer.WP8
         {
             // Global handler for uncaught exceptions.
             UnhandledException += Application_UnhandledException;
-
-            GlobalPlatformServices.Default = new PlatformServices();
 
             // Standard XAML initialization
             InitializeComponent();
@@ -173,9 +169,7 @@ namespace SamplePlayer.WP8
                 // or RightToLeft.
 
                 if (Debugger.IsAttached)
-                {
                     Debugger.Break();
-                }
 
                 throw;
             }
@@ -238,7 +232,7 @@ namespace SamplePlayer.WP8
             // For UI consistency, clear the entire page stack
             while (RootFrame.RemoveBackEntry() != null)
             {
-                ; // do nothing
+                // do nothing
             }
         }
 

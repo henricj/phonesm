@@ -35,6 +35,7 @@ using SM.Media.Content;
 using SM.Media.M3U8;
 using SM.Media.M3U8.AttributeSupport;
 using SM.Media.Playlists;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Hls
@@ -42,15 +43,23 @@ namespace SM.Media.Hls
     public class HlsProgramManager : IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
+        readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
         readonly IWebReader _rootWebReader;
         IWebReader _playlistWebReader;
 
-        public HlsProgramManager(IWebReaderManager webReaderManager)
+        public HlsProgramManager(IWebReaderManager webReaderManager, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _rootWebReader = webReaderManager.RootWebReader;
+            _retryManager = retryManager;
+            _platformServices = platformServices;
         }
 
         #region IProgramManager Members
@@ -72,7 +81,7 @@ namespace SM.Media.Hls
 
                     _playlistWebReader = _rootWebReader.CreateChild(playlist, ContentKind.Playlist);
 
-                    var actualPlaylist = await parser.ParseAsync(_playlistWebReader, playlist, cancellationToken)
+                    var actualPlaylist = await parser.ParseAsync(_playlistWebReader, _retryManager, playlist, cancellationToken)
                                                      .ConfigureAwait(false);
 
                     return Load(_playlistWebReader, parser);
@@ -156,7 +165,7 @@ namespace SM.Media.Hls
 
                     var program = GetProgram(programs, programId, programUrl);
 
-                    var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader)
+                    var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices)
                                                                      {
                                                                          Urls = new[] { playlistUrl }
                                                                      })
@@ -176,7 +185,7 @@ namespace SM.Media.Hls
             {
                 var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
-                var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, parser)
+                var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, parser)
                                                                  {
                                                                      Urls = new[] { webReader.RequestUri }
                                                                  });

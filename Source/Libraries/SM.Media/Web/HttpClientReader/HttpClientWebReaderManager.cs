@@ -38,18 +38,22 @@ namespace SM.Media.Web.HttpClientReader
     {
         readonly IContentTypeDetector _contentTypeDetector;
         readonly IHttpClients _httpClients;
+        readonly IRetryManager _retryManager;
         int _disposed;
         IWebReader _rootWebReader;
 
-        public HttpClientWebReaderManager(IHttpClients httpClients, IContentTypeDetector contentTypeDetector)
+        public HttpClientWebReaderManager(IHttpClients httpClients, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpClients)
                 throw new ArgumentNullException("httpClients");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _httpClients = httpClients;
             _contentTypeDetector = contentTypeDetector;
+            _retryManager = retryManager;
             _rootWebReader = new HttpClientWebReader(this, httpClients.RootPlaylistClient, null, _contentTypeDetector);
         }
 
@@ -83,7 +87,7 @@ namespace SM.Media.Web.HttpClientReader
         {
             var webReader = CreateHttpClientWebReader(url, parent, contentType);
 
-            return new HttpClientWebCache(webReader);
+            return new HttpClientWebCache(webReader, _retryManager);
         }
 
         public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)

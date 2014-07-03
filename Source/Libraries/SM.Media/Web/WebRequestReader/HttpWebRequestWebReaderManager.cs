@@ -39,18 +39,22 @@ namespace SM.Media.Web.WebRequestReader
     {
         readonly IContentTypeDetector _contentTypeDetector;
         readonly IHttpWebRequests _httpWebRequests;
+        readonly IRetryManager _retryManager;
         int _disposed;
         IWebReader _rootWebReader;
 
-        public HttpWebRequestWebReaderManager(IHttpWebRequests httpWebRequests, IContentTypeDetector contentTypeDetector)
+        public HttpWebRequestWebReaderManager(IHttpWebRequests httpWebRequests, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpWebRequests)
                 throw new ArgumentNullException("httpWebRequests");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _httpWebRequests = httpWebRequests;
             _contentTypeDetector = contentTypeDetector;
+            _retryManager = retryManager;
             _rootWebReader = new HttpWebRequestWebReader(this, null, null, null, _contentTypeDetector);
         }
 
@@ -84,7 +88,7 @@ namespace SM.Media.Web.WebRequestReader
         {
             var webReader = CreateHttpWebRequestWebReader(url, parent, contentType);
 
-            return new HttpWebRequestWebCache(webReader, _httpWebRequests);
+            return new HttpWebRequestWebCache(webReader, _httpWebRequests, _retryManager);
         }
 
         public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)

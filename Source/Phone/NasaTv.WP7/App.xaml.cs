@@ -18,8 +18,6 @@ namespace NasaTv
             // Global handler for uncaught exceptions. 
             UnhandledException += Application_UnhandledException;
 
-            GlobalPlatformServices.Default = new PlatformServices();
-
             // Standard Silverlight initialization
             InitializeComponent();
 

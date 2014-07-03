@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="App.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,8 +32,6 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using NasaTv8.Resources;
-using SM.Media;
-using SM.Media.Utility;
 
 namespace NasaTv8
 {
@@ -46,8 +44,6 @@ namespace NasaTv8
         {
             // Global handler for uncaught exceptions.
             UnhandledException += Application_UnhandledException;
-
-            GlobalPlatformServices.Default = new PlatformServices();
 
             // Standard XAML initialization
             InitializeComponent();

@@ -89,8 +89,7 @@ namespace SM.Media
 
         public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory,
             IMediaStreamSource mediaStreamSource, Func<IBufferingManager> bufferingManagerFactory,
-            IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory,
-            IPlatformServices platformServices)
+            IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory)
         {
             if (null == segmentReaderManagerFactory)
                 throw new ArgumentNullException("segmentReaderManagerFactory");
@@ -98,8 +97,6 @@ namespace SM.Media
                 throw new ArgumentNullException("mediaStreamSource");
             if (null == bufferingManagerFactory)
                 throw new ArgumentNullException("bufferingManagerFactory");
-            if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
 
             _segmentReaderManagerFactory = segmentReaderManagerFactory;
             _mediaStreamSource = mediaStreamSource;
@@ -108,9 +105,6 @@ namespace SM.Media
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
 
             _mediaStreamSource.MediaManager = this;
-
-            if (null == GlobalPlatformServices.Default)
-                GlobalPlatformServices.Default = platformServices;
 
             ResetCancellationToken();
 

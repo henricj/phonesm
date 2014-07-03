@@ -33,6 +33,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Playlists;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Hls
@@ -45,14 +46,22 @@ namespace SM.Media.Hls
     public class HlsPlaylistSegmentManagerPolicy : IHlsPlaylistSegmentManagerPolicy
     {
         public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
+        readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
         readonly IWebReaderManager _webReaderManager;
 
-        public HlsPlaylistSegmentManagerPolicy(IWebReaderManager webReaderManager)
+        public HlsPlaylistSegmentManagerPolicy(IWebReaderManager webReaderManager, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _webReaderManager = webReaderManager;
+            _retryManager = retryManager;
+            _platformServices = platformServices;
         }
 
         #region IHlsPlaylistSegmentManagerPolicy Members
@@ -74,7 +83,7 @@ namespace SM.Media.Hls
                     null == contentType ? "<unknown>" : contentType.ToString()));
             }
 
-            var programManager = new HlsProgramManager(_webReaderManager)
+            var programManager = new HlsProgramManager(_webReaderManager, _retryManager, _platformServices)
                                  {
                                      Playlists = source
                                  };

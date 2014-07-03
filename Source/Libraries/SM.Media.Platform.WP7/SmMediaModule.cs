@@ -112,6 +112,8 @@ namespace SM.Media
             Bind<IBufferingPolicy>().To<DefaultBufferingPolicy>();
             Bind<IBufferingManager>().To<BufferingManager>();
             Bind<Func<IBufferingManager>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferingManager>());
+
+            Bind<IRetryManager>().To<RetryManager>().InSingletonScope();
         }
     }
 }

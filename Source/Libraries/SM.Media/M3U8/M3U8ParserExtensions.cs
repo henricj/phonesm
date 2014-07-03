@@ -99,12 +99,13 @@ namespace SM.Media.M3U8
         /// </summary>
         /// <param name="parser"></param>
         /// <param name="webReader"></param>
+        /// <param name="retryManager"></param>
         /// <param name="playlist"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public static Task<Uri> ParseAsync(this M3U8Parser parser, IWebReader webReader, Uri playlist, CancellationToken cancellationToken)
+        public static Task<Uri> ParseAsync(this M3U8Parser parser, IWebReader webReader, IRetryManager retryManager, Uri playlist, CancellationToken cancellationToken)
         {
-            var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
+            var retry = retryManager.CreateWebRetry(2, 250);
 
             return retry.CallAsync(() =>
                 webReader.ReadStreamAsync(playlist, retry, (actualPlaylist, stream) =>

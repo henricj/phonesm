@@ -30,8 +30,6 @@ using System.Windows;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
-using SM.Media;
-using SM.Media.Utility;
 
 namespace HlsView
 {
@@ -46,8 +44,6 @@ namespace HlsView
             UnhandledException += Application_UnhandledException;
 
             TaskScheduler.UnobservedTaskException += Application_UnobservedException;
-
-            GlobalPlatformServices.Default = new PlatformServices();
 
             // Standard Silverlight initialization
             InitializeComponent();

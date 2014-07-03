@@ -486,6 +486,9 @@
     <Compile Include="..\SM.Media\Utility\ResettableParameters.cs">
       <Link>Utility\ResettableParameters.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\RetryManager.cs">
+      <Link>Utility\RetryManager.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\SignalTask.cs">
       <Link>Utility\SignalTask.cs</Link>
     </Compile>
@@ -709,9 +712,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\PositionStream.cs">
       <Link>Utility\PositionStream.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Utility\GlobalPlatformServices.cs">
-      <Link>Utility\GlobalPlatformServices.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\IBlockingPool.cs">
       <Link>Utility\IBlockingPool.cs</Link>

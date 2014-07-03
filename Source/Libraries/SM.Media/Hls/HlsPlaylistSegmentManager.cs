@@ -48,6 +48,7 @@ namespace SM.Media.Hls
         readonly TimeSpan _maximumReload;
         readonly TimeSpan _minimumReload;
         readonly TimeSpan _minimumRetry;
+        readonly IPlatformServices _platformServices;
         readonly IProgramStream _programStream;
         readonly TaskTimer _refreshTimer = new TaskTimer();
         readonly List<ISegment> _segmentList = new List<ISegment>();
@@ -65,15 +66,18 @@ namespace SM.Media.Hls
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
 
-        public HlsPlaylistSegmentManager(IProgramStream programStream, ContentType playlistType, CancellationToken cancellationToken)
+        public HlsPlaylistSegmentManager(IProgramStream programStream, ContentType playlistType, IPlatformServices platformServices, CancellationToken cancellationToken)
         {
             if (null == programStream)
                 throw new ArgumentNullException("programStream");
             if (null == playlistType)
                 throw new ArgumentNullException("playlistType");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _programStream = programStream;
             _playlistType = playlistType;
+            _platformServices = platformServices;
             _cancellationToken = cancellationToken;
 
             var p = HlsPlaylistSettings.Parameters;
@@ -399,7 +403,7 @@ namespace SM.Media.Hls
             // Retry in a little while
             var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
 
-            delay += (delay / 2) * (GlobalPlatformServices.Default.GetRandomNumber() - 0.5);
+            delay += (delay / 2) * (_platformServices.GetRandomNumber() - 0.5);
 
             var timeSpan = TimeSpan.FromSeconds(delay);
 

@@ -99,6 +99,8 @@ namespace SM.Media
             builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerMatchingLifetimeScope("builder-scope");
 
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();
+
+            builder.RegisterType<RetryManager>().As<IRetryManager>().SingleInstance();
         }
     }
 }

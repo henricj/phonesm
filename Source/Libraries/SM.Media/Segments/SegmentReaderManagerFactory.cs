@@ -29,6 +29,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Segments
@@ -40,18 +41,26 @@ namespace SM.Media.Segments
 
     public class SegmentReaderManagerFactory : ISegmentReaderManagerFactory
     {
+        readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
         readonly ISegmentManagerFactory _segmentManagerFactory;
         readonly IWebReaderManager _webReaderManager;
 
-        public SegmentReaderManagerFactory(IWebReaderManager webReaderManager, ISegmentManagerFactory segmentManagerFactory)
+        public SegmentReaderManagerFactory(IWebReaderManager webReaderManager, ISegmentManagerFactory segmentManagerFactory, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
             if (null == segmentManagerFactory)
                 throw new ArgumentNullException("segmentManagerFactory");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _webReaderManager = webReaderManager;
             _segmentManagerFactory = segmentManagerFactory;
+            _retryManager = retryManager;
+            _platformServices = platformServices;
         }
 
         #region ISegmentReaderManagerFactory Members
@@ -68,7 +77,7 @@ namespace SM.Media.Segments
             if (null == playlist)
                 throw new FileNotFoundException("Unable to create playlist");
 
-            return new SegmentReaderManager(new[] { playlist }, _webReaderManager.RootWebReader);
+            return new SegmentReaderManager(new[] { playlist }, _webReaderManager.RootWebReader, _retryManager, _platformServices);
         }
 
         #endregion

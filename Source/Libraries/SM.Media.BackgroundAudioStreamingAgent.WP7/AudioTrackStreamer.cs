@@ -111,9 +111,6 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             try
             {
-                if (null == GlobalPlatformServices.Default)
-                    GlobalPlatformServices.Default = new PlatformServices();
-
                 if (null == track || null == track.Tag)
                 {
                     Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() null url");

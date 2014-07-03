@@ -217,6 +217,7 @@
     <Compile Include="Utility\FifoTaskScheduler.cs" />
     <Compile Include="Utility\QueueExtensions.cs" />
     <Compile Include="Utility\ResettableParameters.cs" />
+    <Compile Include="Utility\RetryManager.cs" />
     <Compile Include="Utility\SingleUseTaskTimer.cs">
       <SubType>
       </SubType>
@@ -270,7 +271,6 @@
     <Compile Include="Utility\IApplicationInformation.cs" />
     <Compile Include="Utility\PositionStream.cs" />
     <Compile Include="Utility\SignalTask.cs" />
-    <Compile Include="Utility\GlobalPlatformServices.cs" />
     <Compile Include="Utility\IBlockingPool.cs" />
     <Compile Include="Utility\IPlatformServices.cs" />
     <Compile Include="Utility\IAsyncEnumerable.cs" />

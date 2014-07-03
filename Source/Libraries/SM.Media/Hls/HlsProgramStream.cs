@@ -34,6 +34,7 @@ using SM.Media.Content;
 using SM.Media.M3U8;
 using SM.Media.Playlists;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Hls
@@ -49,14 +50,16 @@ namespace SM.Media.Hls
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
-        public HlsProgramStream(IWebReader webReader, M3U8Parser parser = null)
+        public HlsProgramStream(IWebReader webReader, IPlatformServices platformServices, M3U8Parser parser = null)
         {
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _webReader = webReader;
 
-            _segmentsFactory = new HlsSegmentsFactory();
+            _segmentsFactory = new HlsSegmentsFactory(platformServices);
 
             if (null != parser)
             {

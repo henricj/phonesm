@@ -41,15 +41,19 @@ namespace SM.Media.Pls
     public class PlsSegmentManagerFactory : ISegmentManagerFactoryInstance
     {
         static readonly ICollection<ContentType> Types = new[] { ContentTypes.Pls };
+        readonly IRetryManager _retryManager;
 
         readonly IWebReader _rootWebReader;
 
-        public PlsSegmentManagerFactory(IWebReaderManager webReaderManager)
+        public PlsSegmentManagerFactory(IWebReaderManager webReaderManager, IRetryManager retryManager)
         {
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _rootWebReader = webReaderManager.RootWebReader;
+            _retryManager = retryManager;
         }
 
         #region ISegmentManagerFactoryInstance Members
@@ -65,7 +69,7 @@ namespace SM.Media.Pls
             {
                 var localUrl = url;
 
-                var retry = new Retry(3, 333, RetryPolicy.IsWebExceptionRetryable);
+                var retry = _retryManager.CreateWebRetry(3, 333);
 
                 var segmentManager = await retry.CallAsync(
                     async () =>

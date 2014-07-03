@@ -48,21 +48,25 @@ namespace SM.Media.Hls
 
         readonly Dictionary<Uri, Task<byte[]>> _keyCache = new Dictionary<Uri, Task<byte[]>>();
         readonly M3U8Parser _parser;
+        readonly IPlatformServices _platformServices;
         readonly IWebReader _webReader;
         long _byteRangeOffset;
         long? _mediaSequence;
         ISegment[] _playlist;
         int _segmentIndex;
 
-        public HlsStreamSegments(M3U8Parser parser, IWebReader webReader)
+        public HlsStreamSegments(M3U8Parser parser, IWebReader webReader, IPlatformServices platformServices)
         {
             if (parser == null)
                 throw new ArgumentNullException("parser");
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _parser = parser;
             _webReader = webReader;
+            _platformServices = platformServices;
 
             _mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
         }
@@ -201,7 +205,7 @@ namespace SM.Media.Hls
 
                         Debug.WriteLine("Segment AES-128: key {0} iv {1}", BitConverter.ToString(key), BitConverter.ToString(iv));
 
-                        return GlobalPlatformServices.Default.Aes128DecryptionFilter(stream, key, iv);
+                        return _platformServices.Aes128DecryptionFilter(stream, key, iv);
                     }
                 };
         }

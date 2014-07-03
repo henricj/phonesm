@@ -39,7 +39,6 @@ namespace SimulatedPlayer
     {
         static void Main(string[] args)
         {
-            GlobalPlatformServices.Default = new PlatformServices();
             TaskScheduler.UnobservedTaskException +=
                 (sender, eventArgs) =>
                 {

@@ -41,6 +41,7 @@ namespace SM.Media.Web.HttpClientReader
                                                                     NoCache = true
                                                                 };
 
+        readonly IRetryManager _retryManager;
         readonly HttpClientWebReader _webReader;
         CacheControlHeaderValue _cacheControl;
         object _cachedObject;
@@ -49,12 +50,15 @@ namespace SM.Media.Web.HttpClientReader
         DateTimeOffset? _lastModified;
         string _noCache;
 
-        public HttpClientWebCache(HttpClientWebReader webReader)
+        public HttpClientWebCache(HttpClientWebReader webReader, IRetryManager retryManager)
         {
             if (webReader == null)
                 throw new ArgumentNullException("webReader");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _webReader = webReader;
+            _retryManager = retryManager;
         }
 
         #region IWebCache Members
@@ -70,7 +74,7 @@ namespace SM.Media.Web.HttpClientReader
             if (null == _cachedObject as TCached)
                 _cachedObject = null;
 
-            var retry = new Retry(2, 250, RetryPolicy.IsWebExceptionRetryable);
+            var retry = _retryManager.CreateWebRetry(2, 250);
 
             await retry
                 .CallAsync(() => Fetch(retry, factory, webResponse, cancellationToken), cancellationToken)
@@ -81,7 +85,7 @@ namespace SM.Media.Web.HttpClientReader
 
         #endregion
 
-        async Task Fetch<TCached>(Retry retry, Func<Uri, byte[], TCached> factory, WebResponse webResponse, CancellationToken cancellationToken)
+        async Task Fetch<TCached>(IRetry retry, Func<Uri, byte[], TCached> factory, WebResponse webResponse, CancellationToken cancellationToken)
             where TCached : class
         {
             for (; ; )
@@ -103,7 +107,7 @@ namespace SM.Media.Web.HttpClientReader
                     if (!RetryPolicy.IsRetryable(response.StatusCode))
                         goto fail;
 
-                    if (await retry.CanRetryAfterDelay(cancellationToken).ConfigureAwait(false))
+                    if (await retry.CanRetryAfterDelayAsync(cancellationToken).ConfigureAwait(false))
                         continue;
 
                 fail:

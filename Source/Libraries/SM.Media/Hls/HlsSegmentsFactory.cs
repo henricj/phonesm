@@ -24,9 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using SM.Media.M3U8;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Hls
@@ -38,11 +40,21 @@ namespace SM.Media.Hls
 
     public class HlsSegmentsFactory : IHlsSegmentsFactory
     {
+        readonly IPlatformServices _platformServices;
+
+        public HlsSegmentsFactory(IPlatformServices platformServices)
+        {
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
+
+            _platformServices = platformServices;
+        }
+
         #region IHlsSegmentsFactory Members
 
         public ICollection<ISegment> CreateSegments(M3U8Parser parser, IWebReader binaryWebReader)
         {
-            var streamSegments = new HlsStreamSegments(parser, binaryWebReader);
+            var streamSegments = new HlsStreamSegments(parser, binaryWebReader, _platformServices);
 
             return streamSegments.CreateSegments();
         }

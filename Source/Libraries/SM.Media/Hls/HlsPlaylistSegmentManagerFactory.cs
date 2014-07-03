@@ -30,6 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Segments;
+using SM.Media.Utility;
 
 namespace SM.Media.Hls
 {
@@ -37,13 +38,17 @@ namespace SM.Media.Hls
     {
         static readonly ICollection<ContentType> Types = new[] { ContentTypes.M3U8, ContentTypes.M3U };
         readonly IHlsPlaylistSegmentManagerPolicy _hlsPlaylistSegmentManagerPolicy;
+        readonly IPlatformServices _platformServices;
 
-        public HlsPlaylistSegmentManagerFactory(IHlsPlaylistSegmentManagerPolicy hlsPlaylistSegmentManagerPolicy)
+        public HlsPlaylistSegmentManagerFactory(IHlsPlaylistSegmentManagerPolicy hlsPlaylistSegmentManagerPolicy, IPlatformServices platformServices)
         {
             if (null == hlsPlaylistSegmentManagerPolicy)
                 throw new ArgumentNullException("hlsPlaylistSegmentManagerPolicy");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _hlsPlaylistSegmentManagerPolicy = hlsPlaylistSegmentManagerPolicy;
+            _platformServices = platformServices;
         }
 
         #region ISegmentManagerFactoryInstance Members
@@ -57,7 +62,7 @@ namespace SM.Media.Hls
         {
             var subProgram = await _hlsPlaylistSegmentManagerPolicy.CreateSubProgramAsync(parameters.Source, contentType, cancellationToken).ConfigureAwait(false);
 
-            var segmentManager = new HlsPlaylistSegmentManager(subProgram.Video, contentType, cancellationToken);
+            var segmentManager = new HlsPlaylistSegmentManager(subProgram.Video, contentType, _platformServices, cancellationToken);
 
             await segmentManager.StartAsync().ConfigureAwait(false);
 

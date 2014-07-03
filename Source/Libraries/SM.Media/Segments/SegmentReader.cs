@@ -38,6 +38,8 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
+        readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
         readonly ISegment _segment;
         readonly IWebReader _webReader;
         Uri _actualUrl;
@@ -48,15 +50,21 @@ namespace SM.Media.Segments
         Stream _responseStream;
         long? _startOffset;
 
-        public SegmentReader(ISegment segment, IWebReader webReader)
+        public SegmentReader(ISegment segment, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == segment)
                 throw new ArgumentNullException("segment");
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
 
             _segment = segment;
             _webReader = webReader;
+            _retryManager = retryManager;
+            _platformServices = platformServices;
 
             if (segment.Offset >= 0 && segment.Length > 0)
             {
@@ -142,7 +150,7 @@ namespace SM.Media.Segments
 
                 if (retry)
                 {
-                    var actualDelay = (int)(delay * (0.5 + GlobalPlatformServices.Default.GetRandomNumber()));
+                    var actualDelay = (int)(delay * (0.5 + _platformServices.GetRandomNumber()));
 
                     delay += delay;
 
@@ -232,7 +240,7 @@ namespace SM.Media.Segments
 
         Task OpenStream(CancellationToken cancellationToken)
         {
-            var retry = new Retry(2, 200, RetryPolicy.IsWebExceptionRetryable);
+            var retry = _retryManager.CreateRetry(2, 200, RetryPolicy.IsWebExceptionRetryable);
 
             return retry.CallAsync(
                 async () =>
@@ -277,7 +285,7 @@ namespace SM.Media.Segments
                         if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
                             _response.EnsureSuccessStatusCode();
 
-                        var canRetry = await retry.CanRetryAfterDelay(cancellationToken)
+                        var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
                                                   .ConfigureAwait(false);
 
                         if (!canRetry)

@@ -51,7 +51,7 @@ namespace SM.Media.Web
             return webReader.Manager.DetectContentTypeAsync(url, contentKind, cancellationToken, webReader);
         }
 
-        public static async Task<TReturn> ReadStreamAsync<TReturn>(this IWebReader webReader, Uri url, Retry retry,
+        public static async Task<TReturn> ReadStreamAsync<TReturn>(this IWebReader webReader, Uri url, IRetry retry,
             Func<Uri, Stream, TReturn> reader, CancellationToken cancellationToken)
         {
             for (; ; )
@@ -71,7 +71,7 @@ namespace SM.Media.Web
                     if (!RetryPolicy.IsRetryable((HttpStatusCode)response.HttpStatusCode))
                         response.EnsureSuccessStatusCode();
 
-                    var canRetry = await retry.CanRetryAfterDelay(cancellationToken)
+                    var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
                                               .ConfigureAwait(false);
 
                     if (!canRetry)
@@ -100,7 +100,7 @@ namespace SM.Media.Web
                     if (!RetryPolicy.IsRetryable((HttpStatusCode)response.HttpStatusCode))
                         response.EnsureSuccessStatusCode();
 
-                    var canRetry = await retry.CanRetryAfterDelay(cancellationToken)
+                    var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
                                               .ConfigureAwait(false);
 
                     if (!canRetry)

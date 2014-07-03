@@ -31,9 +31,7 @@ using System.Net.Browser;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Browser;
-using SM.Media;
 using SM.Media.AAC;
-using SM.Media.Utility;
 
 namespace HlsView.Silverlight
 {
@@ -46,8 +44,6 @@ namespace HlsView.Silverlight
             UnhandledException += Application_UnhandledException;
 
             //TaskScheduler.UnobservedTaskException += Application_UnobservedException;
-
-            GlobalPlatformServices.Default = new PlatformServices();
 
             AacDecoderSettings.Parameters.UseRawAac = true;
             AacDecoderSettings.Parameters.ConfigurationFormat = AacDecoderParameters.WaveFormatEx.RawAac;

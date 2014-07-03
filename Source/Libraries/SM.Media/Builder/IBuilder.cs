@@ -39,7 +39,9 @@ namespace SM.Media.Builder
         void RegisterSingleton<TService>(TService instance)
             where TService : class;
 
-        void RegisterFactory<TService>(Func<TService> factory);
+        void RegisterSingletonFactory<TService>(Func<TService> factory);
+
+        void RegisterTransientFactory<TService>(Func<TService> factory);
     }
 
     public interface IBuilder<TBuild> : IBuilder

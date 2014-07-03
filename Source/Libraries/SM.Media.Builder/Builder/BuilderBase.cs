@@ -115,11 +115,18 @@ namespace SM.Media.Builder
             ContainerBuilder.RegisterInstance(instance).ExternallyOwned();
         }
 
-        public void RegisterFactory<TService>(Func<TService> factory)
+        public void RegisterSingletonFactory<TService>(Func<TService> factory)
         {
             ChangeBuilder();
 
             ContainerBuilder.Register(ctx => factory()).SingleInstance();
+        }
+
+        public void RegisterTransientFactory<TService>(Func<TService> factory)
+        {
+            ChangeBuilder();
+
+            ContainerBuilder.Register(ctx => factory()).ExternallyOwned();
         }
 
         public void Dispose()

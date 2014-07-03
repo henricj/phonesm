@@ -92,11 +92,18 @@ namespace SM.Media.Builder
             Kernel.Rebind<TService>().ToConstant(instance);
         }
 
-        public void RegisterFactory<TService>(Func<TService> factory)
+        public void RegisterSingletonFactory<TService>(Func<TService> factory)
         {
             ThrowIfBusy();
 
             Kernel.Rebind<TService>().ToMethod(ctx => factory()).InSingletonScope();
+        }
+
+        public void RegisterTransientFactory<TService>(Func<TService> factory)
+        {
+            ThrowIfBusy();
+
+            Kernel.Rebind<TService>().ToMethod(ctx => factory());
         }
 
         public void Dispose()

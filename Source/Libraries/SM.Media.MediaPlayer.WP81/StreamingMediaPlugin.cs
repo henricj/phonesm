@@ -66,6 +66,8 @@ namespace SM.Media.MediaPlayer
         public void Unload()
         {
             Debug.WriteLine("StreamingMediaPlugin.Unload()");
+
+            Cleanup();
         }
 
         public Microsoft.PlayerFramework.MediaPlayer MediaPlayer
@@ -114,6 +116,8 @@ namespace SM.Media.MediaPlayer
             Debug.WriteLine("StreamingMediaPlugin MediaFailed");
 
             Close();
+
+            Cleanup();
         }
 
         void PlayerOnMediaEnding(object sender, MediaPlayerDeferrableEventArgs mediaPlayerDeferrableEventArgs)
@@ -165,12 +169,25 @@ namespace SM.Media.MediaPlayer
             _mediaStreamFacade.SetParameter(_httpClientsParameters);
         }
 
-        public void Close()
+        void Close()
         {
             Debug.WriteLine("StreamingMediaPlugin.Close()");
 
             _mediaStreamFacade.RequestStop();
         }
 
+        void Cleanup()
+        {
+            Debug.WriteLine("StreamingMediaPlugin.Cleanup()");
+
+            var msf = _mediaStreamFacade;
+
+            if (null == msf)
+                return;
+
+            _mediaStreamFacade = null;
+
+            msf.DisposeBackground("StreamingMediaPlugin Unload");
+        }
     }
 }

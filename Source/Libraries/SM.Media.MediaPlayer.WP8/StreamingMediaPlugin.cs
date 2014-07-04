@@ -33,30 +33,29 @@ using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.MediaPlayer
 {
-    public class StreamingMediaPlugin : IMediaPlugin
+    public class StreamingMediaPlugin : IPlugin
     {
         static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        IHttpClientsParameters _httpClients;
-        MediaElementWrapper _mediaElement;
 
-        IHttpClientsParameters HttpClients
+        readonly IHttpClientsParameters _httpClientsParameters;
+        IMediaStreamFacade _mediaStreamFacade;
+        Microsoft.PlayerFramework.MediaPlayer _player;
+
+        public StreamingMediaPlugin()
         {
-            get
-            {
-                if (null == _httpClients)
-                    _httpClients = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
+            var userAgent = ApplicationInformation.CreateUserAgent();
 
-                return _httpClients;
-            }
+            _httpClientsParameters = new HttpClientsParameters
+                                     {
+                                         UserAgent = userAgent
+                                     };
         }
 
-        #region IMediaPlugin Members
+        #region IPlugin Members
 
         public void Load()
         {
             Debug.WriteLine("StreamingMediaPlugin.Load()");
-
-            MediaPlayer.MediaClosed += MediaPlayer_MediaClosed;
         }
 
         public void Update(IMediaSource mediaSource)
@@ -68,47 +67,151 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("StreamingMediaPlugin.Unload()");
 
-            MediaPlayer.MediaClosed -= MediaPlayer_MediaClosed;
-
-            if (null != _mediaElement)
-            {
-                _mediaElement.Cleanup();
-
-                _mediaElement = null;
-            }
+            Cleanup();
         }
 
-        public Microsoft.PlayerFramework.MediaPlayer MediaPlayer { get; set; }
-
-        public IMediaElement MediaElement
+        public Microsoft.PlayerFramework.MediaPlayer MediaPlayer
         {
-            get
+            get { return _player; }
+            set
             {
-                Debug.WriteLine("StreamingMediaPlugin MediaElement getter ({0})", null == _mediaElement ? "not cached" : "cached");
+                if (null != _player)
+                {
+                    _player.MediaLoading -= PlayerOnMediaLoading;
+                    _player.MediaEnding -= PlayerOnMediaEnding;
+                    _player.MediaFailed -= PlayerOnMediaFailed;
+                    _player.MediaEnded -= PlayerOnMediaEnded;
+                    _player.MediaClosed -= PlayerOnMediaClosed;
+                    _player.Seeked -= PlayerOnSeeked;
+                    _player.Scrubbing -= PlayerOnScrubbing;
+                }
 
-                if (null != _mediaElement)
-                    return _mediaElement;
+                _player = value;
 
-                var mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-                mediaStreamFacade.SetParameter(HttpClients);
-
-                _mediaElement = new MediaElementWrapper(mediaStreamFacade);
-
-                return _mediaElement;
+                if (null != _player)
+                {
+                    _player.MediaLoading += PlayerOnMediaLoading;
+                    _player.MediaEnding += PlayerOnMediaEnding;
+                    _player.MediaFailed += PlayerOnMediaFailed;
+                    _player.MediaEnded += PlayerOnMediaEnded;
+                    _player.MediaClosed += PlayerOnMediaClosed;
+                    _player.Seeked += PlayerOnSeeked;
+                    _player.Scrubbing += PlayerOnScrubbing;
+                }
             }
         }
 
         #endregion
 
-        void MediaPlayer_MediaClosed(object sender, RoutedEventArgs e)
+        void PlayerOnScrubbing(object sender, ScrubProgressRoutedEventArgs scrubProgressRoutedEventArgs)
+        {
+            Debug.WriteLine("StreamingMediaPlugin Scrubbing to " + scrubProgressRoutedEventArgs.Position);
+
+#if WINDOWS_PHONE7
+            _mediaStreamFacade.SeekTarget = scrubProgressRoutedEventArgs.Position;
+#endif
+        }
+
+        void PlayerOnSeeked(object sender, SeekRoutedEventArgs seekRoutedEventArgs)
+        {
+            Debug.WriteLine("StreamingMediaPlugin Seeked to " + seekRoutedEventArgs.Position);
+
+#if WINDOWS_PHONE7
+            _mediaStreamFacade.SeekTarget = seekRoutedEventArgs.Position;
+#endif
+        }
+
+        void PlayerOnMediaClosed(object sender, RoutedEventArgs routedEventArgs)
         {
             Debug.WriteLine("StreamingMediaPlugin MediaClosed");
 
-            if (null == _mediaElement)
+            Close();
+        }
+
+        void PlayerOnMediaEnded(object sender, MediaPlayerActionEventArgs mediaPlayerActionEventArgs)
+        {
+            Debug.WriteLine("StreamingMediaPlugin MediaEnded");
+
+            Close();
+        }
+
+        void PlayerOnMediaFailed(object sender, ExceptionRoutedEventArgs exceptionRoutedEventArgs)
+        {
+            Debug.WriteLine("StreamingMediaPlugin MediaFailed");
+
+            Close();
+
+            Cleanup();
+        }
+
+        void PlayerOnMediaEnding(object sender, MediaPlayerDeferrableEventArgs mediaPlayerDeferrableEventArgs)
+        {
+            Debug.WriteLine("StreamingMediaPlugin MediaEnding");
+        }
+
+        async void PlayerOnMediaLoading(object sender, MediaPlayerDeferrableEventArgs mediaPlayerDeferrableEventArgs)
+        {
+            Debug.WriteLine("StreamingMediaPlugin MediaLoading");
+
+            var mediaLoadingEventArgs = (MediaLoadingEventArgs)mediaPlayerDeferrableEventArgs;
+
+            var source = mediaLoadingEventArgs.Source;
+
+            if (null == source)
                 return;
 
-            _mediaElement.Close();
+            MediaPlayerDeferral deferral = null;
+
+            try
+            {
+                InitializeMediaStream();
+
+                deferral = mediaPlayerDeferrableEventArgs.DeferrableOperation.GetDeferral();
+
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, deferral.CancellationToken).ConfigureAwait(false);
+
+                mediaLoadingEventArgs.Source = null;
+                mediaLoadingEventArgs.MediaStreamSource = mss;
+
+                deferral.Complete();
+                deferral = null;
+            }
+            finally
+            {
+                if (null != deferral)
+                    deferral.Cancel();
+            }
+        }
+
+        void InitializeMediaStream()
+        {
+            if (null != _mediaStreamFacade)
+                return;
+
+            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
+
+            _mediaStreamFacade.SetParameter(_httpClientsParameters);
+        }
+
+        void Close()
+        {
+            Debug.WriteLine("StreamingMediaPlugin.Close()");
+
+            _mediaStreamFacade.RequestStop();
+        }
+
+        void Cleanup()
+        {
+            Debug.WriteLine("StreamingMediaPlugin.Cleanup()");
+
+            var msf = _mediaStreamFacade;
+
+            if (null == msf)
+                return;
+
+            _mediaStreamFacade = null;
+
+            msf.DisposeBackground("StreamingMediaPlugin Unload");
         }
     }
 }

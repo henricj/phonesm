@@ -11,7 +11,7 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <pf:MediaPlayer Source="http://sark.int.henric.info/Sample/bipbopall.m3u8">
+        <pf:MediaPlayer Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
             <pf:MediaPlayer.Plugins>
                 <smmp:StreamingMediaPlugin />
             </pf:MediaPlayer.Plugins>

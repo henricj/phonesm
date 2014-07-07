@@ -115,6 +115,7 @@
       <ItemGroup>
         <Reference Include="SM.Media.Platform.WinRT">
           <HintPath>..\..\bin\$(Configuration)\WinRT\$(Platform)\SM.Media.Platform.WinRT.dll</HintPath>
+          <Private>False</Private>
         </Reference>
       </ItemGroup>
     </Otherwise>
@@ -133,6 +134,7 @@
       <ItemGroup>
         <Reference Include="SM.Media">
           <HintPath>..\..\bin\$(Configuration)\SM.Media.dll</HintPath>
+          <Private>False</Private>
         </Reference>
       </ItemGroup>
     </Otherwise>

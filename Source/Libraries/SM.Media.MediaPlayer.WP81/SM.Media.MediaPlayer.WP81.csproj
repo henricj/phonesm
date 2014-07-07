@@ -17,23 +17,6 @@
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{76F1466A-8B6D-4E39-A767-685A06062A39};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\ARM\Debug\</OutputPath>
@@ -94,20 +77,43 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamingMediaPlugin.cs" />
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj">
+          <Project>{7441be13-d07c-424e-ad1a-54cc78a51e0f}</Project>
+          <Name>SM.Media.Platform.WinRT</Name>
+          <Private>False</Private>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Platform.WinRT">
+          <HintPath>..\..\bin\$(Configuration)\WinRT\$(Platform)\SM.Media.Platform.WinRT.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.Media\SM.Media.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media\SM.Media.csproj">
+          <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
+          <Name>SM.Media</Name>
+          <Private>False</Private>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media">
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
-    <ProjectReference Include="..\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj">
-      <Project>{7441BE13-D07C-424E-AD1A-54CC78A51E0F}</Project>
-      <Name>SM.Media.Platform.WinRT</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.Media\SM.Media.csproj">
-      <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
-      <Name>SM.Media</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\Global\phonesm.snk">
-      <Link>phonesm.snk</Link>
-    </None>
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -128,7 +134,7 @@
     <TargetPlatformIdentifier>WindowsPhoneApp</TargetPlatformIdentifier>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>..\..\Global\phonesm.snk</AssemblyOriginatorKeyFile>

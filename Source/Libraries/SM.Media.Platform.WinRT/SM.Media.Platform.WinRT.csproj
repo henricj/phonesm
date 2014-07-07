@@ -105,14 +105,17 @@
     <ProjectReference Include="..\SM.Media.Builder\SM.Media.Builder.csproj">
       <Project>{e7ddfad9-00bd-4f60-8873-4a34b80e9acb}</Project>
       <Name>SM.Media.Builder</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\SM.Media\SM.Media.csproj">
       <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
       <Name>SM.Media</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
       <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
       <Name>SM.TsParser</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

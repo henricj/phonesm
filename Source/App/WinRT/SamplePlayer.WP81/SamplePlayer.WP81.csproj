@@ -16,25 +16,6 @@
     <ProjectTypeGuids>{76F1466A-8B6D-4E39-A767-685A06062A39};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <SynthesizeLinkMetadata>true</SynthesizeLinkMetadata>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\ARM\Debug\</OutputPath>
@@ -81,27 +62,79 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
-    <ProjectReference Include="..\..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
-      <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
-      <Name>SM.Media.Builder</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\Libraries\SM.Media.MediaPlayer.WP81\SM.Media.MediaPlayer.WP81.csproj">
       <Project>{0e64c570-7e84-45e2-a2ac-75ae3c529ff2}</Project>
       <Name>SM.Media.MediaPlayer.WP81</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\Libraries\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj">
-      <Project>{7441BE13-D07C-424E-AD1A-54CC78A51E0F}</Project>
-      <Name>SM.Media.Platform.WinRT</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Libraries\SM.Media\SM.Media.csproj">
-      <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
-      <Name>SM.Media</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
-      <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-      <Name>SM.TsParser</Name>
-    </ProjectReference>
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
+          <Project>{e7ddfad9-00bd-4f60-8873-4a34b80e9acb}</Project>
+          <Name>SM.Media.Builder</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Builder">
+          <HintPath>..\..\..\bin\$(Configuration)\SM.Media.Builder.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj">
+          <Project>{7441be13-d07c-424e-ad1a-54cc78a51e0f}</Project>
+          <Name>SM.Media.Platform.WinRT</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Platform.WinRT">
+          <HintPath>..\..\..\bin\$(Configuration)\WinRT\$(Platform)\SM.Media.Platform.WinRT.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.Media\SM.Media.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.Media\SM.Media.csproj">
+          <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
+          <Name>SM.Media</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media">
+          <HintPath>..\..\..\bin\$(Configuration)\SM.Media.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.TsParser\SM.TsParser.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
+          <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+          <Name>SM.TsParser</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.TsParser">
+          <HintPath>..\..\..\bin\$(Configuration)\SM.TsParser.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>

@@ -15,6 +15,13 @@ md App\WinRT\HlsView.WinRT.Shared\
 md App\WinRT\HlsView.WP81\
 md App\WinRT\HlsView.WP81\Assets\
 md App\WinRT\HlsView.WP81\Properties\
+md App\WinRT\SamplePlayer.Win81\
+md App\WinRT\SamplePlayer.Win81\Assets\
+md App\WinRT\SamplePlayer.Win81\Properties\
+md App\WinRT\SamplePlayer.WinRT.Shared\
+md App\WinRT\SamplePlayer.WP81\
+md App\WinRT\SamplePlayer.WP81\Assets\
+md App\WinRT\SamplePlayer.WP81\Properties\
 md App\Silverlight\
 md App\Silverlight\HlsView.Silverlight\
 md App\Silverlight\HlsView.Silverlight\Properties\
@@ -49,8 +56,12 @@ md Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\Properties\
 md Libraries\SM.Media.Platform.WP7\
 md Libraries\SM.Media.MediaPlayer.WP7\
 md Libraries\SM.Media.MediaPlayer.WP7\Properties\
+md Libraries\SM.Media.MediaPlayer.Win81\
+md Libraries\SM.Media.MediaPlayer.Win81\Properties\
 md Libraries\SM.Media.MediaPlayer.WP8\
 md Libraries\SM.Media.MediaPlayer.WP8\Properties\
+md Libraries\SM.Media.MediaPlayer.WP81\
+md Libraries\SM.Media.MediaPlayer.WP81\Properties\
 
 md Phone\
 md Phone\BackgroundAudio.Sample.WP7\
@@ -59,7 +70,6 @@ md Phone\BackgroundAudio.Sample.WP7\Properties\
 md Phone\BackgroundAudio.Sample.WP8\
 md Phone\BackgroundAudio.Sample.WP8\Assets\
 md Phone\BackgroundAudio.Sample.WP8\Assets\Tiles\
-md Phone\BackgroundAudio.Sample.WP8\Images\
 md Phone\BackgroundAudio.Sample.WP8\Properties\
 md Phone\BackgroundAudio.Sample.WP8\Resources\
 md Phone\HlsView\

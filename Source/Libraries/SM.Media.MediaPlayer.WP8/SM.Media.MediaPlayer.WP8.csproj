@@ -81,6 +81,7 @@
         <ProjectReference Include="..\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
           <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
           <Name>SM.Media.Platform.WP8</Name>
+          <Private>False</Private>
         </ProjectReference>
       </ItemGroup>
     </When>
@@ -98,6 +99,7 @@
         <ProjectReference Include="..\SM.Media\SM.Media.csproj">
           <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
           <Name>SM.Media</Name>
+          <Private>False</Private>
         </ProjectReference>
       </ItemGroup>
     </When>
@@ -115,6 +117,7 @@
         <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
           <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
           <Name>SM.TsParser</Name>
+          <Private>False</Private>
         </ProjectReference>
       </ItemGroup>
     </When>
@@ -147,7 +150,7 @@
   </ItemGroup>
   <ItemGroup>
     <SDKReference Include="Microsoft.PlayerFramework.WP8.Core, Version=2.0.0.0">
-      <Name>Microsoft Player Framework %28Microsoft.PlayerFramework.WP8.Core, Version=2.0.0.0%29</Name>
+      <Name>Microsoft Player Framework</Name>
     </SDKReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />

@@ -2,21 +2,21 @@ pushd "%~dp0..\Source\"
 
 copy Libraries\SM.Media\bin\Debug\SM.Media.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Debug\SM.Media.pdb ..\Distribution\bin\Debug\
-copy Libraries\SM.Media\bin\Debug\SM.TsParser.dll ..\Distribution\bin\Debug\
-copy Libraries\SM.Media\bin\Debug\SM.TsParser.pdb ..\Distribution\bin\Debug\
+copy Libraries\SM.TsParser\bin\Debug\SM.TsParser.dll ..\Distribution\bin\Debug\
+copy Libraries\SM.TsParser\bin\Debug\SM.TsParser.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Release\SM.Media.dll ..\Distribution\bin\Release\
 copy Libraries\SM.Media\bin\Release\SM.Media.pdb ..\Distribution\bin\Release\
-copy Libraries\SM.Media\bin\Release\SM.TsParser.dll ..\Distribution\bin\Release\
-copy Libraries\SM.Media\bin\Release\SM.TsParser.pdb ..\Distribution\bin\Release\
+copy Libraries\SM.TsParser\bin\Release\SM.TsParser.dll ..\Distribution\bin\Release\
+copy Libraries\SM.TsParser\bin\Release\SM.TsParser.pdb ..\Distribution\bin\Release\
 
 copy Libraries\SM.Media.Legacy\bin\Debug\SM.Media.Legacy.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Legacy\bin\Debug\SM.Media.Legacy.pdb ..\Distribution\bin\Debug\
-copy Libraries\SM.Media.Legacy\bin\Debug\SM.TsParser.Legacy.dll ..\Distribution\bin\Debug\
-copy Libraries\SM.Media.Legacy\bin\Debug\SM.TsParser.Legacy.pdb ..\Distribution\bin\Debug\
+copy Libraries\SM.TsParser.Legacy\bin\Debug\SM.TsParser.Legacy.dll ..\Distribution\bin\Debug\
+copy Libraries\SM.TsParser.Legacy\bin\Debug\SM.TsParser.Legacy.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Legacy\bin\Release\SM.Media.Legacy.dll ..\Distribution\bin\Release\
 copy Libraries\SM.Media.Legacy\bin\Release\SM.Media.Legacy.pdb ..\Distribution\bin\Release\
-copy Libraries\SM.Media.Legacy\bin\Release\SM.TsParser.Legacy.dll ..\Distribution\bin\Release\
-copy Libraries\SM.Media.Legacy\bin\Release\SM.TsParser.Legacy.pdb ..\Distribution\bin\Release\
+copy Libraries\SM.TsParser.Legacy\bin\Release\SM.TsParser.Legacy.dll ..\Distribution\bin\Release\
+copy Libraries\SM.TsParser.Legacy\bin\Release\SM.TsParser.Legacy.pdb ..\Distribution\bin\Release\
 
 copy Libraries\SM.Media.Platform.WP7\bin\Debug\SM.Media.Platform.WP7.dll ..\Distribution\bin\Debug\WP7\
 copy Libraries\SM.Media.Platform.WP7\bin\Debug\SM.Media.Platform.WP7.pdb ..\Distribution\bin\Debug\WP7\
@@ -53,11 +53,11 @@ copy Libraries\SM.Media.Builder\bin\Debug\SM.Media.Builder.pdb ..\Distribution\b
 copy Libraries\SM.Media.Builder\bin\Release\SM.Media.Builder.dll ..\Distribution\bin\Release\
 copy Libraries\SM.Media.Builder\bin\Release\SM.Media.Builder.pdb ..\Distribution\bin\Release\
 
-copy playerframework\Phone.SL\Bin\Debug\Microsoft.PlayerFramework.dll ..\Distribution\bin\Debug\WP7\
-copy playerframework\Phone.SL\Bin\Debug\Microsoft.PlayerFramework.pdb ..\Distribution\bin\Debug\WP7\
+copy playerframework\WP7.SL.Core\Bin\Debug\Microsoft.PlayerFramework.dll ..\Distribution\bin\Debug\WP7\
+copy playerframework\WP7.SL.Core\Bin\Debug\Microsoft.PlayerFramework.pdb ..\Distribution\bin\Debug\WP7\
 
-copy playerframework\Phone.SL\Bin\Release\Microsoft.PlayerFramework.dll ..\Distribution\bin\Release\WP7\
-copy playerframework\Phone.SL\Bin\Release\Microsoft.PlayerFramework.pdb ..\Distribution\bin\Release\WP7\
+copy playerframework\WP7.SL.Core\Bin\Release\Microsoft.PlayerFramework.dll ..\Distribution\bin\Release\WP7\
+copy playerframework\WP7.SL.Core\Bin\Release\Microsoft.PlayerFramework.pdb ..\Distribution\bin\Release\WP7\
 
 copy Global\GlobalAssemblyInfo.cs ..\Distribution\Global\
 copy Global\SM.MediaVersion.cs ..\Distribution\Global\
@@ -85,17 +85,25 @@ copy Phone\HlsView.WP8\Properties\*.xml ..\Distribution\Phone\HlsView.WP8\Proper
 copy Phone\HlsView.WP8\Resources\*.cs ..\Distribution\Phone\HlsView.WP8\Resources\
 copy Phone\HlsView.WP8\Resources\*.resx ..\Distribution\Phone\HlsView.WP8\Resources\
 
-copy Libraries\SM.Media.Platform.WP7\MediaElementManager.cs ..\Distribution\Libraries\SM.Media.Platform.WP7\
-
 copy Libraries\SM.Media.MediaPlayer.WP7\*.config ..\Distribution\Libraries\SM.Media.MediaPlayer.WP7\
 copy Libraries\SM.Media.MediaPlayer.WP7\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP7\
 copy Libraries\SM.Media.MediaPlayer.WP7\SM.Media.MediaPlayer.WP7.csproj ..\Distribution\Libraries\SM.Media.MediaPlayer.WP7\
 copy Libraries\SM.Media.MediaPlayer.WP7\Properties\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP7\Properties\
 
+copy Libraries\SM.Media.MediaPlayer.Win81\*.config ..\Distribution\Libraries\SM.Media.MediaPlayer.Win81\
+copy Libraries\SM.Media.MediaPlayer.Win81\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.Win81\
+copy Libraries\SM.Media.MediaPlayer.Win81\SM.Media.MediaPlayer.Win81.csproj ..\Distribution\Libraries\SM.Media.MediaPlayer.Win81\
+copy Libraries\SM.Media.MediaPlayer.Win81\Properties\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.Win81\Properties\
+
 copy Libraries\SM.Media.MediaPlayer.WP8\*.config ..\Distribution\Libraries\SM.Media.MediaPlayer.WP8\
 copy Libraries\SM.Media.MediaPlayer.WP8\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP8\
 copy Libraries\SM.Media.MediaPlayer.WP8\SM.Media.MediaPlayer.WP8.csproj ..\Distribution\Libraries\SM.Media.MediaPlayer.WP8\
 copy Libraries\SM.Media.MediaPlayer.WP8\Properties\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP8\Properties\
+
+copy Libraries\SM.Media.MediaPlayer.WP81\*.config ..\Distribution\Libraries\SM.Media.MediaPlayer.WP81\
+copy Libraries\SM.Media.MediaPlayer.WP81\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP81\
+copy Libraries\SM.Media.MediaPlayer.WP81\SM.Media.MediaPlayer.WP81.csproj ..\Distribution\Libraries\SM.Media.MediaPlayer.WP81\
+copy Libraries\SM.Media.MediaPlayer.WP81\Properties\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP81\Properties\
 
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\packages.config ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
@@ -141,7 +149,6 @@ copy Phone\BackgroundAudio.Sample.WP8\*.xaml ..\Distribution\Phone\BackgroundAud
 copy Phone\BackgroundAudio.Sample.WP8\*.cs ..\Distribution\Phone\BackgroundAudio.Sample.WP8\
 copy Phone\BackgroundAudio.Sample.WP8\Assets\*.png ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Assets\
 copy Phone\BackgroundAudio.Sample.WP8\Assets\Tiles\*.png ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Assets\Tiles\
-copy Phone\BackgroundAudio.Sample.WP8\Images\*.png ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Images\
 copy Phone\BackgroundAudio.Sample.WP8\BackgroundAudio.Sample.WP8.csproj ..\Distribution\Phone\BackgroundAudio.Sample.WP8\
 copy Phone\BackgroundAudio.Sample.WP8\packages.config ..\Distribution\Phone\BackgroundAudio.Sample.WP8\
 copy Phone\BackgroundAudio.Sample.WP8\Properties\*.cs ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Properties\
@@ -170,6 +177,28 @@ copy App\WinRT\HlsView.WP81\Properties\*.cs ..\Distribution\App\WinRT\HlsView.WP
 copy App\WinRT\HlsView.WP81\Package.appxmanifest ..\Distribution\App\WinRT\HlsView.WP81\
 copy App\WinRT\HlsView.WP81\app.config ..\Distribution\App\WinRT\HlsView.WP81\
 copy App\WinRT\HlsView.WP81\packages.config ..\Distribution\App\WinRT\HlsView.WP81\
+
+copy App\WinRT\SamplePlayer.Win81\*.xaml ..\Distribution\App\WinRT\SamplePlayer.Win81\
+copy App\WinRT\SamplePlayer.Win81\*.cs ..\Distribution\App\WinRT\SamplePlayer.Win81\
+copy App\WinRT\SamplePlayer.Win81\SamplePlayer.Win81.csproj ..\Distribution\App\WinRT\SamplePlayer.Win81\
+copy App\WinRT\SamplePlayer.Win81\Assets\*.png ..\Distribution\App\WinRT\SamplePlayer.Win81\Assets\
+copy App\WinRT\SamplePlayer.Win81\Properties\*.cs ..\Distribution\App\WinRT\SamplePlayer.Win81\Properties\
+copy App\WinRT\SamplePlayer.Win81\SamplePlayer.Win81_TemporaryKey.pfx ..\Distribution\App\WinRT\SamplePlayer.Win81\
+copy App\WinRT\SamplePlayer.Win81\Package.appxmanifest ..\Distribution\App\WinRT\SamplePlayer.Win81\
+copy App\WinRT\SamplePlayer.Win81\packages.config ..\Distribution\App\WinRT\SamplePlayer.Win81\
+
+copy App\WinRT\SamplePlayer.WinRT.Shared\*.cs ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\
+copy App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\
+copy App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.shproj ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\
+
+copy App\WinRT\SamplePlayer.WP81\*.xaml ..\Distribution\App\WinRT\SamplePlayer.WP81\
+copy App\WinRT\SamplePlayer.WP81\*.cs ..\Distribution\App\WinRT\SamplePlayer.WP81\
+copy App\WinRT\SamplePlayer.WP81\SamplePlayer.WP81.csproj ..\Distribution\App\WinRT\SamplePlayer.WP81\
+copy App\WinRT\SamplePlayer.WP81\Assets\*.png ..\Distribution\App\WinRT\SamplePlayer.WP81\Assets\
+copy App\WinRT\SamplePlayer.WP81\Properties\*.cs ..\Distribution\App\WinRT\SamplePlayer.WP81\Properties\
+copy App\WinRT\SamplePlayer.WP81\Package.appxmanifest ..\Distribution\App\WinRT\SamplePlayer.WP81\
+copy App\WinRT\SamplePlayer.WP81\app.config ..\Distribution\App\WinRT\SamplePlayer.WP81\
+copy App\WinRT\SamplePlayer.WP81\packages.config ..\Distribution\App\WinRT\SamplePlayer.WP81\
 
 copy App\Silverlight\HlsView.Silverlight\*.xaml ..\Distribution\App\Silverlight\HlsView.Silverlight\
 copy App\Silverlight\HlsView.Silverlight\*.cs ..\Distribution\App\Silverlight\HlsView.Silverlight\

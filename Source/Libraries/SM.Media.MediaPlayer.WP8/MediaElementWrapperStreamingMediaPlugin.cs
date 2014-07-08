@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="StreamingMediaPlugin.cs" company="Henric Jungheim">
+//  <copyright file="MediaElementWrapperStreamingMediaPlugin.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -44,7 +44,12 @@ namespace SM.Media.MediaPlayer
             get
             {
                 if (null == _httpClients)
-                    _httpClients = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
+                {
+                    _httpClients = new HttpClientsParameters
+                                   {
+                                       UserAgent = ApplicationInformation.CreateUserAgent()
+                                   };
+                }
 
                 return _httpClients;
             }

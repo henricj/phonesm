@@ -552,7 +552,7 @@ namespace SM.Media.Hls
 
         void SetDynamicStartIndex(IList<ISegment> segments, int notBefore)
         {
-            if (notBefore < -1)
+            if (notBefore < -1 || notBefore > segments.Count - 2)
                 notBefore = -1;
 
             _dynamicStartIndex = notBefore;
@@ -570,7 +570,7 @@ namespace SM.Media.Hls
 
                 if (duration <= TimeSpan.Zero)
                 {
-                    _dynamicStartIndex = i;
+                    _dynamicStartIndex = Math.Min(i, segments.Count - 2);
 
                     break;
                 }

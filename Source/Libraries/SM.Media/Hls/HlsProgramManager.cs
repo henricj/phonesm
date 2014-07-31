@@ -138,7 +138,10 @@ namespace SM.Media.Hls
             foreach (var p in parser.Playlist)
             {
                 if (null == p.Tags || p.Tags.Length < 1)
+                {
+                    hasSegments = true;
                     continue;
+                }
 
                 var streamInf = M3U8Tags.ExtXStreamInf.Find(p.Tags);
 

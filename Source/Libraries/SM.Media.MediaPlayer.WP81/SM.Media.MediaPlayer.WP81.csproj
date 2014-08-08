@@ -90,7 +90,7 @@
     <Otherwise>
       <ItemGroup>
         <Reference Include="SM.Media.Platform.WinRT">
-          <HintPath>..\..\bin\$(Configuration)\WinRT\$(Platform)\SM.Media.Platform.WinRT.dll</HintPath>
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.Platform.WinRT.dll</HintPath>
           <Private>False</Private>
         </Reference>
       </ItemGroup>

@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Diagnostics;
 using System.Windows;
 using Microsoft.PlayerFramework;
@@ -43,6 +44,7 @@ namespace SM.Media.MediaPlayer
         {
             get
             {
+                
                 if (null == _httpClients)
                 {
                     _httpClients = new HttpClientsParameters

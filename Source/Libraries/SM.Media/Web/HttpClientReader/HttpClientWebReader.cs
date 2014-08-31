@@ -141,7 +141,9 @@ namespace SM.Media.Web.HttpClientReader
                 webResponse.RequestUri = response.RequestMessage.RequestUri;
                 webResponse.ContentLength = response.Content.Headers.ContentLength;
                 webResponse.Headers = response.Headers.Concat(response.Content.Headers);
-                webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+
+
+                webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
             }
 
             if (url != BaseAddress)
@@ -150,7 +152,7 @@ namespace SM.Media.Web.HttpClientReader
             RequestUri = response.RequestMessage.RequestUri;
 
             if (null == ContentType)
-                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
         }
 
         public override string ToString()

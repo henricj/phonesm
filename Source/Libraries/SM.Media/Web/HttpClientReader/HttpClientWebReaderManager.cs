@@ -111,7 +111,7 @@ namespace SM.Media.Web.HttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -133,7 +133,7 @@ namespace SM.Media.Web.HttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -155,7 +155,7 @@ namespace SM.Media.Web.HttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {

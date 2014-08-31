@@ -528,6 +528,9 @@
     <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebStreamResponse.cs">
       <Link>Web\HttpClientReader\HttpClientWebStreamResponse.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpContentExtensions.cs">
+      <Link>Web\HttpClientReader\HttpContentExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpClientReader\IHttpClients.cs">
       <Link>Web\HttpClientReader\IHttpClients.cs</Link>
     </Compile>

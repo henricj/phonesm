@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.IO;
 
 namespace SM.Media.Web
 {
@@ -69,6 +70,33 @@ namespace SM.Media.Web
                 return null;
 
             return path.Substring(lastPeriod);
+        }
+
+        /// <summary>
+        ///     Get the file extension, including the period, of the URL's local path.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns>Extension or null</returns>
+        public static string GetExtension(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return null;
+
+#if SM_MEDIA_LEGACY
+            var lastPeriod = path.LastIndexOf('.');
+
+            if (lastPeriod <= 0 || lastPeriod + 1 == path.Length)
+                return null;
+
+            var lastSlash = path.LastIndexOfAny(Slashes);
+
+            if (lastSlash >= lastPeriod)
+                return null;
+
+            return path.Substring(lastPeriod);
+#else
+            return Path.GetExtension(path);
+#endif
         }
     }
 }

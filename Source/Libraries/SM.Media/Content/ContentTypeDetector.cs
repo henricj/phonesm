@@ -34,7 +34,7 @@ namespace SM.Media.Content
 {
     public interface IContentTypeDetector
     {
-        ICollection<ContentType> GetContentType(Uri url, string mimeType = null);
+        ICollection<ContentType> GetContentType(Uri url, string mimeType = null, string fileName = null);
     }
 
     public class ContentTypeDetector : IContentTypeDetector
@@ -53,26 +53,26 @@ namespace SM.Media.Content
 
             ExtensionLookup = ContentTypes
                 .SelectMany(ct => ct.FileExts, (ct, ext) => new
-                                                            {
-                                                                ext,
-                                                                ContentType = ct
-                                                            })
+                {
+                    ext,
+                    ContentType = ct
+                })
                 .ToLookup(arg => arg.ext, x => x.ContentType, StringComparer.OrdinalIgnoreCase);
 
             var mimeTypes = ContentTypes
                 .Select(ct => new
-                              {
-                                  ct.MimeType,
-                                  ContentType = ct
-                              });
+                {
+                    ct.MimeType,
+                    ContentType = ct
+                });
 
             var alternateMimeTypes = ContentTypes
                 .Where(ct => null != ct.AlternateMimeTypes)
                 .SelectMany(ct => ct.AlternateMimeTypes, (ct, mime) => new
-                                                                       {
-                                                                           MimeType = mime,
-                                                                           ContentType = ct
-                                                                       });
+                {
+                    MimeType = mime,
+                    ContentType = ct
+                });
 
             MimeLookup = alternateMimeTypes
                 .Union(mimeTypes)
@@ -81,20 +81,30 @@ namespace SM.Media.Content
 
         #region IContentTypeDetector Members
 
-        public virtual ICollection<ContentType> GetContentType(Uri url, string mimeType = null)
+        public virtual ICollection<ContentType> GetContentType(Uri url, string mimeType = null, string fileName = null)
         {
             if (null == url)
                 throw new ArgumentNullException("url");
 
-            var contentType = GetContentTypeByUrl(url);
+            var contentTypes = GetContentTypeByUrl(url);
 
-            if (null != contentType && contentType.Any())
-                return contentType;
+            if (null != contentTypes && contentTypes.Any())
+                return contentTypes;
 
-            if (null == mimeType)
+            if (null != mimeType)
+            {
+                contentTypes = GetContentTypeByContentHeaders(mimeType);
+
+                if (null != contentTypes)
+                    return contentTypes;
+            }
+
+            if (string.IsNullOrWhiteSpace(fileName))
                 return NoContent;
 
-            return GetContentTypeByContentHeaders(mimeType) ?? NoContent;
+            contentTypes = GetContentTypeByFileName(fileName);
+
+            return contentTypes ?? NoContent;
         }
 
         #endregion
@@ -116,11 +126,21 @@ namespace SM.Media.Content
 
             return MimeLookup[mimeType].ToArray();
         }
+
+        protected virtual ICollection<ContentType> GetContentTypeByFileName(string filename)
+        {
+            if (string.IsNullOrWhiteSpace(filename))
+                return null;
+
+            var ext = UriExtensions.GetExtension(filename);
+
+            return ExtensionLookup[ext].ToArray();
+        }
     }
 
     public static class ContentTypeDetectorExtensions
     {
-        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaders headers)
+        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaders headers, string fileName)
         {
             var mimeType = default(string);
 
@@ -128,7 +148,7 @@ namespace SM.Media.Content
             if (null != contentTypeHeader)
                 mimeType = contentTypeHeader.MediaType;
 
-            return contentTypeDetector.GetContentType(url, mimeType);
+            return contentTypeDetector.GetContentType(url, mimeType, fileName);
         }
     }
 }

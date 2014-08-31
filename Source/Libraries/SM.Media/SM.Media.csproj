@@ -289,6 +289,7 @@
     <Compile Include="Web\HttpClientReader\HttpClientsParameters.cs" />
     <Compile Include="Web\HttpClientReader\HttpClientWebStreamResponse.cs" />
     <Compile Include="Web\HttpClientReader\HttpClientWebReader.cs" />
+    <Compile Include="Web\HttpClientReader\HttpContentExtensions.cs" />
     <Compile Include="Web\WebRequestReader\HttpWebRequestExtensions.cs" />
     <Compile Include="Web\WebRequestReader\HttpWebRequestsBase.cs" />
     <Compile Include="Web\WebRequestReader\HttpWebRequestWebCache.cs" />

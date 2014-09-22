@@ -42,31 +42,60 @@ namespace HlsView
         {
             new MediaTrack
             {
-                Title = "NASA TV",
-                Url = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+                Title = "Test",
+                Url = new Uri("http://149.255.39.122/aasd/8775/index.m3u8")
             },
-            new MediaTrack
-            {
-                Title = "NPR",
-                Url = new Uri("http://www.npr.org/streams/mp3/nprlive24.pls")
-            },
-            new MediaTrack
-            {
-                Title = "Bjarne Stroustrup - The Essence of C++",
-                Url = new Uri("http://media.ch9.ms/ch9/ca9a/66ac2da7-efca-4e13-a494-62843281ca9a/GN13BjarneStroustrup.mp3"),
-                UseNativePlayer = true
-            },
+            //new MediaTrack
+            //{
+            //    Title = "Test",
+            //    Url = new Uri("http://pl.youku.com/playlist/m3u8?ts=1404371407&keyframe=0&vid=XNzMyMzkxMjQw&type=hd2")
+            //},
+            //new MediaTrack
+            //{
+            //    Title = "Necroman All",
+            //    Url = new Uri("http://sark.int.henric.info/necroman/d961795f824b3769_all.m3u8")
+            //},
+            //new MediaTrack
+            //{
+            //    Title = "Duck",
+            //    Url = new Uri("http://sark.int.henric.info/appleAd/ad.m3u8")
+            //    //Url = new Uri("http://sark.int.henric.info/appleAd/main1.m3u8")
+            //},
+            //new MediaTrack
+            //{
+            //    Title = "Duck",
+            //    Url = new Uri("http://devimages.apple.com/samplecode/adDemo/ad.m3u8")
+            //},
+            //new MediaTrack
+            //{
+            //    Title = "NASA TV",
+            //    Url = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+            //},
+            //new MediaTrack
+            //{
+            //    Title = "NPR",
+            //    Url = new Uri("http://www.npr.org/streams/mp3/nprlive24.pls")
+            //},
+            //new MediaTrack
+            //{
+            //    Title = "Bjarne Stroustrup - The Essence of C++",
+            //    Url = new Uri("http://media.ch9.ms/ch9/ca9a/66ac2da7-efca-4e13-a494-62843281ca9a/GN13BjarneStroustrup.mp3"),
+            //    UseNativePlayer = true
+            //},
             new MediaTrack
             {
                 Title = "Apple",
                 Url = new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
             },
-            null,
-            new MediaTrack
-            {
-                Title = "Apple 16x9",
-                Url = new Uri("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8")
-            }
+            //null,
+            //new MediaTrack
+            //{
+            //    Title = "Sark Bipbop",
+            //    //Url = new Uri("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8")
+            //    Url = new Uri("http://sark.int.henric.info/Sample/bipbopall.m3u8")
+            //    //Url = new Uri("http://sark.int.henric.info//Sample2/gear5/main.ts")
+            //    //Url = new Uri("http://sark.int.henric.info/nosuchfile.m3u8")
+            //}
         };
 
         public static IList<MediaTrack> Tracks

@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="WinRtHttpContentExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,38 +24,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Windows.Web.Http.Filters;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.WinRtHttpClientReader;
+using Windows.Web.Http;
 
-namespace SM.Media
+namespace SM.Media.WinRtHttpClientReader
 {
-    public class TsMediaModule : Module
+    public static class WinRtHttpContentExtensions
     {
-        public static bool UseNativeHttpClient = false;
-
-        protected override void Load(ContainerBuilder builder)
+        public static string FileName(this IHttpContent httpContent)
         {
-            builder.RegisterType<WinRtMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerLifetimeScope();
+            if (null == httpContent)
+                return null;
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+            var contentDisposition = httpContent.Headers.ContentDisposition;
 
-            if (!UseNativeHttpClient)
-                return;
+            if (null == contentDisposition)
+                return null;
 
-            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
+            return contentDisposition.FileName;
         }
     }
 }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="WinRtHttpClientsParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,38 +24,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Windows.Web.Http.Filters;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.WinRtHttpClientReader;
+using System;
+using Windows.Security.Credentials;
+using Windows.Web.Http.Headers;
 
-namespace SM.Media
+namespace SM.Media.WinRtHttpClientReader
 {
-    public class TsMediaModule : Module
+    public interface IWinRtHttpClientsParameters
     {
-        public static bool UseNativeHttpClient = false;
+        Uri Referrer { get; }
+        HttpProductInfoHeaderValue UserAgent { get; }
+        PasswordCredential Credentials { get; }
+    }
 
-        protected override void Load(ContainerBuilder builder)
-        {
-            builder.RegisterType<WinRtMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerLifetimeScope();
+    public class WinRtHttpClientsParameters : IWinRtHttpClientsParameters
+    {
+        #region IWinRtHttpClientsParameters Members
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+        public Uri Referrer { get; set; }
+        public HttpProductInfoHeaderValue UserAgent { get; set; }
+        public PasswordCredential Credentials { get; set; }
 
-            if (!UseNativeHttpClient)
-                return;
-
-            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
-        }
+        #endregion
     }
 }

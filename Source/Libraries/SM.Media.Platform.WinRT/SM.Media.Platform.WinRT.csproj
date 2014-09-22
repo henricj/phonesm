@@ -32,6 +32,17 @@
     <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFacadeParameters.cs">
       <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>
+    <Compile Include="WinRtHttpClientReader\WinRtContentTypeDetectorExtensions.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientExtensions.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClients.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientsExtensions.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientsParameters.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientWebCache.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientWebReader.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientWebReaderManager.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpClientWebStreamResponse.cs" />
+    <Compile Include="WinRtHttpClientReader\WinRtHttpContentExtensions.cs" />
+    <Compile Include="WinRtHttpClientReader\IWinRtHttpClients.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="TsMediaModule.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />

@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="WinRtHttpClientExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,38 +24,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Windows.Web.Http.Filters;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.WinRtHttpClientReader;
+using System;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
+using Windows.Web.Http;
 
-namespace SM.Media
+namespace SM.Media.WinRtHttpClientReader
 {
-    public class TsMediaModule : Module
+    public static class WinRtHttpClientExtensions
     {
-        public static bool UseNativeHttpClient = false;
-
-        protected override void Load(ContainerBuilder builder)
+        public static async Task<HttpResponseMessage> SendAsync(this HttpClient httpClient, HttpRequestMessage request,
+            HttpCompletionOption completionOption, CancellationToken cancellationToken,
+            Uri referrer, long? fromBytes, long? toBytes)
         {
-            builder.RegisterType<WinRtMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerLifetimeScope();
+            if (null != referrer)
+                request.Headers.Referer = referrer;
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+            if (null != fromBytes || null != toBytes)
+                request.Headers["Range"] = new RangeHeaderValue(fromBytes, toBytes).ToString();
 
-            if (!UseNativeHttpClient)
-                return;
-
-            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
+            return await httpClient.SendRequestAsync(request, completionOption).AsTask(cancellationToken).ConfigureAwait(false);
         }
     }
 }

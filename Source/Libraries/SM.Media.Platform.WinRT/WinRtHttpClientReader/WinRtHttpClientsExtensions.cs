@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="WinRtHttpClientsExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,38 +24,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Windows.Web.Http.Filters;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.WinRtHttpClientReader;
+using System;
+using System.Net.Http;
 
-namespace SM.Media
+namespace SM.Media.WinRtHttpClientReader
 {
-    public class TsMediaModule : Module
+    public static class WinRtHttpClientsExtensions
     {
-        public static bool UseNativeHttpClient = false;
-
-        protected override void Load(ContainerBuilder builder)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IWinRtHttpClients httpClients)
         {
-            builder.RegisterType<WinRtMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerLifetimeScope();
+            mediaStreamFacade.Builder.RegisterSingleton(httpClients);
+        }
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IWinRtHttpClientsParameters httpClientsParameters)
+        {
+            mediaStreamFacade.Builder.RegisterSingleton(httpClientsParameters);
+        }
 
-            if (!UseNativeHttpClient)
-                return;
-
-            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, Func<HttpClientHandler> httpClientHandler)
+        {
+            mediaStreamFacade.Builder.RegisterTransientFactory(httpClientHandler);
         }
     }
 }

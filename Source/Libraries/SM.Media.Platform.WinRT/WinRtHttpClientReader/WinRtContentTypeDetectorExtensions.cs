@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="WinRtContentTypeDetectorExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,38 +24,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Windows.Web.Http.Filters;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.WinRtHttpClientReader;
+using System;
+using System.Collections.Generic;
+using Windows.Web.Http.Headers;
+using SM.Media.Content;
 
-namespace SM.Media
+namespace SM.Media.WinRtHttpClientReader
 {
-    public class TsMediaModule : Module
+    public static class WinRtContentTypeDetectorExtensions
     {
-        public static bool UseNativeHttpClient = false;
-
-        protected override void Load(ContainerBuilder builder)
+        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaderCollection headers, string fileName)
         {
-            builder.RegisterType<WinRtMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerLifetimeScope();
+            var mimeType = default(string);
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+            var contentTypeHeader = headers.ContentType;
+            if (null != contentTypeHeader)
+                mimeType = contentTypeHeader.MediaType;
 
-            if (!UseNativeHttpClient)
-                return;
-
-            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
+            return contentTypeDetector.GetContentType(url, mimeType, fileName);
         }
     }
 }

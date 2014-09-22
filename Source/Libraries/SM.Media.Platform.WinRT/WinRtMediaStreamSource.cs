@@ -236,10 +236,10 @@ namespace SM.Media
                     break;
                 case AudioFormat.Ac3:
                     var encodingProperties = new AudioEncodingProperties
-                                             {
-                                                 Subtype = "Ac3",
-                                                 SampleRate = (uint)configurationSource.SamplingFrequency
-                                             };
+                    {
+                        Subtype = "Ac3",
+                        SampleRate = (uint)configurationSource.SamplingFrequency
+                    };
 
                     if (configurationSource.Bitrate.HasValue)
                         encodingProperties.Bitrate = (uint)configurationSource.Bitrate.Value;
@@ -338,9 +338,9 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
-            sender.Starting += MediaStreamSourceOnStarting;
-            sender.SampleRequested += MediaStreamSourceOnSampleRequested;
-            sender.Closed += MediaStreamSourceOnClosed;
+            sender.Starting -= MediaStreamSourceOnStarting;
+            sender.SampleRequested -= MediaStreamSourceOnSampleRequested;
+            sender.Closed -= MediaStreamSourceOnClosed;
 
             if (null == _closedTaskCompletionSource)
                 Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() unexpected call to close");
@@ -353,7 +353,10 @@ namespace SM.Media
             var mediaManager = MediaManager;
 
             if (null == mediaManager)
-                throw new InvalidOperationException("MediaManager has not been initialized");
+            {
+                Debug.WriteLine("MediaManager has not been initialized");
+                return;
+            }
 
             mediaManager.CloseMedia();
         }
@@ -542,9 +545,9 @@ namespace SM.Media
                     // Make a copy of the buffer since Sample.Processed doesn't always seem to
                     // get called.
                     var packetBuffer = new Buffer((uint)packet.Length)
-                                       {
-                                           Length = (uint)packet.Length
-                                       };
+                    {
+                        Length = (uint)packet.Length
+                    };
 
                     packet.Buffer.CopyTo(packet.Index, packetBuffer, 0, packet.Length);
 #endif

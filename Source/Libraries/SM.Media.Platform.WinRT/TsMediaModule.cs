@@ -41,6 +41,9 @@ namespace SM.Media
             builder.RegisterType<PlatformServices>()
                 .As<IPlatformServices>()
                 .SingleInstance();
+
+            builder.Register(_ => ApplicationInformationFactory.DefaultTask.Result)
+                .SingleInstance();
         }
     }
 }

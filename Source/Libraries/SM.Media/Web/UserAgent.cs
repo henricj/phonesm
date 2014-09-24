@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="ApplicationInformationExtensions.cs" company="Henric Jungheim">
+//  <copyright file="UserAgent.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,21 +24,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Net.Http.Headers;
 using SM.Media.Utility;
 
 namespace SM.Media.Web
 {
-    public static class ApplicationInformationExtensions
+    public interface IUserAgent
     {
-        public static ProductInfoHeaderValue CreateUserAgent(this IApplicationInformation applicationInformation)
+        string Name { get; }
+        string Version { get; }
+    }
+
+    public class UserAgent : IUserAgent
+    {
+        readonly string _name;
+        readonly string _version;
+
+        public UserAgent(IApplicationInformation applicationInformation)
         {
-            if (null == applicationInformation)
-                return null;
-
-            var userAgent = HttpSettings.Parameters.UserAgentFactory(applicationInformation.Title ?? "Unknown", applicationInformation.Version ?? "0.0");
-
-            return userAgent;
+            _name = applicationInformation.Title ?? "Unknown";
+            _version = applicationInformation.Version ?? "0.0";
         }
+
+        #region IUserAgent Members
+
+        public string Name
+        {
+            get { return _name; }
+        }
+
+        public string Version
+        {
+            get { return _version; }
+        }
+
+        #endregion
     }
 }

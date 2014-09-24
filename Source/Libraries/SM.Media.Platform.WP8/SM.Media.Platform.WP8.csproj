@@ -89,6 +89,7 @@
     <Compile Include="..\SM.Media.Platform.WP7\Utility\SingleThreadSignalTaskScheduler.cs">
       <Link>Utility\SingleThreadSignalTaskScheduler.cs</Link>
     </Compile>
+    <Compile Include="HttpClientModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="TsMediaModule.cs" />

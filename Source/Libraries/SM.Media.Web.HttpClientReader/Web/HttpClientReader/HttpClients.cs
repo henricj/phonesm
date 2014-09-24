@@ -43,15 +43,17 @@ namespace SM.Media.Web.HttpClientReader
         HttpClient _rootPlaylistClient;
         readonly Func<HttpClientHandler> _httpClientHandlerFactory; 
 
-        public HttpClients(IHttpClientsParameters parameters, Func<HttpClientHandler> httpClientHandlerFactory)
+        public HttpClients(IHttpClientsParameters parameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
+            if (null == userAgentFactory)
+                throw new ArgumentNullException("userAgentFactory");
             if (null == httpClientHandlerFactory)
                 throw new ArgumentNullException("httpClientHandlerFactory");
 
             _referrer = parameters.Referrer;
-            _userAgent = parameters.UserAgent;
+            _userAgent = userAgentFactory.Create();
             _credentials = parameters.Credentials;
             _cookieContainer = parameters.CookieContainer;
 

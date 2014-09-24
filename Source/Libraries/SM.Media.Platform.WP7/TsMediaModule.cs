@@ -51,6 +51,8 @@ namespace SM.Media
                 b.InScope(scope);
 
             Bind<IPlatformServices>().To<PlatformServices>().InSingletonScope();
+
+            Bind<IApplicationInformation>().ToMethod(_ => ApplicationInformationFactory.Default).InSingletonScope();
         }
     }
 }

@@ -102,6 +102,7 @@
       <Link>Utility\DispatcherExtensions.cs</Link>
     </Compile>
     <Compile Include="Builder\BuilderBase.cs" />
+    <Compile Include="HttpClientModule.cs" />
     <Compile Include="MediaStreamFacade.cs" />
     <Compile Include="SmMediaModule.cs" />
     <Compile Include="DefaultMediaStreamFacadeParameters.cs" />

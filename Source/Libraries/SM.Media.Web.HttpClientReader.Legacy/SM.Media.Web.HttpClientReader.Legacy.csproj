@@ -52,9 +52,6 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\ApplicationInformationExtensions.cs">
-      <Link>Web\ApplicationInformationExtensions.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientContentTypeDetectorExtensions.cs">
       <Link>Web\HttpClientContentTypeDetectorExtensions.cs</Link>
     </Compile>
@@ -87,6 +84,9 @@
     </Compile>
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\IHttpClients.cs">
       <Link>Web\HttpClientReader\IHttpClients.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\ProductInfoHeaderValueFactory.cs">
+      <Link>Web\HttpClientReader\ProductInfoHeaderValueFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpDefaults.cs">
       <Link>Web\HttpDefaults.cs</Link>

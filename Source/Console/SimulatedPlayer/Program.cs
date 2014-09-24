@@ -29,7 +29,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
 using SM.Media.Utility;
-using SM.Media.Web;
 using SM.Media.Web.HttpClientReader;
 
 namespace SimulatedPlayer
@@ -51,8 +50,7 @@ namespace SimulatedPlayer
             {
                 var hcp = new HttpClientsParameters
                           {
-                              CookieContainer = new CookieContainer(),
-                              UserAgent = HttpSettings.Parameters.UserAgentFactory("SimulatedPlayer", "1.0")
+                              CookieContainer = new CookieContainer()
                           };
 
                 using (var simulator = new Simulator(hcp))

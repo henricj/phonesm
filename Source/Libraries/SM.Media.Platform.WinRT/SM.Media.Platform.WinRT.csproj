@@ -33,6 +33,7 @@
       <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>
     <Compile Include="WinRtHttpClientModule.cs" />
+    <Compile Include="WinRtHttpClientReader\HttpProductInfoHeaderValueFactory.cs" />
     <Compile Include="WinRtHttpClientReader\WinRtContentTypeDetectorExtensions.cs" />
     <Compile Include="WinRtHttpClientReader\WinRtHttpClientExtensions.cs" />
     <Compile Include="WinRtHttpClientReader\WinRtHttpClients.cs" />

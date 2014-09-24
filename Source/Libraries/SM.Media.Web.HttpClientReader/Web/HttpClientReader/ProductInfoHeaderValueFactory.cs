@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="ProductInfoHeaderValueFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,23 +24,51 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
+using System;
+using System.Diagnostics;
+using System.Net.Http.Headers;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpClientReader
 {
-    public class TsMediaModule : Module
+    public interface IProductInfoHeaderValueFactory
     {
-        protected override void Load(ContainerBuilder builder)
-        {
-            builder.RegisterType<TsMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerMatchingLifetimeScope("builder-scope");
+        ProductInfoHeaderValue Create();
+    }
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+    public class ProductInfoHeaderValueFactory : IProductInfoHeaderValueFactory
+    {
+        readonly IUserAgent _userAgent;
+
+        public ProductInfoHeaderValueFactory(IUserAgent userAgent)
+        {
+            if (null == userAgent)
+                throw new ArgumentNullException("userAgent");
+
+            _userAgent = userAgent;
         }
+
+        #region IProductInfoHeaderValueFactory Members
+
+        public ProductInfoHeaderValue Create()
+        {
+            var productName = _userAgent.Name;
+            var productVersion = _userAgent.Version;
+
+            try
+            {
+                var userAgent = new ProductInfoHeaderValue(productName.Replace(' ', '-'), productVersion);
+
+                return userAgent;
+            }
+            catch (FormatException ex)
+            {
+                Debug.WriteLine("HttpDefaults.DefaultUserAgentFactory({0}, {1}) unable to construct ProductInfoHeaderValue: {2}",
+                    productName, productVersion, ex.Message);
+
+                return null;
+            }
+        }
+
+        #endregion
     }
 }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="HttpClientModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,23 +24,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Net.Http;
 using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
+using SM.Media.Web;
+using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media
 {
-    public class TsMediaModule : Module
+    public class HttpClientModule : Module
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<TsMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerMatchingLifetimeScope("builder-scope");
+            builder.RegisterType<HttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
+            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
+            builder.RegisterType<ProductInfoHeaderValueFactory>().As<IProductInfoHeaderValueFactory>().SingleInstance();
+
+            builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();
         }
     }
 }

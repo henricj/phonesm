@@ -26,14 +26,12 @@
 
 using System;
 using System.Net;
-using System.Net.Http.Headers;
 
 namespace SM.Media.Web.HttpClientReader
 {
     public interface IHttpClientsParameters
     {
         Uri Referrer { get; }
-        ProductInfoHeaderValue UserAgent { get; }
         ICredentials Credentials { get; }
         CookieContainer CookieContainer { get; }
     }
@@ -43,7 +41,6 @@ namespace SM.Media.Web.HttpClientReader
         #region IHttpClientsParameters Members
 
         public Uri Referrer { get; set; }
-        public ProductInfoHeaderValue UserAgent { get; set; }
         public ICredentials Credentials { get; set; }
         public CookieContainer CookieContainer { get; set; }
 

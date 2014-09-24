@@ -31,7 +31,7 @@ namespace SM.Media
 {
     sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
     {
-        static readonly INinjectModule[] Modules = { new SmMediaModule(), new TsMediaModule() };
+        static readonly INinjectModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new HttpClientModule() };
 
         public TsMediaManagerBuilder()
             : base(Modules)

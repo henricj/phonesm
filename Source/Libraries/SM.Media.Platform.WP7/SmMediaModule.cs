@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Net.Http;
 using Ninject;
 using Ninject.Activation;
 using Ninject.Modules;
@@ -44,7 +43,6 @@ using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
@@ -74,8 +72,6 @@ namespace SM.Media
             Bind<IBufferPool>().To<BufferPool>().InScope(scope);
             Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
             Bind<Func<IBufferPool>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferPool>());
-
-            Bind<IWebReaderManager>().To<HttpClientWebReaderManager>().InSingletonScope();
 
             Bind<ISegmentManagerFactoryInstance>().To<SimpleSegmentManagerFactory>().InSingletonScope();
             Bind<ISegmentManagerFactoryInstance>().To<HlsPlaylistSegmentManagerFactory>().InSingletonScope();
@@ -116,10 +112,7 @@ namespace SM.Media
 
             Bind<IRetryManager>().To<RetryManager>().InSingletonScope();
 
-            Bind<IHttpClients>().To<HttpClients>().InSingletonScope();
-            Bind<IHttpClientsParameters>().To<HttpClientsParameters>().InSingletonScope();
-
-            Bind<Func<HttpClientHandler>>().ToMethod(ctx => () => ctx.Kernel.Get<HttpClientHandler>());
+            Bind<IUserAgent>().To<UserAgent>().InSingletonScope();
         }
     }
 }

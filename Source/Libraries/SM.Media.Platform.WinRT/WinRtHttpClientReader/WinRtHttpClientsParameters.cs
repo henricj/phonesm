@@ -26,14 +26,12 @@
 
 using System;
 using Windows.Security.Credentials;
-using Windows.Web.Http.Headers;
 
 namespace SM.Media.WinRtHttpClientReader
 {
     public interface IWinRtHttpClientsParameters
     {
         Uri Referrer { get; }
-        HttpProductInfoHeaderValue UserAgent { get; }
         PasswordCredential Credentials { get; }
     }
 
@@ -42,7 +40,6 @@ namespace SM.Media.WinRtHttpClientReader
         #region IWinRtHttpClientsParameters Members
 
         public Uri Referrer { get; set; }
-        public HttpProductInfoHeaderValue UserAgent { get; set; }
         public PasswordCredential Credentials { get; set; }
 
         #endregion

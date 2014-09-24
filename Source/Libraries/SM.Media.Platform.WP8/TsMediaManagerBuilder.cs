@@ -24,17 +24,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using Autofac;
 using Autofac.Core;
 using SM.Media.Builder;
+using SM.Media.Utility;
 
 namespace SM.Media
 {
     public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule() };
+        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new HttpClientModule() };
 
         public TsMediaManagerBuilder()
             : base(Modules)
-        { }
+        {
+            ContainerBuilder.Register(_ => ApplicationInformationFactory.Default).SingleInstance();
+        }
     }
 }

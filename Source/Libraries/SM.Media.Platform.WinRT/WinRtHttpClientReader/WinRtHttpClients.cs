@@ -43,21 +43,23 @@ namespace SM.Media.WinRtHttpClientReader
         int _disposed;
         HttpClient _rootPlaylistClient;
 
-        public WinRtHttpClients(IWinRtHttpClientsParameters parameters, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
+        public WinRtHttpClients(IWinRtHttpClientsParameters parameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
+            if (null == httpProductInfoFactory)
+                throw new ArgumentNullException("httpProductInfoFactory");
             if (null == httpClientHandlerFactory)
                 throw new ArgumentNullException("httpClientHandlerFactory");
 
             _referrer = parameters.Referrer;
-            _userAgent = parameters.UserAgent;
+            _userAgent = httpProductInfoFactory.Create();
             _credentials = parameters.Credentials;
 
             _httpClientHandlerFactory = httpClientHandlerFactory;
         }
 
-        #region IHttpClients Members
+        #region IWinRtHttpClients Members
 
         public void Dispose()
         {

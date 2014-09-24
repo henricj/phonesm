@@ -41,6 +41,8 @@ namespace SM.Media
             builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
 
             builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
+
+            builder.RegisterType<HttpProductInfoHeaderValueFactory>().As<IHttpProductInfoHeaderValueFactory>().SingleInstance();
         }
     }
 }

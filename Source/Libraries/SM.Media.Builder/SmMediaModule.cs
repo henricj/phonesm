@@ -38,6 +38,7 @@ using SM.Media.Pes;
 using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
+using SM.Media.Web;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
@@ -97,6 +98,8 @@ namespace SM.Media
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();
 
             builder.RegisterType<RetryManager>().As<IRetryManager>().SingleInstance();
+
+            builder.RegisterType<UserAgent>().As<IUserAgent>().SingleInstance();
         }
     }
 }

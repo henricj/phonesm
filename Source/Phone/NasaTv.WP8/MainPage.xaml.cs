@@ -35,9 +35,6 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using NasaTv;
 using SM.Media;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace NasaTv8
 {
@@ -61,16 +58,12 @@ namespace NasaTv8
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
 
-        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        readonly HttpClientsParameters _httpClientsParameters;
         readonly PersistentSettings _settings = new PersistentSettings();
         IMediaStreamFacade _mediaStreamFacade;
 
         public MainPage()
         {
             InitializeComponent();
-
-            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
@@ -177,8 +170,6 @@ namespace NasaTv8
                 return;
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
@@ -287,17 +278,17 @@ namespace NasaTv8
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
-                                   {
-                                       var message = tsMediaManagerStateEventArgs.Message;
+            {
+                var message = tsMediaManagerStateEventArgs.Message;
 
-                                       if (!string.IsNullOrWhiteSpace(message))
-                                       {
-                                           errorBox.Text = message;
-                                           errorBox.Visibility = Visibility.Visible;
-                                       }
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    errorBox.Text = message;
+                    errorBox.Visibility = Visibility.Visible;
+                }
 
-                                       UpdateState();
-                                   });
+                UpdateState();
+            });
         }
 
         void UpdateState()

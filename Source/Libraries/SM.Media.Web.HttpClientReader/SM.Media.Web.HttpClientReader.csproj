@@ -55,7 +55,6 @@
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Web\ApplicationInformationExtensions.cs" />
     <Compile Include="Web\HttpClientContentTypeDetectorExtensions.cs" />
     <Compile Include="Web\HttpClientReader\HttpClientExtensions.cs" />
     <Compile Include="Web\HttpClientReader\HttpClients.cs" />
@@ -67,6 +66,7 @@
     <Compile Include="Web\HttpClientReader\HttpClientWebStreamResponse.cs" />
     <Compile Include="Web\HttpClientReader\HttpContentExtensions.cs" />
     <Compile Include="Web\HttpClientReader\IHttpClients.cs" />
+    <Compile Include="Web\HttpClientReader\ProductInfoHeaderValueFactory.cs" />
     <Compile Include="Web\HttpDefaults.cs" />
     <Compile Include="Web\HttpParameters.cs" />
     <Compile Include="Web\HttpSettings.cs" />

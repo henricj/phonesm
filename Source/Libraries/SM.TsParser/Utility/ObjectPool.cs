@@ -38,6 +38,9 @@ namespace SM.TsParser.Utility
         int _allocations;
         int _deallocations;
         int _objectsCreated;
+#if DEBUG
+        readonly List<T> _allocationTracker = new List<T>(); 
+#endif
 #endif
 
         public T Allocate()
@@ -60,7 +63,16 @@ namespace SM.TsParser.Utility
 #endif
             }
 
-            return new T();
+            var t = new T();
+
+#if OBJECT_POOL_STATISTICS && DEBUG
+            lock (_pool)
+            {
+                _allocationTracker.Add(t);
+            }
+#endif
+
+            return t;
         }
 
         public void Free(T poolObject)
@@ -71,6 +83,8 @@ namespace SM.TsParser.Utility
 
 #if OBJECT_POOL_STATISTICS
                 ++_deallocations;
+                Debug.Assert(_deallocations <= _allocations,
+                    string.Format("ObjectPool.Free() more deallocations than allocations ({0} > {1})", _deallocations, _allocations));
 #endif
             }
         }

@@ -24,54 +24,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Diagnostics;
 using System.Windows;
 using Microsoft.PlayerFramework;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.MediaPlayer
 {
     public class MediaElementWrapperStreamingMediaPlugin : IMediaPlugin
     {
-        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-        IHttpClientsParameters _httpClients;
         MediaElementWrapper _mediaElement;
-
-        IHttpClientsParameters HttpClients
-        {
-            get
-            {
-                
-                if (null == _httpClients)
-                {
-                    _httpClients = new HttpClientsParameters
-                                   {
-                                       UserAgent = ApplicationInformation.CreateUserAgent()
-                                   };
-                }
-
-                return _httpClients;
-            }
-        }
 
         #region IMediaPlugin Members
 
-        public void Load()
+        public virtual void Load()
         {
             Debug.WriteLine("StreamingMediaPlugin.Load()");
 
             MediaPlayer.MediaClosed += MediaPlayer_MediaClosed;
         }
 
-        public void Update(IMediaSource mediaSource)
+        public virtual void Update(IMediaSource mediaSource)
         {
             Debug.WriteLine("MediaElementWrapperStreamingMediaPlugin.Update()");
         }
 
-        public void Unload()
+        public virtual void Unload()
         {
             Debug.WriteLine("MediaElementWrapperStreamingMediaPlugin.Unload()");
 
@@ -96,14 +73,17 @@ namespace SM.Media.MediaPlayer
                 if (null != _mediaElement)
                     return _mediaElement;
 
-                var mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-                mediaStreamFacade.SetParameter(HttpClients);
+                var mediaStreamFacade = CreateMediaStreamFacade();
 
                 _mediaElement = new MediaElementWrapper(mediaStreamFacade);
 
                 return _mediaElement;
             }
+        }
+
+        protected virtual IMediaStreamFacade CreateMediaStreamFacade()
+        {
+            return MediaStreamFacadeSettings.Parameters.Create();
         }
 
         #endregion

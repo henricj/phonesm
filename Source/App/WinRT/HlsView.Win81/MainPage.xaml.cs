@@ -40,16 +40,12 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using SM.Media;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace HlsView
 {
     public partial class MainPage : Page
     {
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
-        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.DefaultTask.Result;
-        readonly IHttpClientsParameters _httpClientsParameters;
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
@@ -75,14 +71,10 @@ namespace HlsView
         {
             InitializeComponent();
 
-            var userAgent = ApplicationInformation.CreateUserAgent();
-
-            _httpClientsParameters = new HttpClientsParameters { UserAgent = userAgent };
-
             _positionSampler = new DispatcherTimer
-                               {
-                                   Interval = TimeSpan.FromMilliseconds(75)
-                               };
+            {
+                Interval = TimeSpan.FromMilliseconds(75)
+            };
             _positionSampler.Tick += OnPositionSamplerOnTick;
 
             Unloaded += (sender, args) => OnUnload();
@@ -91,25 +83,26 @@ namespace HlsView
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
-                           {
-                               GC.Collect();
-                               GC.WaitForPendingFinalizers();
-                               GC.Collect();
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
 
-                               var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               if (++_track >= _tracks.Count)
-                                   _track = 0;
+                if (++_track >= _tracks.Count)
+                    _track = 0;
 
-                               UpdateNextPrev();
+                UpdateNextPrev();
 
-                               PlayCurrentTrackAsync();
+                var task = PlayCurrentTrackAsync();
+                TaskCollector.Default.Add(task, "MainPage PlayCurrentTrackAsync");
 
-                               var track = CurrentTrack;
+                var track = CurrentTrack;
 
-                               Debug.WriteLine("Switching to {0} (track {1} GC {2:F3} MiB)",
-                                   null == track ? "<none>" : track.Url.ToString(), _track, gcMemory);
-                           };
+                Debug.WriteLine("Switching to {0} (track {1} GC {2:F3} MiB)",
+                    null == track ? "<none>" : track.Url.ToString(), _track, gcMemory);
+            };
 
             _timer.Interval = TimeSpan.FromSeconds(15);
 
@@ -403,8 +396,6 @@ namespace HlsView
                 return;
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

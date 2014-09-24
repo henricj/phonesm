@@ -28,7 +28,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
@@ -112,7 +111,7 @@ namespace SM.Media.Segments
                         var validLength = IsLengthValid();
 
                         if (!validLength)
-                            throw new HttpRequestException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
+                            throw new WebException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
 
                         IsEof = true;
 

@@ -165,6 +165,10 @@
       <Project>{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}</Project>
       <Name>SM.Media.Platform.WP8</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
+      <Project>{2937062B-8451-496C-9207-8A7FE59933CF}</Project>
+      <Name>SM.Media.Web.HttpClientReader</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Libraries\SM.Media\SM.Media.csproj">
       <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
       <Name>SM.Media</Name>

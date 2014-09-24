@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,8 +41,6 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Info;
 using SM.Media;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace HlsView
 {
@@ -49,14 +48,14 @@ namespace HlsView
     {
 #if STREAM_SWITCHING
         readonly DispatcherTimer _timer;
+        readonly RandomNumberGenerator _rng = new RNGCryptoServiceProvider();
+        readonly byte[] _rngByte = new byte[1];
 #endif
 
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
-        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
-        readonly IHttpClientsParameters _httpClientsParameters;
         int _track;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
 
@@ -65,44 +64,45 @@ namespace HlsView
         {
             InitializeComponent();
 
-            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
-
             _positionSampler = new DispatcherTimer
-                               {
-                                   Interval = TimeSpan.FromMilliseconds(75)
-                               };
+            {
+                Interval = TimeSpan.FromMilliseconds(75)
+            };
             _positionSampler.Tick += OnPositionSamplerOnTick;
 
 #if STREAM_SWITCHING
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
-                           {
-                               GC.Collect();
-                               GC.WaitForPendingFinalizers();
-                               GC.Collect();
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
 
-                               var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               _track = (int)(_tracks.Count * GlobalPlatformServices.Default.GetRandomNumber());
+                if (++_track >= _tracks.Count)
+                    _track = 0;
 
-                               var task = PlayCurrentTrackAsync();
-                               TaskCollector.Default.Add(task, "MainPage Timer PlayCurrentTrackAsync");
+                var task = PlayCurrentTrackAsync();
+                TaskCollector.Default.Add(task, "MainPage Timer PlayCurrentTrackAsync");
 
-                               var track = CurrentTrack;
+                var track = CurrentTrack;
 
-                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)",
-                                   null == track ? "<none>" : track.Url.ToString(), gcMemory,
-                                   DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)",
+                    null == track ? "<none>" : track.Url.ToString(), gcMemory,
+                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
+                _rng.GetBytes(_rngByte);
 
-                               Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
+                var interval = TimeSpan.FromSeconds(17 + (_rngByte[0] & 31));
 
-                               _timer.Interval = interval;
-                           };
+                Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
+
+                _timer.Interval = interval;
+            };
 
             _timer.Interval = TimeSpan.FromSeconds(25);
 
@@ -301,8 +301,6 @@ namespace HlsView
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClientsParameters);
-
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
@@ -335,17 +333,17 @@ namespace HlsView
         void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
-                                   {
-                                       var message = tsMediaManagerStateEventArgs.Message;
+            {
+                var message = tsMediaManagerStateEventArgs.Message;
 
-                                       if (!string.IsNullOrWhiteSpace(message))
-                                       {
-                                           errorBox.Text = message;
-                                           errorBox.Visibility = Visibility.Visible;
-                                       }
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    errorBox.Text = message;
+                    errorBox.Visibility = Visibility.Visible;
+                }
 
-                                       mediaElement1_CurrentStateChanged(null, null);
-                                   });
+                mediaElement1_CurrentStateChanged(null, null);
+            });
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)

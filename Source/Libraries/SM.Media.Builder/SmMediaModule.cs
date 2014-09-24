@@ -24,7 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Net.Http;
 using Autofac;
 using SM.Media.AAC;
 using SM.Media.Ac3;
@@ -39,8 +38,6 @@ using SM.Media.Pes;
 using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
@@ -61,8 +58,6 @@ namespace SM.Media
             builder.RegisterType<TsPesPacketPool>().As<ITsPesPacketPool>().SingleInstance();
             builder.RegisterType<BufferPool>().As<IBufferPool>().SingleInstance();
             builder.RegisterType<DefaultBufferPoolParameters>().As<IBufferPoolParameters>().SingleInstance();
-
-            builder.RegisterType<HttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 
             builder.RegisterType<SimpleSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<HlsPlaylistSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
@@ -102,11 +97,6 @@ namespace SM.Media
             builder.RegisterType<BufferingManager>().As<IBufferingManager>();
 
             builder.RegisterType<RetryManager>().As<IRetryManager>().SingleInstance();
-
-            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
-            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();
         }
     }
 }

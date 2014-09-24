@@ -33,8 +33,6 @@ using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 using SM.TsParser;
 
 namespace SM.Media.BackgroundAudioStreamingAgent
@@ -45,36 +43,32 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     public sealed class AudioTrackStreamer : AudioStreamingAgent, IDisposable
     {
         readonly IBufferingPolicy _bufferingPolicy;
-        readonly IHttpClientsParameters _httpClientsParameters;
         readonly IMediaManagerParameters _mediaManagerParameters;
         IMediaStreamFacade _mediaStreamFacade;
-        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
         readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         int _isDisposed;
 
         public AudioTrackStreamer()
         {
-            _httpClientsParameters = new HttpClientsParameters { UserAgent = ApplicationInformation.CreateUserAgent() };
-
             _mediaManagerParameters = new MediaManagerParameters
-                                      {
-                                          ProgramStreamsHandler =
-                                              streams =>
-                                              {
-                                                  var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
+            {
+                ProgramStreamsHandler =
+                    streams =>
+                    {
+                        var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
 
-                                                  var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
-                                                  foreach (
-                                                      var programStream in others)
-                                                      programStream.BlockStream = true;
-                                              }
-                                      };
+                        var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
+                        foreach (
+                            var programStream in others)
+                            programStream.BlockStream = true;
+                    }
+            };
 
             _bufferingPolicy = new DefaultBufferingPolicy
-                               {
-                                   BytesMinimumStarting = 24 * 1024,
-                                   BytesMinimum = 64 * 1024
-                               };
+            {
+                BytesMinimumStarting = 24 * 1024,
+                BytesMinimum = 64 * 1024
+            };
         }
 
 #if DEBUG
@@ -157,8 +151,6 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 return;
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-            _mediaStreamFacade.SetParameter(_httpClientsParameters);
 
             _mediaStreamFacade.SetParameter(_bufferingPolicy);
 

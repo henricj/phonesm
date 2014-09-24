@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="WinRtHttpClientModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Net.Http;
+using Windows.Web.Http.Filters;
 using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
 using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
+using SM.Media.WinRtHttpClientReader;
 
 namespace SM.Media
 {
-    public class TsMediaModule : Module
+    public class WinRtHttpClientModule : Module
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<TsMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerMatchingLifetimeScope("builder-scope");
+            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
+            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
 
-            builder.RegisterType<HttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
-            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();
+            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
         }
     }
 }

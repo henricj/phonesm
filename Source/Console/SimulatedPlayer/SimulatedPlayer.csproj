@@ -79,6 +79,10 @@
       <Project>{d8d466d7-46e7-4b4a-8a5e-ee2ecf4411d2}</Project>
       <Name>SM.Media.Platform.Desktop</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
+      <Project>{2937062B-8451-496C-9207-8A7FE59933CF}</Project>
+      <Name>SM.Media.Web.HttpClientReader</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Libraries\SM.Media\SM.Media.csproj">
       <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
       <Name>SM.Media</Name>

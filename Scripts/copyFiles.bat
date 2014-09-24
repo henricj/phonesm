@@ -2,19 +2,27 @@ pushd "%~dp0..\Source\"
 
 copy Libraries\SM.Media\bin\Debug\SM.Media.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Debug\SM.Media.pdb ..\Distribution\bin\Debug\
+copy Libraries\SM.Media.Web.HttpClientReader\bin\Debug\SM.Media.Web.HttpClientReader.dll ..\Distribution\bin\Debug\
+copy Libraries\SM.Media.Web.HttpClientReader\bin\Debug\SM.Media.Web.HttpClientReader.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.TsParser\bin\Debug\SM.TsParser.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.TsParser\bin\Debug\SM.TsParser.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Release\SM.Media.dll ..\Distribution\bin\Release\
 copy Libraries\SM.Media\bin\Release\SM.Media.pdb ..\Distribution\bin\Release\
+copy Libraries\SM.Media.Web.HttpClientReader\bin\Release\SM.Media.Web.HttpClientReader.dll ..\Distribution\bin\Release\
+copy Libraries\SM.Media.Web.HttpClientReader\bin\Release\SM.Media.Web.HttpClientReader.pdb ..\Distribution\bin\Release\
 copy Libraries\SM.TsParser\bin\Release\SM.TsParser.dll ..\Distribution\bin\Release\
 copy Libraries\SM.TsParser\bin\Release\SM.TsParser.pdb ..\Distribution\bin\Release\
 
 copy Libraries\SM.Media.Legacy\bin\Debug\SM.Media.Legacy.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Legacy\bin\Debug\SM.Media.Legacy.pdb ..\Distribution\bin\Debug\
+copy Libraries\SM.Media.Web.HttpClientReader.Legacy\bin\Debug\SM.Media.Web.HttpClientReader.Legacy.dll ..\Distribution\bin\Debug\
+copy Libraries\SM.Media.Web.HttpClientReader.Legacy\bin\Debug\SM.Media.Web.HttpClientReader.Legacy.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.TsParser.Legacy\bin\Debug\SM.TsParser.Legacy.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.TsParser.Legacy\bin\Debug\SM.TsParser.Legacy.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Legacy\bin\Release\SM.Media.Legacy.dll ..\Distribution\bin\Release\
 copy Libraries\SM.Media.Legacy\bin\Release\SM.Media.Legacy.pdb ..\Distribution\bin\Release\
+copy Libraries\SM.Media.Web.HttpClientReader.Legacy\bin\Release\SM.Media.Web.HttpClientReader.Legacy.dll ..\Distribution\bin\Release\
+copy Libraries\SM.Media.Web.HttpClientReader.Legacy\bin\Release\SM.Media.Web.HttpClientReader.Legacy.pdb ..\Distribution\bin\Release\
 copy Libraries\SM.TsParser.Legacy\bin\Release\SM.TsParser.Legacy.dll ..\Distribution\bin\Release\
 copy Libraries\SM.TsParser.Legacy\bin\Release\SM.TsParser.Legacy.pdb ..\Distribution\bin\Release\
 

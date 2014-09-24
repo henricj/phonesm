@@ -169,6 +169,10 @@
       <Project>{89D3F028-F32F-4113-A711-29E4FE9AC877}</Project>
       <Name>SM.Media.Platform.WP7</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader.Legacy\SM.Media.Web.HttpClientReader.Legacy.csproj">
+      <Project>{CB4A4A72-07F8-4FB0-AE57-D754BD79B8A3}</Project>
+      <Name>SM.Media.Web.HttpClientReader.Legacy</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
       <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
       <Name>SM.TsParser.Legacy</Name>

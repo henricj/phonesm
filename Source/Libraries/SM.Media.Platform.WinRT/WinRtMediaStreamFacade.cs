@@ -38,8 +38,8 @@ namespace SM.Media
 
     public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
     {
-        public MediaStreamFacade()
-            : base(CreateBuilder())
+        public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
+            : base(builder ?? new TsMediaManagerBuilder())
         { }
 
         #region IMediaStreamFacade Members
@@ -76,12 +76,5 @@ namespace SM.Media
         }
 
         #endregion
-
-        static IBuilder<IMediaManager> CreateBuilder()
-        {
-            var builder = new TsMediaManagerBuilder();
-
-            return builder;
-        }
     }
 }

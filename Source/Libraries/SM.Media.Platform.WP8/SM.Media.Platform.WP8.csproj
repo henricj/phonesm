@@ -100,6 +100,10 @@
       <Name>SM.Media.Builder</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
+      <Project>{2937062b-8451-496c-9207-8a7fe59933cf}</Project>
+      <Name>SM.Media.Web.HttpClientReader</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SM.Media\SM.Media.csproj">
       <Project>{5F1CDAC0-D5C9-4C2C-84FD-D2A48D0D9BE9}</Project>
       <Name>SM.Media</Name>

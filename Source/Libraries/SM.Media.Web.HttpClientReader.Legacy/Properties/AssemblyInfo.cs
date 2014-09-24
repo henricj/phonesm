@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="AssemblyInfo.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Net.Http;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
+using System.Reflection;
 
-namespace SM.Media
-{
-    public class TsMediaModule : Module
-    {
-        protected override void Load(ContainerBuilder builder)
-        {
-            builder.RegisterType<TsMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerMatchingLifetimeScope("builder-scope");
+// General Information about an assembly is controlled through the following 
+// set of attributes. Change these attribute values to modify the information
+// associated with an assembly.
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
-
-            builder.RegisterType<HttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
-            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();
-        }
-    }
-}
+[assembly: AssemblyTitle("SM.Media.Web.HttpClientReader.Legacy")]
+[assembly: AssemblyDescription("")]

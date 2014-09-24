@@ -284,13 +284,6 @@
     <Compile Include="Utility\TaskTimer.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
-    <Compile Include="Web\ApplicationInformationExtensions.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientExtensions.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientsExtensions.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientsParameters.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientWebStreamResponse.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientWebReader.cs" />
-    <Compile Include="Web\HttpClientReader\HttpContentExtensions.cs" />
     <Compile Include="Web\WebRequestReader\HttpWebRequestExtensions.cs" />
     <Compile Include="Web\WebRequestReader\HttpWebRequestsBase.cs" />
     <Compile Include="Web\WebRequestReader\HttpWebRequestWebCache.cs" />
@@ -301,30 +294,13 @@
     <Compile Include="Web\IWebCache.cs" />
     <Compile Include="Web\IWebReader.cs" />
     <Compile Include="Web\IWebReaderManager.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientWebCache.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClients.cs" />
-    <Compile Include="Web\HttpDefaults.cs" />
-    <Compile Include="Web\HttpParameters.cs" />
-    <Compile Include="Web\HttpSettings.cs" />
-    <Compile Include="Web\HttpClientReader\IHttpClients.cs" />
     <Compile Include="Web\Rfc2047Encoding.cs" />
     <Compile Include="Web\UriExtensions.cs" />
-    <Compile Include="Web\HttpClientReader\HttpClientWebReaderManager.cs" />
     <Compile Include="Web\WebReaderExtensions.cs" />
     <Compile Include="Web\WebRequestReader\PclHttpWebRequests.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Net.Http">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.28\lib\portable-net40+sl4+win8+wp71+wpa81\System.Net.Http.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Extensions">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.28\lib\portable-net40+sl4+win8+wp71+wpa81\System.Net.Http.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.28\lib\portable-net40+sl4+win8+wp71+wpa81\System.Net.Http.Primitives.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
@@ -336,9 +312,6 @@
   <ItemGroup>
     <None Include="..\..\Global\phonesm.snk">
       <Link>phonesm.snk</Link>
-    </None>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -355,13 +328,6 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
-  <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

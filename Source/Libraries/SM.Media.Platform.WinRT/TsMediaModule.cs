@@ -24,19 +24,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Windows.Web.Http.Filters;
 using Autofac;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.WinRtHttpClientReader;
 
 namespace SM.Media
 {
     public class TsMediaModule : Module
     {
-        public static bool UseNativeHttpClient = false;
-
         protected override void Load(ContainerBuilder builder)
         {
             builder.RegisterType<WinRtMediaStreamSource>()
@@ -46,16 +41,6 @@ namespace SM.Media
             builder.RegisterType<PlatformServices>()
                 .As<IPlatformServices>()
                 .SingleInstance();
-
-            if (!UseNativeHttpClient)
-                return;
-
-            builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
         }
     }
 }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="HttpClientContentTypeDetectorExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System.Net.Http;
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
+using System;
+using System.Collections.Generic;
+using System.Net.Http.Headers;
+using SM.Media.Content;
 
-namespace SM.Media
+namespace SM.Media.Web
 {
-    public class TsMediaModule : Module
+    public static class HttpClientContentTypeDetectorExtensions
     {
-        protected override void Load(ContainerBuilder builder)
+        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaders headers, string fileName)
         {
-            builder.RegisterType<TsMediaStreamSource>()
-                .As<IMediaStreamSource>()
-                .InstancePerMatchingLifetimeScope("builder-scope");
+            var mimeType = default(string);
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+            var contentTypeHeader = headers.ContentType;
+            if (null != contentTypeHeader)
+                mimeType = contentTypeHeader.MediaType;
 
-            builder.RegisterType<HttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
-            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
-
-            builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();
+            return contentTypeDetector.GetContentType(url, mimeType, fileName);
         }
     }
 }

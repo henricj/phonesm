@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -85,11 +84,6 @@ namespace SM.Media.Hls
                                                      .ConfigureAwait(false);
 
                     return Load(_playlistWebReader, parser);
-                }
-                catch (HttpRequestException e)
-                {
-                    // This one didn't work, so try the next playlist url.
-                    Debug.WriteLine("HlsProgramManager.LoadAsync: " + e.Message);
                 }
                 catch (WebException e)
                 {

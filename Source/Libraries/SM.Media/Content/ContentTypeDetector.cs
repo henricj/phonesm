@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Headers;
 using SM.Media.Web;
 
 namespace SM.Media.Content
@@ -135,20 +134,6 @@ namespace SM.Media.Content
             var ext = UriExtensions.GetExtension(filename);
 
             return ExtensionLookup[ext].ToArray();
-        }
-    }
-
-    public static class ContentTypeDetectorExtensions
-    {
-        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaders headers, string fileName)
-        {
-            var mimeType = default(string);
-
-            var contentTypeHeader = headers.ContentType;
-            if (null != contentTypeHeader)
-                mimeType = contentTypeHeader.MediaType;
-
-            return contentTypeDetector.GetContentType(url, mimeType, fileName);
         }
     }
 }

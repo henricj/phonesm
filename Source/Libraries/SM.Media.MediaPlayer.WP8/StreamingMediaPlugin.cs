@@ -28,42 +28,32 @@ using System.Diagnostics;
 using System.Windows;
 using Microsoft.PlayerFramework;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.MediaPlayer
 {
     public class StreamingMediaPlugin : IPlugin
     {
-        static readonly IApplicationInformation ApplicationInformation = ApplicationInformationFactory.Default;
-
-        readonly IHttpClientsParameters _httpClientsParameters;
         IMediaStreamFacade _mediaStreamFacade;
         Microsoft.PlayerFramework.MediaPlayer _player;
 
-        public StreamingMediaPlugin()
+        protected IMediaStreamFacade MediaStreamFacade
         {
-            var userAgent = ApplicationInformation.CreateUserAgent();
-
-            _httpClientsParameters = new HttpClientsParameters
-                                     {
-                                         UserAgent = userAgent
-                                     };
+            get { return _mediaStreamFacade; }
         }
 
         #region IPlugin Members
 
-        public void Load()
+        public virtual void Load()
         {
             Debug.WriteLine("StreamingMediaPlugin.Load()");
         }
 
-        public void Update(IMediaSource mediaSource)
+        public virtual void Update(IMediaSource mediaSource)
         {
             Debug.WriteLine("StreamingMediaPlugin.Update()");
         }
 
-        public void Unload()
+        public virtual void Unload()
         {
             Debug.WriteLine("StreamingMediaPlugin.Unload()");
 
@@ -188,19 +178,22 @@ namespace SM.Media.MediaPlayer
             if (null != _mediaStreamFacade)
                 return;
 
-            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-            _mediaStreamFacade.SetParameter(_httpClientsParameters);
+            _mediaStreamFacade = CreateMediaStreamFacade();
         }
 
-        void Close()
+        protected virtual IMediaStreamFacade CreateMediaStreamFacade()
+        {
+            return MediaStreamFacadeSettings.Parameters.Create();
+        }
+
+        protected virtual void Close()
         {
             Debug.WriteLine("StreamingMediaPlugin.Close()");
 
             _mediaStreamFacade.RequestStop();
         }
 
-        void Cleanup()
+        protected virtual void Cleanup()
         {
             Debug.WriteLine("StreamingMediaPlugin.Cleanup()");
 

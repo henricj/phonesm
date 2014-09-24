@@ -501,48 +501,6 @@
     <Compile Include="..\SM.Media\Utility\TaskTimer.cs">
       <Link>Utility\TaskTimer.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Web\ApplicationInformationExtensions.cs">
-      <Link>Web\ApplicationInformationExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientExtensions.cs">
-      <Link>Web\HttpClientReader\HttpClientExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClients.cs">
-      <Link>Web\HttpClientReader\HttpClients.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientsExtensions.cs">
-      <Link>Web\HttpClientReader\HttpClientsExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientsParameters.cs">
-      <Link>Web\HttpClientReader\HttpClientsParameters.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebCache.cs">
-      <Link>Web\HttpClientReader\HttpClientWebCache.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebReader.cs">
-      <Link>Web\HttpClientReader\HttpClientWebReader.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebReaderManager.cs">
-      <Link>Web\HttpClientReader\HttpClientWebReaderManager.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpClientWebStreamResponse.cs">
-      <Link>Web\HttpClientReader\HttpClientWebStreamResponse.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\HttpContentExtensions.cs">
-      <Link>Web\HttpClientReader\HttpContentExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpClientReader\IHttpClients.cs">
-      <Link>Web\HttpClientReader\IHttpClients.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpDefaults.cs">
-      <Link>Web\HttpDefaults.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpParameters.cs">
-      <Link>Web\HttpParameters.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpSettings.cs">
-      <Link>Web\HttpSettings.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Web\IWebCache.cs">
       <Link>Web\IWebCache.cs</Link>
     </Compile>
@@ -766,15 +724,6 @@
     </Reference>
     <Reference Include="System.IO">
       <HintPath>..\..\packages\Microsoft.Bcl.1.1.9\lib\portable-net40+sl4+win8+wp71+wpa81\System.IO.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.28\lib\portable-net40+sl4+win8+wp71+wpa81\System.Net.Http.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Extensions">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.28\lib\portable-net40+sl4+win8+wp71+wpa81\System.Net.Http.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Primitives">
-      <HintPath>..\..\packages\Microsoft.Net.Http.2.2.28\lib\portable-net40+sl4+win8+wp71+wpa81\System.Net.Http.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime">
       <HintPath>..\..\packages\Microsoft.Bcl.1.1.9\lib\portable-net40+sl4+win8+wp71+wpa81\System.Runtime.dll</HintPath>

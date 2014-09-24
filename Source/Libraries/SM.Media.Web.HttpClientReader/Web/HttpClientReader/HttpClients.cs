@@ -105,7 +105,8 @@ namespace SM.Media.Web.HttpClientReader
         {
             var httpClientHandler = _httpClientHandlerFactory();
 
-            httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip;
+            if (httpClientHandler.SupportsAutomaticDecompression)
+                httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip;
 
             if (null != _credentials)
                 httpClientHandler.Credentials = _credentials;

@@ -59,14 +59,14 @@ namespace HlsView.Silverlight
         readonly DispatcherTimer _positionSampler;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientFactory _httpClientFactory;
 
         // Constructor
         public MainPage()
         {
             InitializeComponent();
 
-            _httpClients = new SilverlightHttpClients();
+            _httpClientFactory = new SilverlightHttpClientFactory();
 
             _positionSampler = new DispatcherTimer
                                {
@@ -246,7 +246,7 @@ namespace HlsView.Silverlight
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_httpClients);
+            _mediaStreamFacade.SetParameter(_httpClientFactory);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }

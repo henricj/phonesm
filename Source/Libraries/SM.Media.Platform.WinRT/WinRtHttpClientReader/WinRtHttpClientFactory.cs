@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="WinRtHttpClients.cs" company="Henric Jungheim">
+//  <copyright file="WinRtHttpClientFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -34,7 +34,7 @@ using SM.Media.Content;
 
 namespace SM.Media.WinRtHttpClientReader
 {
-    public class WinRtHttpClients : IWinRtHttpClients
+    public class WinRtHttpClientFactory : IWinRtHttpClientFactory
     {
         readonly PasswordCredential _credentials;
         readonly Func<HttpBaseProtocolFilter> _httpClientHandlerFactory;
@@ -43,7 +43,7 @@ namespace SM.Media.WinRtHttpClientReader
         int _disposed;
         HttpClient _rootPlaylistClient;
 
-        public WinRtHttpClients(IWinRtHttpClientsParameters parameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
+        public WinRtHttpClientFactory(IWinRtHttpClientFactoryParameters parameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
@@ -59,7 +59,7 @@ namespace SM.Media.WinRtHttpClientReader
             _httpClientHandlerFactory = httpClientHandlerFactory;
         }
 
-        #region IWinRtHttpClients Members
+        #region IWinRtHttpClientFactory Members
 
         public void Dispose()
         {

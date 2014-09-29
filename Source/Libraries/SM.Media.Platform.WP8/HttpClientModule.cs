@@ -37,8 +37,8 @@ namespace SM.Media
         {
             builder.RegisterType<HttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 
-            builder.RegisterType<HttpClients>().As<IHttpClients>().SingleInstance();
-            builder.RegisterType<HttpClientsParameters>().As<IHttpClientsParameters>().SingleInstance();
+            builder.RegisterType<HttpClientFactory>().As<IHttpClientFactory>().SingleInstance();
+            builder.RegisterType<HttpClientFactoryParameters>().As<IHttpClientFactoryParameters>().SingleInstance();
             builder.RegisterType<ProductInfoHeaderValueFactory>().As<IProductInfoHeaderValueFactory>().SingleInstance();
 
             builder.RegisterType<HttpClientHandler>().AsSelf().ExternallyOwned();

@@ -48,7 +48,7 @@ namespace SimulatedPlayer
 
             try
             {
-                var hcp = new HttpClientsParameters
+                var hcp = new HttpClientFactoryParameters
                           {
                               CookieContainer = new CookieContainer()
                           };

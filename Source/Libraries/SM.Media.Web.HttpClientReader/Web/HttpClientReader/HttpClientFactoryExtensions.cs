@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="HttpClientsParameters.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="HttpClientFactoryExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,25 +25,25 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Net;
+using System.Net.Http;
 
 namespace SM.Media.Web.HttpClientReader
 {
-    public interface IHttpClientsParameters
+    public static class HttpClientFactoryExtensions
     {
-        Uri Referrer { get; }
-        ICredentials Credentials { get; }
-        CookieContainer CookieContainer { get; }
-    }
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IHttpClientFactory httpClientFactory)
+        {
+            mediaStreamFacade.Builder.RegisterSingleton(httpClientFactory);
+        }
 
-    public class HttpClientsParameters : IHttpClientsParameters
-    {
-        #region IHttpClientsParameters Members
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IHttpClientFactoryParameters httpClientFactoryParameters)
+        {
+            mediaStreamFacade.Builder.RegisterSingleton(httpClientFactoryParameters);
+        }
 
-        public Uri Referrer { get; set; }
-        public ICredentials Credentials { get; set; }
-        public CookieContainer CookieContainer { get; set; }
-
-        #endregion
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, Func<HttpClientHandler> httpClientHandler)
+        {
+            mediaStreamFacade.Builder.RegisterTransientFactory(httpClientHandler);
+        }
     }
 }

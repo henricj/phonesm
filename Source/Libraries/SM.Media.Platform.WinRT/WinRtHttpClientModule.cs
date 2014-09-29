@@ -37,8 +37,8 @@ namespace SM.Media
         {
             builder.RegisterType<WinRtHttpClientWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 
-            builder.RegisterType<WinRtHttpClients>().As<IWinRtHttpClients>().SingleInstance();
-            builder.RegisterType<WinRtHttpClientsParameters>().As<IWinRtHttpClientsParameters>().SingleInstance();
+            builder.RegisterType<WinRtHttpClientFactory>().As<IWinRtHttpClientFactory>().SingleInstance();
+            builder.RegisterType<WinRtHttpClientFactoryParameters>().As<IWinRtHttpClientFactoryParameters>().SingleInstance();
 
             builder.RegisterType<HttpBaseProtocolFilter>().AsSelf().ExternallyOwned();
 

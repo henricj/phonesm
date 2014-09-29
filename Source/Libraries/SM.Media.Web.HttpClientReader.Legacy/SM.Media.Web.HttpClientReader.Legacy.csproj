@@ -58,14 +58,14 @@
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientExtensions.cs">
       <Link>Web\HttpClientReader\HttpClientExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClients.cs">
-      <Link>Web\HttpClientReader\HttpClients.cs</Link>
+    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientFactory.cs">
+      <Link>Web\HttpClientReader\HttpClientFactory.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientsExtensions.cs">
-      <Link>Web\HttpClientReader\HttpClientsExtensions.cs</Link>
+    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientFactoryExtensions.cs">
+      <Link>Web\HttpClientReader\HttpClientFactoryExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientsParameters.cs">
-      <Link>Web\HttpClientReader\HttpClientsParameters.cs</Link>
+    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientFactoryParameters.cs">
+      <Link>Web\HttpClientReader\HttpClientFactoryParameters.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpClientWebCache.cs">
       <Link>Web\HttpClientReader\HttpClientWebCache.cs</Link>
@@ -82,8 +82,8 @@
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\HttpContentExtensions.cs">
       <Link>Web\HttpClientReader\HttpContentExtensions.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\IHttpClients.cs">
-      <Link>Web\HttpClientReader\IHttpClients.cs</Link>
+    <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\IHttpClientFactory.cs">
+      <Link>Web\HttpClientReader\IHttpClientFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.Web.HttpClientReader\Web\HttpClientReader\ProductInfoHeaderValueFactory.cs">
       <Link>Web\HttpClientReader\ProductInfoHeaderValueFactory.cs</Link>

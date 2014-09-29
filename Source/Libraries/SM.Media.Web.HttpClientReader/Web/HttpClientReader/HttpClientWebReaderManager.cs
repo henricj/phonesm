@@ -37,24 +37,24 @@ namespace SM.Media.Web.HttpClientReader
     public class HttpClientWebReaderManager : IWebReaderManager, IDisposable
     {
         readonly IContentTypeDetector _contentTypeDetector;
-        readonly IHttpClients _httpClients;
+        readonly IHttpClientFactory _httpClientFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
         IWebReader _rootWebReader;
 
-        public HttpClientWebReaderManager(IHttpClients httpClients, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
+        public HttpClientWebReaderManager(IHttpClientFactory httpClientFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
+            if (null == httpClientFactory)
+                throw new ArgumentNullException("httpClientFactory");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
-            _httpClients = httpClients;
+            _httpClientFactory = httpClientFactory;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
-            _rootWebReader = new HttpClientWebReader(this, httpClients.RootPlaylistClient, null, _contentTypeDetector);
+            _rootWebReader = new HttpClientWebReader(this, httpClientFactory.RootPlaylistClient, null, _contentTypeDetector);
         }
 
         #region IDisposable Members
@@ -102,7 +102,7 @@ namespace SM.Media.Web.HttpClientReader
 
             var referrer = GetReferrer(parent);
 
-            using (var httpClient = _httpClients.CreateClient(url, referrer))
+            using (var httpClient = _httpClientFactory.CreateClient(url, referrer))
             {
                 try
                 {
@@ -199,7 +199,7 @@ namespace SM.Media.Web.HttpClientReader
             if (null != referrer)
                 url = new Uri(referrer, url);
 
-            var httpClient = _httpClients.CreateClient(url, referrer, contentType);
+            var httpClient = _httpClientFactory.CreateClient(url, referrer, contentType);
 
             return httpClient;
         }

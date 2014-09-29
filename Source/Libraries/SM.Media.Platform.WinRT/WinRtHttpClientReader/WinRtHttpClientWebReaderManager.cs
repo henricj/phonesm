@@ -38,24 +38,24 @@ namespace SM.Media.WinRtHttpClientReader
     public class WinRtHttpClientWebReaderManager : IWebReaderManager, IDisposable
     {
         readonly IContentTypeDetector _contentTypeDetector;
-        readonly IWinRtHttpClients _httpClients;
+        readonly IWinRtHttpClientFactory _httpClientFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
         IWebReader _rootWebReader;
 
-        public WinRtHttpClientWebReaderManager(IWinRtHttpClients httpClients, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
+        public WinRtHttpClientWebReaderManager(IWinRtHttpClientFactory httpClientFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
-            if (null == httpClients)
-                throw new ArgumentNullException("httpClients");
+            if (null == httpClientFactory)
+                throw new ArgumentNullException("httpClientFactory");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
-            _httpClients = httpClients;
+            _httpClientFactory = httpClientFactory;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
-            _rootWebReader = new WinRtHttpClientWebReader(this, httpClients.BaseAddress, httpClients.RootPlaylistClient, null, _contentTypeDetector);
+            _rootWebReader = new WinRtHttpClientWebReader(this, httpClientFactory.BaseAddress, httpClientFactory.RootPlaylistClient, null, _contentTypeDetector);
         }
 
         #region IDisposable Members
@@ -103,7 +103,7 @@ namespace SM.Media.WinRtHttpClientReader
 
             var referrer = GetReferrer(parent);
 
-            using (var httpClient = _httpClients.CreateClient(url, referrer))
+            using (var httpClient = _httpClientFactory.CreateClient(url, referrer))
             {
                 try
                 {
@@ -200,7 +200,7 @@ namespace SM.Media.WinRtHttpClientReader
             if (null != referrer)
                 url = new Uri(referrer, url);
 
-            var httpClient = _httpClients.CreateClient(url, referrer, contentType);
+            var httpClient = _httpClientFactory.CreateClient(url, referrer, contentType);
 
             return httpClient;
         }

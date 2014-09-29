@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="WinRtHttpClientsExtensions.cs" company="Henric Jungheim">
+//  <copyright file="WinRtHttpClientFactoryExtensions.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -29,16 +29,16 @@ using System.Net.Http;
 
 namespace SM.Media.WinRtHttpClientReader
 {
-    public static class WinRtHttpClientsExtensions
+    public static class WinRtHttpClientFactoryExtensions
     {
-        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IWinRtHttpClients httpClients)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IWinRtHttpClientFactory httpClientFactory)
         {
-            mediaStreamFacade.Builder.RegisterSingleton(httpClients);
+            mediaStreamFacade.Builder.RegisterSingleton(httpClientFactory);
         }
 
-        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IWinRtHttpClientsParameters httpClientsParameters)
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IWinRtHttpClientFactoryParameters httpClientFactoryParameters)
         {
-            mediaStreamFacade.Builder.RegisterSingleton(httpClientsParameters);
+            mediaStreamFacade.Builder.RegisterSingleton(httpClientFactoryParameters);
         }
 
         public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, Func<HttpClientHandler> httpClientHandler)

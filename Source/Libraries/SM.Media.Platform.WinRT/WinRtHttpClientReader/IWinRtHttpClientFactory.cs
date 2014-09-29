@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IWinRtHttpClients.cs" company="Henric Jungheim">
+//  <copyright file="IWinRtHttpClientFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -30,7 +30,7 @@ using SM.Media.Content;
 
 namespace SM.Media.WinRtHttpClientReader
 {
-    public interface IWinRtHttpClients : IDisposable
+    public interface IWinRtHttpClientFactory : IDisposable
     {
         Uri BaseAddress { get; }
 

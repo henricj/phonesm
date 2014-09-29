@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="SilverlightHttpClients.cs" company="Henric Jungheim">
+//  <copyright file="SilverlightHttpClientFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -33,11 +33,11 @@ using SM.Media.Web.HttpClientReader;
 
 namespace SM.Media.Web
 {
-    public sealed class SilverlightHttpClients : IHttpClients, IDisposable
+    public sealed class SilverlightHttpClientFactory : IHttpClientFactory
     {
         HttpClient _rootHttpClient;
 
-        #region IDisposable Members
+        #region IHttpClientFactory Members
 
         public void Dispose()
         {
@@ -49,10 +49,6 @@ namespace SM.Media.Web
                 client.Dispose();
             }
         }
-
-        #endregion
-
-        #region IHttpClients Members
 
         public HttpClient RootPlaylistClient
         {
@@ -96,9 +92,9 @@ namespace SM.Media.Web
                 httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip;
 
             var httpClient = new HttpClient(httpClientHandler)
-                             {
-                                 BaseAddress = baseAddress
-                             };
+            {
+                BaseAddress = baseAddress
+            };
 
             return httpClient;
         }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IHttpClients.cs" company="Henric Jungheim">
+//  <copyright file="WinRtHttpClientFactoryParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,15 +25,23 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Net.Http;
-using SM.Media.Content;
+using Windows.Security.Credentials;
 
-namespace SM.Media.Web.HttpClientReader
+namespace SM.Media.WinRtHttpClientReader
 {
-    public interface IHttpClients : IDisposable
+    public interface IWinRtHttpClientFactoryParameters
     {
-        HttpClient RootPlaylistClient { get; }
+        Uri Referrer { get; }
+        PasswordCredential Credentials { get; }
+    }
 
-        HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null);
+    public class WinRtHttpClientFactoryParameters : IWinRtHttpClientFactoryParameters
+    {
+        #region IWinRtHttpClientFactoryParameters Members
+
+        public Uri Referrer { get; set; }
+        public PasswordCredential Credentials { get; set; }
+
+        #endregion
     }
 }

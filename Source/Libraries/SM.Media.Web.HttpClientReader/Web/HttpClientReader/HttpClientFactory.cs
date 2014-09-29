@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="HttpClients.cs" company="Henric Jungheim">
+//  <copyright file="HttpClientFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -33,17 +33,17 @@ using SM.Media.Content;
 
 namespace SM.Media.Web.HttpClientReader
 {
-    public class HttpClients : IHttpClients
+    public class HttpClientFactory : IHttpClientFactory
     {
         readonly CookieContainer _cookieContainer;
         readonly ICredentials _credentials;
+        readonly Func<HttpClientHandler> _httpClientHandlerFactory;
         readonly Uri _referrer;
         readonly ProductInfoHeaderValue _userAgent;
         int _disposed;
         HttpClient _rootPlaylistClient;
-        readonly Func<HttpClientHandler> _httpClientHandlerFactory; 
 
-        public HttpClients(IHttpClientsParameters parameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
+        public HttpClientFactory(IHttpClientFactoryParameters parameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
@@ -60,7 +60,7 @@ namespace SM.Media.Web.HttpClientReader
             _httpClientHandlerFactory = httpClientHandlerFactory;
         }
 
-        #region IHttpClients Members
+        #region IHttpClientFactory Members
 
         public void Dispose()
         {

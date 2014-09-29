@@ -34,5 +34,10 @@ namespace SM.Media.Utility
         {
             return value * ToMiB;
         }
+
+        public static double BytesToMiB(this ulong value)
+        {
+            return value * ToMiB;
+        }
     }
 }

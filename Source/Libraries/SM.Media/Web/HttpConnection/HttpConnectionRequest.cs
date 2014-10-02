@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="HttpConnectionRequest.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
+using System;
+using System.Collections.Generic;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpConnection
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class HttpConnectionRequest
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
+        public Uri Url { get; set; }
+        public Uri Referrer { get; set; }
+        public bool KeepAlive { get; set; }
+        public long? RangeFrom { get; set; }
+        public long? RangeTo { get; set; }
+        public string Accept { get; set; }
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
-
-        public void RegisterModule(IModule module)
-        {
-            ContainerBuilder.RegisterModule(module);
-        }
-
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
-        {
-            ContainerBuilder.RegisterModule<TModule>();
-        }
+        public IEnumerable<KeyValuePair<string, string>> Headers { get; set; }
     }
 }

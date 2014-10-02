@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="UserAgentEncoder.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
-
-namespace SM.Media
+namespace SM.Media.Web.HttpConnection
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public interface IUserAgentEncoder
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
+        string UsAsciiUserAgent { get; }
+    }
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
+    public class UserAgentEncoder : IUserAgentEncoder
+    {
+        readonly string _userAgent;
 
-        public void RegisterModule(IModule module)
+        public UserAgentEncoder(IUserAgent userAgent)
         {
-            ContainerBuilder.RegisterModule(module);
+            var name = userAgent.Name.Trim().Replace(' ', '_').Rfc2047Encode();
+            var version = userAgent.Version.Trim().Replace(' ', '_').Rfc2047Encode();
+
+            _userAgent = name + "/" + version;
         }
 
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
+        #region IUserAgentEncoder Members
+
+        public string UsAsciiUserAgent
         {
-            ContainerBuilder.RegisterModule<TModule>();
+            get { return _userAgent; }
         }
+
+        #endregion
     }
 }

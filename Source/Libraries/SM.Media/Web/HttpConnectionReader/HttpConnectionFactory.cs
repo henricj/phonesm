@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="HttpConnectionFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
+using System;
+using SM.Media.Web.HttpConnection;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpConnectionReader
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public interface IHttpConnectionFactory
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
+        IHttpConnection CreateHttpConnection();
+    }
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
+    public class HttpConnectionFactory : IHttpConnectionFactory
+    {
+        readonly Func<IHttpConnection> _httpConnectionFactory;
 
-        public void RegisterModule(IModule module)
+        public HttpConnectionFactory(Func<IHttpConnection> httpConnectionFactory)
         {
-            ContainerBuilder.RegisterModule(module);
+            if (null == httpConnectionFactory)
+                throw new ArgumentNullException("httpConnectionFactory");
+
+            _httpConnectionFactory = httpConnectionFactory;
         }
 
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
+        #region IHttpConnectionFactory Members
+
+        public IHttpConnection CreateHttpConnection()
         {
-            ContainerBuilder.RegisterModule<TModule>();
+            return _httpConnectionFactory();
         }
+
+        #endregion
     }
 }

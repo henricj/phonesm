@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="ISocket.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpConnection
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public interface ISocket : IDisposable
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
-
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
-
-        public void RegisterModule(IModule module)
-        {
-            ContainerBuilder.RegisterModule(module);
-        }
-
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
-        {
-            ContainerBuilder.RegisterModule<TModule>();
-        }
+        Task ConnectAsync(Uri url, CancellationToken cancellationToken);
+        Task<int> WriteAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
+        Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
+        void Close();
     }
 }

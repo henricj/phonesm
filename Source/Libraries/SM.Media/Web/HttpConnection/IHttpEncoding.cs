@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="IHttpEncoding.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
+using System.Text;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpConnection
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public interface IHttpEncoding
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
-
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
-
-        public void RegisterModule(IModule module)
-        {
-            ContainerBuilder.RegisterModule(module);
-        }
-
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
-        {
-            ContainerBuilder.RegisterModule<TModule>();
-        }
+        Encoding HeaderDecoding { get; }
+        Encoding HeaderEncoding { get; }
     }
 }

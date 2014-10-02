@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="HttpStatus.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
-
-namespace SM.Media
+namespace SM.Media.Web.HttpConnection
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public interface IHttpStatus
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
+        bool ChunkedEncoding { get; }
+        long? ContentLength { get; }
+        int StatusCode { get; }
+        int VersionMajor { get; }
+        int VersionMinor { get; }
+        string ResponsePhrase { get; }
+    }
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
+    public sealed class HttpStatus : IHttpStatus
+    {
+        #region IHttpStatus Members
 
-        public void RegisterModule(IModule module)
-        {
-            ContainerBuilder.RegisterModule(module);
-        }
+        public bool ChunkedEncoding { get; set; }
+        public long? ContentLength { get; set; }
+        public int StatusCode { get; set; }
+        public int VersionMajor { get; set; }
+        public int VersionMinor { get; set; }
+        public string ResponsePhrase { get; set; }
 
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
-        {
-            ContainerBuilder.RegisterModule<TModule>();
-        }
+        #endregion
     }
 }

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="ContentLengthStream.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,48 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using Autofac.Core;
-using SM.Media.Builder;
+using System;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpConnection
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class ContentLengthStream : AsyncReaderStream
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
+        readonly long? _contentLength;
+        readonly IHttpReader _reader;
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
-
-        public void RegisterModule(IModule module)
+        public ContentLengthStream(IHttpReader reader, long? contentLength)
         {
-            ContainerBuilder.RegisterModule(module);
+            if (null == reader)
+                throw new ArgumentNullException("reader");
+
+            _reader = reader;
+            _contentLength = contentLength;
         }
 
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            ContainerBuilder.RegisterModule<TModule>();
+            if (_contentLength.HasValue)
+            {
+                var remaining = (int)(_contentLength.Value - Position);
+
+                if (count > remaining)
+                    count = remaining;
+            }
+
+            if (count < 1)
+                return 0;
+
+            var length = await _reader.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+
+            //Debug.WriteLine("ContentLengthStream.ReadAsync() {0}/{1}", length, count);
+
+            if (length > 0)
+                IncrementPosition(length);
+
+            return length;
         }
     }
 }

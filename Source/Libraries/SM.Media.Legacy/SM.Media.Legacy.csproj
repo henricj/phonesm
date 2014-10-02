@@ -519,6 +519,9 @@
     <Compile Include="..\SM.Media\Web\UserAgent.cs">
       <Link>Web\UserAgent.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\UserAgentExtensions.cs">
+      <Link>Web\UserAgentExtensions.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\WebReaderExtensions.cs">
       <Link>Web\WebReaderExtensions.cs</Link>
     </Compile>

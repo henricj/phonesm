@@ -33,8 +33,8 @@
       <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>
     <Compile Include="HttpConnectionModule.cs" />
-    <Compile Include="Web\HttpSocket\HttpEncoding.cs" />
-    <Compile Include="Web\HttpSocket\StreamSocketWrapper.cs" />
+    <Compile Include="Web\HttpConnection\HttpEncoding.cs" />
+    <Compile Include="Web\HttpConnection\StreamSocketWrapper.cs" />
     <Compile Include="WinRtHttpClientModule.cs" />
     <Compile Include="WinRtHttpClientReader\HttpProductInfoHeaderValueFactory.cs" />
     <Compile Include="WinRtHttpClientReader\WinRtContentTypeDetectorExtensions.cs" />

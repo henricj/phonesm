@@ -261,7 +261,7 @@ namespace SM.Media.Web.HttpConnection
 
             var bytesRead = await _readAsync(buffer, offset, length, cancellationToken).ConfigureAwait(false);
 
-            Debug.WriteLine("ReadBufferAsync() {0}/{1}", bytesRead, length);
+            //Debug.WriteLine("ReadBufferAsync() {0}/{1}", bytesRead, length);
 
             if (bytesRead <= 0)
             {

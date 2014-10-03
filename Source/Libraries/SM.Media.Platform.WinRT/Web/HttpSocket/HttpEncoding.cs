@@ -24,27 +24,74 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+using System.Diagnostics;
 using System.Text;
+using SM.Media.Mono.Text;
 
 namespace SM.Media.Web.HttpConnection
 {
     public sealed class HttpEncoding : IHttpEncoding
     {
-        static readonly Encoding _decoding = Encoding.GetEncoding("Windows-1252");
-        static readonly Encoding _encoding = Encoding.GetEncoding("us-ascii");
+        static readonly Encoding Decode;
+        static readonly Encoding Encode;
+
+        static HttpEncoding()
+        {
+            Encode = GetHttpEncoding();
+            Decode = GetHttpDecoding();
+        }
 
         #region IHttpEncoding Members
 
         public Encoding HeaderDecoding
         {
-            get { return _decoding; }
+            get { return Decode; }
         }
 
         public Encoding HeaderEncoding
         {
-            get { return _encoding; }
+            get { return Encode; }
         }
 
         #endregion
+
+        static Encoding GetHttpDecoding()
+        {
+            var decoding = GetEncoding("Windows-1252");
+
+            if (null != decoding)
+                return decoding;
+
+            decoding = GetEncoding("iso-8859-1");
+            if (null != decoding)
+                return decoding;
+
+            return new Latin1Encoding();
+        }
+
+        static Encoding GetHttpEncoding()
+        {
+            var encoding = GetEncoding("us-ascii");
+
+            if (null != encoding)
+                return encoding;
+
+            return new ASCIIEncoding();
+        }
+
+        static Encoding GetEncoding(string name)
+        {
+            try
+            {
+                return Encoding.GetEncoding(name);
+            }
+            catch (Exception)
+            {
+                Debug.WriteLine("Unable to get " + name + " encoding");
+            }
+
+            return null;
+        }
     }
 }

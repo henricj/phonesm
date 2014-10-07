@@ -37,18 +37,18 @@ namespace SM.Media.H264
     {
         static readonly uint[] ProfileIdcHasChromaFormat
             = new[]
-              {
-                  100u,
-                  110u,
-                  122u,
-                  244u,
-                  44u,
-                  83u,
-                  86u,
-                  118u,
-                  128u
-              }.OrderBy(k => k)
-               .ToArray();
+            {
+                100u,
+                110u,
+                122u,
+                244u,
+                44u,
+                83u,
+                86u,
+                118u,
+                128u
+            }.OrderBy(k => k)
+                .ToArray();
 
         readonly StringBuilder _codecPrivateData = new StringBuilder();
         IEnumerable<byte> _ppsBytes;
@@ -228,9 +228,9 @@ namespace SM.Media.H264
                     {
                         for (var i = 0; i < (3 != chroma_format_idc ? 8 : 12); ++i)
                         {
-                            var seq_caling_list_present_flag = r.ReadBits(1);
+                            var seq_scaling_list_present_flag = r.ReadBits(1);
 
-                            if (0 != seq_scaling_matrix_present_flag)
+                            if (0 != seq_scaling_list_present_flag)
                             {
                                 if (i < 6)
                                     ParseScalingList(r, 16);

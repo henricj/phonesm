@@ -27,6 +27,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SM.Media.Web.HttpConnection
 {
@@ -77,6 +78,42 @@ namespace SM.Media.Web.HttpConnection
         {
             return ReadAsync(buffer, offset, count, CancellationToken.None).Result;
         }
+
+#if SM_MEDIA_LEGACY
+        public abstract Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken);
+
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+        {
+            var task = ReadAsync(buffer, offset, count, CancellationToken.None);
+
+            if (null != callback)
+                task.ContinueWith(t => callback(task));
+
+            if (null == state)
+                return task;
+
+            var tcs = new TaskCompletionSource<int>(state);
+
+            task.ContinueWith(t =>
+            {
+                if (t.IsCanceled)
+                    tcs.TrySetCanceled();
+                else if (t.IsFaulted)
+                    tcs.TrySetException(t.Exception);
+                else
+                    tcs.TrySetResult(t.Result);
+            });
+
+            return tcs.Task;
+        }
+
+        public override int EndRead(IAsyncResult asyncResult)
+        {
+            var task = (Task<int>) asyncResult;
+
+            return task.Result;
+        }
+#endif
 
         public override void Write(byte[] buffer, int offset, int count)
         {

@@ -62,11 +62,24 @@ namespace SM.Media.Web.HttpConnection
         {
             var url = request.Url;
 
+#if SM_MEDIA_LEGACY
+            using (var tw = new StreamWriter(stream, _headerEncoding, 1024))
+#else
             using (var tw = new StreamWriter(stream, _headerEncoding, 1024, true))
+#endif
             {
                 tw.NewLine = HttpEol;
 
-                tw.WriteLine(method.ToUpperInvariant() + " " + url.PathAndQuery.Trim() + " HTTP/1.1");
+#if SM_MEDIA_LEGACY
+                var requestTarget = url.AbsolutePath;
+
+                if (!string.IsNullOrWhiteSpace(url.Query))
+                    requestTarget += "?" + url.Query;
+#else
+                var requestTarget = url.PathAndQuery;
+#endif
+
+                tw.WriteLine(method.ToUpperInvariant() + " " + requestTarget + " HTTP/1.1");
                 tw.WriteLine("Host: " + url.DnsSafeHost);
                 tw.WriteLine(request.KeepAlive ? "Connection: Keep-Alive" : "Connection: Close");
 

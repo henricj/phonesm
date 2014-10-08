@@ -384,6 +384,54 @@
     <Compile Include="..\SM.Media\MediaStreamFacadeSetting.cs">
       <Link>MediaStreamFacadeSetting.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Mono\MonoTODOAttribute.cs">
+      <Link>Mono\MonoTODOAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\ASCIIEncoding.cs">
+      <Link>Mono\Text\ASCIIEncoding.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderExceptionFallback.cs">
+      <Link>Mono\Text\DecoderExceptionFallback.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderExceptionFallbackBuffer.cs">
+      <Link>Mono\Text\DecoderExceptionFallbackBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderFallback.cs">
+      <Link>Mono\Text\DecoderFallback.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderFallbackBuffer.cs">
+      <Link>Mono\Text\DecoderFallbackBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderFallbackException.cs">
+      <Link>Mono\Text\DecoderFallbackException.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderReplacementFallback.cs">
+      <Link>Mono\Text\DecoderReplacementFallback.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\DecoderReplacementFallbackBuffer.cs">
+      <Link>Mono\Text\DecoderReplacementFallbackBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\EncoderExceptionFallback.cs">
+      <Link>Mono\Text\EncoderExceptionFallback.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\EncoderExceptionFallbackBuffer.cs">
+      <Link>Mono\Text\EncoderExceptionFallbackBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\EncoderFallback.cs">
+      <Link>Mono\Text\EncoderFallback.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\EncoderFallbackBuffer.cs">
+      <Link>Mono\Text\EncoderFallbackBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\EncoderReplacementFallback.cs">
+      <Link>Mono\Text\EncoderReplacementFallback.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\EncoderReplacementFallbackBuffer.cs">
+      <Link>Mono\Text\EncoderReplacementFallbackBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Mono\Text\Latin1Encoding.cs">
+      <Link>Mono\Text\Latin1Encoding.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3FrameHeader.cs">
       <Link>MP3\Mp3FrameHeader.cs</Link>
     </Compile>
@@ -500,6 +548,57 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\TaskTimer.cs">
       <Link>Utility\TaskTimer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnectionReader\HttpConnectionFactory.cs">
+      <Link>Web\HttpConnectionReader\HttpConnectionFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnectionReader\HttpConnectionWebCache.cs">
+      <Link>Web\HttpConnectionReader\HttpConnectionWebCache.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnectionReader\HttpConnectionWebReader.cs">
+      <Link>Web\HttpConnectionReader\HttpConnectionWebReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnectionReader\HttpConnectionWebReaderManager.cs">
+      <Link>Web\HttpConnectionReader\HttpConnectionWebReaderManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnectionReader\HttpWebRequestWebStreamResponse.cs">
+      <Link>Web\HttpConnectionReader\HttpWebRequestWebStreamResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\AsyncReaderStream.cs">
+      <Link>Web\HttpConnection\AsyncReaderStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\ChunkedStream.cs">
+      <Link>Web\HttpConnection\ChunkedStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\ContentLengthStream.cs">
+      <Link>Web\HttpConnection\ContentLengthStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpConnection.cs">
+      <Link>Web\HttpConnection\HttpConnection.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpConnectionRequest.cs">
+      <Link>Web\HttpConnection\HttpConnectionRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpConnectionResponse.cs">
+      <Link>Web\HttpConnection\HttpConnectionResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpHeaderSerializer.cs">
+      <Link>Web\HttpConnection\HttpHeaderSerializer.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpReader.cs">
+      <Link>Web\HttpConnection\HttpReader.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpStatus.cs">
+      <Link>Web\HttpConnection\HttpStatus.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\IHttpEncoding.cs">
+      <Link>Web\HttpConnection\IHttpEncoding.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\ISocket.cs">
+      <Link>Web\HttpConnection\ISocket.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\UserAgentEncoder.cs">
+      <Link>Web\HttpConnection\UserAgentEncoder.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\IWebCache.cs">
       <Link>Web\IWebCache.cs</Link>

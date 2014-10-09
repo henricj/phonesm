@@ -62,7 +62,7 @@ namespace SM.Media.WinRtHttpClientReader
                 // or an alternate IUserAgent implementation.
                 // (Note that only strings that need encoding are modified by
                 // ".Rfc2047Encode()".)
-                var productName = _userAgent.Name.Replace(' ', '-').Rfc2047Encode();
+                var productName = _userAgent.Name.Trim().Replace(' ', '-').Rfc2047Encode();
 
                 var userAgent = new HttpProductInfoHeaderValue(productName, _userAgent.Version);
 

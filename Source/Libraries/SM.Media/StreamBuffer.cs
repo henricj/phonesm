@@ -119,6 +119,28 @@ namespace SM.Media
             get { return _isDone; }
         }
 
+        public TimeSpan? PresentationTimestamp
+        {
+            get
+            {
+                lock (_packetsLock)
+                {
+                    if (!_isDone && _bufferingManager.IsBuffering)
+                        return null;
+
+                    if (_packets.Count < 1)
+                        return null;
+
+                    var packet = _packets.Peek();
+
+                    if (null == packet)
+                        return null;
+
+                    return packet.PresentationTimestamp;
+                }
+            }
+        }
+
         public bool HasSample
         {
             get { lock (_packetsLock) return _packets.Count > 0; }
@@ -203,6 +225,24 @@ namespace SM.Media
         public void FreeSample(TsPesPacket packet)
         {
             _freePesPacket(packet);
+        }
+
+        public void DiscardPacketsBefore(TimeSpan value)
+        {
+            lock (_packetsLock)
+            {
+                while (_packets.Count > 0)
+                {
+                    var packet = _packets.Peek();
+
+                    if (packet.PresentationTimestamp >= value)
+                        return;
+
+                    _packets.Dequeue();
+
+                    FreeSample(packet);
+                }
+            }
         }
 
         #endregion

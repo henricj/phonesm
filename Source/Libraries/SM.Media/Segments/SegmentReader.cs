@@ -37,6 +37,7 @@ namespace SM.Media.Segments
 {
     sealed class SegmentReader : ISegmentReader
     {
+        readonly CancellationTokenSource _disposedCancellationTokenSource = new CancellationTokenSource();
         readonly IPlatformServices _platformServices;
         readonly IRetryManager _retryManager;
         readonly ISegment _segment;
@@ -49,7 +50,6 @@ namespace SM.Media.Segments
         IWebStreamResponse _response;
         Stream _responseStream;
         long? _startOffset;
-        readonly CancellationTokenSource _disposedCancellationTokenSource = new CancellationTokenSource();
 
         public SegmentReader(ISegment segment, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
         {
@@ -269,70 +269,64 @@ namespace SM.Media.Segments
             ThrowIfDisposed();
 
             var retry = _retryManager.CreateRetry(2, 200, RetryPolicy.IsWebExceptionRetryable);
-
-            using (var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationTokenSource.Token, cancellationToken))
-            {
-                var token = linkedCancellationToken.Token;
-
-                return retry.CallAsync(
-                    async () =>
+            return retry.CallAsync(
+                async () =>
+                {
+                    for (; ; )
                     {
-                        for (;;)
+                        if (_startOffset.HasValue && _endOffset.HasValue)
+                            _expectedBytes = _endOffset - _startOffset + 1;
+                        else
+                            _expectedBytes = null;
+
+                        _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, cancellationToken,
+                            _segment.ParentUrl, _startOffset, _endOffset)
+                            .ConfigureAwait(false);
+
+                        if (_response.IsSuccessStatusCode)
                         {
-                            if (_startOffset.HasValue && _endOffset.HasValue)
-                                _expectedBytes = _endOffset - _startOffset + 1;
+                            _actualUrl = _response.ActualUrl;
+
+                            var contentLength = _response.ContentLength;
+
+                            if (!_endOffset.HasValue)
+                                _endOffset = contentLength - 1;
+
+                            if (!_expectedBytes.HasValue)
+                                _expectedBytes = contentLength;
+
+                            _responseStream = new PositionStream(await _response.GetStreamAsync(cancellationToken).ConfigureAwait(false));
+
+                            var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
+
+                            if (null != filterStreamTask)
+                                _readStream = await filterStreamTask.ConfigureAwait(false);
                             else
-                                _expectedBytes = null;
+                                _readStream = _responseStream;
 
-                            _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, token,
-                                _segment.ParentUrl, _startOffset, _endOffset)
-                                .ConfigureAwait(false);
-
-                            if (_response.IsSuccessStatusCode)
-                            {
-                                _actualUrl = _response.ActualUrl;
-
-                                var contentLength = _response.ContentLength;
-
-                                if (!_endOffset.HasValue)
-                                    _endOffset = contentLength - 1;
-
-                                if (!_expectedBytes.HasValue)
-                                    _expectedBytes = contentLength;
-
-                                _responseStream = new PositionStream(await _response.GetStreamAsync(token).ConfigureAwait(false));
-
-                                var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
-
-                                if (null != filterStreamTask)
-                                    _readStream = await filterStreamTask.ConfigureAwait(false);
-                                else
-                                    _readStream = _responseStream;
-
-                                return;
-                            }
-
-                            // Special-case 404s.
-                            var statusCode = (HttpStatusCode) _response.HttpStatusCode;
-                            if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
-                                _response.EnsureSuccessStatusCode();
-
-                            var canRetry = await retry.CanRetryAfterDelayAsync(token)
-                                .ConfigureAwait(false);
-
-                            if (!canRetry)
-                            {
-                                if (null != _actualUrl && _actualUrl != _segment.Url)
-                                    _actualUrl = null;
-                                else
-                                    _response.EnsureSuccessStatusCode();
-                            }
-
-                            _response.Dispose();
-                            _response = null;
+                            return;
                         }
-                    }, token);
-            }
+
+                        // Special-case 404s.
+                        var statusCode = (HttpStatusCode)_response.HttpStatusCode;
+                        if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
+                            _response.EnsureSuccessStatusCode();
+
+                        var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (!canRetry)
+                        {
+                            if (null != _actualUrl && _actualUrl != _segment.Url)
+                                _actualUrl = null;
+                            else
+                                _response.EnsureSuccessStatusCode();
+                        }
+
+                        _response.Dispose();
+                        _response = null;
+                    }
+                }, cancellationToken);
         }
 
         public override string ToString()

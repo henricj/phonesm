@@ -56,6 +56,9 @@ namespace SM.Media
 
         StreamState _videoStreamState;
         StreamState _audioStreamState;
+        MediaStreamSourceStartingRequestDeferral _onStartingDeferral;
+        MediaStreamSourceStartingRequest _onStartingRequest;
+        static readonly TimeSpan ResyncThreshold = TimeSpan.FromSeconds(7);
 
         public WinRtMediaStreamSource()
         {
@@ -156,6 +159,9 @@ namespace SM.Media
         public void CheckForSamples()
         {
             //Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
+
+            if (null != _onStartingDeferral)
+                CompleteOnStarting();
 
             if (null != _videoStreamState)
                 _videoStreamState.CheckForSamples();
@@ -342,6 +348,14 @@ namespace SM.Media
             sender.SampleRequested -= MediaStreamSourceOnSampleRequested;
             sender.Closed -= MediaStreamSourceOnClosed;
 
+            var startDeferral = Interlocked.Exchange(ref _onStartingDeferral, null);
+
+            if (null != startDeferral)
+            {
+                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() start was still pending");
+                startDeferral.Complete();
+            }
+
             if (null == _closedTaskCompletionSource)
                 Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() unexpected call to close");
             else
@@ -379,9 +393,14 @@ namespace SM.Media
         {
             ThrowIfDisposed();
 
-            Debug.Assert(null == _closedTaskCompletionSource);
+            if (null != _closedTaskCompletionSource && _closedTaskCompletionSource.Task.IsCompleted)
+            {
+                _closedTaskCompletionSource.TrySetCanceled();
+                _closedTaskCompletionSource = null;
+            }
 
-            _closedTaskCompletionSource = new TaskCompletionSource<object>();
+            if (null == _closedTaskCompletionSource)
+                _closedTaskCompletionSource = new TaskCompletionSource<object>();
 
             var request = args.Request;
             var startPosition = request.StartPosition;
@@ -389,7 +408,26 @@ namespace SM.Media
             Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting({0})", startPosition);
 
             if (!startPosition.HasValue)
+            {
+                if (IsBuffering)
+                {
+                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() deferring");
+
+                    _onStartingRequest = args.Request;
+                    _onStartingDeferral = args.Request.GetDeferral();
+                    return;
+                }
+
+                var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
+
+                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual " + pts);
+
+                request.SetActualStartPosition(pts);
+
+                CheckForSamples();
+
                 return;
+            }
 
             MediaStreamSourceStartingRequestDeferral deferral = null;
 
@@ -400,6 +438,8 @@ namespace SM.Media
                 deferral = request.GetDeferral();
 
                 var actual = await MediaManager.SeekMediaAsync(startPosition.Value).ConfigureAwait(false);
+
+                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual seek ", actual);
 
                 request.SetActualStartPosition(actual);
             }
@@ -412,6 +452,85 @@ namespace SM.Media
                 if (null != deferral)
                     deferral.Complete();
             }
+        }
+
+        bool IsBuffering
+        {
+            get { return (null != _videoStreamState && _videoStreamState.IsBuffering) || (null != _audioStreamState && _audioStreamState.IsBuffering); }
+        }
+
+        void CompleteOnStarting()
+        {
+            Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStating()");
+
+            if (IsBuffering)
+                return;
+
+            var deferral = Interlocked.Exchange(ref _onStartingDeferral, null);
+
+            if (null == deferral)
+                return;
+
+            try
+            {
+                var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
+
+                Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStating() pts " + pts);
+
+                if (null != _onStartingRequest)
+                {
+                    _onStartingRequest.SetActualStartPosition(pts);
+                    _onStartingRequest = null;
+                }
+                else
+                {
+                    Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting() missing request");
+                    throw new InvalidOperationException("WinRtMediaStreamSource.CompleteOnStarting() missing request");
+                }
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        }
+
+        TimeSpan? ResyncPresentationTimestamp()
+        {
+            TimeSpan? videoTimestamp = null;
+            TimeSpan? audioTimestamp = null;
+
+            if (null != _videoStreamState)
+                videoTimestamp = _videoStreamState.PresentationTimestamp;
+
+            if (null != _audioStreamState)
+                audioTimestamp = _audioStreamState.PresentationTimestamp;
+
+            if (videoTimestamp.HasValue && audioTimestamp.HasValue)
+            {
+                var difference = audioTimestamp.Value - videoTimestamp.Value;
+
+                if (difference > ResyncThreshold)
+                {
+                    _videoStreamState.DiscardPacketsBefore(audioTimestamp.Value);
+                    videoTimestamp = _videoStreamState.PresentationTimestamp;
+                }
+                else if (difference < -ResyncThreshold)
+                {
+                    _audioStreamState.DiscardPacketsBefore(videoTimestamp.Value);
+                    audioTimestamp = _audioStreamState.PresentationTimestamp;
+                }
+            }
+
+            if (audioTimestamp.HasValue)
+            {
+                if (!videoTimestamp.HasValue)
+                    return audioTimestamp;
+
+                if (audioTimestamp.Value < videoTimestamp.Value)
+                    videoTimestamp = audioTimestamp.Value;
+            }
+
+            return videoTimestamp;
         }
 
         class StreamState
@@ -439,6 +558,16 @@ namespace SM.Media
                 _name = name;
                 _streamSource = streamSource;
                 Descriptor = descriptor;
+            }
+
+            public bool IsBuffering
+            {
+                get { return _streamSource.BufferingProgress.HasValue; }
+            }
+
+            public TimeSpan? PresentationTimestamp
+            {
+                get { return _streamSource.PresentationTimestamp; }
             }
 
             public void CheckForSamples()
@@ -588,6 +717,8 @@ namespace SM.Media
 
             public void SampleRequested(MediaStreamSourceSampleRequest request)
             {
+                //Debug.WriteLine("StreamState.SampleRequested() " + _name);
+
                 SmDebug.Assert(null == _deferral);
                 SmDebug.Assert(null == _request);
 
@@ -641,6 +772,11 @@ namespace SM.Media
                     _isClosed = true;
 
                 Cancel();
+            }
+
+            public void DiscardPacketsBefore(TimeSpan value)
+            {
+                _streamSource.DiscardPacketsBefore(value);
             }
         }
     }

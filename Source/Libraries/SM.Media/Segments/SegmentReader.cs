@@ -44,10 +44,12 @@ namespace SM.Media.Segments
         Uri _actualUrl;
         long? _endOffset;
         long? _expectedBytes;
+        int _isDisposed;
         Stream _readStream;
         IWebStreamResponse _response;
         Stream _responseStream;
         long? _startOffset;
+        readonly CancellationTokenSource _disposedCancellationTokenSource = new CancellationTokenSource();
 
         public SegmentReader(ISegment segment, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
         {
@@ -83,79 +85,96 @@ namespace SM.Media.Segments
 
         public void Dispose()
         {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            try
+            {
+                _disposedCancellationTokenSource.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SegmentReader.Dispose() Cancellation failed: " + ex.Message);
+            }
+
             Close();
         }
 
         public async Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken)
         {
+            ThrowIfDisposed();
+
             var index = 0;
             var thresholdSize = length - length / 4;
             var retryCount = 3;
             var delay = 200;
 
-            do
+            using (var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationTokenSource.Token, cancellationToken))
             {
-                if (null == _readStream)
-                    await OpenStream(cancellationToken).ConfigureAwait(false);
-
-                Debug.Assert(null != _readStream);
-
-                var retry = false;
-
-                try
+                do
                 {
-                    var count = await _readStream.ReadAsync(buffer, offset + index, length - index, cancellationToken).ConfigureAwait(false);
+                    if (null == _readStream)
+                        await OpenStream(cancellationToken).ConfigureAwait(false);
 
-                    if (count < 1)
+                    Debug.Assert(null != _readStream);
+
+                    var retry = false;
+
+                    try
                     {
-                        var validLength = IsLengthValid();
+                        var count = await _readStream.ReadAsync(buffer, offset + index, length - index, linkedCancellationToken.Token).ConfigureAwait(false);
 
-                        if (!validLength)
-                            throw new WebException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
+                        if (count < 1)
+                        {
+                            var validLength = IsLengthValid();
 
-                        IsEof = true;
+                            if (!validLength)
+                                throw new WebException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
+
+                            IsEof = true;
+
+                            Close();
+
+                            return index;
+                        }
+
+                        retryCount = 3;
+
+                        if (!_startOffset.HasValue)
+                            _startOffset = count;
+                        else
+                            _startOffset += count;
+
+                        index += count;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Close();
+
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Read of {0} failed at {1}: {2}", _segment.Url, _startOffset, ex.Message);
 
                         Close();
 
-                        return index;
+                        if (--retryCount <= 0)
+                            throw;
+
+                        retry = true;
                     }
 
-                    retryCount = 3;
+                    if (retry)
+                    {
+                        var actualDelay = (int)(delay * (0.5 + _platformServices.GetRandomNumber()));
 
-                    if (!_startOffset.HasValue)
-                        _startOffset = count;
-                    else
-                        _startOffset += count;
+                        delay += delay;
 
-                    index += count;
-                }
-                catch (OperationCanceledException)
-                {
-                    Close();
-
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("Read of {0} failed at {1}: {2}", _segment.Url, _startOffset, ex.Message);
-
-                    Close();
-
-                    if (--retryCount <= 0)
-                        throw;
-
-                    retry = true;
-                }
-
-                if (retry)
-                {
-                    var actualDelay = (int)(delay * (0.5 + _platformServices.GetRandomNumber()));
-
-                    delay += delay;
-
-                    await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
-                }
-            } while (index < thresholdSize);
+                        await TaskEx.Delay(actualDelay, linkedCancellationToken.Token).ConfigureAwait(false);
+                    }
+                } while (index < thresholdSize);
+            }
 
             return index;
         }
@@ -221,6 +240,14 @@ namespace SM.Media.Segments
 
         #endregion
 
+        void ThrowIfDisposed()
+        {
+            if (0 == _isDisposed)
+                return;
+
+            throw new ObjectDisposedException(GetType().Name);
+        }
+
         bool IsLengthValid()
         {
             try
@@ -239,66 +266,73 @@ namespace SM.Media.Segments
 
         Task OpenStream(CancellationToken cancellationToken)
         {
+            ThrowIfDisposed();
+
             var retry = _retryManager.CreateRetry(2, 200, RetryPolicy.IsWebExceptionRetryable);
 
-            return retry.CallAsync(
-                async () =>
-                {
-                    for (; ; )
+            using (var linkedCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_disposedCancellationTokenSource.Token, cancellationToken))
+            {
+                var token = linkedCancellationToken.Token;
+
+                return retry.CallAsync(
+                    async () =>
                     {
-                        if (_startOffset.HasValue && _endOffset.HasValue)
-                            _expectedBytes = _endOffset - _startOffset + 1;
-                        else
-                            _expectedBytes = null;
-
-                        _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, cancellationToken,
-                            _segment.ParentUrl, _startOffset, _endOffset)
-                                                    .ConfigureAwait(false);
-
-                        if (_response.IsSuccessStatusCode)
+                        for (;;)
                         {
-                            _actualUrl = _response.ActualUrl;
-
-                            var contentLength = _response.ContentLength;
-
-                            if (!_endOffset.HasValue)
-                                _endOffset = contentLength - 1;
-
-                            if (!_expectedBytes.HasValue)
-                                _expectedBytes = contentLength;
-
-                            _responseStream = new PositionStream(await _response.GetStreamAsync(cancellationToken).ConfigureAwait(false));
-
-                            var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
-
-                            if (null != filterStreamTask)
-                                _readStream = await filterStreamTask.ConfigureAwait(false);
+                            if (_startOffset.HasValue && _endOffset.HasValue)
+                                _expectedBytes = _endOffset - _startOffset + 1;
                             else
-                                _readStream = _responseStream;
+                                _expectedBytes = null;
 
-                            return;
-                        }
+                            _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, token,
+                                _segment.ParentUrl, _startOffset, _endOffset)
+                                .ConfigureAwait(false);
 
-                        // Special-case 404s.
-                        var statusCode = (HttpStatusCode)_response.HttpStatusCode;
-                        if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
-                            _response.EnsureSuccessStatusCode();
+                            if (_response.IsSuccessStatusCode)
+                            {
+                                _actualUrl = _response.ActualUrl;
 
-                        var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
-                                                  .ConfigureAwait(false);
+                                var contentLength = _response.ContentLength;
 
-                        if (!canRetry)
-                        {
-                            if (null != _actualUrl && _actualUrl != _segment.Url)
-                                _actualUrl = null;
-                            else
+                                if (!_endOffset.HasValue)
+                                    _endOffset = contentLength - 1;
+
+                                if (!_expectedBytes.HasValue)
+                                    _expectedBytes = contentLength;
+
+                                _responseStream = new PositionStream(await _response.GetStreamAsync(token).ConfigureAwait(false));
+
+                                var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
+
+                                if (null != filterStreamTask)
+                                    _readStream = await filterStreamTask.ConfigureAwait(false);
+                                else
+                                    _readStream = _responseStream;
+
+                                return;
+                            }
+
+                            // Special-case 404s.
+                            var statusCode = (HttpStatusCode) _response.HttpStatusCode;
+                            if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
                                 _response.EnsureSuccessStatusCode();
-                        }
 
-                        _response.Dispose();
-                        _response = null;
-                    }
-                }, cancellationToken);
+                            var canRetry = await retry.CanRetryAfterDelayAsync(token)
+                                .ConfigureAwait(false);
+
+                            if (!canRetry)
+                            {
+                                if (null != _actualUrl && _actualUrl != _segment.Url)
+                                    _actualUrl = null;
+                                else
+                                    _response.EnsureSuccessStatusCode();
+                            }
+
+                            _response.Dispose();
+                            _response = null;
+                        }
+                    }, token);
+            }
         }
 
         public override string ToString()

@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
@@ -41,8 +42,10 @@ namespace SM.Media.WinRtHttpClientReader
     {
         readonly Uri _baseAddress;
         readonly IContentTypeDetector _contentTypeDetector;
+        readonly CancellationTokenSource _disposedCancellationTokenSource = new CancellationTokenSource();
         readonly HttpClient _httpClient;
         readonly IWebReaderManager _webReaderManager;
+        int _isDisposed;
 
         public WinRtHttpClientWebReader(IWebReaderManager webReaderManager, Uri baseAddress, HttpClient httpClient, ContentType contentType, IContentTypeDetector contentTypeDetector)
         {
@@ -64,7 +67,27 @@ namespace SM.Media.WinRtHttpClientReader
 
         public void Dispose()
         {
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            try
+            {
+                _disposedCancellationTokenSource.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("WinRtHttpClientWebReader.Dispose() Cancellation failed: " + ex.Message);
+            }
+
             _httpClient.Dispose();
+        }
+
+        void ThrowIfDisposed()
+        {
+            if (0 == _isDisposed)
+                return;
+
+            throw new ObjectDisposedException(GetType().Name);
         }
 
         public Uri BaseAddress
@@ -84,6 +107,8 @@ namespace SM.Media.WinRtHttpClientReader
         public async Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse webResponse = null)
         {
+            ThrowIfDisposed();
+
             var completionOption = waitForContent ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead;
 
             if (null == referrer && null == from && null == to)
@@ -113,6 +138,8 @@ namespace SM.Media.WinRtHttpClientReader
 
         public async Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
+            ThrowIfDisposed();
+
             using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead).AsTask(cancellationToken).ConfigureAwait(false))
             {
                 response.EnsureSuccessStatusCode();
@@ -129,6 +156,8 @@ namespace SM.Media.WinRtHttpClientReader
 
         public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption responseContentRead, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
+            ThrowIfDisposed();
+
             var url = request.RequestUri;
 
             var response = await _httpClient.SendRequestAsync(request, responseContentRead).AsTask(cancellationToken).ConfigureAwait(false);

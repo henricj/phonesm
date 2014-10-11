@@ -96,6 +96,9 @@
     <Compile Include="Content\IContentServiceFactoryInstance.cs" />
     <Compile Include="H262\H262StreamHandlerFactory.cs" />
     <Compile Include="H264\H264StreamHandlerFactory.cs" />
+    <Compile Include="H264\NalUnitType.cs" />
+    <Compile Include="H264\NalUnitTypeDescriptor.cs" />
+    <Compile Include="H264\NalUnitTypes.cs" />
     <Compile Include="Hls\HlsPlaylistSegmentManager.cs" />
     <Compile Include="Hls\HlsPlaylistSegmentManagerFactory.cs" />
     <Compile Include="M3U8\TagSupport\DateTimeTagInstance.cs" />
@@ -227,6 +230,7 @@
     <Compile Include="Segments\SegmentReaderManager.cs" />
     <Compile Include="Utility\AsyncFifoWorker.cs" />
     <Compile Include="Utility\CancellationTaskCompletionSource.cs" />
+    <Compile Include="Utility\CancellationTokenExtensions.cs" />
     <Compile Include="Utility\DisposeExtensions.cs" />
     <Compile Include="Utility\ByteConversion.cs" />
     <Compile Include="Utility\EnumerableExtensions.cs" />

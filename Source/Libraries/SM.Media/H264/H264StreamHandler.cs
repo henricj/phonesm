@@ -64,15 +64,15 @@ namespace SM.Media.H264
 
         NalUnitParser.ParserStateHandler ResolveHandler(byte arg)
         {
-            var nal_unit_type = arg & 0x1f;
+            var nalUnitType = (NalUnitType)(arg & 0x1f);
 
-            switch (nal_unit_type)
+            switch (nalUnitType)
             {
-                case 7: // SPS
+                case NalUnitType.Sps: // SPS
                     _rbspDecoder.CompletionHandler = buffer => { _configurator.SpsBytes = buffer; };
                     _currentParser = _rbspDecoder;
                     break;
-                case 8: // PPS
+                case NalUnitType.Pps: // PPS
                     _rbspDecoder.CompletionHandler = buffer => { _configurator.PpsBytes = buffer; };
                     _currentParser = _rbspDecoder;
                     break;

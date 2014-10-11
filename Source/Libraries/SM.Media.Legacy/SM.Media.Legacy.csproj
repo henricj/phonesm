@@ -193,6 +193,15 @@
     <Compile Include="..\SM.Media\H264\H264StreamHandlerFactory.cs">
       <Link>H264\H264StreamHandlerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\H264\NalUnitType.cs">
+      <Link>H264\NalUnitType.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\H264\NalUnitTypeDescriptor.cs">
+      <Link>H264\NalUnitTypeDescriptor.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\H264\NalUnitTypes.cs">
+      <Link>H264\NalUnitTypes.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Hls\HlsPlaylistParameters.cs">
       <Link>Hls\HlsPlaylistParameters.cs</Link>
     </Compile>
@@ -509,6 +518,9 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\CancellationTaskCompletionSource.cs">
       <Link>Utility\CancellationTaskCompletionSource.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\CancellationTokenExtensions.cs">
+      <Link>Utility\CancellationTokenExtensions.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\DisposeExtensions.cs">
       <Link>Utility\DisposeExtensions.cs</Link>

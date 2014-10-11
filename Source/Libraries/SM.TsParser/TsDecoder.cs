@@ -92,7 +92,9 @@ namespace SM.TsParser
 
         public void FlushBuffers()
         {
-            _programAssociationTable.FlushBuffers();
+            if (null != _programAssociationTable)
+                _programAssociationTable.FlushBuffers();
+
             _destinationLength = 0;
         }
 

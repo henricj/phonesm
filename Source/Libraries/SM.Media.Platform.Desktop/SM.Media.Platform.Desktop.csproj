@@ -47,6 +47,10 @@
       <Name>SM.Media.Builder</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
+      <Project>{2937062b-8451-496c-9207-8a7fe59933cf}</Project>
+      <Name>SM.Media.Web.HttpClientReader</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SM.Media\SM.Media.csproj">
       <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
       <Name>SM.Media</Name>
@@ -71,11 +75,16 @@
     <Compile Include="..\SM.Media.Platform.WP7\Utility\SingleThreadSignalTaskScheduler.cs">
       <Link>Utility\SingleThreadSignalTaskScheduler.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Platform.WP8\HttpClientModule.cs">
+      <Link>HttpClientModule.cs</Link>
+    </Compile>
+    <Compile Include="DesktopApplicationInformation.cs" />
     <Compile Include="Simulator\DefaultMediaStreamFacadeParameters.cs" />
     <Compile Include="Simulator\ISimulatedMediaElement.cs" />
     <Compile Include="Simulator\ISimulatedMediaStreamSource.cs" />
     <Compile Include="Simulator\MediaStreamFacade.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TsMediaModule.cs" />
     <Compile Include="Utility\RandomNumbers.cs" />
     <Compile Include="Simulator\SimulatedMediaElementManager.cs" />
     <Compile Include="Simulator\SimulatedMediaStreamSource.cs" />

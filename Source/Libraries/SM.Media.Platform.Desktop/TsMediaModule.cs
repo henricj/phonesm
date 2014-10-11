@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,21 +24,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac.Core;
-using SM.Media.Builder;
+using Autofac;
 using SM.Media.Utility;
 
 namespace SM.Media
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class TsMediaModule : Module
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new HttpClientModule() };
-
-        public TsMediaManagerBuilder()
-            : base(Modules)
+        protected override void Load(ContainerBuilder builder)
         {
-            RegisterSingleton<IApplicationInformation, DesktopApplicationInformation>();
-            RegisterSingleton<IPlatformServices, PlatformServices>();
+            builder.RegisterType<PlatformServices>()
+                .As<IPlatformServices>()
+                .SingleInstance();
         }
     }
 }

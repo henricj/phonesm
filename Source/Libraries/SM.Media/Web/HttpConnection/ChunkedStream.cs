@@ -51,10 +51,17 @@ namespace SM.Media.Web.HttpConnection
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
+            if (null == buffer)
+                throw new ArgumentNullException("buffer");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset");
+            if (count < 1 || count + offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("count");
+
             var totalLength = 0;
             var count0 = count;
 
-            for (;;)
+            for (; ; )
             {
                 var length = await ReadOneAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
 
@@ -136,7 +143,7 @@ namespace SM.Media.Web.HttpConnection
                 _chunkRead = 0;
             }
 
-            var remaining = (int) (_chunkSize.Value - _chunkRead);
+            var remaining = (int)(_chunkSize.Value - _chunkRead);
 
             if (count > remaining)
                 count = remaining;

@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -47,12 +46,19 @@ namespace SM.Media.Web.HttpConnection
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
+            if (null == buffer)
+                throw new ArgumentNullException("buffer");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset");
+            if (count < 1 || count + offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("count");
+
             if (_contentLength.HasValue)
             {
-                var remaining = (int)(_contentLength.Value - Position);
+                var remaining = _contentLength.Value - Position;
 
                 if (count > remaining)
-                    count = remaining;
+                    count = (int)remaining;
             }
 
             if (count < 1)

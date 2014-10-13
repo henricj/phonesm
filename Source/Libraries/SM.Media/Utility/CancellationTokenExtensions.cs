@@ -24,6 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -62,6 +64,29 @@ namespace SM.Media.Utility
                 return CancelledTask;
 
             return WaitAsync(cancellationToken);
+        }
+
+        /// <summary>
+        ///     Cancel then dispose without throwing any exceptions.
+        /// </summary>
+        /// <param name="cancellationTokenSource"></param>
+        /// <returns></returns>
+        public static void CancelDisposeSafe(this CancellationTokenSource cancellationTokenSource)
+        {
+            if (null == cancellationTokenSource)
+                return;
+
+            try
+            {
+                if (!cancellationTokenSource.IsCancellationRequested)
+                    cancellationTokenSource.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("CancellationTokenExtensions.CancelDisposeSafe() failed: " + ex.Message);
+            }
+
+            cancellationTokenSource.DisposeSafe();
         }
     }
 }

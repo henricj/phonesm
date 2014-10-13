@@ -50,6 +50,7 @@ namespace HlsView
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
         int _track;
+        bool _wasFull;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
 #if STREAM_SWITCHING
         readonly DispatcherTimer _timer;
@@ -240,6 +241,24 @@ namespace HlsView
                     stopButton.IsEnabled = true;
 
                     break;
+            }
+
+            if (null == mediaElement1)
+                _wasFull = false;
+            else
+            {
+                if (MediaElementState.Playing == state)
+                {
+                    if (_wasFull)
+                        mediaElement1.IsFullWindow = true;
+                }
+                else
+                {
+                    _wasFull = mediaElement1.IsFullWindow;
+
+                    if (_wasFull)
+                        mediaElement1.IsFullWindow = false;
+                }
             }
 
             OnPositionSamplerOnTick(null, null);
@@ -469,6 +488,9 @@ namespace HlsView
 
             if (null != mediaElement1)
                 mediaElement1.Source = null;
+
+            if (null != _mediaStreamFacade)
+                _mediaStreamFacade.RequestStop();
         }
 
         void wakeButton_Click(object sender, RoutedEventArgs e)

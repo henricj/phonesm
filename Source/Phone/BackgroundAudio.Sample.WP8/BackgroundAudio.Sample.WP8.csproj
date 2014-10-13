@@ -168,6 +168,23 @@
     </Reference>
   </ItemGroup>
   <Choose>
+    <When Condition="Exists('..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
+          <Project>{2937062b-8451-496c-9207-8a7fe59933cf}</Project>
+          <Name>SM.Media.Web.HttpClientReader</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Web.HttpClientReader">
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.Web.HttpClientReader.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj')">
       <ItemGroup>
         <ProjectReference Include="..\..\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\SM.Media.BackgroundAudioStreamingAgent.WP8.csproj">

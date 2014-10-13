@@ -42,7 +42,7 @@ namespace SM.Media.AAC
         #endregion
 
         Func<AacFrameHeader, ICollection<byte>> _audioSpecificConfigFactory;
-        bool _useParser;
+        bool _useParser = true;
 
         public AacDecoderParameters()
         {

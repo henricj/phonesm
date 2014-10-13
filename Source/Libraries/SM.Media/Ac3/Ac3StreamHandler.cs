@@ -25,64 +25,22 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Configuration;
-using SM.Media.Pes;
+using SM.Media.Audio;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
 namespace SM.Media.Ac3
 {
-    public class Ac3StreamHandler : PesStreamHandler
+    public class Ac3StreamHandler : AudioStreamHandler
     {
-        readonly Ac3Configurator _configurator;
-        readonly Action<TsPesPacket> _nextHandler;
-        readonly ITsPesPacketPool _pesPacketPool;
-        bool _foundframe;
+        const int MinimumPacketSize = 7;
+        const bool UseParser = true;
 
         public Ac3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+            : base(pid, streamType, new Ac3FrameHeader(), new Ac3Configurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
-            if (null == nextHandler)
-                throw new ArgumentNullException("nextHandler");
-
-            _pesPacketPool = pesPacketPool;
-            _nextHandler = nextHandler;
-            _configurator = new Ac3Configurator(streamType.Description);
-        }
-
-        public override IConfigurationSource Configurator
-        {
-            get { return _configurator; }
-        }
-
-        public override void PacketHandler(TsPesPacket packet)
-        {
-            base.PacketHandler(packet);
-
-            if (null == packet)
-            {
-                _nextHandler(null);
-
-                return;
-            }
-
-            // Reject garbage packet
-            if (packet.Length < 1)
-            {
-                _pesPacketPool.FreePesPacket(packet);
-
-                return;
-            }
-
-            if (!_foundframe)
-                _foundframe = _configurator.Parse(packet.Buffer, packet.Index, packet.Length);
-
-            if (!packet.Duration.HasValue)
-                packet.Duration = Ac3FrameHeader.FrameDuration;
-
-            _nextHandler(packet);
+            if (UseParser)
+                _parser = new Ac3Parser(pesPacketPool, _configurator.Configure, _nextHandler);
         }
     }
 }

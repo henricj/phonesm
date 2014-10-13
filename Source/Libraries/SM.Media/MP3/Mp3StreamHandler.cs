@@ -35,7 +35,7 @@ namespace SM.Media.MP3
     {
         const int MinimumPacketSize = 24; // "Seen on the web somewhere..."   TODO: Verify this in the spec.
 
-        const bool UseParser = false; // Have Mp3Parser parse the stream and submit frames to the OS.
+        const bool UseParser = true; // Have Mp3Parser parse the stream and submit frames to the OS.
 
         public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
             : base(pid, streamType, new Mp3FrameHeader(), new Mp3Configurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)

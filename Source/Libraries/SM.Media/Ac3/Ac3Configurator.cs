@@ -29,7 +29,7 @@ using SM.Media.Configuration;
 
 namespace SM.Media.Ac3
 {
-    public sealed class Ac3Configurator : ConfiguratorBase, IAudioConfigurationSource, IFrameParser
+    public sealed class Ac3Configurator : ConfiguratorBase, IAudioConfigurator, IFrameParser
     {
         readonly Ac3FrameHeader _frameHeader = new Ac3FrameHeader();
 
@@ -38,7 +38,7 @@ namespace SM.Media.Ac3
             StreamDescription = streamDescription;
         }
 
-        #region IAudioConfigurationSource Members
+        #region IAudioConfigurator Members
 
         public AudioFormat Format
         {
@@ -47,6 +47,17 @@ namespace SM.Media.Ac3
 
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
+
+        public void Configure(IAudioFrameHeader frameHeader)
+        {
+            var ac3FrameHeader = (Ac3FrameHeader)frameHeader;
+
+            Name = frameHeader.Name;
+            Bitrate = ac3FrameHeader.Bitrate;
+            SamplingFrequency = frameHeader.SamplingFrequency;
+
+            SetConfigured();
+        }
 
         #endregion
 
@@ -68,16 +79,5 @@ namespace SM.Media.Ac3
         }
 
         #endregion
-
-        public void Configure(IAudioFrameHeader frameHeader)
-        {
-            var ac3FrameHeader = (Ac3FrameHeader)frameHeader;
-
-            Name = frameHeader.Name;
-            Bitrate = ac3FrameHeader.Bitrate;
-            SamplingFrequency = frameHeader.SamplingFrequency;
-
-            SetConfigured();
-        }
     }
 }

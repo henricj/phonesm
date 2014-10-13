@@ -64,5 +64,32 @@ namespace SM.Media.H264
 
             return n;
         }
+
+        public static int ReadSignedBits(this H264Bitstream h264Bitstream, int count)
+        {
+            var n = h264Bitstream.ReadBits(count);
+
+            var leadingBits = 32 - count;
+            var sn = (int)(n << leadingBits);
+
+            sn >>= leadingBits;
+
+            return sn;
+        }
+
+        public static uint ReadFfSum(this H264Bitstream h264Bitstream)
+        {
+            var sum = 0u;
+
+            for (; ; )
+            {
+                var b = h264Bitstream.ReadBits(8);
+
+                sum += b;
+
+                if (b != 0xff)
+                    return sum;
+            }
+        }
     }
 }

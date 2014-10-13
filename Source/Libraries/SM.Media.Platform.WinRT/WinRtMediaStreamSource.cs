@@ -256,7 +256,11 @@ namespace SM.Media
                     if (configurationSource.Bitrate.HasValue)
                         encodingProperties.Bitrate = (uint)configurationSource.Bitrate.Value;
 
-                    return new AudioStreamDescriptor(encodingProperties);
+                    var ac3Descriptor = new AudioStreamDescriptor(encodingProperties);
+
+                    DumpAudioStreamDescriptor(ac3Descriptor);
+
+                    return ac3Descriptor;
                 case AudioFormat.Unknown:
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -270,7 +274,17 @@ namespace SM.Media
             if (string.IsNullOrEmpty(descriptor.Name))
                 descriptor.Name = configurationSource.Name;
 
+            DumpAudioStreamDescriptor(descriptor);
+
             return descriptor;
+        }
+
+        static void DumpAudioStreamDescriptor(AudioStreamDescriptor descriptor)
+        {
+            var p = descriptor.EncodingProperties;
+
+            Debug.WriteLine("WinRtMediaStreamSource.CreateAudioDescriptor() {0} sample rate {1} channels {2} bitrate {3}",
+                p.Subtype, p.SampleRate, p.ChannelCount, p.Bitrate);
         }
 
         void CompleteConfigure()

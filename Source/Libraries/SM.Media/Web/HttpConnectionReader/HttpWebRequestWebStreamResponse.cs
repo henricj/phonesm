@@ -37,7 +37,6 @@ namespace SM.Media.Web.HttpConnectionReader
     {
         readonly int _httpStatusCode;
         readonly IHttpConnectionResponse _response;
-        Task<Stream> _streamTask;
 
         public HttpConnectionWebStreamResponse(IHttpConnectionResponse response)
         {
@@ -45,7 +44,7 @@ namespace SM.Media.Web.HttpConnectionReader
                 throw new ArgumentNullException("response");
 
             _response = response;
-            _httpStatusCode = (int)_response.Status.StatusCode;
+            _httpStatusCode = _response.Status.StatusCode;
         }
 
         public HttpConnectionWebStreamResponse(HttpStatusCode statusCode)
@@ -57,9 +56,6 @@ namespace SM.Media.Web.HttpConnectionReader
 
         public void Dispose()
         {
-            if (null != _streamTask && _streamTask.IsCompleted)
-                _streamTask.Result.Dispose();
-
             using (_response)
             { }
         }

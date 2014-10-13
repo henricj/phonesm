@@ -59,6 +59,7 @@ namespace SM.Media
         MediaStreamSourceStartingRequestDeferral _onStartingDeferral;
         MediaStreamSourceStartingRequest _onStartingRequest;
         static readonly TimeSpan ResyncThreshold = TimeSpan.FromSeconds(7);
+        private MediaStreamSource _onStartingSender;
 
         public WinRtMediaStreamSource()
         {
@@ -435,16 +436,28 @@ namespace SM.Media
 
                     _onStartingRequest = args.Request;
                     _onStartingDeferral = args.Request.GetDeferral();
+                    _onStartingSender = sender;
+
                     return;
                 }
 
-                var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
+                try
+                {
+                    var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
 
-                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual " + pts);
+                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual " + pts);
 
-                request.SetActualStartPosition(pts);
+                    request.SetActualStartPosition(pts);
 
-                CheckForSamples();
+                    CheckForSamples();
+
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() failed: " + ex.Message);
+
+                    sender.NotifyError(MediaStreamSourceErrorStatus.Other);
+                }
 
                 return;
             }
@@ -457,7 +470,7 @@ namespace SM.Media
 
                 var actual = await MediaManager.SeekMediaAsync(startPosition.Value).ConfigureAwait(false);
 
-                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual seek ", actual);
+                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual seek " + actual);
 
                 request.SetActualStartPosition(actual);
 
@@ -466,6 +479,8 @@ namespace SM.Media
             catch (Exception ex)
             {
                 Debug.WriteLine("Unable to seek: " + ex.Message);
+
+                sender.NotifyError(MediaStreamSourceErrorStatus.FailedToOpenFile);
             }
             finally
             {
@@ -481,7 +496,7 @@ namespace SM.Media
 
         void CompleteOnStarting()
         {
-            Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStating()");
+            Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting()");
 
             if (IsBuffering)
                 return;
@@ -495,7 +510,7 @@ namespace SM.Media
             {
                 var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
 
-                Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStating() pts " + pts);
+                Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting() pts " + pts);
 
                 if (null != _onStartingRequest)
                 {
@@ -508,9 +523,17 @@ namespace SM.Media
                     throw new InvalidOperationException("WinRtMediaStreamSource.CompleteOnStarting() missing request");
                 }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting() failed: " + ex.Message);
+
+                _onStartingSender.NotifyError(MediaStreamSourceErrorStatus.FailedToOpenFile);
+            }
             finally
             {
                 deferral.Complete();
+
+                _onStartingSender = null;
             }
         }
 

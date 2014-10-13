@@ -62,7 +62,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         public bool IsSuccessStatusCode
         {
-            get { return null != _response; }
+            get { return null != _response && _httpStatusCode >= 200 && _httpStatusCode < 300; }
         }
 
         public Uri ActualUrl
@@ -82,7 +82,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         public void EnsureSuccessStatusCode()
         {
-            if (_httpStatusCode < 200 || _httpStatusCode >= 300)
+            if (!IsSuccessStatusCode)
                 throw new WebException("Invalid status: " + _httpStatusCode);
         }
 

@@ -165,7 +165,7 @@ namespace SM.Media.Web.WebRequestReader
         {
             var request = CreateRequest(url, referrer, parent, contentType, method, allowBuffering, fromBytes, toBytes);
 
-            return await request.SendAsync(cancellationToken);
+            return await request.SendAsync(cancellationToken).ConfigureAwait(false);
         }
 
         protected virtual HttpWebRequestWebReader CreateHttpWebRequestWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)

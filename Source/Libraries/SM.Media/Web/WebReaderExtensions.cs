@@ -56,7 +56,7 @@ namespace SM.Media.Web
         {
             for (; ; )
             {
-                using (var response = await webReader.GetWebStreamAsync(url, true, cancellationToken))
+                using (var response = await webReader.GetWebStreamAsync(url, true, cancellationToken).ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
                     {
@@ -71,8 +71,7 @@ namespace SM.Media.Web
                     if (!RetryPolicy.IsRetryable((HttpStatusCode)response.HttpStatusCode))
                         response.EnsureSuccessStatusCode();
 
-                    var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
-                                              .ConfigureAwait(false);
+                    var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken).ConfigureAwait(false);
 
                     if (!canRetry)
                         response.EnsureSuccessStatusCode();
@@ -101,7 +100,7 @@ namespace SM.Media.Web
                         response.EnsureSuccessStatusCode();
 
                     var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
-                                              .ConfigureAwait(false);
+                        .ConfigureAwait(false);
 
                     if (!canRetry)
                         response.EnsureSuccessStatusCode();

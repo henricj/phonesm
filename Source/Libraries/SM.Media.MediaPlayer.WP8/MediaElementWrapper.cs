@@ -473,9 +473,9 @@ namespace SM.Media.MediaPlayer
             if (MarkerReached != null)
             {
                 MarkerReached(this, new Microsoft.PlayerFramework.TimelineMarkerRoutedEventArgs
-                                    {
-                                        Marker = e.Marker
-                                    });
+                {
+                    Marker = e.Marker
+                });
             }
         }
 #else
@@ -511,8 +511,10 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("MediaElementWrapper.SetSourceAsync()");
 
-            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(_source, CancellationToken.None);
+            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(_source, CancellationToken.None).ConfigureAwait(false);
 
+            // Capturing the context would be pointless since we might
+            // not be on the UI thread to begin with.
             if (Dispatcher.CheckAccess())
                 SetSource(mss);
             else

@@ -39,7 +39,7 @@ namespace SM.Media.Web.HttpConnection
         Task<string> ReadLineAsync(CancellationToken cancellationToken);
         Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
     }
-    
+
     public sealed class HttpReader : IHttpReader
     {
         #region Delegates
@@ -121,7 +121,7 @@ namespace SM.Media.Web.HttpConnection
                     }
                 }
 
-                var length = await FillBufferAsync(cancellationToken);
+                var length = await FillBufferAsync(cancellationToken).ConfigureAwait(false);
 
                 if (length < 1)
                 {

@@ -98,7 +98,7 @@ namespace SM.Media.Web.HttpClientReader
 
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-                var response = await _httpClient.SendAsync(request, completionOption, cancellationToken, referrer, from, to);
+                var response = await _httpClient.SendAsync(request, completionOption, cancellationToken, referrer, from, to).ConfigureAwait(false);
 
                 Update(url, response, webResponse);
 

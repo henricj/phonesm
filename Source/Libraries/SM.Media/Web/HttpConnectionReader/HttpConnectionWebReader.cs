@@ -81,7 +81,7 @@ namespace SM.Media.Web.HttpConnectionReader
         {
             var request = _webReaderManager.CreateRequest(url, referrer, this, ContentType, allowBuffering: waitForContent, fromBytes: from, toBytes: to);
 
-            var response = await _webReaderManager.GetAsync(request, cancellationToken);
+            var response = await _webReaderManager.GetAsync(request, cancellationToken).ConfigureAwait(false);
 
             Update(url, response, webResponse);
 

@@ -439,8 +439,6 @@ namespace SM.Media
 
             try
             {
-                CancelPending();
-
                 deferral = request.GetDeferral();
 
                 var actual = await MediaManager.SeekMediaAsync(startPosition.Value).ConfigureAwait(false);
@@ -448,6 +446,8 @@ namespace SM.Media
                 Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual seek ", actual);
 
                 request.SetActualStartPosition(actual);
+
+                CheckForSamples();
             }
             catch (Exception ex)
             {

@@ -63,8 +63,13 @@ namespace SM.Media.Web
                         var actualUrl = response.ActualUrl;
 
                         using (var stream = await response.GetStreamAsync(cancellationToken).ConfigureAwait(false))
+                        using (var ms = new MemoryStream((int)(response.ContentLength ?? 4096)))
                         {
-                            return reader(actualUrl, stream);
+                            await stream.CopyToAsync(ms, 4096, cancellationToken).ConfigureAwait(false);
+
+                            ms.Position = 0;
+
+                            return reader(actualUrl, ms);
                         }
                     }
 

@@ -217,6 +217,12 @@ namespace SM.Media
             if (configurationSource.Width.HasValue)
                 encodingProperties.Width = (uint)configurationSource.Width.Value;
 
+            if (configurationSource.FrameRateNumerator.HasValue && configurationSource.FrameRateDenominator.HasValue)
+            {
+                encodingProperties.FrameRate.Numerator = (uint)configurationSource.FrameRateNumerator.Value;
+                encodingProperties.FrameRate.Denominator = (uint)configurationSource.FrameRateDenominator.Value;
+            }
+
             var descriptor = new VideoStreamDescriptor(encodingProperties);
 
             if (string.IsNullOrEmpty(descriptor.Name))

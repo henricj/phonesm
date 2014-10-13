@@ -33,7 +33,7 @@ using SM.Media.Configuration;
 
 namespace SM.Media.H264
 {
-    sealed class H264Configurator : ConfiguratorBase, IH264Configuration
+    sealed class H264Configurator : VideoConfigurator
     {
         static readonly uint[] ProfileIdcHasChromaFormat
             = new[]
@@ -55,11 +55,10 @@ namespace SM.Media.H264
         IEnumerable<byte> _spsBytes;
 
         public H264Configurator(string streamDescription = null)
+            : base("H264")
         {
             StreamDescription = streamDescription;
         }
-
-        #region IH264Configuration Members
 
         public IEnumerable<byte> SpsBytes
         {
@@ -92,14 +91,6 @@ namespace SM.Media.H264
             }
         }
 
-        public string VideoFourCc
-        {
-            get { return "H264"; }
-        }
-
-        public int? Height { get; private set; }
-        public int? Width { get; private set; }
-
         public override string CodecPrivateData
         {
             get
@@ -120,8 +111,6 @@ namespace SM.Media.H264
                 return _codecPrivateData.ToString();
             }
         }
-
-        #endregion
 
         IEnumerable<byte> RbspEscape(IEnumerable<byte> sequence)
         {

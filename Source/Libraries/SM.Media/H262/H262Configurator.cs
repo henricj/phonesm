@@ -29,9 +29,10 @@ using SM.Media.Configuration;
 
 namespace SM.Media.H262
 {
-    public sealed class H262Configurator : ConfiguratorBase, IVideoConfigurationSource, IFrameParser
+    public sealed class H262Configurator : VideoConfigurator, IFrameParser
     {
         public H262Configurator(string streamDescription = null)
+            : base("MP2V")
         {
             StreamDescription = streamDescription;
         }
@@ -49,18 +50,6 @@ namespace SM.Media.H262
 
             return true;
         }
-
-        #endregion
-
-        #region IVideoConfigurationSource Members
-
-        public string VideoFourCc
-        {
-            get { return "MP2V"; }
-        }
-
-        public int? Height { get; private set; }
-        public int? Width { get; private set; }
 
         #endregion
 

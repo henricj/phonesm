@@ -90,6 +90,7 @@
     <Compile Include="CallbackReader.cs" />
     <Compile Include="Configuration\ConfiguratorBase.cs" />
     <Compile Include="Configuration\NullConfigurator.cs" />
+    <Compile Include="Configuration\VideoConfigurator.cs" />
     <Compile Include="Content\ContentServiceFactoryBase.cs" />
     <Compile Include="Content\ContentServiceFactoryFinder.cs" />
     <Compile Include="Content\ContentServiceFactoryInstance.cs" />
@@ -253,7 +254,6 @@
     <Compile Include="H264\H264BitstreamExtensions.cs" />
     <Compile Include="H264\H264Configurator.cs" />
     <Compile Include="H264\H264StreamHandler.cs" />
-    <Compile Include="H264\IH264Configuration.cs" />
     <Compile Include="H264\IH264ConfiguratorSink.cs" />
     <Compile Include="H264\INalParser.cs" />
     <Compile Include="IStreamSource.cs" />

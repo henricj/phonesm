@@ -154,6 +154,9 @@
     <Compile Include="..\SM.Media\Configuration\NullConfigurator.cs">
       <Link>Configuration\NullConfigurator.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Configuration\VideoConfigurator.cs">
+      <Link>Configuration\VideoConfigurator.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Content\ContentKind.cs">
       <Link>Content\ContentKind.cs</Link>
     </Compile>
@@ -695,9 +698,6 @@
     </Compile>
     <Compile Include="..\SM.Media\H264\H264StreamHandler.cs">
       <Link>H264\H264StreamHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\H264\IH264Configuration.cs">
-      <Link>H264\IH264Configuration.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\H264\IH264ConfiguratorSink.cs">
       <Link>H264\IH264ConfiguratorSink.cs</Link>

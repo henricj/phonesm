@@ -40,20 +40,18 @@ namespace SM.Media
     public interface IMediaStreamFacadeBase : IDisposable
     {
         /// <summary>
-        ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
-        ///     The type will be detected if null. Set this value before setting <see cref="Source" />.
+        ///     Force the source to be considered <see cref="SM.Media.Content.ContentType" />.
+        ///     The type will be detected if null. Set this value before calling CreateMediaStreamSourceAsync().
         /// </summary>
         /// <seealso cref="SM.Media.Content.ContentTypes" />
         ContentType ContentType { get; set; }
 
-        //Uri Source { get; set; }
         TimeSpan? SeekTarget { get; set; }
         TsMediaManager.MediaState State { get; }
         IBuilder<IMediaManager> Builder { get; }
 
         event EventHandler<TsMediaManagerStateEventArgs> StateChange;
 
-        void Play();
         void RequestStop();
         Task StopAsync(CancellationToken cancellationToken);
         Task CloseAsync();
@@ -71,10 +69,10 @@ namespace SM.Media
         readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
         readonly IBuilder<IMediaManager> _mediaManagerBuilder;
+        CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         int _isDisposed;
         IMediaManager _mediaManager;
         ISegmentManager _playlist;
-        Uri _source;
 
         protected MediaStreamFacadeBase(IBuilder<IMediaManager> mediaManagerBuilder)
         {
@@ -151,22 +149,13 @@ namespace SM.Media
 
         public event EventHandler<TsMediaManagerStateEventArgs> StateChange;
 
-        public void Play()
-        {
-            Debug.WriteLine("MediaStreamFacadeBase.Play()");
-
-            ThrowIfDisposed();
-
-            Post(StartPlaybackAsync, "MediaStreamFacadeBase.Play() StartPlaybackAsync");
-        }
-
         public void RequestStop()
         {
             Debug.WriteLine("MediaStreamFacadeBase.RequestStop()");
 
             ThrowIfDisposed();
 
-            if (_disposeCancellationTokenSource.IsCancellationRequested)
+            if (_closeCancellationTokenSource.IsCancellationRequested)
                 return; // CloseAsync has already been called.
 
             try
@@ -186,11 +175,9 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
-            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCancellationTokenSource.Token))
+            using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _closeCancellationTokenSource.Token, _disposeCancellationTokenSource.Token))
             {
-                await _asyncFifoWorker
-                    .PostAsync(CloseMediaAsync, "MediaStreamFacadeBase.StopAsync() CloseMediaAsync", linkedToken.Token)
-                    .ConfigureAwait(false);
+                await RequestCloseMediaAsync(linkedToken.Token).ConfigureAwait(false);
             }
         }
 
@@ -198,14 +185,26 @@ namespace SM.Media
         {
             Debug.WriteLine("MediaStreamFacadeBase.CloseAsync()");
 
-            ThrowIfDisposed();
-
-            _disposeCancellationTokenSource.Cancel();
-
-            return _asyncFifoWorker.PostAsync(CloseMediaAsync, "MediaStreamFacadeBase.CloseAsync() CloseMediaAsync", CancellationToken.None);
+            return RequestCloseMediaAsync(_disposeCancellationTokenSource.Token);
         }
 
         #endregion
+
+        void ResetCloseCancellationToken()
+        {
+            if (!_closeCancellationTokenSource.IsCancellationRequested)
+                return;
+
+            _closeCancellationTokenSource.DisposeSafe();
+            _closeCancellationTokenSource = new CancellationTokenSource();
+        }
+
+        Task RequestCloseMediaAsync(CancellationToken cancellationToken)
+        {
+            Debug.WriteLine("MediaStreamFacadeBase.RequestCloseMediaAsync()");
+
+            return _asyncFifoWorker.PostAsync(CloseMediaAsync, "MediaStreamFacadeBase.RequestCloseMediaAsync() CloseMediaAsync", cancellationToken);
+        }
 
         void ThrowIfDisposed()
         {
@@ -264,31 +263,6 @@ namespace SM.Media
             _asyncFifoWorker.Post(work, description, _disposeCancellationTokenSource.Token);
         }
 
-        async Task StartPlaybackAsync()
-        {
-            Debug.WriteLine("MediaStreamFacadeBase.StartPlaybackAsync()");
-
-            try
-            {
-                if (null == _source)
-                    return;
-
-                var mediaManager = MediaManager;
-
-                if (null == mediaManager || TsMediaManager.MediaState.Error == mediaManager.State || TsMediaManager.MediaState.Closed == mediaManager.State)
-                {
-                    await OpenMediaAsync(_source).ConfigureAwait(false);
-
-                    Debug.Assert(null != mediaManager);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Send a "Failed" message here?
-                Debug.WriteLine("MediaStreamFacadeBase.StartPlaybackAsync() failed: " + ex.Message);
-            }
-        }
-
         protected async Task<IMediaManager> CreateMediaManagerAsync(Uri source, CancellationToken cancellationToken)
         {
             IMediaManager mediaManager = null;
@@ -326,7 +300,7 @@ namespace SM.Media
                 return null;
             }
 
-            _source = source;
+            ResetCloseCancellationToken();
 
             mediaManager = _mediaManagerBuilder.Create();
 
@@ -349,6 +323,9 @@ namespace SM.Media
         async Task CloseMediaAsync()
         {
             Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync()");
+
+            if (!_closeCancellationTokenSource.IsCancellationRequested)
+                _closeCancellationTokenSource.Cancel();
 
             IMediaManager mediaManager;
 
@@ -384,8 +361,6 @@ namespace SM.Media
 
                 playlist.CleanupBackground("MediaStreamFacadeBase.CloseMediaAsync playlist");
             }
-
-            _source = null;
 
             Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() completed");
         }

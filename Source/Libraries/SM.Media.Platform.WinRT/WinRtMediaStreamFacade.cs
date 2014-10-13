@@ -61,7 +61,28 @@ namespace SM.Media
 
                 mss.RegisterMediaStreamSourceHandler(ms => tcs.TrySetResult(ms));
 
-                return await tcs.Task.ConfigureAwait(false);
+                EventHandler<TsMediaManagerStateEventArgs> onStateChange =
+                    (sender, args) =>
+                    {
+                        var state = args.State;
+
+                        if (TsMediaManager.MediaState.Error == state || TsMediaManager.MediaState.Closed == state || TsMediaManager.MediaState.Closing == state)
+                            tcs.TrySetCanceled();
+                    };
+
+                mediaManager.OnStateChange += onStateChange;
+
+                try
+                {
+                    using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+                    {
+                        return await tcs.Task.ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    mediaManager.OnStateChange -= onStateChange;
+                }
             }
             catch (Exception ex)
             {

@@ -43,8 +43,9 @@ namespace SM.Media
         int _isDisposed;
         CancellationTokenSource _readCancellationSource;
         int _readCount;
-        bool _readerRunning;
+        TaskCompletionSource<long> _readResultTask = new TaskCompletionSource<long>();
         Task _readerTask;
+        long _total;
 
         public CallbackReader(IAsyncEnumerable<ISegmentReader> segmentReaders, Action<WorkBuffer> enqueue, IBlockingPool<WorkBuffer> bufferPool)
         {
@@ -109,7 +110,7 @@ namespace SM.Media
                 TaskCollector.Default.Add(reader, "CallbackReader.Close");
 
             if (null != cancellationTokenSource)
-                cancellationTokenSource.Dispose();
+                cancellationTokenSource.CancelDisposeSafe();
         }
 
         void Close()
@@ -122,8 +123,17 @@ namespace SM.Media
             StopAsync().Wait();
         }
 
-        protected virtual async Task ReadAsync(CancellationToken cancellationToken)
+        protected virtual async Task ReadSegmentsAsync(CancellationToken cancellationToken)
         {
+            TaskCompletionSource<long> readResultTask;
+
+            lock (_readerLock)
+            {
+                readResultTask = _readResultTask;
+            }
+
+            _total = 0L;
+
             try
             {
                 using (var segmentReaderEnumerator = _segmentReaders.GetEnumerator())
@@ -149,17 +159,19 @@ namespace SM.Media
             catch (OperationCanceledException)
             {
                 // Expected...
+
+                readResultTask.TrySetCanceled();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("CallbackReader.ReadAsync() failed: " + ex.ExtendedMessage());
+
+                readResultTask.TrySetException(ex);
             }
             finally
             {
-                lock (_readerLock)
-                {
-                    _readerRunning = false;
-                }
+                if (!readResultTask.Task.IsCompleted)
+                    readResultTask.TrySetResult(_total);
             }
         }
 
@@ -186,6 +198,8 @@ namespace SM.Media
 
                     if (buffer.Length > 0)
                     {
+                        _total += buffer.Length;
+
                         _enqueue(buffer);
 
                         buffer = null;
@@ -199,17 +213,18 @@ namespace SM.Media
             }
         }
 
-        public virtual Task StartAsync(CancellationToken cancellationToken)
+        public virtual Task<long> ReadAsync(CancellationToken cancellationToken)
         {
             CancellationTokenSource oldCancellationTokenSource = null;
-            Task readerTask;
+            TaskCompletionSource<long> oldReadResultTask = null;
+            TaskCompletionSource<long> readResultTask;
 
             lock (_readerLock)
             {
                 Debug.Assert(null == _readerTask || _readerTask.IsCompleted);
 
                 if (_isClosed)
-                    return TplTaskExtensions.CompletedTask;
+                    return TaskEx.FromResult(0L);
 
                 if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
                 {
@@ -219,39 +234,38 @@ namespace SM.Media
                     _readCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 }
 
-                _readerRunning = true;
+                if (_readResultTask.Task.IsCompleted)
+                {
+                    oldReadResultTask = _readResultTask;
+                    _readResultTask = new TaskCompletionSource<long>();
+                }
+
+                readResultTask = _readResultTask;
 
                 var token = _readCancellationSource.Token;
 
-                readerTask = _readerTask = TaskEx.Run(() => ReadAsync(token), token);
+                _readerTask = TaskEx.Run(() => ReadSegmentsAsync(token), token);
             }
+
+            if (null != oldReadResultTask)
+                oldReadResultTask.TrySetCanceled();
 
             if (null != oldCancellationTokenSource)
-            {
-                try
-                {
-                    if (!oldCancellationTokenSource.IsCancellationRequested)
-                        oldCancellationTokenSource.Cancel();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("CallbackReader.StartAsync() cancel failed: " + ex.Message);
-                }
+                oldCancellationTokenSource.CancelDisposeSafe();
 
-                oldCancellationTokenSource.Dispose();
-            }
-
-            return readerTask;
+            return readResultTask.Task;
         }
 
         public virtual async Task StopAsync()
         {
             Task reader;
             CancellationTokenSource cancellationTokenSource;
+            TaskCompletionSource<long> readResultTask;
 
             lock (_readerLock)
             {
                 reader = _readerTask;
+                readResultTask = _readResultTask;
                 cancellationTokenSource = _readCancellationSource;
             }
 
@@ -262,6 +276,10 @@ namespace SM.Media
             {
                 if (null != reader)
                     await reader.ConfigureAwait(false);
+
+                // It should be done, but we want to propagate any exceptions.
+                if (null != readResultTask)
+                    await readResultTask.Task.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

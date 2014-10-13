@@ -176,13 +176,13 @@ namespace SM.Media
             Debug.WriteLine("TsMediaManager.OpenMedia()");
 
             _asyncFifoWorker.Post(() =>
-                                  {
-                                      Debug.WriteLine("TsMediaManager.OpenMedia() handler");
+            {
+                Debug.WriteLine("TsMediaManager.OpenMedia() handler");
 
-                                      State = MediaState.OpenMedia;
+                State = MediaState.OpenMedia;
 
-                                      return OpenMediaAsync();
-                                  }, "TsMediaManager.OpenMedia() OpenMediaAsync", _closeCancellationTokenSource.Token);
+                return OpenMediaAsync();
+            }, "TsMediaManager.OpenMedia() OpenMediaAsync", _closeCancellationTokenSource.Token);
         }
 
         public void CloseMedia()
@@ -429,12 +429,31 @@ namespace SM.Media
 
         void StartReaders()
         {
-            foreach (var reader in _readers)
-            {
-                var startReader = reader.StartAsync(_playbackCancellationTokenSource.Token);
+            var token = _playbackCancellationTokenSource.Token;
 
-                startReader.ContinueWith(t => CloseMedia(), TaskContinuationOptions.OnlyOnFaulted);
-            }
+            var tasks = _readers.Select(r => r.ReadAsync(token) as Task);
+
+            var cleanupTask = TaskEx.WhenAll(tasks)
+                .ContinueWith(
+                    t =>
+                    {
+                        var ex = t.Exception;
+                        if (null != ex)
+                        {
+                            Debug.WriteLine("TsMediaManager.StartReaders() ReadAsync failed: " + ex.Message);
+                            SetMediaState(MediaState.Error, ex.ExtendedMessage());
+                        }
+
+                        lock (_lock)
+                        {
+                            if (null != _closeTaskCompletionSource)
+                                return;
+                        }
+
+                        CloseMedia();
+                    }, token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+
+            TaskCollector.Default.Add(cleanupTask, "TsMediaManager.StartReaders() cleanup tasks");
         }
 
         async Task OpenMediaAsync()
@@ -476,11 +495,11 @@ namespace SM.Media
                 }
 
                 readerTasks = _readerManager.SegmentManagerReaders
-                                            .Select(CreateReaderPipeline)
-                                            .ToArray();
+                    .Select(CreateReaderPipeline)
+                    .ToArray();
 
                 _readers = await TaskEx.WhenAll<IMediaReader>(readerTasks)
-                                       .ConfigureAwait(false);
+                    .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
                     reader.IsEnabled = true;
@@ -521,8 +540,8 @@ namespace SM.Media
 
                         return r.IsCompleted;
                     })
-                                      .Select(r => r.Result)
-                                      .ToArray();
+                    .Select(r => r.Result)
+                    .ToArray();
 
                 await CloseReadersAsync().ConfigureAwait(false);
 
@@ -545,7 +564,7 @@ namespace SM.Media
             await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted,
                 () => _mediaStreamSource.CheckForSamples(),
                 _playbackCancellationTokenSource.Token, _programStreamsHandler)
-                        .ConfigureAwait(false);
+                .ConfigureAwait(false);
 
             return
                 reader;
@@ -604,7 +623,7 @@ namespace SM.Media
 
                         return null;
                     })
-                                    .Where(t => null != t);
+                    .Where(t => null != t);
 
                 await TaskEx.WhenAll(tasks).ConfigureAwait(false);
             }

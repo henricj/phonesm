@@ -43,7 +43,7 @@ namespace SM.Media
         bool IsConfigured { get; }
         bool IsEnabled { get; set; }
         ICollection<IMediaParserMediaStream> MediaStreams { get; }
-        Task StartAsync(CancellationToken cancellationToken);
+        Task<long> ReadAsync(CancellationToken cancellationToken);
         Task CloseAsync();
         Task StopAsync();
 
@@ -127,15 +127,15 @@ namespace SM.Media
             }
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public Task<long> ReadAsync(CancellationToken cancellationToken)
         {
-            //Debug.WriteLine("MediaReader.StartAsync()");
+            //Debug.WriteLine("MediaReader.ReadAsync()");
 
             _mediaParser.StartPosition = _segmentReaders.Manager.StartPosition;
 
             _bufferingManager.Flush();
 
-            return _callbackReader.StartAsync(cancellationToken);
+            return _callbackReader.ReadAsync(cancellationToken);
         }
 
         public async Task CloseAsync()

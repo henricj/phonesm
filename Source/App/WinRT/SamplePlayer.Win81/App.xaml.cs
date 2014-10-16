@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
@@ -32,6 +34,9 @@ namespace SamplePlayer.Win81
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+
+            UnhandledException += Application_UnhandledException;
+            TaskScheduler.UnobservedTaskException += Application_UnobservedException;
         }
 
         /// <summary>
@@ -104,6 +109,22 @@ namespace SamplePlayer.Win81
             var deferral = e.SuspendingOperation.GetDeferral();
             //TODO: Save application state and stop any background activity
             deferral.Complete();
+        }
+
+        void Application_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Debug.WriteLine("*** Unhandled exception: " + e.Exception.Message);
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
+        }
+
+        void Application_UnobservedException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Debug.WriteLine("*** Unobserved task exception {0}", e.Exception.Message);
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
         }
     }
 }

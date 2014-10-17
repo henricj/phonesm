@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Utility;
+using SM.Media.Utility.TextEncodings;
 using SM.Media.Web;
 
 namespace SM.Media.M3U8
@@ -62,9 +63,7 @@ namespace SM.Media.M3U8
                 // Silverlight...?
             }
 
-            // We could try http://www.hardcodet.net/2010/03/silverlight-text-encoding-class-generator
-
-            return Encoding.UTF8;
+            return new Windows1252Encoding();
         }
 
         /// <summary>
@@ -109,11 +108,11 @@ namespace SM.Media.M3U8
 
             return retry.CallAsync(() =>
                 webReader.ReadStreamAsync(playlist, retry, (actualPlaylist, stream) =>
-                                                           {
-                                                               parser.Parse(actualPlaylist, stream);
+                {
+                    parser.Parse(actualPlaylist, stream);
 
-                                                               return actualPlaylist;
-                                                           }, cancellationToken),
+                    return actualPlaylist;
+                }, cancellationToken),
                 cancellationToken);
         }
 

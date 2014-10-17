@@ -27,7 +27,7 @@
 using System;
 using System.Diagnostics;
 using System.Text;
-using SM.Media.Mono.Text;
+using SM.Media.Utility.TextEncodings;
 
 namespace SM.Media.Web.HttpConnection
 {
@@ -38,8 +38,8 @@ namespace SM.Media.Web.HttpConnection
 
         static HttpEncoding()
         {
-            Encode = GetHttpEncoding();
-            Decode = GetHttpDecoding();
+            Encode = GetHeaderEncoding();
+            Decode = GetHeaderDecoding();
         }
 
         #region IHttpEncoding Members
@@ -56,7 +56,7 @@ namespace SM.Media.Web.HttpConnection
 
         #endregion
 
-        static Encoding GetHttpDecoding()
+        static Encoding GetHeaderDecoding()
         {
             var decoding = GetEncoding("Windows-1252");
 
@@ -67,17 +67,17 @@ namespace SM.Media.Web.HttpConnection
             if (null != decoding)
                 return decoding;
 
-            return new Latin1Encoding();
+            return new Windows1252Encoding();
         }
 
-        static Encoding GetHttpEncoding()
+        static Encoding GetHeaderEncoding()
         {
             var encoding = GetEncoding("us-ascii");
 
             if (null != encoding)
                 return encoding;
 
-            return new ASCIIEncoding();
+            return new AsciiEncoding();
         }
 
         static Encoding GetEncoding(string name)

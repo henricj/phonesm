@@ -24,33 +24,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using SM.Media.Configuration;
+using SM.Media.Utility;
 
 namespace SM.Media.H264
 {
     sealed class H264Configurator : VideoConfigurator
     {
-        static readonly uint[] ProfileIdcHasChromaFormat
-            = new[]
-            {
-                100u,
-                110u,
-                122u,
-                244u,
-                44u,
-                83u,
-                86u,
-                118u,
-                128u
-            }.OrderBy(k => k)
-                .ToArray();
-
         readonly StringBuilder _codecPrivateData = new StringBuilder();
+        readonly IH264Reader _h264Reader = new H264Reader();
         IEnumerable<byte> _ppsBytes;
         IEnumerable<byte> _spsBytes;
 
@@ -58,37 +44,6 @@ namespace SM.Media.H264
             : base("H264")
         {
             StreamDescription = streamDescription;
-        }
-
-        public IEnumerable<byte> SpsBytes
-        {
-            get { return _spsBytes; }
-            set
-            {
-                if (SequencesAreEquivalent(value, _spsBytes))
-                    return;
-
-                _spsBytes = value.ToArray();
-
-                // Get the height/width
-                ParseSps(_spsBytes);
-
-                CheckConfigure();
-            }
-        }
-
-        public IEnumerable<byte> PpsBytes
-        {
-            get { return _ppsBytes; }
-            set
-            {
-                if (SequencesAreEquivalent(value, _ppsBytes))
-                    return;
-
-                _ppsBytes = value.ToArray();
-
-                CheckConfigure();
-            }
         }
 
         public override string CodecPrivateData
@@ -100,16 +55,47 @@ namespace SM.Media.H264
 
                 _codecPrivateData.Append("00000001");
 
-                foreach (var b in RbspEscape(SpsBytes))
+                foreach (var b in RbspEscape(_spsBytes))
                     _codecPrivateData.Append(b.ToString("X2"));
 
                 _codecPrivateData.Append("00000001");
 
-                foreach (var b in RbspEscape(PpsBytes))
+                foreach (var b in RbspEscape(_ppsBytes))
                     _codecPrivateData.Append(b.ToString("X2"));
 
                 return _codecPrivateData.ToString();
             }
+        }
+
+        public void ParseSpsBytes(ICollection<byte> value)
+        {
+            if (value.SequencesAreEquivalent(_spsBytes))
+                return;
+
+            _spsBytes = value.ToArray();
+
+            // Get the height/width
+            using (var r = new H264Bitstream(_spsBytes))
+            {
+                _h264Reader.ReadSps(r);
+            }
+
+            CheckConfigure();
+        }
+
+        public void ParsePpsBytes(ICollection<byte> value)
+        {
+            if (value.SequencesAreEquivalent(_ppsBytes))
+                return;
+
+            _ppsBytes = value.ToArray();
+
+            using (var r = new H264Bitstream(_ppsBytes))
+            {
+                _h264Reader.ReadPps(r);
+            }
+
+            CheckConfigure();
         }
 
         IEnumerable<byte> RbspEscape(IEnumerable<byte> sequence)
@@ -136,212 +122,85 @@ namespace SM.Media.H264
             }
         }
 
-        bool SequencesAreEquivalent(IEnumerable<byte> a, IEnumerable<byte> b)
-        {
-            if (ReferenceEquals(a, b))
-                return true;
-
-            if (null == a || null == b)
-                return false;
-
-            return a.SequenceEqual(b);
-        }
-
         void CheckConfigure()
         {
+            if (IsConfigured)
+                return;
+
             _codecPrivateData.Length = 0;
 
             if (null == _spsBytes || null == _ppsBytes)
                 return;
 
+            if (!_h264Reader.ReaderCheckConfigure(this))
+                return;
+
+            Name = _h264Reader.Name;
+
+            Height = _h264Reader.Height;
+            Width = _h264Reader.Width;
+
+            FrameRateNumerator = _h264Reader.FrameRateNumerator;
+            FrameRateDenominator = _h264Reader.FrameRateDenominator;
+
+            if (FrameRateDenominator.HasValue && FrameRateNumerator.HasValue)
+            Debug.WriteLine("H264Configurator.ComputeFrameRate() {0}/{1} -> {2:F4} fps", FrameRateNumerator, FrameRateDenominator, FrameRateNumerator / (double)FrameRateDenominator);
+
+
+
+#if DEBUG
+            Debug.WriteLine("Configuration " + Name);
+#endif
+
             SetConfigured();
         }
 
-        void ParseScalingList(H264Bitstream r, int sizeOfScalingList)
+        // ReSharper disable InconsistentNaming
+        // ReSharper disable UnusedVariable
+
+        internal void ParseSliceHeader(IList<byte> buffer)
         {
-            var lastScale = 8;
-            var nextScale = 8;
-
-            for (var j = 0; j < sizeOfScalingList; ++j)
-            {
-                if (0 != nextScale)
-                {
-                    var delta_scale = r.ReadSe();
-
-                    nextScale = (lastScale + delta_scale + 256) & 0xff;
-                    var useDefaultScalingMatrixFlag = (0 == j && 0 == nextScale);
-                }
-
-                var scalingList = 0 == nextScale ? lastScale : nextScale;
-                lastScale = scalingList;
-            }
-        }
-
-        void ParseSps(IEnumerable<byte> buffer)
-        {
-            uint profile_idc;
-            uint constraint_sets;
-            uint level_idc;
-            uint width;
-            uint height;
-
             using (var r = new H264Bitstream(buffer))
             {
                 var forbidden_zero_bit = r.ReadBits(1);
                 var nal_ref_idc = r.ReadBits(2);
                 var nal_unit_type = r.ReadBits(5);
 
-                profile_idc = r.ReadBits(8);
-                constraint_sets = r.ReadBits(8);
-                level_idc = r.ReadBits(8);
-                var seq_parameter_set_id = r.ReadUe();
-
-                if (Array.BinarySearch(ProfileIdcHasChromaFormat, profile_idc) >= 0)
-                {
-                    var chroma_format_idc = r.ReadUe();
-
-                    if (3 == chroma_format_idc)
-                    {
-                        var separate_colour_plane_flag = r.ReadBits(1);
-                    }
-
-                    var bit_depth_luma_minus8 = r.ReadUe();
-
-                    var bit_depth_chroma_minus8 = r.ReadUe();
-
-                    var qpprime_y_zero_transform_bypass_flag = r.ReadBits(1);
-
-                    var seq_scaling_matrix_present_flag = r.ReadBits(1);
-
-                    if (0 != seq_scaling_matrix_present_flag)
-                    {
-                        for (var i = 0; i < (3 != chroma_format_idc ? 8 : 12); ++i)
-                        {
-                            var seq_scaling_list_present_flag = r.ReadBits(1);
-
-                            if (0 != seq_scaling_list_present_flag)
-                            {
-                                if (i < 6)
-                                    ParseScalingList(r, 16);
-                                else
-                                    ParseScalingList(r, 64);
-                            }
-                        }
-                    }
-                }
-
-                var log2_max_frame_num_minus4 = r.ReadUe();
-                var pic_order_cnt_type = r.ReadUe();
-
-                if (0 == pic_order_cnt_type)
-                {
-                    var log2_max_pic_order_cnt_lsb_minus4 = r.ReadUe();
-                }
-                else if (1 == pic_order_cnt_type)
-                {
-                    var delta_pic_order_always_zero_flag = r.ReadBits(1);
-                    var offset_for_non_ref_pic = r.ReadSe();
-                    var offset_for_top_to_bottom_field = r.ReadSe();
-                    var num_ref_frames_in_pic_order_cnt_cycle = r.ReadUe();
-
-                    for (var i = 0; i < num_ref_frames_in_pic_order_cnt_cycle; ++i)
-                    {
-                        var offset_for_ref_frame = r.ReadSe();
-                    }
-                }
-
-                var max_num_ref_frames = r.ReadUe();
-                var gaps_in_frame_num_value_allowed_flag = r.ReadBits(1);
-                var pic_width_in_mbs_minus1 = r.ReadUe();
-                var pic_height_in_map_units_minus1 = r.ReadUe();
-                var frame_mbs_only_flag = r.ReadBits(1);
-
-                if (0 == frame_mbs_only_flag)
-                {
-                    var mb_adaptive_frame_field_flag = r.ReadBits(1);
-                }
-
-                var direct_8x8_inference_flag = r.ReadBits(1);
-                var frame_cropping_flag = r.ReadBits(1);
-
-                width = ((pic_width_in_mbs_minus1 + 1) * 16);
-                height = ((2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16);
-
-                if (0 != frame_cropping_flag)
-                {
-                    var frame_crop_left_offset = r.ReadUe();
-                    var frame_crop_right_offset = r.ReadUe();
-                    var frame_crop_top_offset = r.ReadUe();
-                    var frame_crop_bottom_offset = r.ReadUe();
-
-                    width = width - frame_crop_left_offset * 2 - frame_crop_right_offset * 2;
-                    height = height - (frame_crop_top_offset * 2) - (frame_crop_bottom_offset * 2);
-                }
+                _h264Reader.ReadSliceHeader(r, NalUnitType.Idr == (NalUnitType)nal_unit_type);
             }
 
-            Height = (int)height;
-            Width = (int)width;
+            _h264Reader.TryReparseTimingSei(this);
 
-            var profileName = ProfileName(profile_idc, constraint_sets);
-
-            Name = string.Format("H.264 \"{0}\" profile, level {1} {2}x{3}",
-                profileName, level_idc / 10.0, width, height);
-#if DEBUG
-            Debug.WriteLine("Configuration " + Name);
-#endif
+            CheckConfigure();
         }
 
-        string ProfileName(uint profile_idc, uint constraint_sets)
+        internal void ParseSei(ICollection<byte> buffer)
         {
-            var constraint_set1 = 0 != (constraint_sets & (1 << 1));
-            var constraint_set3 = 0 != (constraint_sets & (1 << 3));
-            var constraint_set4 = 0 != (constraint_sets & (1 << 4));
-            var constraint_set5 = 0 != (constraint_sets & (1 << 5));
-
-            switch (profile_idc)
+            using (var r = new H264Bitstream(buffer))
             {
-                case 44:
-                    return "CAVLC 4:4:4 Intra";
-                case 66:
-                    return constraint_set1 ? "Constrained Baseline" : "Baseline";
-                case 88:
-                    return "Extended";
-                case 77:
-                    return "Main";
-                case 244:
-                    return constraint_set3 ? "High 4:4:4 Intra" : "High 4:4:4 Predictive";
-                case 122:
-                    return constraint_set3 ? "High 4:2:2 Intra" : "High 4:2:2";
-                case 110:
-                    return constraint_set3 ? "High 10 Intra" : "High 10";
-                case 100:
-                    if (constraint_set4 && constraint_set5)
-                        return "Constrained High";
+                var forbidden_zero_bit = r.ReadBits(1);
+                var nal_ref_idc = r.ReadBits(2);
+                var nal_unit_type = r.ReadBits(5);
 
-                    if (constraint_set4)
-                        return "Progressive High";
-
-                    return "High";
+                _h264Reader.ReadSei(r, buffer);
             }
 
-            if (constraint_set1)
-                return "Constrained Baseline";
-
-            var sb = new StringBuilder();
-
-            sb.AppendFormat("P{0}-CS[", profile_idc);
-
-            for (var i = 0; i < 8; ++i)
-            {
-                if (0 != (constraint_sets & (1 << i)))
-                    sb.Append(i);
-                else
-                    sb.Append('.');
-            }
-
-            sb.Append(']');
-
-            return sb.ToString();
+            CheckConfigure();
         }
+
+        internal void ParseAud(IList<byte> buffer)
+        {
+            using (var r = new H264Bitstream(buffer))
+            {
+                var forbidden_zero_bit = r.ReadBits(1);
+                var nal_ref_idc = r.ReadBits(2);
+                var nal_unit_type = r.ReadBits(5);
+
+                var primary_pic_type = r.ReadBits(3);
+            }
+        }
+
+        // ReSharper restore UnusedVariable
+        // ReSharper restore InconsistentNaming
     }
 }

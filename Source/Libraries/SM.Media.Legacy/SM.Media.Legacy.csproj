@@ -193,6 +193,9 @@
     <Compile Include="..\SM.Media\H262\H262StreamHandlerFactory.cs">
       <Link>H262\H262StreamHandlerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\H264\H264Reader.cs">
+      <Link>H264\H264Reader.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\H264\H264StreamHandlerFactory.cs">
       <Link>H264\H264StreamHandlerFactory.cs</Link>
     </Compile>

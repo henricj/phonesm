@@ -96,6 +96,7 @@
     <Compile Include="Content\ContentServiceFactoryInstance.cs" />
     <Compile Include="Content\IContentServiceFactoryInstance.cs" />
     <Compile Include="H262\H262StreamHandlerFactory.cs" />
+    <Compile Include="H264\H264Reader.cs" />
     <Compile Include="H264\H264StreamHandlerFactory.cs" />
     <Compile Include="H264\NalUnitType.cs" />
     <Compile Include="H264\NalUnitTypeDescriptor.cs" />

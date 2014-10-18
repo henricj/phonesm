@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.TsParser;
@@ -68,12 +69,26 @@ namespace SM.Media.H264
 
             switch (nalUnitType)
             {
-                case NalUnitType.Sps: // SPS
-                    _rbspDecoder.CompletionHandler = buffer => { _configurator.SpsBytes = buffer; };
+                case NalUnitType.Sps:
+                    _rbspDecoder.CompletionHandler = _configurator.ParseSpsBytes;
                     _currentParser = _rbspDecoder;
                     break;
-                case NalUnitType.Pps: // PPS
-                    _rbspDecoder.CompletionHandler = buffer => { _configurator.PpsBytes = buffer; };
+                case NalUnitType.Pps:
+                    _rbspDecoder.CompletionHandler =_configurator.ParsePpsBytes;
+                    _currentParser = _rbspDecoder;
+                    break;
+                case NalUnitType.Slice:
+                case NalUnitType.Dpa:
+                case NalUnitType.Idr:
+                    _rbspDecoder.CompletionHandler = _configurator.ParseSliceHeader;
+                    _currentParser = _rbspDecoder;
+                    break;
+                case NalUnitType.Aud:
+                    _rbspDecoder.CompletionHandler =_configurator.ParseAud;
+                    _currentParser = _rbspDecoder;
+                    break;
+                case NalUnitType.Sei:
+                    _rbspDecoder.CompletionHandler = _configurator.ParseSei;
                     _currentParser = _rbspDecoder;
                     break;
                 default:

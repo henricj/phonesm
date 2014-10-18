@@ -33,7 +33,13 @@ namespace SM.Media
 {
     public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new HttpClientModule() };
+        static readonly IModule[] Modules =
+        {
+            new SmMediaModule(),
+            new TsMediaModule(),
+            new HttpClientModule()
+            //new HttpConnectionModule()
+        };
 
         public TsMediaManagerBuilder()
             : base(Modules)

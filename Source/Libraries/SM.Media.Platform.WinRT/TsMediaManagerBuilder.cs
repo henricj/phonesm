@@ -32,11 +32,17 @@ namespace SM.Media
 {
     public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
     {
-        static readonly IModule[] Modules = { new SmMediaModule(), new TsMediaModule(), new WinRtHttpClientModule() };
+        static readonly IModule[] Modules =
+        {
+            new SmMediaModule(),
+            new TsMediaModule(),
+            new WinRtHttpClientModule()
+            //new HttpConnectionModule()
+        };
 
         public TsMediaManagerBuilder()
             : base(Modules)
-        { }
+        {}
 
         public void RegisterModule(IModule module)
         {

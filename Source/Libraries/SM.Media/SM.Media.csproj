@@ -151,7 +151,7 @@
     <Compile Include="H262\H262StreamHandler.cs" />
     <Compile Include="IMediaManager.cs" />
     <Compile Include="MediaParser\IMediaParser.cs" />
-    <Compile Include="MediaParser\IMediaStreamSource.cs" />
+    <Compile Include="MediaParser\IMediaStreamConfigurator.cs" />
     <Compile Include="ITsTimestamp.cs" />
     <Compile Include="M3U8\AttributeSupport\ExtKeySupport.cs" />
     <Compile Include="M3U8\AttributeSupport\HexadecimalIntegerAttributeInstance.cs" />

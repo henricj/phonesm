@@ -24,61 +24,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using SM.Media.Builder;
 
 namespace SM.Media.Simulator
 {
-    public interface IMediaStreamFacade : IMediaStreamFacadeBase<SimulatedMediaStreamSource>
+    public interface IMediaStreamFacade : IMediaStreamFacadeBase<SimulatedMediaStreamConfigurator>
     { }
 
-    public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
+    public class MediaStreamFacade : MediaStreamFacadeBase<SimulatedMediaStreamConfigurator>, IMediaStreamFacade
     {
-        public MediaStreamFacade()
-            : base(CreateBuilder())
+        public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
+            : base(builder ?? new TsMediaManagerBuilder())
         { }
-
-        protected MediaStreamFacade(IBuilder<IMediaManager> mediaManagerBuilder)
-            : base(mediaManagerBuilder)
-        { }
-
-        #region IMediaStreamFacade Members
-
-        public virtual async Task<SimulatedMediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
-        {
-            if (null == source)
-                return null;
-
-            Exception exception;
-
-            try
-            {
-                var mediaManager = await CreateMediaManagerAsync(source, cancellationToken).ConfigureAwait(false);
-
-                return (SimulatedMediaStreamSource)mediaManager.MediaStreamSource;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaStreamFacade.CreateAsync() failed: " + ex.Message);
-
-                exception = new AggregateException(ex.Message, ex);
-            }
-
-            await CloseAsync().ConfigureAwait(false);
-
-            throw exception;
-        }
-
-        #endregion
-
-        protected static IBuilder<IMediaManager> CreateBuilder()
-        {
-            var builder = new TsMediaManagerBuilder();
-
-            return builder;
-        }
     }
 }

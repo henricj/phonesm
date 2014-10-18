@@ -75,7 +75,7 @@ namespace SM.Media
         readonly CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
         readonly IMediaParserFactory _mediaParserFactory;
-        readonly IMediaStreamSource _mediaStreamSource;
+        readonly IMediaStreamConfigurator _mediaStreamConfigurator;
         readonly Action<IProgramStreams> _programStreamsHandler;
         readonly SignalTask _reportStateTask;
         readonly ISegmentReaderManagerFactory _segmentReaderManagerFactory;
@@ -88,23 +88,23 @@ namespace SM.Media
         IMediaReader[] _readers;
 
         public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory,
-            IMediaStreamSource mediaStreamSource, Func<IBufferingManager> bufferingManagerFactory,
+            IMediaStreamConfigurator mediaStreamConfigurator, Func<IBufferingManager> bufferingManagerFactory,
             IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory)
         {
             if (null == segmentReaderManagerFactory)
                 throw new ArgumentNullException("segmentReaderManagerFactory");
-            if (null == mediaStreamSource)
-                throw new ArgumentNullException("mediaStreamSource");
+            if (null == mediaStreamConfigurator)
+                throw new ArgumentNullException("mediaStreamConfigurator");
             if (null == bufferingManagerFactory)
                 throw new ArgumentNullException("bufferingManagerFactory");
 
             _segmentReaderManagerFactory = segmentReaderManagerFactory;
-            _mediaStreamSource = mediaStreamSource;
+            _mediaStreamConfigurator = mediaStreamConfigurator;
             _bufferingManagerFactory = bufferingManagerFactory;
             _mediaParserFactory = mediaParserFactory;
             _programStreamsHandler = mediaManagerParameters.ProgramStreamsHandler;
 
-            _mediaStreamSource.MediaManager = this;
+            _mediaStreamConfigurator.MediaManager = this;
 
             ResetCancellationToken();
 
@@ -133,7 +133,7 @@ namespace SM.Media
                 OnStateChange = null;
             }
 
-            _mediaStreamSource.MediaManager = null;
+            _mediaStreamConfigurator.MediaManager = null;
 
             CloseAsync()
                 .Wait();
@@ -157,13 +157,13 @@ namespace SM.Media
 
         public TimeSpan? SeekTarget
         {
-            get { return _mediaStreamSource.SeekTarget; }
-            set { _mediaStreamSource.SeekTarget = value; }
+            get { return _mediaStreamConfigurator.SeekTarget; }
+            set { _mediaStreamConfigurator.SeekTarget = value; }
         }
 
-        public IMediaStreamSource MediaStreamSource
+        public async Task<IMediaStreamConfigurator> OpenMediaStreamConfiguratorAsync(CancellationToken cancellationToken)
         {
-            get { return _mediaStreamSource; }
+            return _mediaStreamConfigurator;
         }
 
         /// <inheritdoc />
@@ -272,7 +272,7 @@ namespace SM.Media
                 stopPlaylistTask = readerManager.StopAsync();
             }
 
-            var mss = _mediaStreamSource;
+            var mss = _mediaStreamConfigurator;
 
             Task drainTask = null;
 
@@ -361,7 +361,7 @@ namespace SM.Media
 
             if (null != message)
             {
-                var mss = _mediaStreamSource;
+                var mss = _mediaStreamConfigurator;
 
                 if (null != mss)
                     mss.ReportError(message);
@@ -562,7 +562,7 @@ namespace SM.Media
             var reader = new MediaReader(_bufferingManagerFactory(), _mediaParserFactory, segmentManagerReaders, new BlockingPool<WorkBuffer>(MaxBuffers));
 
             await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted,
-                () => _mediaStreamSource.CheckForSamples(),
+                () => _mediaStreamConfigurator.CheckForSamples(),
                 _playbackCancellationTokenSource.Token, _programStreamsHandler)
                 .ConfigureAwait(false);
 
@@ -580,7 +580,7 @@ namespace SM.Media
             if (null == _readers || _readers.Any(r => !r.IsConfigured))
                 return;
 
-            _mediaStreamSource.Configure(_readers.SelectMany(r => r.MediaStreams), _readerManager.Duration);
+            _mediaStreamConfigurator.Configure(_readers.SelectMany(r => r.MediaStreams), _readerManager.Duration);
 
             State = MediaState.Playing;
         }

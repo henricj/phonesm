@@ -24,10 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Windows.Media.Core;
 using SM.Media.Builder;
 
@@ -36,66 +32,10 @@ namespace SM.Media
     public interface IMediaStreamFacade : IMediaStreamFacadeBase<IMediaSource>
     { }
 
-    public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
+    public class MediaStreamFacade : MediaStreamFacadeBase<IMediaSource>, IMediaStreamFacade
     {
         public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
             : base(builder ?? new TsMediaManagerBuilder())
         { }
-
-        #region IMediaStreamFacade Members
-
-        public async Task<IMediaSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
-        {
-            if (null == source)
-                return null;
-
-            Exception exception;
-
-            try
-            {
-                var mediaManager = await CreateMediaManagerAsync(source, cancellationToken).ConfigureAwait(false);
-
-                var mss = (WinRtMediaStreamSource)mediaManager.MediaStreamSource;
-
-                var tcs = new TaskCompletionSource<IMediaSource>();
-
-                mss.RegisterMediaStreamSourceHandler(ms => tcs.TrySetResult(ms));
-
-                EventHandler<TsMediaManagerStateEventArgs> onStateChange =
-                    (sender, args) =>
-                    {
-                        var state = args.State;
-
-                        if (TsMediaManager.MediaState.Error == state || TsMediaManager.MediaState.Closed == state || TsMediaManager.MediaState.Closing == state)
-                            tcs.TrySetCanceled();
-                    };
-
-                mediaManager.OnStateChange += onStateChange;
-
-                try
-                {
-                    using (cancellationToken.Register(() => tcs.TrySetCanceled()))
-                    {
-                        return await tcs.Task.ConfigureAwait(false);
-                    }
-                }
-                finally
-                {
-                    mediaManager.OnStateChange -= onStateChange;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaStreamFacade.CreateAsync() failed: " + ex.Message);
-
-                exception = new AggregateException(ex.Message, ex);
-            }
-
-            await CloseAsync().ConfigureAwait(false);
-
-            throw exception;
-        }
-
-        #endregion
     }
 }

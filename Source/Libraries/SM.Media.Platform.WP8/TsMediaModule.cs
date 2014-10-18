@@ -34,9 +34,14 @@ namespace SM.Media
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<TsMediaStreamSource>()
-                .As<IMediaStreamSource>()
+            builder.RegisterType<MediaStreamConfigurator>()
+                .As<IMediaStreamConfigurator>()
+                .As<IMediaStreamControl>()
                 .InstancePerMatchingLifetimeScope("builder-scope");
+
+            builder.RegisterType<TsMediaStreamSource>()
+                .AsSelf()
+                .ExternallyOwned();
 
             builder.RegisterType<PlatformServices>()
                 .As<IPlatformServices>()

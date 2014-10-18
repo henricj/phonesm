@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="MediaStreamConfiguration.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,26 +24,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
+using System;
+using System.Collections.Generic;
+using System.Windows.Media;
 
 namespace SM.Media
 {
-    public class TsMediaModule : Module
+    public interface IMediaStreamConfiguration
     {
-        protected override void Load(ContainerBuilder builder)
-        {
-            builder.RegisterType<WinRtMediaStreamConfigurator>()
-                .As<IMediaStreamConfigurator>()
-                .InstancePerLifetimeScope();
+        IStreamSource VideoStreamSource { get; }
+        IStreamSource AudioStreamSource { get; }
 
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
+        ICollection<MediaStreamDescription> Descriptions { get; }
+        IDictionary<MediaSourceAttributesKeys, string> Attributes { get; }
 
-            builder.Register(_ => ApplicationInformationFactory.DefaultTask.Result)
-                .SingleInstance();
-        }
+        TimeSpan? Duration { get; }
+    }
+
+    public class MediaStreamConfiguration : IMediaStreamConfiguration
+    {
+        #region IMediaStreamConfiguration Members
+
+        public IStreamSource VideoStreamSource { get; set; }
+        public IStreamSource AudioStreamSource { get; set; }
+        public ICollection<MediaStreamDescription> Descriptions { get; set; }
+        public IDictionary<MediaSourceAttributesKeys, string> Attributes { get; set; }
+        public TimeSpan? Duration { get; set; }
+
+        #endregion
     }
 }

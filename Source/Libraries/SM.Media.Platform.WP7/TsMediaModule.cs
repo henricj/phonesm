@@ -45,7 +45,7 @@ namespace SM.Media
         {
             var scope = Scope;
 
-            var b = Bind<IMediaStreamSource>().To<TsMediaStreamSource>();
+            var b = Bind<IMediaStreamConfigurator>().To<MediaStreamConfigurator>();
 
             if (null != scope)
                 b.InScope(scope);

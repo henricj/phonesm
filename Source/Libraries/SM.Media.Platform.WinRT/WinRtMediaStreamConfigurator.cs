@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="WinRtMediaStreamSource.cs" company="Henric Jungheim">
+//  <copyright file="WinRtMediaStreamConfigurator.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -39,7 +39,7 @@ using Buffer = Windows.Storage.Streams.Buffer;
 
 namespace SM.Media
 {
-    public sealed class WinRtMediaStreamSource : IMediaStreamSource
+    public sealed class WinRtMediaStreamConfigurator : IMediaStreamConfigurator
     {
         TaskCompletionSource<object> _closedTaskCompletionSource;
 
@@ -48,29 +48,33 @@ namespace SM.Media
 #endif
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
-
         int _isDisposed;
         TimeSpan? _seekTarget;
         TimeSpan? _duration;
         Action<IMediaSource> _mssHandler;
-
         StreamState _videoStreamState;
         StreamState _audioStreamState;
         MediaStreamSourceStartingRequestDeferral _onStartingDeferral;
         MediaStreamSourceStartingRequest _onStartingRequest;
         static readonly TimeSpan ResyncThreshold = TimeSpan.FromSeconds(7);
-        private MediaStreamSource _onStartingSender;
-
-        public WinRtMediaStreamSource()
-        {
-#if DEBUG
-            _mediaStreamFsm.Reset();
-#endif
-        }
+        MediaStreamSource _mediaStreamSource;
+        readonly TaskCompletionSource<IMediaSource> _mediaSourceCompletionSource = new TaskCompletionSource<IMediaSource>();
 
         bool IsDisposed
         {
             get { return 0 != _isDisposed; }
+        }
+
+        bool IsBuffering
+        {
+            get { return (null != _videoStreamState && _videoStreamState.IsBuffering) || (null != _audioStreamState && _audioStreamState.IsBuffering); }
+        }
+
+        public WinRtMediaStreamConfigurator()
+        {
+#if DEBUG
+            _mediaStreamFsm.Reset();
+#endif
         }
 
         #region IMediaStreamSource Members
@@ -91,7 +95,7 @@ namespace SM.Media
             if (0 != Interlocked.Exchange(ref _isDisposed, 1))
                 return;
 
-            Debug.WriteLine("WinRtMediaStreamSource.Dispose()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.Dispose()");
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
 
             if (null != _closedTaskCompletionSource)
@@ -127,12 +131,12 @@ namespace SM.Media
 
         public void ReportError(string message)
         {
-            Debug.WriteLine("WinRt.MediaStreamSource.ReportError(): " + message);
+            Debug.WriteLine("WinRtMediaStreamConfigurator.ReportError(): " + message);
         }
 
         public Task CloseAsync()
         {
-            Debug.WriteLine("WinRtMediaStreamSource.CloseAsync()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CloseAsync()");
 
             ThrowIfDisposed();
 
@@ -159,7 +163,7 @@ namespace SM.Media
 
         public void CheckForSamples()
         {
-            //Debug.WriteLine("WinRtMediaStreamSource.CheckForSamples()");
+            //Debug.WriteLine("WinRtMediaStreamConfigurator.CheckForSamples()");
 
             if (null != _onStartingDeferral)
                 CompleteOnStarting();
@@ -175,7 +179,7 @@ namespace SM.Media
 
         void CancelPending()
         {
-            Debug.WriteLine("WinRtMediaStreamSource.CancelPending()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CancelPending()");
 
             if (null != _videoStreamState)
                 _videoStreamState.Cancel();
@@ -186,7 +190,7 @@ namespace SM.Media
 
         void ThrowIfDisposed()
         {
-            if (0 == _isDisposed)
+            if (!IsDisposed)
                 return;
 
             throw new ObjectDisposedException(GetType().Name);
@@ -284,40 +288,29 @@ namespace SM.Media
         {
             var p = descriptor.EncodingProperties;
 
-            Debug.WriteLine("WinRtMediaStreamSource.CreateAudioDescriptor() {0} sample rate {1} channels {2} bitrate {3}",
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CreateAudioDescriptor() {0} sample rate {1} channels {2} bitrate {3}",
                 p.Subtype, p.SampleRate, p.ChannelCount, p.Bitrate);
         }
 
         void CompleteConfigure()
         {
-            Debug.WriteLine("WinRtMediaStreamSource.CompleteConfigure()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteConfigure()");
 
             var mss = CreateMediaStreamSource();
 
-            var mssHandler = _mssHandler;
+            _mediaStreamSource = mss;
 
-            if (null != mssHandler)
-            {
-                _mssHandler = null;
-                mssHandler(mss);
-            }
-            else
-                Debug.WriteLine("WinRtMediaStreamSource.CompleteConfigure() no handler found");
-        }
+            if (_mediaSourceCompletionSource.TrySetResult(mss))
+                return;
 
-        public void RegisterMediaStreamSourceHandler(Action<IMediaSource> mssHandler)
-        {
-            Debug.WriteLine("WintRtMediaStreamSource.RegisterMediaStreamSourceHandler()");
+            DeregisterCallbacks(mss);
 
-            _mssHandler = mssHandler;
-
-            if (null != MediaManager)
-                MediaManager.OpenMedia();
+            _mediaStreamSource = null;
         }
 
         MediaStreamSource CreateMediaStreamSource()
         {
-            MediaStreamSource mediaStreamSource = null;
+            MediaStreamSource mediaStreamSource;
 
             if (null != _videoStreamState && null != _audioStreamState)
                 mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor, _audioStreamState.Descriptor);
@@ -333,56 +326,67 @@ namespace SM.Media
             if (_duration.HasValue)
                 mediaStreamSource.Duration = _duration.Value;
 
+            RegisterCallbacks(mediaStreamSource);
+
+            return mediaStreamSource;
+        }
+
+        void RegisterCallbacks(MediaStreamSource mediaStreamSource)
+        {
             mediaStreamSource.Starting += MediaStreamSourceOnStarting;
             mediaStreamSource.SampleRequested += MediaStreamSourceOnSampleRequested;
             mediaStreamSource.Closed += MediaStreamSourceOnClosed;
 
             mediaStreamSource.Paused += MediaStreamSourceOnPaused;
             mediaStreamSource.SwitchStreamsRequested += MediaStreamSourceOnSwitchStreamsRequested;
+        }
 
-            return mediaStreamSource;
+        void DeregisterCallbacks(MediaStreamSource mediaStreamSource)
+        {
+            mediaStreamSource.SwitchStreamsRequested -= MediaStreamSourceOnSwitchStreamsRequested;
+            mediaStreamSource.Paused -= MediaStreamSourceOnPaused;
+
+            mediaStreamSource.Closed -= MediaStreamSourceOnClosed;
+            mediaStreamSource.SampleRequested -= MediaStreamSourceOnSampleRequested;
+            mediaStreamSource.Starting -= MediaStreamSourceOnStarting;
         }
 
         void MediaStreamSourceOnSwitchStreamsRequested(MediaStreamSource sender, MediaStreamSourceSwitchStreamsRequestedEventArgs args)
         {
-            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSwitchStreamsRequested()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnSwitchStreamsRequested()");
 
-            ThrowIfDisposed();
+            NotifyOnError(sender);
 
             throw new NotSupportedException();
         }
 
         void MediaStreamSourceOnPaused(MediaStreamSource sender, object args)
         {
-            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnPaused()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnPaused()");
 
-            ThrowIfDisposed();
+            NotifyOnError(sender);
         }
 
         void MediaStreamSourceOnClosed(MediaStreamSource sender, MediaStreamSourceClosedEventArgs args)
         {
-            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() reason: " + args.Request.Reason);
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() reason: " + args.Request.Reason);
 
-            ThrowIfDisposed();
-
-            sender.Starting -= MediaStreamSourceOnStarting;
-            sender.SampleRequested -= MediaStreamSourceOnSampleRequested;
-            sender.Closed -= MediaStreamSourceOnClosed;
+            DeregisterCallbacks(sender);
 
             var startDeferral = Interlocked.Exchange(ref _onStartingDeferral, null);
 
             if (null != startDeferral)
             {
-                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() start was still pending");
+                Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() start was still pending");
                 startDeferral.Complete();
             }
 
             if (null == _closedTaskCompletionSource)
-                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() unexpected call to close");
+                Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() unexpected call to close");
             else
             {
                 if (!_closedTaskCompletionSource.TrySetResult(string.Empty))
-                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnClosed() close already completed");
+                    Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() close already completed");
             }
 
             var mediaManager = MediaManager;
@@ -398,9 +402,12 @@ namespace SM.Media
 
         void MediaStreamSourceOnSampleRequested(MediaStreamSource sender, MediaStreamSourceSampleRequestedEventArgs args)
         {
-            //Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnSampleRequested()");
+            //Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnSampleRequested()");
 
-            ThrowIfDisposed();
+            // We let "FailIfDisposed()" tell the MediaStreamSource if it
+            // is time to quit, but we keep processing samples until the MediaStreamSource
+            // tells us otherwise.
+            NotifyOnError(sender);
 
             var request = args.Request;
 
@@ -412,7 +419,13 @@ namespace SM.Media
 
         async void MediaStreamSourceOnStarting(MediaStreamSource sender, MediaStreamSourceStartingEventArgs args)
         {
-            ThrowIfDisposed();
+            var request = args.Request;
+            var startPosition = request.StartPosition;
+
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting({0})", startPosition);
+
+            if (NotifyOnError(sender))
+                return;
 
             if (null != _closedTaskCompletionSource && _closedTaskCompletionSource.Task.IsCompleted)
             {
@@ -423,20 +436,14 @@ namespace SM.Media
             if (null == _closedTaskCompletionSource)
                 _closedTaskCompletionSource = new TaskCompletionSource<object>();
 
-            var request = args.Request;
-            var startPosition = request.StartPosition;
-
-            Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting({0})", startPosition);
-
             if (!startPosition.HasValue)
             {
                 if (IsBuffering)
                 {
-                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() deferring");
+                    Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() deferring");
 
                     _onStartingRequest = args.Request;
                     _onStartingDeferral = args.Request.GetDeferral();
-                    _onStartingSender = sender;
 
                     return;
                 }
@@ -445,16 +452,15 @@ namespace SM.Media
                 {
                     var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
 
-                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual " + pts);
+                    Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() actual " + pts);
 
                     request.SetActualStartPosition(pts);
 
                     CheckForSamples();
-
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() failed: " + ex.Message);
+                    Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() failed: " + ex.Message);
 
                     sender.NotifyError(MediaStreamSourceErrorStatus.Other);
                 }
@@ -470,7 +476,7 @@ namespace SM.Media
 
                 var actual = await MediaManager.SeekMediaAsync(startPosition.Value).ConfigureAwait(false);
 
-                Debug.WriteLine("WinRtMediaStreamSource.MediaStreamSourceOnStarting() actual seek " + actual);
+                Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() actual seek " + actual);
 
                 request.SetActualStartPosition(actual);
 
@@ -489,14 +495,32 @@ namespace SM.Media
             }
         }
 
-        bool IsBuffering
+        bool NotifyOnError(MediaStreamSource sender)
         {
-            get { return (null != _videoStreamState && _videoStreamState.IsBuffering) || (null != _audioStreamState && _audioStreamState.IsBuffering); }
+            var error = false;
+
+            if (!ReferenceEquals(sender, _mediaStreamSource))
+            {
+                Debug.WriteLine("WinRtMediaStreamConfigurator.FailOnError() unknown sender");
+                sender.NotifyError(MediaStreamSourceErrorStatus.Other);
+
+                error = true;
+            }
+
+            if (IsDisposed)
+            {
+                Debug.WriteLine("WinRtMediaStreamConfigurator.FailOnError() is disposed");
+                sender.NotifyError(MediaStreamSourceErrorStatus.Other);
+
+                error = true;
+            }
+
+            return error;
         }
 
         void CompleteOnStarting()
         {
-            Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting()");
 
             if (IsBuffering)
                 return;
@@ -510,7 +534,7 @@ namespace SM.Media
             {
                 var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
 
-                Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting() pts " + pts);
+                Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting() pts " + pts);
 
                 if (null != _onStartingRequest)
                 {
@@ -519,21 +543,21 @@ namespace SM.Media
                 }
                 else
                 {
-                    Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting() missing request");
+                    Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting() missing request");
                     throw new InvalidOperationException("WinRtMediaStreamSource.CompleteOnStarting() missing request");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("WinRtMediaStreamSource.CompleteOnStarting() failed: " + ex.Message);
+                Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting() failed: " + ex.Message);
 
-                _onStartingSender.NotifyError(MediaStreamSourceErrorStatus.FailedToOpenFile);
+                _mediaStreamSource.NotifyError(MediaStreamSourceErrorStatus.FailedToOpenFile);
             }
             finally
             {
                 deferral.Complete();
 
-                _onStartingSender = null;
+                _mediaStreamSource = null;
             }
         }
 
@@ -574,6 +598,29 @@ namespace SM.Media
             }
 
             return videoTimestamp;
+        }
+
+        public async Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)
+            where TMediaStreamSource : class
+        {
+            var mediaManager = MediaManager;
+
+            if (null == mediaManager)
+                throw new InvalidOperationException("MediaManger is null");
+
+            mediaManager.OpenMedia();
+
+            using (cancellationToken.Register(() => _mediaSourceCompletionSource.TrySetCanceled()))
+            {
+                var mss = await _mediaSourceCompletionSource.Task.ConfigureAwait(false);
+
+                var ret = mss as TMediaStreamSource;
+
+                if (null == ret)
+                    throw new InvalidCastException(string.Format("Cannot convert {0} to {1}", mss.GetType().FullName, typeof(TMediaStreamSource).FullName));
+
+                return ret;
+            }
         }
 
         class StreamState

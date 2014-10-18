@@ -1,5 +1,5 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="ISimulatedMediaStreamSource.cs" company="Henric Jungheim">
+// -----------------------------------------------------------------------
+//  <copyright file="IMediaStreamConfigurator.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,15 +24,36 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.MediaParser;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using SM.Media.Utility;
 
-namespace SM.Media.Simulator
+namespace SM.Media.MediaParser
 {
-    public interface ISimulatedMediaStreamSource : IMediaStreamSource
+    public interface IMediaStreamConfigurator : IDisposable
     {
-        void OpenMediaAsync();
-        void SeekAsync(long seekToTime);
-        void GetSampleAsync(int streamType);
-        void CloseMedia();
+        TimeSpan? SeekTarget { get; set; }
+        IMediaManager MediaManager { get; set; }
+
+        Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)
+            where TMediaStreamSource : class;
+
+        Task CloseAsync();
+
+        void Configure(IMediaConfiguration configuration);
+        void ReportError(string message);
+        void CheckForSamples();
+
+        void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent);
+    }
+
+    public static class MediaStreamSourceExtensions
+    {
+        public static void Configure(this IMediaStreamConfigurator mediaStreamConfigurator, IEnumerable<IMediaParserMediaStream> mediaParserMediaStreams, TimeSpan? duration)
+        {
+            mediaStreamConfigurator.Configure(mediaParserMediaStreams.CreateMediaConfiguration(duration));
+        }
     }
 }

@@ -360,8 +360,8 @@
     <Compile Include="..\SM.Media\MediaParser\IMediaParserMediaStream.cs">
       <Link>MediaParser\IMediaParserMediaStream.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\MediaParser\IMediaStreamSource.cs">
-      <Link>MediaParser\IMediaStreamSource.cs</Link>
+    <Compile Include="..\SM.Media\MediaParser\IMediaStreamConfigurator.cs">
+      <Link>MediaParser\IMediaStreamConfigurator.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\MediaConfiguration.cs">
       <Link>MediaParser\MediaConfiguration.cs</Link>

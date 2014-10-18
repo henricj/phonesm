@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaModule.cs" company="Henric Jungheim">
+//  <copyright file="IMediaStreamControl.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,26 +24,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using SM.Media.MediaParser;
-using SM.Media.Utility;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SM.Media
 {
-    public class TsMediaModule : Module
+    public interface IMediaStreamControl
     {
-        protected override void Load(ContainerBuilder builder)
-        {
-            builder.RegisterType<WinRtMediaStreamConfigurator>()
-                .As<IMediaStreamConfigurator>()
-                .InstancePerLifetimeScope();
-
-            builder.RegisterType<PlatformServices>()
-                .As<IPlatformServices>()
-                .SingleInstance();
-
-            builder.Register(_ => ApplicationInformationFactory.DefaultTask.Result)
-                .SingleInstance();
-        }
+        Task<IMediaStreamConfiguration> OpenAsync(CancellationToken cancellationToken);
+        Task<TimeSpan> SeekAsync(TimeSpan position, CancellationToken cancellationToken);
+        Task CloseAsync(CancellationToken cancellationToken);
     }
 }

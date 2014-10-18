@@ -76,11 +76,11 @@ namespace SimulatedPlayer
 
             _mediaStreamFacade.SetParameter(_httpClientFactoryParameters);
 
-            _mediaStreamFacade.SetParameter(new SimulatedMediaStreamSource(mediaElementManager));
+            _mediaStreamFacade.SetParameter(new SimulatedMediaStreamConfigurator(mediaElementManager));
 
             var source = new Uri(Sources[0]);
 
-            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None);
+            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, CancellationToken.None).ConfigureAwait(false);
 
             if (null == mss)
             {
@@ -97,22 +97,22 @@ namespace SimulatedPlayer
             return;
 
             var timer = new Timer(_ =>
-                                  {
-                                      GC.Collect();
-                                      GC.WaitForPendingFinalizers();
-                                      GC.Collect();
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
 
-                                      var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                                      var source2 = Sources[_count];
+                var source2 = Sources[_count];
 
-                                      Debug.WriteLine("Switching to {0} (GC {1:F3} MiB)", source, gcMemory);
+                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB)", source, gcMemory);
 
-                                      var url = null == source ? null : new Uri(source2);
+                var url = null == source ? null : new Uri(source2);
 
-                                      if (++_count >= Sources.Length)
-                                          _count = 0;
-                                  });
+                if (++_count >= Sources.Length)
+                    _count = 0;
+            });
 
             timer.Change(TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
         }

@@ -24,10 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Media;
 using SM.Media.Builder;
 
@@ -36,46 +32,10 @@ namespace SM.Media
     public interface IMediaStreamFacade : IMediaStreamFacadeBase<MediaStreamSource>
     { }
 
-    public class MediaStreamFacade : MediaStreamFacadeBase, IMediaStreamFacade
+    public class MediaStreamFacade : MediaStreamFacadeBase<MediaStreamSource>, IMediaStreamFacade
     {
-        public MediaStreamFacade()
-            : base(CreateBuilder())
+        public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
+            : base(builder ?? new TsMediaManagerBuilder())
         { }
-
-        #region IMediaStreamFacade Members
-
-        public async Task<MediaStreamSource> CreateMediaStreamSourceAsync(Uri source, CancellationToken cancellationToken)
-        {
-            if (null == source)
-                return null;
-
-            Exception exception;
-
-            try
-            {
-                var mediaManager = await CreateMediaManagerAsync(source, cancellationToken).ConfigureAwait(false);
-
-                return (MediaStreamSource)mediaManager.MediaStreamSource;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaStreamFacade.CreateAsync() failed: " + ex.Message);
-
-                exception = new AggregateException(ex.Message, ex);
-            }
-
-            await CloseAsync().ConfigureAwait(false);
-
-            throw exception;
-        }
-
-        #endregion
-
-        static IBuilder<IMediaManager> CreateBuilder()
-        {
-            var builder = new TsMediaManagerBuilder();
-
-            return builder;
-        }
     }
 }

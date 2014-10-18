@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-//  <copyright file="SimulatedMediaStreamSource.cs" company="Henric Jungheim">
+//  <copyright file="SimulatedMediaStreamConfigurator.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -35,7 +35,7 @@ using SM.TsParser;
 
 namespace SM.Media.Simulator
 {
-    public class SimulatedMediaStreamSource : ISimulatedMediaStreamSource
+    public class SimulatedMediaStreamConfigurator : ISimulatedMediaStreamConfigurator
     {
         readonly AsyncFifoWorker _asyncFifoWorker = new AsyncFifoWorker();
         readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
@@ -48,14 +48,14 @@ namespace SM.Media.Simulator
         int _pendingRequests;
         State _state;
 
-        public SimulatedMediaStreamSource(ISimulatedMediaElement mediaElement)
+        public SimulatedMediaStreamConfigurator(ISimulatedMediaElement mediaElement)
         {
             _mediaElement = mediaElement;
 
             _mediaStreamFsm.Reset();
         }
 
-        #region ISimulatedMediaStreamSource Members
+        #region ISimulatedMediaStreamConfigurator Members
 
         public void Dispose()
         {
@@ -70,7 +70,7 @@ namespace SM.Media.Simulator
 
         public IMediaManager MediaManager { get; set; }
 
-        Task IMediaStreamSource.CloseAsync()
+        Task IMediaStreamConfigurator.CloseAsync()
         {
             return CloseAsync();
         }
@@ -210,6 +210,16 @@ namespace SM.Media.Simulator
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
         {
             _mediaStreamFsm.ValidateEvent(mediaEvent);
+        }
+
+        public Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken) where TMediaStreamSource : class
+        {
+            var mediaStreamSource = this as TMediaStreamSource;
+
+            if (null == mediaStreamSource)
+                throw new InvalidCastException();
+
+            return Task.FromResult(mediaStreamSource);
         }
 
         #endregion

@@ -53,7 +53,7 @@
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Utility\SmDebug.cs" />
     <Compile Include="WinRtMediaStreamFacade.cs" />
-    <Compile Include="WinRtMediaStreamSource.cs" />
+    <Compile Include="WinRtMediaStreamConfigurator.cs" />
     <Compile Include="Aes128Pkcs7ReadStream.cs" />
     <Compile Include="PlatformServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -45,7 +45,7 @@ namespace SM.Media.Simulator
         readonly MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
         readonly RandomNumbers _random = new RandomNumbers();
         readonly Dictionary<int, SampleState> _streams = new Dictionary<int, SampleState>();
-        ISimulatedMediaStreamSource _mediaStreamSource;
+        ISimulatedMediaStreamConfigurator _mediaStreamConfigurator;
         int _streamCount;
 
         public SimulatedMediaElementManager()
@@ -111,10 +111,10 @@ namespace SM.Media.Simulator
                 if (!_streams.TryGetValue(streamType, out sampleState))
                 {
                     sampleState = new SampleState
-                                  {
-                                      IsPending = false,
-                                      Timestamp = timestamp
-                                  };
+                    {
+                        IsPending = false,
+                        Timestamp = timestamp
+                    };
 
                     _streams[streamType] = sampleState;
                 }
@@ -150,14 +150,14 @@ namespace SM.Media.Simulator
             if (oldestIndex >= 0)
             {
                 var t = Task.Run(async () =>
-                                       {
-                                           await Task.Delay((int)(10 * (1 + _random.GetRandomNumber()))).ConfigureAwait(false);
+                {
+                    await Task.Delay((int)(10 * (1 + _random.GetRandomNumber()))).ConfigureAwait(false);
 
-                                           var mediaStreamSource = _mediaStreamSource;
+                    var mediaStreamSource = _mediaStreamConfigurator;
 
-                                           if (null != mediaStreamSource)
-                                               mediaStreamSource.GetSampleAsync(oldestIndex);
-                                       });
+                    if (null != mediaStreamSource)
+                        mediaStreamSource.GetSampleAsync(oldestIndex);
+                });
 
                 TaskCollector.Default.Add(t, "SimulatedMediaElementManager.ReportGetSampleCompleted");
             }
@@ -174,13 +174,13 @@ namespace SM.Media.Simulator
 
         #endregion
 
-        public void SetSource(ISimulatedMediaStreamSource source)
+        public void SetSource(ISimulatedMediaStreamConfigurator configurator)
         {
             Debug.WriteLine("SimulatedMediaElementManager.SetSourceAsync()");
 
-            source.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
+            configurator.ValidateEvent(MediaStreamFsm.MediaEvent.MediaStreamSourceAssigned);
 
-            _mediaStreamSource = source;
+            _mediaStreamConfigurator = configurator;
 
             _asyncFifoWorker.Post(OpenMediaAsync, "SimulatedMediaElementManager.SetSourceAsync() OpenMediaAsync", _cancellationTokenSource.Token);
         }
@@ -189,10 +189,10 @@ namespace SM.Media.Simulator
         {
             Debug.WriteLine("SimulatedMediaElementManager.CloseAsync()");
 
-            if (null != _mediaStreamSource)
-                _mediaStreamSource.Dispose();
+            if (null != _mediaStreamConfigurator)
+                _mediaStreamConfigurator.Dispose();
 
-            _mediaStreamSource = null;
+            _mediaStreamConfigurator = null;
 
             return TplTaskExtensions.CompletedTask;
         }
@@ -210,7 +210,7 @@ namespace SM.Media.Simulator
 
             await Task.Delay(100).ConfigureAwait(false);
 
-            _mediaStreamSource.OpenMediaAsync();
+            _mediaStreamConfigurator.OpenMediaAsync();
         }
 
         async Task PlayMediaAsync()
@@ -221,7 +221,7 @@ namespace SM.Media.Simulator
 
             await Task.Delay((int)(50 * (1 + random[0]))).ConfigureAwait(false);
 
-            if (null == _mediaStreamSource)
+            if (null == _mediaStreamConfigurator)
                 return;
 
             var taskActions = new List<Func<Task>>();
@@ -231,7 +231,7 @@ namespace SM.Media.Simulator
                 {
                     await Task.Delay((int)(30 * (1 + random[1]))).ConfigureAwait(false);
 
-                    _mediaStreamSource.SeekAsync(0);
+                    _mediaStreamConfigurator.SeekAsync(0);
                 };
 
             taskActions.Add(t);
@@ -241,11 +241,11 @@ namespace SM.Media.Simulator
                 var streamType = i;
 
                 t = async () =>
-                          {
-                              await Task.Delay((int)(30 * (1 + random[2 + streamType]))).ConfigureAwait(false);
+                {
+                    await Task.Delay((int)(30 * (1 + random[2 + streamType]))).ConfigureAwait(false);
 
-                              _mediaStreamSource.GetSampleAsync(streamType);
-                          };
+                    _mediaStreamConfigurator.GetSampleAsync(streamType);
+                };
 
                 taskActions.Add(t);
             }

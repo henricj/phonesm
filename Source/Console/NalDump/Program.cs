@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="Program.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,9 +25,11 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using SM.Media.H264;
 
@@ -37,6 +39,8 @@ namespace NalDump
     {
         const int MAXNALUSIZE = 64000; // This is straight from the H.264.2 sample code's nalucommon.h 
         const int MinRemainingSize = MAXNALUSIZE * 2; // We make sure we have twice as much available before starting a new NAL unit.
+
+        static readonly Encoding NoBomUtf8 = new UTF8Encoding(false, true);
 
         static async Task Parse(string filename)
         {
@@ -50,17 +54,18 @@ namespace NalDump
             if (string.Equals(filename, logFilename, StringComparison.InvariantCultureIgnoreCase))
                 return;
 
-            using (var output = new StreamWriter(logFilename))
+            using (var outputFile = new FileStream(logFilename, FileMode.Create, FileAccess.Write, FileShare.Read, 1024 * 1024, FileOptions.SequentialScan))
+            using (var output = new StreamWriter(outputFile, NoBomUtf8, 512 * 1024))
             {
                 var localOutput = output;
 
                 var rbspDecoder = new RbspDecoder();
 
-                rbspDecoder.CompletionHandler += b => PrintNalUnit(localOutput, b);
+                rbspDecoder.CompletionHandler += b => PrintNalUnit(localOutput, b.ToArray());
 
                 var parser = new NalUnitParser(n => (b, o, l, e) => rbspDecoder.Parse(b, o, l, e));
 
-                using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 16384, FileOptions.Asynchronous | FileOptions.SequentialScan))
+                using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 512 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan))
                 {
                     for (; ; )
                     {
@@ -116,11 +121,15 @@ namespace NalDump
             }
         }
 
-        static bool PrintNalUnit(TextWriter writer, IList<byte> buffer)
+        static bool PrintNalUnit(TextWriter writer, byte[] nalUnit)
         {
-            var data = buffer.ToArray();
+            var type = nalUnit[0] & 0x1f;
 
-            writer.WriteLine("NALU({0}/{1}): {2}", buffer.Count, buffer[0] & 0x1f, BitConverter.ToString(data, 0, data.Length));
+            var nalUnitType = NalUnitTypes.GetNalUnitType((NalUnitType)type);
+
+            var typeName = null == nalUnitType ? type.ToString(NumberFormatInfo.InvariantInfo) : nalUnitType.Name;
+
+            writer.WriteLine("NALU({0}/{1}/{2}): {3}", nalUnit.Length, type, typeName, BitConverter.ToString(nalUnit, 0, nalUnit.Length));
 
             return true;
         }
@@ -134,7 +143,13 @@ namespace NalDump
             {
                 try
                 {
+                    var sw = Stopwatch.StartNew();
+
                     Parse(arg).Wait();
+
+                    sw.Stop();
+
+                    Console.WriteLine("{0} processed in {1}", arg, sw.Elapsed);
                 }
                 catch (Exception ex)
                 {

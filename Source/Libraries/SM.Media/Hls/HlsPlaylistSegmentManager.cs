@@ -126,7 +126,7 @@ namespace SM.Media.Hls
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("PlaylistSegmentManager.Dispose() failed: " + ex.Message);
+                Debug.WriteLine("HlsPlaylistSegmentManager.Dispose() failed: " + ex.Message);
             }
 
             _refreshTimer.Dispose();
@@ -170,7 +170,7 @@ namespace SM.Media.Hls
 
             if (null == segment)
             {
-                Debug.WriteLine("PlaylistSegmentManager.StartAsync() no segments found");
+                Debug.WriteLine("HlsPlaylistSegmentManager.StartAsync() no segments found");
 
                 throw new FileNotFoundException("Unable to find the first segment");
             }
@@ -267,7 +267,7 @@ namespace SM.Media.Hls
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("PlaylistSegmentManager.CleanupReader() cancel failed: " + ex.Message);
+                        Debug.WriteLine("HlsPlaylistSegmentManager.CleanupReader() cancel failed: " + ex.Message);
                     }
                 }
 
@@ -322,7 +322,7 @@ namespace SM.Media.Hls
 
         Task CheckReload(int index)
         {
-            //Debug.WriteLine("PlaylistSegmentManager.CheckReload ({0})", DateTimeOffset.Now);
+            //Debug.WriteLine("HlsPlaylistSegmentManager.CheckReload ({0})", DateTimeOffset.Now);
 
             CancellationToken.ThrowIfCancellationRequested();
 
@@ -342,7 +342,7 @@ namespace SM.Media.Hls
 
         async Task ReadSubList()
         {
-            Debug.WriteLine("PlaylistSegmentManager.ReadSubList({0})", DateTimeOffset.Now);
+            Debug.WriteLine("HlsPlaylistSegmentManager.ReadSubList({0})", DateTimeOffset.Now);
 
             try
             {
@@ -354,7 +354,7 @@ namespace SM.Media.Hls
 
                 var fetchElapsed = DateTime.UtcNow - start;
 
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList() refreshed playlist in " + fetchElapsed);
+                Debug.WriteLine("HlsPlaylistSegmentManager.ReadSubList() refreshed playlist in " + fetchElapsed);
 
                 if (UpdatePlaylist())
                 {
@@ -386,7 +386,7 @@ namespace SM.Media.Hls
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("PlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
+                Debug.WriteLine("HlsPlaylistSegmentManager.ReadSubList() failed: " + ex.Message);
             }
 
             if (++_readSubListFailureCount > 3)
@@ -407,7 +407,7 @@ namespace SM.Media.Hls
 
             var timeSpan = TimeSpan.FromSeconds(delay);
 
-            Debug.WriteLine("PlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
+            Debug.WriteLine("HlsPlaylistSegmentManager.ReadSubList(): retrying update in " + timeSpan);
 
             CancellationToken.ThrowIfCancellationRequested();
 
@@ -434,7 +434,7 @@ namespace SM.Media.Hls
                 _isInitialized = true;
             }
 
-            Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries. index: {2} dynamic: {3} expires: {4} ({5})",
+            Debug.WriteLine("HlsPlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries. index: {2} dynamic: {3} expires: {4} ({5})",
                 _programStream.WebReader, _segments.Length, _startSegmentIndex, isDynamicPlaylist,
                 isDynamicPlaylist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                 DateTimeOffset.Now);
@@ -464,7 +464,7 @@ namespace SM.Media.Hls
                     {
                         // We are running out of playlist, but the server just gave us the
                         // same list as last time.
-                        Debug.WriteLine("PlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
+                        Debug.WriteLine("HlsPlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
 
                         var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
 
@@ -795,7 +795,7 @@ namespace SM.Media.Hls
                 if (urlIndex >= 0)
                     return urlIndex;
 
-                Debug.WriteLine("PlaylistSegmentManager.FindNewIndex(): playlist discontinuity, does not contain {0}", url);
+                Debug.WriteLine("HlsPlaylistSegmentManager.FindNewIndex(): playlist discontinuity, does not contain {0}", url);
 
                 return -1;
             }

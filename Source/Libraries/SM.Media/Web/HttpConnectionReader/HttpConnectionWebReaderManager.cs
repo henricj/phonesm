@@ -98,7 +98,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
             if (null != contentType)
             {
-                Debug.WriteLine("HttpWebRequestWebReaderManager.DetectContentTypeAsync() url ext \"{0}\" type {1}", url, contentType);
+                Debug.WriteLine("HttpConnectionWebReaderManager.DetectContentTypeAsync() url ext \"{0}\" type {1}", url, contentType);
                 return contentType;
             }
 
@@ -110,7 +110,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
                     if (null != contentType)
                     {
-                        Debug.WriteLine("HttpWebRequestWebReaderManager.DetectContentTypeAsync() url HEAD \"{0}\" type {1}", url, contentType);
+                        Debug.WriteLine("HttpConnectionWebReaderManager.DetectContentTypeAsync() url HEAD \"{0}\" type {1}", url, contentType);
                         return contentType;
                     }
                 }
@@ -128,7 +128,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
                     if (null != contentType)
                     {
-                        Debug.WriteLine("HttpWebRequestWebReaderManager.DetectContentTypeAsync() url range GET \"{0}\" type {1}", url, contentType);
+                        Debug.WriteLine("HttpConnectionWebReaderManager.DetectContentTypeAsync() url range GET \"{0}\" type {1}", url, contentType);
                         return contentType;
                     }
                 }
@@ -146,7 +146,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
                     if (null != contentType)
                     {
-                        Debug.WriteLine("HttpWebRequestWebReaderManager.DetectContentTypeAsync() url GET \"{0}\" type {1}", url, contentType);
+                        Debug.WriteLine("HttpConnectionWebReaderManager.DetectContentTypeAsync() url GET \"{0}\" type {1}", url, contentType);
                         return contentType;
                     }
                 }
@@ -156,7 +156,7 @@ namespace SM.Media.Web.HttpConnectionReader
                 // This just isn't going to work.
             }
 
-            Debug.WriteLine("HttpWebRequestWebReaderManager.DetectContentTypeAsync() url header \"{0}\" unknown type", url);
+            Debug.WriteLine("HttpConnectionWebReaderManager.DetectContentTypeAsync() url header \"{0}\" unknown type", url);
 
             return null;
         }

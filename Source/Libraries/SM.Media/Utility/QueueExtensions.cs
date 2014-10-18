@@ -57,7 +57,7 @@ namespace SM.Media.Utility
                 if (ReferenceEquals(x, item))
                 {
                     if (foundItem)
-                        Debug.WriteLine("RemoveQueue.Remove() multiple matches");
+                        Debug.WriteLine("QueueExtensions.Remove() multiple matches");
 
                     foundItem = true;
 

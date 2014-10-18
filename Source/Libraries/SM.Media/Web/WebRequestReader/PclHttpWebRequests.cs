@@ -47,7 +47,7 @@ namespace SM.Media.Web.WebRequestReader
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("HttpWebRequestsBase.SetReferrer() unable to set referrer: " + ex.Message);
+                Debug.WriteLine("PclHttpWebRequests.SetReferrer() unable to set referrer: " + ex.Message);
 
                 return false;
             }

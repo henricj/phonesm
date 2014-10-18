@@ -62,7 +62,7 @@ namespace SM.Media.Web.HttpClientReader
             }
             catch (FormatException ex)
             {
-                Debug.WriteLine("HttpDefaults.DefaultUserAgentFactory({0}, {1}) unable to construct ProductInfoHeaderValue: {2}",
+                Debug.WriteLine("ProductInfoHeaderValueFactory.Create({0}, {1}) unable to construct ProductInfoHeaderValue: {2}",
                     productName, productVersion, ex.Message);
 
                 return null;

@@ -47,7 +47,7 @@ namespace SM.Media.Utility
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("BackgroundDisposer.DisposeAsync() for {0} failed: {1}", disposable.GetType().FullName, ex.Message);
+                Debug.WriteLine("DisposeExtensions.DisposeSafe() for {0} failed: {1}", disposable.GetType().FullName, ex.Message);
             }
         }
 

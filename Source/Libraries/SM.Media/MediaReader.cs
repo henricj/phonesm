@@ -227,13 +227,13 @@ namespace SM.Media
 
             if (null == contentType)
             {
-                Debug.WriteLine("TsMediaManager.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
+                Debug.WriteLine("MediaReader.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
 
                 contentType = ContentTypes.TransportStream;
             }
             else if (ContentTypes.Binary == contentType)
             {
-                Debug.WriteLine("TsMediaManager.CreateReaderPipeline() detected binary content, defaulting to transport stream");
+                Debug.WriteLine("MediaReader.CreateReaderPipeline() detected binary content, defaulting to transport stream");
 
                 contentType = ContentTypes.TransportStream;
             }
@@ -271,7 +271,7 @@ namespace SM.Media
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("TsMediaManager.ReaderPipeline.StopAsync(): callback reader stop failed: " + ex.Message);
+                    Debug.WriteLine("MediaReader.ReaderPipeline.StopAsync(): callback reader stop failed: " + ex.Message);
                 }
             }
         }

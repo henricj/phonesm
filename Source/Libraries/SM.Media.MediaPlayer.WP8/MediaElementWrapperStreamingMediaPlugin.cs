@@ -38,7 +38,7 @@ namespace SM.Media.MediaPlayer
 
         public virtual void Load()
         {
-            Debug.WriteLine("StreamingMediaPlugin.Load()");
+            Debug.WriteLine("MediaElementWrapperStreamingMediaPlugin.Load()");
 
             MediaPlayer.MediaClosed += MediaPlayer_MediaClosed;
         }

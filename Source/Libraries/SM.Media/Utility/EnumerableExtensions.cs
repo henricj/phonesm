@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SM.Media.Utility
 {
@@ -57,6 +58,24 @@ namespace SM.Media.Utility
 
                 return itemEnum.MoveNext() ? default(T) : item;
             }
+        }
+
+        /// <summary>
+        /// Check if two sequences are the same.  Unlike SequenceEqual(), two nulls
+        /// are considered equivalent.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static bool SequencesAreEquivalent<T>(this IEnumerable<T> a, IEnumerable<T> b)
+        {
+            if (ReferenceEquals(a, b))
+                return true;
+
+            if (null == a || null == b)
+                return false;
+
+            return a.SequenceEqual(b);
         }
     }
 }

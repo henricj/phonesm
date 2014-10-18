@@ -55,7 +55,7 @@ namespace TsDump
             if (string.IsNullOrWhiteSpace(ext))
                 ext = "_" + streamType.StreamType.ToString("x2") + ".bin";
 
-            _stream = File.Create(string.Format("TS_PID{0}{1}", pid, ext));
+            _stream = File.Create(string.Format("TS_PID{0}{1}", pid, ext), 256 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
         }
 
         public override IConfigurationSource Configurator

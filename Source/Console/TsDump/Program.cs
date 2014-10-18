@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using SM.Media.Utility;
 using SM.TsParser;
 
@@ -38,11 +39,20 @@ namespace TsDump
             if (args.Length < 1)
                 return;
 
+            var consoleWriter = new StreamWriter(Console.OpenStandardOutput(), Console.OutputEncoding, 256 * 1024);
+
+            consoleWriter.AutoFlush = false;
+
+            Console.SetOut(consoleWriter);
+
             try
             {
                 foreach (var arg in args)
                 {
+                    var sw = Stopwatch.StartNew();
+
                     Console.WriteLine("Reading {0}", arg);
+                    Console.Out.Flush();
 
                     using (var mediadump = new MediaDump(ProgramStreamsHandler))
                     {
@@ -50,11 +60,18 @@ namespace TsDump
 
                         mediadump.CloseAsync().Wait();
                     }
+
+                    sw.Stop();
+
+                    Console.WriteLine("Completed {0} in {1}", arg, sw.Elapsed);
+
+                    Console.Out.Flush();
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+                Console.Out.Flush();
 
                 if (Debugger.IsAttached)
                     Debugger.Break();
@@ -67,10 +84,13 @@ namespace TsDump
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+                Console.Out.Flush();
 
                 if (Debugger.IsAttached)
                     Debugger.Break();
             }
+
+            Console.Out.Flush();
         }
 
         static void ProgramStreamsHandler(IProgramStreams programStreams)

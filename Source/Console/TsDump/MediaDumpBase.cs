@@ -52,10 +52,10 @@ namespace TsDump
         {
             _programStreamsHandler = programStreamsHandler;
             BufferPool = new BufferPool(new DefaultBufferPoolParameters
-                                        {
-                                            BaseSize = 5 * 64 * 1024,
-                                            Pools = 2
-                                        });
+            {
+                BaseSize = 5 * 64 * 1024,
+                Pools = 2
+            });
 
             PacketPool = new TsPesPacketPool(BufferPool);
             _bufferingManager = new NullBufferingManager(PacketPool);
@@ -114,7 +114,7 @@ namespace TsDump
             }
         }
 
-        static bool DumpStream(IMediaParserMediaStream stream)
+        bool DumpStream(IMediaParserMediaStream stream)
         {
             var streamSource = stream.StreamSource;
 
@@ -175,7 +175,7 @@ namespace TsDump
                 return _httpClient.GetStreamAsync(uri);
             }
 
-            _stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 16384, true);
+            _stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 256 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
             return Task.FromResult(_stream);
         }
@@ -184,7 +184,7 @@ namespace TsDump
         {
             Parser.Initialize(_bufferingManager, _programStreamsHandler);
 
-            var buffer = new byte[16 * 1024];
+            var buffer = new byte[64 * 1024];
 
             using (var f = await OpenAsync(source).ConfigureAwait(false))
             {

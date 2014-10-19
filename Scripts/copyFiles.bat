@@ -28,25 +28,21 @@ copy Libraries\SM.TsParser.Legacy\bin\Release\SM.TsParser.Legacy.pdb ..\Distribu
 
 copy Libraries\SM.Media.Platform.WP7\bin\Debug\SM.Media.Platform.WP7.dll ..\Distribution\bin\Debug\WP7\
 copy Libraries\SM.Media.Platform.WP7\bin\Debug\SM.Media.Platform.WP7.pdb ..\Distribution\bin\Debug\WP7\
-copy Libraries\SM.Media.Platform.WP8\bin\ARM\Debug\SM.Media.Platform.WP8.dll ..\Distribution\bin\Debug\WP8\ARM\
-copy Libraries\SM.Media.Platform.WP8\bin\ARM\Debug\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Debug\WP8\ARM\
-copy Libraries\SM.Media.Platform.WP8\bin\x86\Debug\SM.Media.Platform.WP8.dll ..\Distribution\bin\Debug\WP8\x86\
-copy Libraries\SM.Media.Platform.WP8\bin\x86\Debug\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Debug\WP8\x86\
+copy Libraries\SM.Media.Platform.WP8\bin\Debug\SM.Media.Platform.WP8.dll ..\Distribution\bin\Debug\WP8\
+copy Libraries\SM.Media.Platform.WP8\bin\Debug\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Debug\WP8\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Debug\SM.Media.Platform.Silverlight.dll ..\Distribution\bin\Debug\Silverlight\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Debug\SM.Media.Platform.Silverlight.pdb ..\Distribution\bin\Debug\Silverlight\
-copy bin\Debug\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Debug\
-copy bin\Debug\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Debug\
+copy bin\Debug\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Debug\WinRT\
+copy bin\Debug\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Debug\WinRT\
 
 copy Libraries\SM.Media.Platform.WP7\bin\Release\SM.Media.Platform.WP7.dll ..\Distribution\bin\Release\WP7\
 copy Libraries\SM.Media.Platform.WP7\bin\Release\SM.Media.Platform.WP7.pdb ..\Distribution\bin\Release\WP7\
-copy Libraries\SM.Media.Platform.WP8\bin\ARM\Release\SM.Media.Platform.WP8.dll ..\Distribution\bin\Release\WP8\ARM\
-copy Libraries\SM.Media.Platform.WP8\bin\ARM\Release\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Release\WP8\ARM\
-copy Libraries\SM.Media.Platform.WP8\bin\x86\Release\SM.Media.Platform.WP8.dll ..\Distribution\bin\Release\WP8\x86\
-copy Libraries\SM.Media.Platform.WP8\bin\x86\Release\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Release\WP8\x86\
+copy Libraries\SM.Media.Platform.WP8\bin\Release\SM.Media.Platform.WP8.dll ..\Distribution\bin\Release\WP8\
+copy Libraries\SM.Media.Platform.WP8\bin\Release\SM.Media.Platform.WP8.pdb ..\Distribution\bin\Release\WP8\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Release\SM.Media.Platform.Silverlight.dll ..\Distribution\bin\Release\Silverlight\
 copy Libraries\SM.Media.Platform.Silverlight\bin\Release\SM.Media.Platform.Silverlight.pdb ..\Distribution\bin\Release\Silverlight\
-copy bin\Release\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Release\
-copy bin\Release\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Release\
+copy bin\Release\SM.Media.Platform.WinRT.dll ..\Distribution\bin\Release\WinRT\
+copy bin\Release\SM.Media.Platform.WinRT.pdb ..\Distribution\bin\Release\WinRT\
 
 copy Libraries\SM.Media.Builder\bin\Debug\SM.Media.Builder.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Builder\bin\Debug\SM.Media.Builder.pdb ..\Distribution\bin\Debug\

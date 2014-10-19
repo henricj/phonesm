@@ -85,6 +85,23 @@
       <Name>SM.Media.BackgroundAudio.WP81</Name>
     </ProjectReference>
   </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\SM.Media.BackgroundAudio.WP81.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\SM.Media.BackgroundAudio.WP81.csproj">
+          <Project>{45d9419a-d717-47e5-a095-c50ff477b302}</Project>
+          <Name>SM.Media.BackgroundAudio.WP81</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.BackgroundAudio.WP81">
+          <HintPath>..\..\..\bin\$(Configuration)\WinRT\SM.Media.BackgroundAudio.WP81.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>

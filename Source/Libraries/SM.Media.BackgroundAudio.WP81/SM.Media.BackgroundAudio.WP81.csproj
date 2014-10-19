@@ -34,50 +34,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\ARM\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <NoWarn>;2008</NoWarn>
-    <DebugType>full</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
-    <OutputPath>bin\ARM\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <Optimize>true</Optimize>
-    <NoWarn>;2008</NoWarn>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x86\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <NoWarn>;2008</NoWarn>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <OutputPath>bin\x86\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_PHONE_APP</DefineConstants>
-    <Optimize>true</Optimize>
-    <NoWarn>;2008</NoWarn>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
     <None Include="..\..\Global\phonesm.snk">
@@ -95,20 +51,67 @@
     <Compile Include="SmMediaBackgroundAudioTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj">
-      <Project>{7441be13-d07c-424e-ad1a-54cc78a51e0f}</Project>
-      <Name>SM.Media.Platform.WinRT</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.Media\SM.Media.csproj">
-      <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
-      <Name>SM.Media</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
-      <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
-      <Name>SM.TsParser</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <Choose>
+    <When Condition="Exists('..\SM.Media.Builder\SM.Media.Builder.csproj')" />
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Builder">
+          <HintPath>..\..\bin\SM.Media.Builder.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj">
+          <Project>{7441be13-d07c-424e-ad1a-54cc78a51e0f}</Project>
+          <Name>SM.Media.Platform.WinRT</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media.Platform.WinRT">
+          <HintPath>..\..\bin\$(Configuration)\WinRT\SM.Media.Platform.WinRT.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.Media\SM.Media.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media\SM.Media.csproj">
+          <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
+          <Name>SM.Media</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.Media">
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.TsParser\SM.TsParser.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
+          <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+          <Name>SM.TsParser</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.TsParser">
+          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.dll</HintPath>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '12.0' ">
     <VisualStudioVersion>12.0</VisualStudioVersion>
   </PropertyGroup>

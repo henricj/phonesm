@@ -199,7 +199,7 @@
     <Otherwise>
       <ItemGroup>
         <Reference Include="SM.Media.Platform.WP8">
-          <HintPath>..\..\bin\$(Configuration)\WP8\$(Platform)\SM.Media.Platform.WP8.dll</HintPath>
+          <HintPath>..\..\bin\$(Configuration)\WP8\SM.Media.Platform.WP8.dll</HintPath>
         </Reference>
       </ItemGroup>
     </Otherwise>

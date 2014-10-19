@@ -154,7 +154,7 @@
     <Otherwise>
       <ItemGroup>
         <Reference Include="SM.Media.Platform.WinRT">
-          <HintPath>..\..\..\bin\$(Configuration)\SM.Media.Platform.WinRT.dll</HintPath>
+          <HintPath>..\..\..\bin\$(Configuration)\WinRT\SM.Media.Platform.WinRT.dll</HintPath>
         </Reference>
       </ItemGroup>
     </Otherwise>

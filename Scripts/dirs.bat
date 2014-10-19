@@ -31,20 +31,20 @@ md bin\Debug\
 md bin\Release\
 md bin\Debug\WP7\
 md bin\Debug\WP8\
-md bin\Debug\WP8\ARM\
-md bin\Debug\WP8\x86\
+md bin\Debug\WP8\
+md bin\Debug\WP8\
 md bin\Debug\Silverlight\
-md bin\Debug\WinRT\ARM\
-md bin\Debug\WinRT\x86\
-md bin\Debug\WinRT\x64\
+md bin\Debug\WinRT\
+md bin\Debug\WinRT\
+md bin\Debug\WinRT\
 md bin\Release\WP7\
 md bin\Release\WP8\
-md bin\Release\WP8\ARM\
-md bin\Release\WP8\x86\
+md bin\Release\WP8\
+md bin\Release\WP8\
 md bin\Release\Silverlight\
-md bin\Release\WinRT\ARM\
-md bin\Release\WinRT\x86\
-md bin\Release\WinRT\x64\
+md bin\Release\WinRT\
+md bin\Release\WinRT\
+md bin\Release\WinRT\
 
 md Global\
 

@@ -51,7 +51,6 @@ namespace SM.Media
         int _isDisposed;
         TimeSpan? _seekTarget;
         TimeSpan? _duration;
-        Action<IMediaSource> _mssHandler;
         StreamState _videoStreamState;
         StreamState _audioStreamState;
         MediaStreamSourceStartingRequestDeferral _onStartingDeferral;

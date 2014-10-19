@@ -248,6 +248,8 @@ namespace HlsView.Silverlight
 
             _mediaStreamFacade.SetParameter(_httpClientFactory);
 
+            _mediaStreamFacade.SetParameter(new ApplicationInformation("HlsView", "1.0.0.0"));
+
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 

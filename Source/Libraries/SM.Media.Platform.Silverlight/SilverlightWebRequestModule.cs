@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="SilverlightWebRequestModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,23 +24,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac.Core;
-using SM.Media.Builder;
+using Autofac;
+using SM.Media.Web;
+using SM.Media.Web.WebRequestReader;
 
 namespace SM.Media
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class SilverlightWebRequestModule : Module
     {
-        static readonly IModule[] Modules =
+        protected override void Load(ContainerBuilder builder)
         {
-            new SmMediaModule(),
-            new TsMediaModule(),
-            new SilverlightWebRequestModule()
-            //new HttpConnectionModule()
-        };
+            builder.RegisterType<SilverlightHttpWebRequests>()
+                .As<IHttpWebRequests>()
+                .SingleInstance();
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        { }
+            builder.RegisterType<HttpWebRequestWebReaderManager>()
+                .As<IWebReaderManager>()
+                .SingleInstance();
+        }
     }
 }

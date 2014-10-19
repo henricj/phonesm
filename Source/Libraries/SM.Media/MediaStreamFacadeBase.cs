@@ -439,5 +439,10 @@ namespace SM.Media
         {
             mediaStreamFacade.Builder.RegisterSingleton(mediaStreamConfigurator);
         }
+
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IApplicationInformation applicationInformation)
+        {
+            mediaStreamFacade.Builder.RegisterSingleton(applicationInformation);
+        }
     }
 }

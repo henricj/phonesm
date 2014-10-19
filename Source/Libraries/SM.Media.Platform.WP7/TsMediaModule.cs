@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using Ninject;
 using Ninject.Activation;
 using Ninject.Modules;
 using SM.Media.Builder;
@@ -45,10 +46,15 @@ namespace SM.Media
         {
             var scope = Scope;
 
-            var b = Bind<IMediaStreamConfigurator>().To<MediaStreamConfigurator>();
+            var b = Bind<MediaStreamConfigurator>().ToSelf();
 
             if (null != scope)
                 b.InScope(scope);
+
+            Bind<IMediaStreamConfigurator>().ToMethod(ctx => ctx.Kernel.Get<MediaStreamConfigurator>());
+            Bind<IMediaStreamControl>().ToMethod(ctx => ctx.Kernel.Get<MediaStreamConfigurator>());
+
+            Bind<Func<TsMediaStreamSource>>().ToMethod(ctx => () => ctx.Kernel.Get<TsMediaStreamSource>());
 
             Bind<IPlatformServices>().To<PlatformServices>().InSingletonScope();
 

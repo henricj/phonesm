@@ -109,7 +109,12 @@ namespace SM.Media.Web.HttpConnection
                 cancelRegistration.Dispose();
 
                 if (SocketError.Success != args.SocketError)
-                    tcs.TrySetException(new WebException("Socket to " + _url + " failed: " + args.SocketError));
+                {
+                    if (SocketError.OperationAborted == args.SocketError || SocketError.ConnectionAborted == args.SocketError)
+                        tcs.TrySetCanceled();
+                    else
+                        tcs.TrySetException(new WebException("Socket to " + _url + " failed: " + args.SocketError));
+                }
                 else
                     tcs.TrySetResult(null);
             };

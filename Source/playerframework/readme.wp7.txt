@@ -7,4 +7,4 @@ used for testing with phonesm is (on the "universal" branch):
 Since the playerframework project used some NuGet packages older
 than the packages used by phonesm, they were updated through the
 Package Manager Console with:
-   Update-Package -Project Microsoft.WP7.PlayerFramework.SL
+   Update-Package -Project Microsoft.PlayerFramework.Core

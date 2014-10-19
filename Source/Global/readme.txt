@@ -1,6 +1,6 @@
-SamplePlayer uses SMF on WP7 and Player Framework on WP8.
+The SamplePlayer.* apps use the Microsoft Player Framework.
 
-HlsView uses the MediaElement directly.
+HlsView.* uses the MediaElement directly.
 
 For more information, see
 

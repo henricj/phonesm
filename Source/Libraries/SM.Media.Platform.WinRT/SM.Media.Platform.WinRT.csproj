@@ -57,6 +57,7 @@
     <Compile Include="Aes128Pkcs7ReadStream.cs" />
     <Compile Include="PlatformServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="WinRtStreamState.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SM.Media.Builder\SM.Media.Builder.csproj">

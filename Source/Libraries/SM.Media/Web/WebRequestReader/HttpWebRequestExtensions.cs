@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -62,7 +63,17 @@ namespace SM.Media.Web.WebRequestReader
 
             using (cancellationToken.Register(r => ((WebRequest)r).Abort(), request, false))
             {
-                return (HttpWebResponse)await task.ConfigureAwait(false);
+                try
+                {
+                    return (HttpWebResponse)await task.ConfigureAwait(false);
+                }
+                catch (WebException ex)
+                {
+                    if (cancellationToken.IsCancellationRequested  && ex.Status == WebExceptionStatus.RequestCanceled)
+                        throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+
+                    throw;
+                }
             }
         }
     }

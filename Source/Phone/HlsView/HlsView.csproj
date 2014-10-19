@@ -142,12 +142,6 @@
     </Content>
     <Content Include="SplashScreenImage.jpg" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader.Legacy\SM.Media.Web.HttpClientReader.Legacy.csproj">
-      <Project>{CB4A4A72-07F8-4FB0-AE57-D754BD79B8A3}</Project>
-      <Name>SM.Media.Web.HttpClientReader.Legacy</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.Legacy\SM.Media.Legacy.csproj')">
       <ItemGroup>

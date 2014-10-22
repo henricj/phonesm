@@ -268,7 +268,7 @@ namespace SM.Media
             }
 
             var audioEncodingProperties = propertyFactory((uint)configurationSource.SamplingFrequency,
-                (uint)configurationSource.Channels, (uint?)configurationSource.Bitrate ?? 0u);
+                (uint)configurationSource.Channels, (uint?)configurationSource.Bitrate ?? 128000u);
 
             var descriptor = new AudioStreamDescriptor(audioEncodingProperties);
 

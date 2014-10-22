@@ -102,6 +102,8 @@ namespace SM.Media.WinRtHttpClientReader
                 }
             }
 
+            httpClient.DefaultRequestHeaders.Accept.Add(new HttpMediaTypeWithQualityHeaderValue("*/*", 0.1));
+
             return httpClient;
         }
 

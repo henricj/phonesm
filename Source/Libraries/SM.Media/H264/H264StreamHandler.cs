@@ -83,10 +83,10 @@ namespace SM.Media.H264
                     _rbspDecoder.CompletionHandler = _configurator.ParseSliceHeader;
                     _currentParser = _rbspDecoder;
                     break;
-                case NalUnitType.Aud:
-                    _rbspDecoder.CompletionHandler =_configurator.ParseAud;
-                    _currentParser = _rbspDecoder;
-                    break;
+                //case NalUnitType.Aud:
+                //    _rbspDecoder.CompletionHandler =_configurator.ParseAud;
+                //    _currentParser = _rbspDecoder;
+                //    break;
                 case NalUnitType.Sei:
                     _rbspDecoder.CompletionHandler = _configurator.ParseSei;
                     _currentParser = _rbspDecoder;

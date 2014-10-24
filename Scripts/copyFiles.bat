@@ -183,6 +183,7 @@ copy App\WinRT\SamplePlayer.Win81\SamplePlayer.Win81_TemporaryKey.pfx ..\Distrib
 copy App\WinRT\SamplePlayer.Win81\Package.appxmanifest ..\Distribution\App\WinRT\SamplePlayer.Win81\
 copy App\WinRT\SamplePlayer.Win81\packages.config ..\Distribution\App\WinRT\SamplePlayer.Win81\
 
+copy App\WinRT\SamplePlayer.WinRT.Shared\*.xaml ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\
 copy App\WinRT\SamplePlayer.WinRT.Shared\*.cs ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\
 copy App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\
 copy App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.shproj ..\Distribution\App\WinRT\SamplePlayer.WinRT.Shared\

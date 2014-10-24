@@ -1,7 +1,7 @@
 ﻿<Application
-    x:Class="SamplePlayer.Win81.App"
+    x:Class="SamplePlayer.WinRT.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:SamplePlayer.Win81">
+    xmlns:local="using:SamplePlayer.WinRT">
 
 </Application>

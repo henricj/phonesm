@@ -7,7 +7,7 @@
     <ProjectGuid>{60909973-3882-4306-8236-C188ED185CA8}</ProjectGuid>
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SamplePlayer.Win81</RootNamespace>
+    <RootNamespace>SamplePlayer.WinRT</RootNamespace>
     <AssemblyName>SamplePlayer.Win81</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformVersion>8.1</TargetPlatformVersion>
@@ -89,9 +89,6 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
-    <Compile Include="MainPage.xaml.cs">
-      <DependentUpon>MainPage.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -114,10 +111,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="MainPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Libraries\SM.Media.MediaPlayer.Win81\SM.Media.MediaPlayer.Win81.csproj">

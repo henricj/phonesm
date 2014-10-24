@@ -20,7 +20,7 @@ using Windows.UI.Xaml.Navigation;
 
 // The Blank Application template is documented at http://go.microsoft.com/fwlink/?LinkId=391641
 
-namespace SamplePlayer.Win81
+namespace SamplePlayer.WinRT
 {
     /// <summary>
     /// Provides application-specific behavior to supplement the default Application class.

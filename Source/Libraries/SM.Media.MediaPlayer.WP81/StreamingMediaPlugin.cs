@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Diagnostics;
 using Windows.UI.Xaml;
 using Microsoft.PlayerFramework;
@@ -35,11 +36,6 @@ namespace SM.Media.MediaPlayer
     {
         IMediaStreamFacade _mediaStreamFacade;
         Microsoft.PlayerFramework.MediaPlayer _player;
-
-        protected IMediaStreamFacade MediaStreamFacade
-        {
-            get { return _mediaStreamFacade; }
-        }
 
         #region IPlugin Members
 
@@ -91,21 +87,21 @@ namespace SM.Media.MediaPlayer
         {
             Debug.WriteLine("StreamingMediaPlugin MediaClosed");
 
-            Close();
+            Stop();
         }
 
         void PlayerOnMediaEnded(object sender, MediaPlayerActionEventArgs mediaPlayerActionEventArgs)
         {
             Debug.WriteLine("StreamingMediaPlugin MediaEnded");
 
-            Close();
+            Stop();
         }
 
         void PlayerOnMediaFailed(object sender, ExceptionRoutedEventArgs exceptionRoutedEventArgs)
         {
             Debug.WriteLine("StreamingMediaPlugin MediaFailed");
 
-            Close();
+            Stop();
 
             Cleanup();
         }
@@ -134,6 +130,8 @@ namespace SM.Media.MediaPlayer
 
                 deferral = mediaPlayerDeferrableEventArgs.DeferrableOperation.GetDeferral();
 
+                Debug.Assert(!deferral.CancellationToken.IsCancellationRequested, "MediaPlayer cancellation token is already cancelled");
+
                 var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, deferral.CancellationToken).ConfigureAwait(false);
 
                 mediaLoadingEventArgs.Source = null;
@@ -141,6 +139,15 @@ namespace SM.Media.MediaPlayer
 
                 deferral.Complete();
                 deferral = null;
+            }
+            catch (OperationCanceledException)
+            {
+                Cleanup();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("StreamingMediaPlugin.PlayerOnMediaLoading() failed: " + ex.Message);
+                Cleanup();
             }
             finally
             {
@@ -162,11 +169,16 @@ namespace SM.Media.MediaPlayer
             return MediaStreamFacadeSettings.Parameters.Create();
         }
 
-        protected virtual void Close()
+        protected virtual void Stop()
         {
             Debug.WriteLine("StreamingMediaPlugin.Close()");
 
-            _mediaStreamFacade.RequestStop();
+            var msf = _mediaStreamFacade;
+
+            if (null == msf)
+                return;
+
+            msf.RequestStop();
         }
 
         protected virtual void Cleanup()

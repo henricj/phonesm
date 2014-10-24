@@ -385,6 +385,8 @@ namespace SM.Media
                     Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() close already completed");
             }
 
+            _mediaStreamSource = null;
+
             var mediaManager = MediaManager;
 
             if (null == mediaManager)
@@ -552,8 +554,6 @@ namespace SM.Media
             finally
             {
                 deferral.Complete();
-
-                _mediaStreamSource = null;
             }
         }
 

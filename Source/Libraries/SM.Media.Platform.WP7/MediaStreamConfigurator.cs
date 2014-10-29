@@ -46,8 +46,6 @@ namespace SM.Media
         IStreamSource _audioStreamSource;
         TsMediaStreamSource _mediaStreamSource;
         TaskCompletionSource<IMediaStreamConfiguration> _openCompletionSource;
-        int _streamClosedFlags;
-        int _streamOpenFlags;
         MediaStreamDescription _videoStreamDescription;
         IStreamSource _videoStreamSource;
 
@@ -66,11 +64,6 @@ namespace SM.Media
         {
             set { _videoStreamDescription = value; }
             get { return _videoStreamDescription; }
-        }
-
-        public int StreamOpenFlags
-        {
-            get { return _streamOpenFlags; }
         }
 
         IStreamSource AudioStreamSource
@@ -228,18 +221,10 @@ namespace SM.Media
                 var descriptions = new List<MediaStreamDescription>();
 
                 if (null != _videoStreamSource && null != _videoStreamDescription)
-                {
                     descriptions.Add(_videoStreamDescription);
 
-                    OpenStream(TsMediaStreamSource.Operation.Video);
-                }
-
                 if (null != _audioStreamSource && null != _audioStreamSource)
-                {
                     descriptions.Add(_audioStreamDescription);
-
-                    OpenStream(TsMediaStreamSource.Operation.Audio);
-                }
 
                 var mediaSourceAttributes = new Dictionary<MediaSourceAttributesKeys, string>();
 
@@ -319,47 +304,6 @@ namespace SM.Media
             {
                 _audioStreamSource = audio.StreamSource;
                 _audioStreamDescription = audioStreamDescription;
-            }
-        }
-
-        void OpenStream(TsMediaStreamSource.Operation operation)
-        {
-            var flag = (int)operation;
-
-            var oldFlags = _streamOpenFlags;
-
-            for (; ; )
-            {
-                var newFlags = oldFlags | flag;
-
-                var flags = Interlocked.CompareExchange(ref _streamOpenFlags, newFlags, oldFlags);
-
-                if (flags == oldFlags)
-                    return;
-
-                oldFlags = flags;
-            }
-        }
-
-        public bool CloseStream(TsMediaStreamSource.Operation operation)
-        {
-            var flag = (int)operation;
-
-            var oldFlags = _streamClosedFlags;
-
-            for (; ; )
-            {
-                var newFlags = oldFlags | flag;
-
-                if (newFlags == oldFlags)
-                    return false;
-
-                var flags = Interlocked.CompareExchange(ref _streamClosedFlags, newFlags, oldFlags);
-
-                if (flags == oldFlags)
-                    return newFlags == _streamOpenFlags;
-
-                oldFlags = flags;
             }
         }
     }

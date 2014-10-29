@@ -326,5 +326,19 @@ namespace SM.Media.Web.HttpConnection
                 return Tuple.Create(name, value);
             }
         }
+
+        public static async Task<string> ReadNonBlankLineAsync(this IHttpReader httpReader, CancellationToken cancellationToken)
+        {
+            for (; ; )
+            {
+                var line = await httpReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+
+                if (null == line)
+                    return null;
+
+                if (!string.IsNullOrWhiteSpace(line))
+                    return line;
+            }
+        }
     }
 }

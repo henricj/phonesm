@@ -265,8 +265,7 @@ namespace HlsView
             }
             else
             {
-                if (null != mediaElement1.Source)
-                    mediaElement1.Source = null;
+                mediaElement1.Source = null;
 
                 try
                 {

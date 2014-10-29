@@ -338,8 +338,13 @@ namespace HlsView
 
             var track = CurrentTrack;
 
-            if (null != track)
+            if (null == track)
             {
+                mediaElement1.Source = null;
+
+                return;
+            }
+
                 if (track.UseNativePlayer)
                 {
                     if (null != _mediaStreamFacade)
@@ -349,8 +354,7 @@ namespace HlsView
                 }
                 else
                 {
-                    if (null != mediaElement1.Source)
-                        mediaElement1.Source = null;
+                    mediaElement1.Source = null;
 
                     try
                     {
@@ -372,9 +376,6 @@ namespace HlsView
                         return;
                     }
                 }
-            }
-            else
-                mediaElement1.Source = null;
 
             mediaElement1.Play();
 

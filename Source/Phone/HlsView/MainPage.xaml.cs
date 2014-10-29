@@ -223,6 +223,8 @@ namespace HlsView
 
             var track = CurrentTrack;
 
+            mediaElement1.Source = null;
+
             if (null != track)
             {
                 try
@@ -254,13 +256,6 @@ namespace HlsView
                 mediaElement1.Play();
 
                 _positionSampler.Start();
-            }
-            else
-            {
-                await _mediaStreamFacade.StopAsync(CancellationToken.None);
-
-                mediaElement1.Stop();
-                mediaElement1.Source = null;
             }
         }
 

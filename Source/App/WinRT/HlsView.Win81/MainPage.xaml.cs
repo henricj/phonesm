@@ -338,43 +338,44 @@ namespace HlsView
 
             var track = CurrentTrack;
 
-            if (null != track)
+            if (null == track)
             {
-                if (track.UseNativePlayer)
-                {
-                    if (null != _mediaStreamFacade)
-                        await _mediaStreamFacade.StopAsync(CancellationToken.None);
+                mediaElement1.Source = null;
 
-                    mediaElement1.Source = track.Url;
-                }
-                else
-                {
-                    if (null != mediaElement1.Source)
-                        mediaElement1.Source = null;
+                return;
+            }
 
-                    try
-                    {
-                        InitializeMediaStream();
+            if (track.UseNativePlayer)
+            {
+                if (null != _mediaStreamFacade)
+                    await _mediaStreamFacade.StopAsync(CancellationToken.None);
 
-                        var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
-
-                        if (null == mss)
-                        {
-                            Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source");
-                            return;
-                        }
-
-                        mediaElement1.SetMediaStreamSource(mss);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source: " + ex.Message);
-                        return;
-                    }
-                }
+                mediaElement1.Source = track.Url;
             }
             else
+            {
                 mediaElement1.Source = null;
+
+                try
+                {
+                    InitializeMediaStream();
+
+                    var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+
+                    if (null == mss)
+                    {
+                        Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source");
+                        return;
+                    }
+
+                    mediaElement1.SetMediaStreamSource(mss);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source: " + ex.Message);
+                    return;
+                }
+            }
 
             mediaElement1.Play();
 
@@ -448,6 +449,8 @@ namespace HlsView
 
                     mediaElement1_CurrentStateChanged(null, null);
                 });
+
+            TaskCollector.Default.Add(awaiter.AsTask(), "MainPage TsMediaManagerOnStateChange");
         }
 
         void mediaElement1_MediaOpened(object sender, RoutedEventArgs e)

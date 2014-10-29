@@ -26,7 +26,6 @@
 
 using System;
 using System.IO;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Web.HttpConnection;
@@ -35,21 +34,26 @@ namespace SM.Media.Web.HttpConnectionReader
 {
     public sealed class HttpConnectionWebStreamResponse : IWebStreamResponse
     {
-        readonly int _httpStatusCode;
+        readonly IHttpStatus _httpStatus;
         readonly IHttpConnectionResponse _response;
 
         public HttpConnectionWebStreamResponse(IHttpConnectionResponse response)
         {
             if (null == response)
                 throw new ArgumentNullException("response");
+            if (null == response.Status)
+                throw new ArgumentException("Not status in response", "response");
 
             _response = response;
-            _httpStatusCode = _response.Status.StatusCode;
+            _httpStatus = _response.Status;
         }
 
-        public HttpConnectionWebStreamResponse(HttpStatusCode statusCode)
+        public HttpConnectionWebStreamResponse(IHttpStatus httpStatus)
         {
-            _httpStatusCode = (int)statusCode;
+            if (null == httpStatus)
+                throw new ArgumentNullException("httpStatus");
+
+            _httpStatus = httpStatus;
         }
 
         #region IWebStreamResponse Members
@@ -62,7 +66,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         public bool IsSuccessStatusCode
         {
-            get { return null != _response && _httpStatusCode >= 200 && _httpStatusCode < 300; }
+            get { return _httpStatus.IsSuccessStatusCode; }
         }
 
         public Uri ActualUrl
@@ -72,7 +76,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         public int HttpStatusCode
         {
-            get { return _httpStatusCode; }
+            get { return (int)_httpStatus.StatusCode; }
         }
 
         public long? ContentLength
@@ -82,8 +86,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         public void EnsureSuccessStatusCode()
         {
-            if (!IsSuccessStatusCode)
-                throw new WebException("Invalid status: " + _httpStatusCode);
+            _httpStatus.EnsureSuccessStatusCode();
         }
 
         public Task<Stream> GetStreamAsync(CancellationToken cancellationToken)

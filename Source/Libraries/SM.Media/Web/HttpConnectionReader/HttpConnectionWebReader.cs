@@ -28,11 +28,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
+using SM.Media.Web.HttpConnection;
 
 namespace SM.Media.Web.HttpConnectionReader
 {
@@ -95,6 +95,8 @@ namespace SM.Media.Web.HttpConnectionReader
 
             using (var response = await _webReaderManager.SendAsync(url, this, cancellationToken, allowBuffering: true).ConfigureAwait(false))
             {
+                response.EnsureSuccessStatusCode();
+
                 Update(url, response, webResponse);
 
                 using (var ms = new MemoryStream())
@@ -108,7 +110,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         #endregion
 
-        public async Task<HttpConnection.IHttpConnectionResponse> SendAsync(HttpConnection.HttpConnectionRequest request, bool allowBuffering, CancellationToken cancellationToken, WebResponse webResponse = null)
+        public async Task<IHttpConnectionResponse> SendAsync(HttpConnectionRequest request, bool allowBuffering, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
             var url = request.Url;
 
@@ -119,17 +121,17 @@ namespace SM.Media.Web.HttpConnectionReader
             return response;
         }
 
-        public HttpConnection.HttpConnectionRequest CreateWebRequest(Uri url)
+        public HttpConnectionRequest CreateWebRequest(Uri url)
         {
             return _webReaderManager.CreateRequest(url, null, this, ContentType);
         }
 
-        void Update(Uri url, HttpConnection.IHttpConnectionResponse response, WebResponse webResponse)
+        void Update(Uri url, IHttpConnectionResponse response, WebResponse webResponse)
         {
             if (null != webResponse)
             {
                 webResponse.RequestUri = response.ResponseUri;
-                webResponse.ContentLength = response.Status.ContentLength >= 0 ? response.Status.ContentLength : null as long?;
+                webResponse.ContentLength = response.Status.ContentLength >= 0 ? response.Status.ContentLength : null;
                 webResponse.Headers = GetHeaders(response.Headers);
                 webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
             }

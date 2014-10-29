@@ -27,6 +27,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 
 namespace SM.Media.Web.HttpConnection
 {
@@ -36,16 +37,19 @@ namespace SM.Media.Web.HttpConnection
         Stream ContentReadStream { get; }
         IHttpStatus Status { get; }
         Uri ResponseUri { get; }
+
+        bool IsSuccessStatusCode { get; }
+        void EnsureSuccessStatusCode();
     }
 
     public class HttpConnectionResponse : IHttpConnectionResponse
     {
         readonly ILookup<string, string> _headers;
         readonly IHttpStatus _status;
+        readonly Uri _url;
         IHttpConnection _connection;
         IHttpReader _reader;
         Stream _stream;
-        Uri _url;
 
         public HttpConnectionResponse(Uri url, IHttpConnection connection, IHttpReader reader, Stream stream, ILookup<string, string> headers, IHttpStatus status)
         {
@@ -116,6 +120,19 @@ namespace SM.Media.Web.HttpConnection
         public Uri ResponseUri
         {
             get { return _url; }
+        }
+
+        public bool IsSuccessStatusCode
+        {
+            get { return null != Status && Status.IsSuccessStatusCode; }
+        }
+
+        public void EnsureSuccessStatusCode()
+        {
+            if (null == Status)
+                throw new WebException("No status available", WebExceptionStatus.UnknownError);
+
+            Status.EnsureSuccessStatusCode();
         }
 
         #endregion

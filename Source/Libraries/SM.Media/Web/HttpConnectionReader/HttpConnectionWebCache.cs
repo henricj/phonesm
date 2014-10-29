@@ -103,10 +103,10 @@ namespace SM.Media.Web.HttpConnectionReader
                         return;
                     }
 
-                    if ((int)HttpStatusCode.NotModified == response.Status.StatusCode)
+                    if (HttpStatusCode.NotModified == response.Status.StatusCode)
                         return;
 
-                    if (!RetryPolicy.IsRetryable((HttpStatusCode)response.Status.StatusCode))
+                    if (!RetryPolicy.IsRetryable(response.Status.StatusCode))
                         goto fail;
 
                     if (await retry.CanRetryAfterDelayAsync(cancellationToken).ConfigureAwait(false))

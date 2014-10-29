@@ -34,6 +34,7 @@ using Windows.Web.Http;
 using SM.Media.Content;
 using SM.Media.Utility;
 using SM.Media.Web;
+using HttpStatusCode = System.Net.HttpStatusCode;
 
 namespace SM.Media.WinRtHttpClientReader
 {
@@ -133,7 +134,7 @@ namespace SM.Media.WinRtHttpClientReader
 
             using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false))
             {
-                response.EnsureSuccessStatusCode();
+                StatusCodeWebException.ThrowIfNotSuccess((HttpStatusCode)response.StatusCode, response.ReasonPhrase);
 
                 Update(url, response, webResponse);
 
@@ -176,7 +177,6 @@ namespace SM.Media.WinRtHttpClientReader
                 webResponse.Headers = response.Headers.Concat(response.Content.Headers)
                     .ToLookup(kv => kv.Key, kv => kv.Value)
                     .Select(l => new KeyValuePair<string, IEnumerable<string>>(l.Key, l));
-
 
                 webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
             }

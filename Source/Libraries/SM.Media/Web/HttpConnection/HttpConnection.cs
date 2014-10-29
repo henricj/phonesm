@@ -233,7 +233,7 @@ namespace SM.Media.Web.HttpConnection
             if (!int.TryParse(parts[1], NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out statusCode))
                 throw new WebException("Invalid status code: " + statusLine);
 
-            _httpStatus.StatusCode = statusCode;
+            _httpStatus.StatusCode = (HttpStatusCode)statusCode;
 
             if (parts.Length > 2)
             {
@@ -302,7 +302,7 @@ namespace SM.Media.Web.HttpConnection
             if (statusCode < 100 || statusCode > 999)
                 throw new WebException("Invalid status code: " + statusLine);
 
-            _httpStatus.StatusCode = statusCode;
+            _httpStatus.StatusCode = (HttpStatusCode)statusCode;
 
             // Response Phrase
 

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="HttpConnectionModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,27 +24,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac.Core;
-using SM.Media.Builder;
-using SM.Media.Utility;
+using Autofac;
+using SM.Media.Web;
+using SM.Media.Web.HttpConnection;
+using SM.Media.Web.HttpConnectionReader;
 
 namespace SM.Media
 {
-    public sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class HttpConnectionModule : Module
     {
-        static readonly IModule[] Modules =
+        protected override void Load(ContainerBuilder builder)
         {
-            new SmMediaModule(),
-            new TsMediaModule(),
-            new HttpClientModule(),
-            //new HttpConnectionModule()
-        };
+            builder.RegisterType<SocketWrapper>().As<ISocket>().ExternallyOwned();
 
-        public TsMediaManagerBuilder()
-            : base(Modules)
-        {
-            RegisterSingleton<IApplicationInformation, DesktopApplicationInformation>();
-            RegisterSingleton<IPlatformServices, PlatformServices>();
+            builder.RegisterType<HttpConnection>().As<IHttpConnection>().ExternallyOwned();
+            builder.RegisterType<HttpConnectionWebReaderManager>().As<IWebReaderManager>().SingleInstance();
+
+            builder.RegisterType<HttpEncoding>().As<IHttpEncoding>().SingleInstance();
+            builder.RegisterType<HttpHeaderSerializer>().As<IHttpHeaderSerializer>().SingleInstance();
+            builder.RegisterType<UserAgentEncoder>().As<IUserAgentEncoder>().SingleInstance();
         }
     }
 }

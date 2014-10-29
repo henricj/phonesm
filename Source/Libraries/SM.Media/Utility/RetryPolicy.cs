@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using SM.Media.Web;
 
 namespace SM.Media.Utility
 {
@@ -67,10 +68,16 @@ namespace SM.Media.Utility
                 return true;
 
             var httpResponse = webException.Response as HttpWebResponse;
-            if (null == httpResponse)
-                return false;
 
-            return IsRetryable(httpResponse.StatusCode);
+            if (null != httpResponse)
+                return IsRetryable(httpResponse.StatusCode);
+
+            var statusCodeWebException = webException as StatusCodeWebException;
+
+            if (null != statusCodeWebException)
+                return IsRetryable(statusCodeWebException.StatusCode);
+
+            return false;
         }
 
         public static void ChangeRetryableStatusCodes(IEnumerable<HttpStatusCode> addCodes, IEnumerable<HttpStatusCode> removeCodes)

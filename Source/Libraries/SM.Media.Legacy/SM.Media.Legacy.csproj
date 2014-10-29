@@ -594,6 +594,9 @@
     <Compile Include="..\SM.Media\Web\Rfc2047Encoding.cs">
       <Link>Web\Rfc2047Encoding.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\StatusCodeWebException.cs">
+      <Link>Web\StatusCodeWebException.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\UriExtensions.cs">
       <Link>Web\UriExtensions.cs</Link>
     </Compile>

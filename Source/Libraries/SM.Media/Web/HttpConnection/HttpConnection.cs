@@ -108,7 +108,8 @@ namespace SM.Media.Web.HttpConnection
 
                 var stream = _httpStatus.ChunkedEncoding ? (Stream)new ChunkedStream(httpReader) : new ContentLengthStream(httpReader, _httpStatus.ContentLength);
 
-                var response = new HttpConnectionResponse(request.Url, closeConnection ? this : null, httpReader, stream, _headers.ToLookup(kv => kv.Item1, kv => kv.Item2), _httpStatus);
+                var response = new HttpConnectionResponse(request.Url, closeConnection ? this : null, httpReader, stream,
+                    _headers.ToLookup(kv => kv.Item1, kv => kv.Item2, StringComparer.OrdinalIgnoreCase), _httpStatus);
 
                 httpReader = null;
 

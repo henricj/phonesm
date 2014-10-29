@@ -26,6 +26,7 @@
 
 using System;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Web.Http;
@@ -44,7 +45,53 @@ namespace SM.Media.WinRtHttpClientReader
             if (null != fromBytes || null != toBytes)
                 request.Headers["Range"] = new RangeHeaderValue(fromBytes, toBytes).ToString();
 
-            return await httpClient.SendRequestAsync(request, completionOption).AsTask(cancellationToken).ConfigureAwait(false);
+            return await SendRequestAsync(httpClient, request, completionOption, cancellationToken);
+        }
+
+        public static async Task<HttpResponseMessage> SendRequestAsync(this HttpClient httpClient, HttpRequestMessage request,
+            HttpCompletionOption completionOption, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await httpClient.SendRequestAsync(request, completionOption).AsTask(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                HttpClientExceptionTranslator.ThrowBetterHttpClientException(ex, cancellationToken);
+
+                throw;
+            }
+        }
+
+        public static async Task<HttpResponseMessage> GetAsync(this HttpClient httpClient, Uri uri,
+            HttpCompletionOption completionOption, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await httpClient.GetAsync(uri, completionOption).AsTask(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                HttpClientExceptionTranslator.ThrowBetterHttpClientException(ex, cancellationToken);
+
+                throw;
+            }
+        }
+
+        public static async Task<byte[]> ReadAsByteArray(this IHttpContent httpContent, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var buffer = await httpContent.ReadAsBufferAsync().AsTask(cancellationToken).ConfigureAwait(false);
+
+                return buffer.ToArray();
+            }
+            catch (Exception ex)
+            {
+                HttpClientExceptionTranslator.ThrowBetterHttpClientException(ex, cancellationToken);
+
+                throw;
+            }
         }
     }
 }

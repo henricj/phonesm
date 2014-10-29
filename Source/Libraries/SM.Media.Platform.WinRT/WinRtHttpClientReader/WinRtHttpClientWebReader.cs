@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Web.Http;
@@ -82,14 +81,6 @@ namespace SM.Media.WinRtHttpClientReader
             _httpClient.Dispose();
         }
 
-        void ThrowIfDisposed()
-        {
-            if (0 == _isDisposed)
-                return;
-
-            throw new ObjectDisposedException(GetType().Name);
-        }
-
         public Uri BaseAddress
         {
             get { return _baseAddress; }
@@ -115,7 +106,7 @@ namespace SM.Media.WinRtHttpClientReader
             {
                 //Debug.WriteLine("WinRtHttpClientWebReader.GetWebStreamAsync() url {0} wait {1}", url, waitForContent);
 
-                var response = await _httpClient.GetAsync(url, completionOption).AsTask(cancellationToken).ConfigureAwait(false);
+                var response = await _httpClient.GetAsync(url, completionOption, cancellationToken).ConfigureAwait(false);
 
                 Update(url, response, webResponse);
 
@@ -140,19 +131,25 @@ namespace SM.Media.WinRtHttpClientReader
         {
             ThrowIfDisposed();
 
-            using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead).AsTask(cancellationToken).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false))
             {
                 response.EnsureSuccessStatusCode();
 
                 Update(url, response, webResponse);
 
-                var buffer = await response.Content.ReadAsBufferAsync().AsTask(cancellationToken).ConfigureAwait(false);
-
-                return buffer.ToArray();
+                return await response.Content.ReadAsByteArray(cancellationToken).ConfigureAwait(false);
             }
         }
 
         #endregion
+
+        void ThrowIfDisposed()
+        {
+            if (0 == _isDisposed)
+                return;
+
+            throw new ObjectDisposedException(GetType().Name);
+        }
 
         public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption responseContentRead, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
@@ -160,7 +157,7 @@ namespace SM.Media.WinRtHttpClientReader
 
             var url = request.RequestUri;
 
-            var response = await _httpClient.SendRequestAsync(request, responseContentRead).AsTask(cancellationToken).ConfigureAwait(false);
+            var response = await _httpClient.SendRequestAsync(request, responseContentRead, cancellationToken).ConfigureAwait(false);
 
             Update(url, response, webResponse);
 

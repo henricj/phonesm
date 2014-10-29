@@ -95,7 +95,7 @@ namespace SimulatedPlayer
             mediaElementManager.Play();
 
             return;
-
+#pragma warning disable 162
             var timer = new Timer(_ =>
             {
                 GC.Collect();
@@ -115,6 +115,7 @@ namespace SimulatedPlayer
             });
 
             timer.Change(TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
+#pragma warning restore 162
         }
     }
 }

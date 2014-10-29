@@ -57,7 +57,10 @@ namespace SM.Media.Configuration
             get { return true; }
         }
 
+#pragma warning disable 67
+        // The event is required to implement the interface.
         public event EventHandler ConfigurationComplete;
+#pragma warning restore 67
 
         #endregion
     }

@@ -45,13 +45,12 @@ namespace SM.Media
         /// <seealso cref="SM.Media.Content.ContentTypes" />
         ContentType ContentType { get; set; }
 
-        ICollection<Uri> Source { get; set; }
+        Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken);
+        Task StopMediaAsync(CancellationToken cancellationToken);
+        Task CloseMediaAsync();
 
-        Task<IMediaStreamConfigurator> OpenMediaStreamConfiguratorAsync(CancellationToken cancellationToken);
-        void OpenMedia();
-        void CloseMedia();
         Task<TimeSpan> SeekMediaAsync(TimeSpan position);
+
         event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
-        Task CloseAsync();
     }
 }

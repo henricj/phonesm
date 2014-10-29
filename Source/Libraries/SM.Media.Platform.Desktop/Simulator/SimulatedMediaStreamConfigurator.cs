@@ -75,7 +75,7 @@ namespace SM.Media.Simulator
             return CloseAsync();
         }
 
-        public void Configure(IMediaConfiguration configuration)
+        public Task PlayAsync(IMediaConfiguration configuration, CancellationToken cancellationToken)
         {
             lock (_lock)
             {
@@ -99,6 +99,8 @@ namespace SM.Media.Simulator
             ValidateEvent(MediaStreamFsm.MediaEvent.CallingReportOpenMediaCompleted);
 
             _mediaElement.ReportOpenMediaCompleted(_mediaStreams.Count);
+
+            return TplTaskExtensions.NeverCompletedTask;
         }
 
         public void ReportError(string message)
@@ -120,7 +122,7 @@ namespace SM.Media.Simulator
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
 
-            mediaManager.OpenMedia();
+            mediaManager.OpenMediaAsync(new [] { new Uri("TODO")}, CancellationToken.None);
         }
 
         public void SeekAsync(long seekToTime)
@@ -196,7 +198,7 @@ namespace SM.Media.Simulator
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
 
-            mediaManager.CloseMedia();
+            mediaManager.CloseMediaAsync().Wait();
         }
 
         public void CheckForSamples()

@@ -38,8 +38,6 @@ namespace SM.Media
 {
     public sealed class WinRtMediaStreamConfigurator : IMediaStreamConfigurator
     {
-        TaskCompletionSource<object> _closedTaskCompletionSource;
-
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
@@ -54,7 +52,9 @@ namespace SM.Media
         MediaStreamSourceStartingRequest _onStartingRequest;
         static readonly TimeSpan ResyncThreshold = TimeSpan.FromSeconds(7);
         MediaStreamSource _mediaStreamSource;
-        readonly TaskCompletionSource<IMediaSource> _mediaSourceCompletionSource = new TaskCompletionSource<IMediaSource>();
+        TaskCompletionSource<IMediaSource> _mediaStreamCompletionSource = new TaskCompletionSource<IMediaSource>();
+        TaskCompletionSource<object> _playingCompletionSource;
+        CancellationTokenRegistration _playingCancellationTokenRegistration;
 
         bool IsDisposed
         {
@@ -75,13 +75,13 @@ namespace SM.Media
 
         #region IMediaStreamSource Members
 
-        public IMediaManager MediaManager { get; set; }
-
         public TimeSpan? SeekTarget
         {
             get { lock (_stateLock) return _seekTarget; }
             set { lock (_stateLock) _seekTarget = value; }
         }
+
+        public IMediaManager MediaManager { get; set; }
 
         /// <summary>
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
@@ -94,14 +94,20 @@ namespace SM.Media
             Debug.WriteLine("WinRtMediaStreamConfigurator.Dispose()");
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
 
-            if (null != _closedTaskCompletionSource)
+            if (null != _mediaStreamCompletionSource)
             {
-                _closedTaskCompletionSource.TrySetCanceled();
-                _closedTaskCompletionSource = null;
+                _mediaStreamCompletionSource.TrySetCanceled();
+                _mediaStreamCompletionSource = null;
+            }
+
+            if (null != _playingCompletionSource)
+            {
+                _playingCompletionSource.TrySetCanceled();
+                _playingCompletionSource = null;
             }
         }
 
-        public void Configure(IMediaConfiguration configuration)
+        public Task PlayAsync(IMediaConfiguration configuration, CancellationToken cancellationToken)
         {
             if (null != configuration.Audio)
             {
@@ -121,7 +127,7 @@ namespace SM.Media
             {
                 _duration = configuration.Duration;
 
-                CompleteConfigure();
+                return ConfigureAsync(cancellationToken);
             }
         }
 
@@ -142,7 +148,9 @@ namespace SM.Media
             if (null != _audioStreamState)
                 _audioStreamState.Close();
 
-            var tcs = _closedTaskCompletionSource;
+            ResetMediaStreamCompletion();
+
+            var tcs = _playingCompletionSource;
 
             if (null == tcs)
                 return TplTaskExtensions.CompletedTask;
@@ -172,17 +180,6 @@ namespace SM.Media
         }
 
         #endregion
-
-        void CancelPending()
-        {
-            Debug.WriteLine("WinRtMediaStreamConfigurator.CancelPending()");
-
-            if (null != _videoStreamState)
-                _videoStreamState.Cancel();
-
-            if (null != _audioStreamState)
-                _audioStreamState.Cancel();
-        }
 
         void ThrowIfDisposed()
         {
@@ -288,20 +285,53 @@ namespace SM.Media
                 p.Subtype, p.SampleRate, p.ChannelCount, p.Bitrate);
         }
 
-        void CompleteConfigure()
+        Task ConfigureAsync(CancellationToken cancellationToken)
         {
-            Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteConfigure()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.ConfigureAsync()");
+
+            var playingTask = new TaskCompletionSource<object>();
+
+            if (0 != _isDisposed)
+            {
+                playingTask.TrySetException(new ObjectDisposedException(GetType().Name));
+
+                return playingTask.Task;
+            }
+
+            if (null != _playingCompletionSource && !_playingCompletionSource.Task.IsCompleted)
+            {
+                playingTask.TrySetException(new InvalidOperationException("Playback is already in progress"));
+
+                return playingTask.Task;
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                playingTask.TrySetCanceled();
+
+                return playingTask.Task;
+            }
 
             var mss = CreateMediaStreamSource();
 
             _mediaStreamSource = mss;
 
-            if (_mediaSourceCompletionSource.TrySetResult(mss))
-                return;
+            if (_mediaStreamCompletionSource.TrySetResult(mss))
+            {
+                _playingCompletionSource = playingTask;
+
+                _playingCancellationTokenRegistration = cancellationToken.Register(() => mss.NotifyError(MediaStreamSourceErrorStatus.Other));
+
+                return _playingCompletionSource.Task;
+            }
 
             DeregisterCallbacks(mss);
 
             _mediaStreamSource = null;
+
+            playingTask.TrySetCanceled();
+
+            return playingTask.Task;
         }
 
         MediaStreamSource CreateMediaStreamSource()
@@ -365,7 +395,9 @@ namespace SM.Media
 
         void MediaStreamSourceOnClosed(MediaStreamSource sender, MediaStreamSourceClosedEventArgs args)
         {
-            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() reason: " + args.Request.Reason);
+            var reason = args.Request.Reason;
+
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() reason: " + reason);
 
             DeregisterCallbacks(sender);
 
@@ -377,25 +409,55 @@ namespace SM.Media
                 startDeferral.Complete();
             }
 
-            if (null == _closedTaskCompletionSource)
-                Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() unexpected call to close");
-            else
-            {
-                if (!_closedTaskCompletionSource.TrySetResult(string.Empty))
-                    Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() close already completed");
-            }
-
             _mediaStreamSource = null;
 
-            var mediaManager = MediaManager;
+            ResetMediaStreamCompletion();
 
-            if (null == mediaManager)
+            CompletePlayingTask(reason);
+        }
+
+        void ResetMediaStreamCompletion()
+        {
+            if (null != _mediaStreamCompletionSource && _mediaStreamCompletionSource.Task.IsCompleted)
             {
-                Debug.WriteLine("MediaManager has not been initialized");
+                _mediaStreamCompletionSource.TrySetCanceled();
+                _mediaStreamCompletionSource = null;
+            }
+
+            if (null == _mediaStreamCompletionSource)
+                _mediaStreamCompletionSource = new TaskCompletionSource<IMediaSource>();
+        }
+
+        void CompletePlayingTask(MediaStreamSourceClosedReason reason)
+        {
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CompletePlayingTask() reason: " + reason);
+
+            if (null == _playingCompletionSource)
+            {
+                Debug.WriteLine("**** WinRtMediaStreamConfigurator.MediaStreamSourceOnClosed() no playing task");
                 return;
             }
 
-            mediaManager.CloseMedia();
+            _playingCancellationTokenRegistration.Dispose();
+
+            _videoStreamState = null;
+            _audioStreamState = null;
+
+            switch (reason)
+            {
+                case MediaStreamSourceClosedReason.Done:
+                    _playingCompletionSource.TrySetResult(null);
+                    break;
+                case MediaStreamSourceClosedReason.UnsupportedEncodingFormat:
+                    _playingCompletionSource.TrySetException(new NotSupportedException("Playback failed: " + reason));
+                    break;
+                case MediaStreamSourceClosedReason.AppReportedError:
+                    _playingCompletionSource.TrySetCanceled();
+                    break;
+                default:
+                    _playingCompletionSource.TrySetException(new Exception("Playback failed: " + reason));
+                    break;
+            }
         }
 
         void MediaStreamSourceOnSampleRequested(MediaStreamSource sender, MediaStreamSourceSampleRequestedEventArgs args)
@@ -424,15 +486,6 @@ namespace SM.Media
 
             if (NotifyOnError(sender))
                 return;
-
-            if (null != _closedTaskCompletionSource && _closedTaskCompletionSource.Task.IsCompleted)
-            {
-                _closedTaskCompletionSource.TrySetCanceled();
-                _closedTaskCompletionSource = null;
-            }
-
-            if (null == _closedTaskCompletionSource)
-                _closedTaskCompletionSource = new TaskCompletionSource<object>();
 
             if (!startPosition.HasValue)
             {
@@ -599,16 +652,13 @@ namespace SM.Media
         public async Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)
             where TMediaStreamSource : class
         {
-            var mediaManager = MediaManager;
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CreateMediaStreamSourceAsync()");
 
-            if (null == mediaManager)
-                throw new InvalidOperationException("MediaManger is null");
+            cancellationToken.ThrowIfCancellationRequested();
 
-            mediaManager.OpenMedia();
-
-            using (cancellationToken.Register(() => _mediaSourceCompletionSource.TrySetCanceled()))
+            using (cancellationToken.Register(() => _mediaStreamCompletionSource.TrySetCanceled()))
             {
-                var mss = await _mediaSourceCompletionSource.Task.ConfigureAwait(false);
+                var mss = await _mediaStreamCompletionSource.Task.ConfigureAwait(false);
 
                 var ret = mss as TMediaStreamSource;
 

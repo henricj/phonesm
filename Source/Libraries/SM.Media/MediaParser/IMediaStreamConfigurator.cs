@@ -40,9 +40,9 @@ namespace SM.Media.MediaParser
         Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)
             where TMediaStreamSource : class;
 
+        Task PlayAsync(IMediaConfiguration configuration, CancellationToken cancellationToken);
         Task CloseAsync();
 
-        void Configure(IMediaConfiguration configuration);
         void ReportError(string message);
         void CheckForSamples();
 
@@ -51,9 +51,10 @@ namespace SM.Media.MediaParser
 
     public static class MediaStreamSourceExtensions
     {
-        public static void Configure(this IMediaStreamConfigurator mediaStreamConfigurator, IEnumerable<IMediaParserMediaStream> mediaParserMediaStreams, TimeSpan? duration)
+        public static Task PlayAsync(this IMediaStreamConfigurator mediaStreamConfigurator,
+            IEnumerable<IMediaParserMediaStream> mediaParserMediaStreams, TimeSpan? duration, CancellationToken cancellationToken)
         {
-            mediaStreamConfigurator.Configure(mediaParserMediaStreams.CreateMediaConfiguration(duration));
+            return mediaStreamConfigurator.PlayAsync(mediaParserMediaStreams.CreateMediaConfiguration(duration), cancellationToken);
         }
     }
 }

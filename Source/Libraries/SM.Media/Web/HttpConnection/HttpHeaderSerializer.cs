@@ -71,9 +71,10 @@ namespace SM.Media.Web.HttpConnection
                 tw.NewLine = HttpEol;
 
                 var requestTarget = GetRequestTarget(request);
+                var host = GetHost(url);
 
                 tw.WriteLine(method.ToUpperInvariant() + " " + requestTarget + " HTTP/1.1");
-                tw.WriteLine("Host: " + url.DnsSafeHost);
+                tw.WriteLine("Host: " + host);
                 tw.WriteLine(request.KeepAlive ? "Connection: Keep-Alive" : "Connection: Close");
 
                 if (null != request.Referrer)
@@ -107,6 +108,15 @@ namespace SM.Media.Web.HttpConnection
 
                 tw.Flush();
             }
+        }
+
+        static string GetHost(Uri url)
+        {
+#if SM_MEDIA_LEGACY
+            return url.Host + ':' + url.Port;
+#else
+            return url.IsDefaultPort ? url.Host : url.Host + ':' + url.Port;
+#endif
         }
 
         static string GetRequestTarget(HttpConnectionRequest request)

@@ -33,6 +33,7 @@ namespace SM.Media.Utility
     public static class TplTaskExtensions
     {
         public static readonly Task CompletedTask;
+        public static readonly Task NeverCompletedTask = new TaskCompletionSource<object>().Task;
         public static readonly Task<bool> TrueTask = TaskEx.FromResult(true);
         public static readonly Task<bool> FalseTask = TaskEx.FromResult(false);
 

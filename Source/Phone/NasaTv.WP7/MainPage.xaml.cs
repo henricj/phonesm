@@ -173,7 +173,8 @@ namespace NasaTv
         {
             Debug.WriteLine("Stop clicked");
 
-            CleanupMedia();
+            if (null != mediaElement1)
+                mediaElement1.Source = null;
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)

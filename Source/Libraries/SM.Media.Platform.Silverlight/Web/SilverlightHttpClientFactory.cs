@@ -77,6 +77,8 @@ namespace SM.Media.Web
                     foreach (var mimeType in contentType.AlternateMimeTypes)
                         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(mimeType));
                 }
+
+                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*", 0.1));
             }
 
             return httpClient;

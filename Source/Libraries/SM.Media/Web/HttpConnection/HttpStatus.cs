@@ -34,6 +34,8 @@ namespace SM.Media.Web.HttpConnection
         int VersionMajor { get; }
         int VersionMinor { get; }
         string ResponsePhrase { get; }
+        string Version { get; }
+        bool IsHttp { get; }
     }
 
     public sealed class HttpStatus : IHttpStatus
@@ -46,6 +48,8 @@ namespace SM.Media.Web.HttpConnection
         public int VersionMajor { get; set; }
         public int VersionMinor { get; set; }
         public string ResponsePhrase { get; set; }
+        public string Version { get; set; }
+        public bool IsHttp { get; set; }
 
         #endregion
     }

@@ -99,7 +99,9 @@ namespace SM.Media.Web.HttpConnection
 
             try
             {
-                await ReadStatusLineAsync(httpReader, cancellationToken).ConfigureAwait(false);
+                var statusLine = await httpReader.ReadNonBlankLineAsync(cancellationToken).ConfigureAwait(false);
+
+                ParseStatusLine(statusLine);
 
                 await ReadHeadersAsync(httpReader, cancellationToken).ConfigureAwait(false);
 
@@ -204,13 +206,46 @@ namespace SM.Media.Web.HttpConnection
             }
         }
 
-        async Task ReadStatusLineAsync(HttpReader httpReader, CancellationToken cancellationToken)
+        void ParseStatusLine(string statusLine)
         {
-            var statusLine = await httpReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (statusLine.StartsWith("HTTP"))
+            {
+                ParseRealHttp(statusLine);
 
-            if (null == statusLine)
-                throw new WebException("No status line");
+                _httpStatus.IsHttp = true;
+                
+                return;
+            }
 
+            // What else...? "ICY"?
+            // We do assume that there are two or three space-separated components.
+            // version [SP] code [SP] message
+            // where the message is optional.
+
+            var parts = statusLine.Split(' ');
+
+            _httpStatus.Version = parts[0];
+
+            if (parts.Length < 2 || parts.Length > 3)
+                throw new WebException("Invalid status line: " + statusLine);
+
+            int statusCode;
+            if (!int.TryParse(parts[1], NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out statusCode))
+                throw new WebException("Invalid status code: " + statusLine);
+
+            _httpStatus.StatusCode = statusCode;
+
+            if (parts.Length > 2)
+            {
+                var reasonPhrase = parts[2].Trim();
+
+                if (reasonPhrase.Length > 0)
+                    _httpStatus.ResponsePhrase = reasonPhrase;
+            }
+        }
+
+        void ParseRealHttp(string statusLine)
+        {
             var slash = statusLine.IndexOf('/');
 
             if (slash < 1 || slash + 1 >= statusLine.Length)
@@ -230,10 +265,12 @@ namespace SM.Media.Web.HttpConnection
 
             var http = statusLine.Substring(0, slash);
 
-            if (!string.Equals(http, "HTTP", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(http, "HTTP", StringComparison.Ordinal))
                 throw new WebException("Invalid protocol: " + statusLine);
 
             var version = statusLine.Substring(slash + 1, firstSpace - slash - 1);
+
+            _httpStatus.Version = version;
 
             var dot = version.IndexOf('.');
 

@@ -32,8 +32,6 @@ namespace SM.Media.Web.HttpClientReader
 {
     public interface IHttpClientFactory : IDisposable
     {
-        HttpClient RootPlaylistClient { get; }
-
-        HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null);
+        HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentKind contentKind = ContentKind.Unknown, ContentType contentType = null);
     }
 }

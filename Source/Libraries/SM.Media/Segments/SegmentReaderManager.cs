@@ -39,12 +39,10 @@ namespace SM.Media.Segments
         readonly ISegmentManager[] _segmentManagers;
         readonly ManagerReaders[] _segmentReaders;
 
-        public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
+        public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == segmentManagers)
                 throw new ArgumentNullException("segmentManagers");
-            if (null == webReader)
-                throw new ArgumentNullException("webReader");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
             if (null == platformServices)
@@ -57,10 +55,10 @@ namespace SM.Media.Segments
 
             _segmentReaders = _segmentManagers
                 .Select(sm => new ManagerReaders
-                              {
-                                  Manager = sm,
-                                  Readers = new SegmentReaderEnumerable(sm, sm.WebReader, retryManager, platformServices)
-                              })
+                {
+                    Manager = sm,
+                    Readers = new SegmentReaderEnumerable(sm, sm.WebReader, retryManager, platformServices)
+                })
                 .ToArray();
         }
 

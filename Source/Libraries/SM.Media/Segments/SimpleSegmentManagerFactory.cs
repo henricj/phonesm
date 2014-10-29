@@ -62,7 +62,7 @@ namespace SM.Media.Segments
 
         public Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
-            return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(parameters.WebReader ?? _webReaderManager.RootWebReader, parameters.Source, contentType));
+            return TaskEx.FromResult<ISegmentManager>(new SimpleSegmentManager(parameters.WebReader ?? _webReaderManager.CreateRootReader(ContentKind.AnyMedia, contentType), parameters.Source, contentType));
         }
 
         #endregion

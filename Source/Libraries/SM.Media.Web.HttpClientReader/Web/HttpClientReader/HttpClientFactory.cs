@@ -41,7 +41,6 @@ namespace SM.Media.Web.HttpClientReader
         readonly Uri _referrer;
         readonly ProductInfoHeaderValue _userAgent;
         int _disposed;
-        HttpClient _rootPlaylistClient;
 
         public HttpClientFactory(IHttpClientFactoryParameters parameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
         {
@@ -72,19 +71,11 @@ namespace SM.Media.Web.HttpClientReader
             GC.SuppressFinalize(this);
         }
 
-        public virtual HttpClient RootPlaylistClient
+        public virtual HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentKind contentKind = ContentKind.Unknown, ContentType contentType = null)
         {
-            get
-            {
-                if (null == _rootPlaylistClient)
-                    _rootPlaylistClient = CreateClient(_referrer);
+            if (null == referrer && baseAddress != _referrer)
+                referrer = _referrer;
 
-                return _rootPlaylistClient;
-            }
-        }
-
-        public virtual HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null)
-        {
             var httpClient = CreateHttpClient(baseAddress, referrer);
 
             if (null != contentType)
@@ -150,15 +141,6 @@ namespace SM.Media.Web.HttpClientReader
         {
             if (!disposing)
                 return;
-
-            var rootClient = _rootPlaylistClient;
-
-            if (null != rootClient)
-            {
-                _rootPlaylistClient = null;
-
-                rootClient.Dispose();
-            }
         }
     }
 }

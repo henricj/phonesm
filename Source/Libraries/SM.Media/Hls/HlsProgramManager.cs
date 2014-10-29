@@ -44,7 +44,7 @@ namespace SM.Media.Hls
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
         readonly IPlatformServices _platformServices;
         readonly IRetryManager _retryManager;
-        readonly IWebReader _rootWebReader;
+        readonly IWebReaderManager _webReaderManager;
         IWebReader _playlistWebReader;
 
         public HlsProgramManager(IWebReaderManager webReaderManager, IRetryManager retryManager, IPlatformServices platformServices)
@@ -56,7 +56,7 @@ namespace SM.Media.Hls
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
 
-            _rootWebReader = webReaderManager.RootWebReader;
+            _webReaderManager = webReaderManager;
             _retryManager = retryManager;
             _platformServices = platformServices;
         }
@@ -78,10 +78,10 @@ namespace SM.Media.Hls
                     if (null != _playlistWebReader)
                         _playlistWebReader.Dispose();
 
-                    _playlistWebReader = _rootWebReader.CreateChild(playlist, ContentKind.Playlist);
+                    _playlistWebReader = _webReaderManager.CreateReader(playlist, ContentKind.Playlist);
 
                     var actualPlaylist = await parser.ParseAsync(_playlistWebReader, _retryManager, playlist, cancellationToken)
-                                                     .ConfigureAwait(false);
+                        .ConfigureAwait(false);
 
                     return Load(_playlistWebReader, parser);
                 }
@@ -163,14 +163,14 @@ namespace SM.Media.Hls
                     var program = GetProgram(programs, programId, programUrl);
 
                     var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices)
-                                                                     {
-                                                                         Urls = new[] { playlistUrl }
-                                                                     })
-                                     {
-                                         Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
-                                         Playlist = playlistUrl,
-                                         AudioGroup = audioGroup
-                                     };
+                    {
+                        Urls = new[] { playlistUrl }
+                    })
+                    {
+                        Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
+                        Playlist = playlistUrl,
+                        AudioGroup = audioGroup
+                    };
 
                     program.SubPrograms.Add(subProgram);
                 }
@@ -183,9 +183,9 @@ namespace SM.Media.Hls
                 var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
                 var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, parser)
-                                                                 {
-                                                                     Urls = new[] { webReader.RequestUri }
-                                                                 });
+                {
+                    Urls = new[] { webReader.RequestUri }
+                });
 
                 program.SubPrograms.Add(subProgram);
             }
@@ -200,10 +200,10 @@ namespace SM.Media.Hls
             if (!programs.TryGetValue(programId, out program))
             {
                 program = new Program
-                          {
-                              PlaylistUrl = programUrl,
-                              ProgramId = programId
-                          };
+                {
+                    PlaylistUrl = programUrl,
+                    ProgramId = programId
+                };
 
                 programs[programId] = program;
             }
@@ -212,7 +212,10 @@ namespace SM.Media.Hls
         }
 
         protected virtual void Dispose(bool disposing)
-        { }
+        {
+            if (!disposing)
+                return;
+        }
 
         static void AddMedia(Uri playlist, M3U8TagInstance gt, Dictionary<string, MediaGroup> audioStreams)
         {
@@ -228,21 +231,21 @@ namespace SM.Media.Hls
             var language = gt.AttributeObject(ExtMediaSupport.AttrLanguage);
 
             var audioStream = new PlaylistSubStream
-                              {
-                                  Type = gt.AttributeObject(ExtMediaSupport.AttrType),
-                                  Name = groupId,
-                                  Playlist = playlistUrl,
-                                  IsAutoselect = IsYesNo(gt, ExtMediaSupport.AttrAutoselect),
-                                  Language = null == language ? null : language.Trim().ToLower()
-                              };
+            {
+                Type = gt.AttributeObject(ExtMediaSupport.AttrType),
+                Name = groupId,
+                Playlist = playlistUrl,
+                IsAutoselect = IsYesNo(gt, ExtMediaSupport.AttrAutoselect),
+                Language = null == language ? null : language.Trim().ToLower()
+            };
 
             MediaGroup mediaGroup;
             if (!audioStreams.TryGetValue(groupId, out mediaGroup))
             {
                 mediaGroup = new MediaGroup
-                             {
-                                 Default = audioStream
-                             };
+                {
+                    Default = audioStream
+                };
 
                 audioStreams[groupId] = mediaGroup;
             }

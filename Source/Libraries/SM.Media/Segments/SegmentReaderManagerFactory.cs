@@ -77,7 +77,7 @@ namespace SM.Media.Segments
             if (null == playlist)
                 throw new FileNotFoundException("Unable to create playlist");
 
-            return new SegmentReaderManager(new[] { playlist }, _webReaderManager.RootWebReader, _retryManager, _platformServices);
+            return new SegmentReaderManager(new[] { playlist }, _retryManager, _platformServices);
         }
 
         #endregion

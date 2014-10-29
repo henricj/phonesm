@@ -41,7 +41,6 @@ namespace SM.Media.WinRtHttpClientReader
         readonly IWinRtHttpClientFactory _httpClientFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
-        IWebReader _rootWebReader;
 
         public WinRtHttpClientWebReaderManager(IWinRtHttpClientFactory httpClientFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
@@ -55,7 +54,6 @@ namespace SM.Media.WinRtHttpClientReader
             _httpClientFactory = httpClientFactory;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
-            _rootWebReader = new WinRtHttpClientWebReader(this, httpClientFactory.BaseAddress, httpClientFactory.RootPlaylistClient, null, _contentTypeDetector);
         }
 
         #region IDisposable Members
@@ -73,11 +71,6 @@ namespace SM.Media.WinRtHttpClientReader
         #endregion
 
         #region IWebReaderManager Members
-
-        public IWebReader RootWebReader
-        {
-            get { return _rootWebReader; }
-        }
 
         public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
         {
@@ -222,15 +215,6 @@ namespace SM.Media.WinRtHttpClientReader
         {
             if (!disposing)
                 return;
-
-            var rootClient = _rootWebReader;
-
-            if (null != rootClient)
-            {
-                _rootWebReader = null;
-
-                rootClient.Dispose();
-            }
         }
     }
 }

@@ -33,10 +33,21 @@ namespace SM.Media.Web
 {
     public interface IWebReaderManager
     {
-        IWebReader RootWebReader { get; }
-
         IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null);
         IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null);
         Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null);
+    }
+
+    public static class WebReaderManagerExtensions
+    {
+        public static IWebReader CreateRootReader(this IWebReaderManager webReaderManager, ContentKind contentKind, ContentType contentType = null)
+        {
+            return webReaderManager.CreateReader(null, contentKind, contentType: contentType);
+        }
+
+        public static IWebReader CreateRootReader(this IWebReaderManager webReaderManager, ContentType contentType = null)
+        {
+            return webReaderManager.CreateRootReader(ContentKind.Unknown, contentType);
+        }
     }
 }

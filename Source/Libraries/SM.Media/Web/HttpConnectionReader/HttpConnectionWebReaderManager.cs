@@ -42,7 +42,6 @@ namespace SM.Media.Web.HttpConnectionReader
         readonly Func<IHttpConnection> _httpConnectionFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
-        IWebReader _rootWebReader;
 
         public HttpConnectionWebReaderManager(Func<IHttpConnection> httpConnectionFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
@@ -56,7 +55,6 @@ namespace SM.Media.Web.HttpConnectionReader
             _httpConnectionFactory = httpConnectionFactory;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
-            _rootWebReader = new HttpConnectionWebReader(this, null, null, null, _contentTypeDetector);
         }
 
         #region IDisposable Members
@@ -74,11 +72,6 @@ namespace SM.Media.Web.HttpConnectionReader
         #endregion
 
         #region IWebReaderManager Members
-
-        public IWebReader RootWebReader
-        {
-            get { return _rootWebReader; }
-        }
 
         public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent, ContentType contentType)
         {
@@ -178,7 +171,7 @@ namespace SM.Media.Web.HttpConnectionReader
             return new HttpConnectionWebReader(this, url, null == parent ? null : parent.BaseAddress, contentType, _contentTypeDetector);
         }
 
-        internal async virtual Task<IHttpConnectionResponse> GetAsync(HttpConnectionRequest request, CancellationToken cancellationToken)
+        internal virtual async Task<IHttpConnectionResponse> GetAsync(HttpConnectionRequest request, CancellationToken cancellationToken)
         {
             var connection = _httpConnectionFactory();
 
@@ -217,15 +210,6 @@ namespace SM.Media.Web.HttpConnectionReader
         {
             if (!disposing)
                 return;
-
-            var rootClient = _rootWebReader;
-
-            if (null != rootClient)
-            {
-                _rootWebReader = null;
-
-                rootClient.Dispose();
-            }
         }
     }
 }

@@ -40,7 +40,6 @@ namespace SM.Media.Web.WebRequestReader
         readonly IHttpWebRequests _httpWebRequests;
         readonly IRetryManager _retryManager;
         int _disposed;
-        IWebReader _rootWebReader;
 
         public HttpWebRequestWebReaderManager(IHttpWebRequests httpWebRequests, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
@@ -54,7 +53,6 @@ namespace SM.Media.Web.WebRequestReader
             _httpWebRequests = httpWebRequests;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
-            _rootWebReader = new HttpWebRequestWebReader(this, null, null, null, _contentTypeDetector);
         }
 
         #region IDisposable Members
@@ -72,11 +70,6 @@ namespace SM.Media.Web.WebRequestReader
         #endregion
 
         #region IWebReaderManager Members
-
-        public IWebReader RootWebReader
-        {
-            get { return _rootWebReader; }
-        }
 
         public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent, ContentType contentType)
         {
@@ -170,7 +163,7 @@ namespace SM.Media.Web.WebRequestReader
 
         protected virtual HttpWebRequestWebReader CreateHttpWebRequestWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
         {
-            if (null == contentType)
+            if (null == contentType && null != url)
                 contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
 
             return new HttpWebRequestWebReader(this, url, null == parent ? null : parent.BaseAddress, contentType, _contentTypeDetector);
@@ -200,15 +193,6 @@ namespace SM.Media.Web.WebRequestReader
         {
             if (!disposing)
                 return;
-
-            var rootClient = _rootWebReader;
-
-            if (null != rootClient)
-            {
-                _rootWebReader = null;
-
-                rootClient.Dispose();
-            }
         }
     }
 }

@@ -34,8 +34,6 @@ namespace SM.Media.WinRtHttpClientReader
     {
         Uri BaseAddress { get; }
 
-        HttpClient RootPlaylistClient { get; }
-
         HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null);
     }
 }

@@ -41,7 +41,6 @@ namespace SM.Media.WinRtHttpClientReader
         readonly Uri _referrer;
         readonly HttpProductInfoHeaderValue _userAgent;
         int _disposed;
-        HttpClient _rootPlaylistClient;
 
         public WinRtHttpClientFactory(IWinRtHttpClientFactoryParameters parameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
         {
@@ -74,17 +73,6 @@ namespace SM.Media.WinRtHttpClientReader
         public Uri BaseAddress
         {
             get { return _referrer; }
-        }
-
-        public virtual HttpClient RootPlaylistClient
-        {
-            get
-            {
-                if (null == _rootPlaylistClient)
-                    _rootPlaylistClient = CreateClient(_referrer);
-
-                return _rootPlaylistClient;
-            }
         }
 
         public virtual HttpClient CreateClient(Uri baseAddress, Uri referrer = null, ContentType contentType = null)
@@ -143,15 +131,6 @@ namespace SM.Media.WinRtHttpClientReader
         {
             if (!disposing)
                 return;
-
-            var rootClient = _rootPlaylistClient;
-
-            if (null != rootClient)
-            {
-                _rootPlaylistClient = null;
-
-                rootClient.Dispose();
-            }
         }
     }
 }

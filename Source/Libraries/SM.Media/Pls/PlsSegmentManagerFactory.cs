@@ -43,7 +43,7 @@ namespace SM.Media.Pls
         static readonly ICollection<ContentType> Types = new[] { ContentTypes.Pls };
         readonly IRetryManager _retryManager;
 
-        readonly IWebReader _rootWebReader;
+        readonly IWebReaderManager _webReaderManager;
 
         public PlsSegmentManagerFactory(IWebReaderManager webReaderManager, IRetryManager retryManager)
         {
@@ -52,7 +52,7 @@ namespace SM.Media.Pls
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
-            _rootWebReader = webReaderManager.RootWebReader;
+            _webReaderManager = webReaderManager;
             _retryManager = retryManager;
         }
 
@@ -74,7 +74,7 @@ namespace SM.Media.Pls
                 var segmentManager = await retry.CallAsync(
                     async () =>
                     {
-                        var webReader = _rootWebReader.CreateChild(localUrl, ContentTypes.Pls.Kind, ContentTypes.Pls);
+                        var webReader = _webReaderManager.CreateReader(localUrl, ContentTypes.Pls.Kind, contentType: ContentTypes.Pls);
 
                         try
                         {

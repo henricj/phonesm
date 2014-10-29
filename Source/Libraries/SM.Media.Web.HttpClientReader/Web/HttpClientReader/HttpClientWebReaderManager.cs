@@ -40,7 +40,6 @@ namespace SM.Media.Web.HttpClientReader
         readonly IHttpClientFactory _httpClientFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
-        IWebReader _rootWebReader;
 
         public HttpClientWebReaderManager(IHttpClientFactory httpClientFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
@@ -54,7 +53,6 @@ namespace SM.Media.Web.HttpClientReader
             _httpClientFactory = httpClientFactory;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
-            _rootWebReader = new HttpClientWebReader(this, httpClientFactory.RootPlaylistClient, null, _contentTypeDetector);
         }
 
         #region IDisposable Members
@@ -73,19 +71,14 @@ namespace SM.Media.Web.HttpClientReader
 
         #region IWebReaderManager Members
 
-        public IWebReader RootWebReader
-        {
-            get { return _rootWebReader; }
-        }
-
         public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
         {
-            return CreateHttpClientWebReader(url, parent, contentType);
+            return CreateHttpClientWebReader(url, contentKind, parent, contentType);
         }
 
         public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
         {
-            var webReader = CreateHttpClientWebReader(url, parent, contentType);
+            var webReader = CreateHttpClientWebReader(url, contentKind, parent, contentType);
 
             return new HttpClientWebCache(webReader, _retryManager);
         }
@@ -178,19 +171,19 @@ namespace SM.Media.Web.HttpClientReader
 
         #endregion
 
-        protected virtual HttpClientWebReader CreateHttpClientWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
+        protected virtual HttpClientWebReader CreateHttpClientWebReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
         {
             url = GetUrl(url, parent);
 
-            if (null == contentType)
+            if (null == contentType && null != url)
                 contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
 
-            var httpClient = CreateHttpClient(url, parent, contentType);
+            var httpClient = CreateHttpClient(url, parent, contentKind, contentType);
 
             return new HttpClientWebReader(this, httpClient, contentType, _contentTypeDetector);
         }
 
-        protected virtual HttpClient CreateHttpClient(Uri url, IWebReader parent, ContentType contentType)
+        protected virtual HttpClient CreateHttpClient(Uri url, IWebReader parent, ContentKind contentKind, ContentType contentType)
         {
             url = GetUrl(url, parent);
 
@@ -199,7 +192,7 @@ namespace SM.Media.Web.HttpClientReader
             if (null != referrer)
                 url = new Uri(referrer, url);
 
-            var httpClient = _httpClientFactory.CreateClient(url, referrer, contentType);
+            var httpClient = _httpClientFactory.CreateClient(url, referrer, contentKind, contentType);
 
             return httpClient;
         }
@@ -221,15 +214,6 @@ namespace SM.Media.Web.HttpClientReader
         {
             if (!disposing)
                 return;
-
-            var rootClient = _rootWebReader;
-
-            if (null != rootClient)
-            {
-                _rootWebReader = null;
-
-                rootClient.Dispose();
-            }
         }
     }
 }

@@ -35,33 +35,12 @@ namespace SM.Media.Web
 {
     public sealed class SilverlightHttpClientFactory : IHttpClientFactory
     {
-        HttpClient _rootHttpClient;
-
         #region IHttpClientFactory Members
 
         public void Dispose()
-        {
-            var client = _rootHttpClient;
+        { }
 
-            if (null != client)
-            {
-                _rootHttpClient = null;
-                client.Dispose();
-            }
-        }
-
-        public HttpClient RootPlaylistClient
-        {
-            get
-            {
-                if (null == _rootHttpClient)
-                    _rootHttpClient = CreateHttpClient(null);
-
-                return _rootHttpClient;
-            }
-        }
-
-        public HttpClient CreateClient(Uri url, Uri referrer = null, ContentType contentType = null)
+        public HttpClient CreateClient(Uri url, Uri referrer = null, ContentKind contentKind = ContentKind.Unknown, ContentType contentType = null)
         {
             var httpClient = CreateHttpClient(referrer);
 

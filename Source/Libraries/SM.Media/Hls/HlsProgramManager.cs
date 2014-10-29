@@ -162,7 +162,7 @@ namespace SM.Media.Hls
 
                     var program = GetProgram(programs, programId, programUrl);
 
-                    var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices)
+                    var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, _retryManager)
                     {
                         Urls = new[] { playlistUrl }
                     })
@@ -182,7 +182,7 @@ namespace SM.Media.Hls
             {
                 var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
-                var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, parser)
+                var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, _retryManager, parser)
                 {
                     Urls = new[] { webReader.RequestUri }
                 });

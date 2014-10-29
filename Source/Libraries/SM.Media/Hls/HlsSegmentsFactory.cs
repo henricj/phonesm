@@ -41,20 +41,24 @@ namespace SM.Media.Hls
     public class HlsSegmentsFactory : IHlsSegmentsFactory
     {
         readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
 
-        public HlsSegmentsFactory(IPlatformServices platformServices)
+        public HlsSegmentsFactory(IPlatformServices platformServices, IRetryManager retryManager)
         {
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _platformServices = platformServices;
+            _retryManager = retryManager;
         }
 
         #region IHlsSegmentsFactory Members
 
         public ICollection<ISegment> CreateSegments(M3U8Parser parser, IWebReader binaryWebReader)
         {
-            var streamSegments = new HlsStreamSegments(parser, binaryWebReader, _platformServices);
+            var streamSegments = new HlsStreamSegments(parser, binaryWebReader, _retryManager, _platformServices);
 
             return streamSegments.CreateSegments();
         }

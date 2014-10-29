@@ -50,22 +50,26 @@ namespace SM.Media.Hls
         readonly M3U8Parser _parser;
         readonly IPlatformServices _platformServices;
         readonly IWebReader _webReader;
+        readonly IRetryManager _retryManager;
         long _byteRangeOffset;
         long? _mediaSequence;
         ISegment[] _playlist;
         int _segmentIndex;
 
-        public HlsStreamSegments(M3U8Parser parser, IWebReader webReader, IPlatformServices platformServices)
+        public HlsStreamSegments(M3U8Parser parser, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
         {
-            if (parser == null)
+            if (null == parser)
                 throw new ArgumentNullException("parser");
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
 
             _parser = parser;
             _webReader = webReader;
+            _retryManager = retryManager;
             _platformServices = platformServices;
 
             _mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
@@ -188,7 +192,9 @@ namespace SM.Media.Hls
 
             if (!_keyCache.TryGetValue(uri, out keyTask))
             {
-                keyTask = _webReader.GetByteArrayAsync(uri, CancellationToken.None);
+                var retry = _retryManager.CreateWebRetry(4, 100);
+
+                keyTask = retry.CallAsync(() => _webReader.GetByteArrayAsync(uri, CancellationToken.None), CancellationToken.None);
 
                 _keyCache[uri] = keyTask;
             }

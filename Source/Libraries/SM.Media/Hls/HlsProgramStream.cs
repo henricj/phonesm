@@ -50,16 +50,18 @@ namespace SM.Media.Hls
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
-        public HlsProgramStream(IWebReader webReader, IPlatformServices platformServices, M3U8Parser parser = null)
+        public HlsProgramStream(IWebReader webReader, IPlatformServices platformServices, IRetryManager retryManager, M3U8Parser parser = null)
         {
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
             _webReader = webReader;
 
-            _segmentsFactory = new HlsSegmentsFactory(platformServices);
+            _segmentsFactory = new HlsSegmentsFactory(platformServices, retryManager);
 
             if (null != parser)
             {
@@ -160,7 +162,7 @@ namespace SM.Media.Hls
 
                         return parser;
                     }, cancellationToken)
-                                                            .ConfigureAwait(false);
+                    .ConfigureAwait(false);
 
                 if (null != parsedPlaylist)
                     return parsedPlaylist;

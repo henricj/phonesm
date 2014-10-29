@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,11 +40,13 @@ namespace SM.Media.Utility
 
     public class Retry : IRetry
     {
+        static readonly IEnumerable<Exception> NoExceptions = new Exception[0];
         readonly int _delayMilliseconds;
         readonly int _maxRetries;
         readonly IPlatformServices _platformServices;
         readonly Func<Exception, bool> _retryableException;
         int _delay;
+        List<Exception> _exceptions;
         int _retry;
 
         public Retry(int maxRetries, int delayMilliseconds, Func<Exception, bool> retryableException, IPlatformServices platformServices)
@@ -72,6 +75,9 @@ namespace SM.Media.Utility
             _retry = 0;
             _delay = _delayMilliseconds;
 
+            if (null != _exceptions)
+                _exceptions.Clear();
+
             for (; ; )
             {
                 try
@@ -80,10 +86,16 @@ namespace SM.Media.Utility
                 }
                 catch (Exception ex)
                 {
-                    if (_retry >= _maxRetries || !_retryableException(ex))
+                    if (!_retryableException(ex))
                         throw;
 
-                    ++_retry;
+                    if (null == _exceptions)
+                        _exceptions = new List<Exception>();
+
+                    _exceptions.Add(ex);
+
+                    if (++_retry >= _maxRetries)
+                        throw new RetryException("Giving up after " + _retry + " retries", _exceptions ?? NoExceptions);
 
                     Debug.WriteLine("Retry {0} after: {1}", _retry, ex.Message);
                 }
@@ -121,10 +133,10 @@ namespace SM.Media.Utility
         public static Task CallAsync(this IRetry retry, Func<Task> operation, CancellationToken cancellationToken)
         {
             return retry.CallAsync(async () =>
-                                         {
-                                             await operation().ConfigureAwait(false);
-                                             return 0;
-                                         }, cancellationToken);
+            {
+                await operation().ConfigureAwait(false);
+                return 0;
+            }, cancellationToken);
         }
     }
 }

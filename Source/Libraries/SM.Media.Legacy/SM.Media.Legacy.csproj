@@ -507,6 +507,9 @@
     <Compile Include="..\SM.Media\Utility\ResettableParameters.cs">
       <Link>Utility\ResettableParameters.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\RetryException.cs">
+      <Link>Utility\RetryException.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\RetryManager.cs">
       <Link>Utility\RetryManager.cs</Link>
     </Compile>

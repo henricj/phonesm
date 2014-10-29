@@ -36,7 +36,9 @@ namespace SM.Media.Web.WebRequestReader
     {
         // TODO: We need to encode all these headers properly.
 
+#if !SM_MEDIA_LEGACY
         static bool _canSetAllowReadStreamBuffering = true;
+#endif
         readonly CookieContainer _cookieContainer;
         readonly ICredentials _credentials;
 

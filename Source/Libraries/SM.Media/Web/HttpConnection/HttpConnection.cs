@@ -208,7 +208,7 @@ namespace SM.Media.Web.HttpConnection
 
         void ParseStatusLine(string statusLine)
         {
-            if (statusLine.StartsWith("HTTP"))
+            if (statusLine.StartsWith("HTTP", StringComparison.Ordinal))
             {
                 ParseRealHttp(statusLine);
 

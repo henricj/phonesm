@@ -37,6 +37,7 @@ namespace SM.Media.Buffering
         void Flush();
         bool IsSeekAlreadyBuffered(TimeSpan position);
         void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange);
+        void Shutdown(IQueueThrottling queueThrottling);
         void Refresh();
         void ReportExhaustion();
         void ReportEndOfData();

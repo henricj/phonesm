@@ -68,17 +68,19 @@ namespace SM.Media.Buffering
             _packetPool = packetPool;
 
             _refreshTask = new SignalTask(() =>
-                                          {
-                                              RefreshHandler();
+            {
+                RefreshHandler();
 
-                                              return TplTaskExtensions.CompletedTask;
-                                          }, _disposeCancellationTokenSource.Token);
+                return TplTaskExtensions.CompletedTask;
+            }, _disposeCancellationTokenSource.Token);
         }
 
         #region IBufferingManager Members
 
         public void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange)
         {
+            Debug.WriteLine("BufferingManager.Initialize()");
+
             if (null == queueThrottling)
                 throw new ArgumentNullException("queueThrottling");
             if (reportBufferingChange == null)
@@ -86,14 +88,29 @@ namespace SM.Media.Buffering
 
             ThrowIfDisposed();
 
-            _queueThrottling = queueThrottling;
+            if (null != Interlocked.CompareExchange(ref _queueThrottling, queueThrottling, null))
+                throw new InvalidOperationException("The buffering manager is in use");
 
             _reportingTask = new SignalTask(() =>
-                                            {
-                                                reportBufferingChange();
+            {
+                reportBufferingChange();
 
-                                                return TplTaskExtensions.CompletedTask;
-                                            }, _disposeCancellationTokenSource.Token);
+                return TplTaskExtensions.CompletedTask;
+            }, _disposeCancellationTokenSource.Token);
+        }
+
+        public void Shutdown(IQueueThrottling queueThrottling)
+        {
+            Debug.WriteLine("BufferingManager.Shutdown()");
+
+            if (null == queueThrottling)
+                throw new ArgumentNullException("queueThrottling");
+
+            ThrowIfDisposed();
+
+            var currrentQueueThrottling = Interlocked.CompareExchange(ref _queueThrottling, null, queueThrottling);
+            if (!ReferenceEquals(currrentQueueThrottling, queueThrottling))
+                throw new InvalidOperationException("Shutting down the wrong queueThrottling instance");
         }
 
         public IStreamBuffer CreateStreamBuffer(TsStreamType streamType)
@@ -214,7 +231,10 @@ namespace SM.Media.Buffering
                 _queues.Clear();
             }
 
-            _queueThrottling = null;
+            var queueThrottling = Interlocked.Exchange(ref _queueThrottling, null);
+
+            if (null != queueThrottling)
+                Debug.WriteLine("**** BufferingManager.Dispose() _queueThrottling was not null");
         }
 
         public void Refresh()
@@ -514,7 +534,11 @@ namespace SM.Media.Buffering
 
         void HandleStateChange()
         {
+#if SM_MEDIA_LEGACY
             var er = _queueThrottling;
+#else
+            var er = Volatile.Read(ref _queueThrottling);
+#endif
 
             if (null == er)
                 return;

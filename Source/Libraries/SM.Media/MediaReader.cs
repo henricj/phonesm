@@ -161,6 +161,9 @@ namespace SM.Media
             }
 
             FlushBuffers();
+
+            if (null != _bufferingManager && null != queue)
+                _bufferingManager.Shutdown(queue);
         }
 
         public async Task StopAsync()

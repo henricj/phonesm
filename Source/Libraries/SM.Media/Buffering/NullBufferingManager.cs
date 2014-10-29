@@ -70,6 +70,9 @@ namespace SM.Media.Buffering
         public void Initialize(IQueueThrottling queueThrottling, Action reportBufferingChange)
         { }
 
+        public void Shutdown(IQueueThrottling queueThrottling)
+        { }
+
         public void Refresh()
         { }
 

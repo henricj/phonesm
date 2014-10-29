@@ -24,10 +24,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -38,6 +40,7 @@ namespace SamplePlayer.WinRT
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        static readonly Uri StopUrl = new Uri("stop://stop");
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
         int _trackIndex;
 
@@ -50,6 +53,9 @@ namespace SamplePlayer.WinRT
         {
             Debug.WriteLine("Play clicked");
 
+            if (null == player.Source || MediaElementState.Closed == player.CurrentState)
+                UpdateSource();
+
             player.Play();
         }
 
@@ -57,6 +63,11 @@ namespace SamplePlayer.WinRT
         {
             Debug.WriteLine("Stop clicked");
 
+            player.Close();
+
+            // Deal with player framework quirks.
+            player.Source = null;
+            player.Source = StopUrl;
             player.Source = null;
         }
 

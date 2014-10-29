@@ -182,7 +182,7 @@ namespace SM.Media.Web.HttpConnectionReader
         {
             var connection = _httpConnectionFactory();
 
-            await connection.ConnectAsync(request.Url, cancellationToken).ConfigureAwait(false);
+            await connection.ConnectAsync(request.Proxy ?? request.Url, cancellationToken).ConfigureAwait(false);
 
             return await connection.GetAsync(request, true, cancellationToken).ConfigureAwait(false);
         }

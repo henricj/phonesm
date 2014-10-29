@@ -70,14 +70,7 @@ namespace SM.Media.Web.HttpConnection
             {
                 tw.NewLine = HttpEol;
 
-#if SM_MEDIA_LEGACY
-                var requestTarget = url.AbsolutePath;
-
-                if (!string.IsNullOrWhiteSpace(url.Query))
-                    requestTarget += "?" + url.Query;
-#else
-                var requestTarget = url.PathAndQuery;
-#endif
+                var requestTarget = GetRequestTarget(request);
 
                 tw.WriteLine(method.ToUpperInvariant() + " " + requestTarget + " HTTP/1.1");
                 tw.WriteLine("Host: " + url.DnsSafeHost);
@@ -114,6 +107,30 @@ namespace SM.Media.Web.HttpConnection
 
                 tw.Flush();
             }
+        }
+
+        static string GetRequestTarget(HttpConnectionRequest request)
+        {
+            var url = request.Url;
+            var proxy = request.Proxy;
+
+            if (null != proxy)
+            {
+                var ub = new UriBuilder(url) { Fragment = null };
+
+                return ub.Uri.ToString();
+            }
+
+#if SM_MEDIA_LEGACY
+            var target = url.AbsolutePath;
+
+            if (!string.IsNullOrWhiteSpace(url.Query))
+                target += "?" + url.Query;
+#else
+            var target = url.PathAndQuery;
+#endif
+
+            return target;
         }
 
         #endregion

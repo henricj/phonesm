@@ -38,6 +38,8 @@ namespace SM.Media.Web.HttpConnection
         public long? RangeTo { get; set; }
         public string Accept { get; set; }
 
+        public Uri Proxy { get; set; }
+
         public IEnumerable<KeyValuePair<string, string>> Headers { get; set; }
     }
 }

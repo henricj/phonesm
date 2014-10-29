@@ -557,9 +557,9 @@ namespace SM.Media.Hls
 
             _dynamicStartIndex = notBefore;
 
-            // Don't start more than 60 seconds in the past.
+            // Don't start more than 30 seconds in the past.
 
-            var duration = TimeSpan.FromSeconds(60);
+            var duration = TimeSpan.FromSeconds(30);
 
             for (var i = segments.Count - 1; i > notBefore; --i)
             {

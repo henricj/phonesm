@@ -114,7 +114,7 @@ namespace SM.Media.Web.HttpConnectionReader
         {
             var url = request.Url;
 
-            var response = await _webReaderManager.SendAsync(_baseAddress, this, cancellationToken, allowBuffering: allowBuffering).ConfigureAwait(false);
+            var response = await _webReaderManager.GetAsync(request, cancellationToken);
 
             Update(url, response, webResponse);
 

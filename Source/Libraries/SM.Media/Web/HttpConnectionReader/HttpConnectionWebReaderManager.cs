@@ -175,9 +175,33 @@ namespace SM.Media.Web.HttpConnectionReader
         {
             var connection = _httpConnectionFactory();
 
-            await connection.ConnectAsync(request.Proxy ?? request.Url, cancellationToken).ConfigureAwait(false);
+            var requestUrl = request.Url;
+            var url = requestUrl;
 
-            return await connection.GetAsync(request, true, cancellationToken).ConfigureAwait(false);
+            var retry = 0;
+
+            for (; ; )
+            {
+                await connection.ConnectAsync(request.Proxy ?? url, cancellationToken).ConfigureAwait(false);
+
+                request.Url = url; // TODO: Unhack this...
+                var response = await connection.GetAsync(request, true, cancellationToken).ConfigureAwait(false);
+                request.Url = requestUrl;
+
+                var status = response.Status;
+                if (HttpStatusCode.Moved != status.StatusCode && HttpStatusCode.Redirect != status.StatusCode)
+                    return response;
+
+                if (++retry >= 8)
+                    return response;
+
+                connection.Close();
+
+                var location = response.Headers["Location"].FirstOrDefault();
+
+                if (!Uri.TryCreate(request.Url, location, out url))
+                    return response;
+            }
         }
 
         internal virtual HttpConnectionRequest CreateRequest(Uri url, Uri referrer, IWebReader parent, ContentType contentType, string method = null, bool allowBuffering = false, long? fromBytes = null, long? toBytes = null)

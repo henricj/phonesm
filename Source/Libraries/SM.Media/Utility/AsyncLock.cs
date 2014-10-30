@@ -74,7 +74,8 @@ namespace SM.Media.Utility
         [Conditional("DEBUG")]
         void CheckInvariant()
         {
-            Debug.Assert(null != _pending && !(_pending.Count > 0 && !_isLocked), "If there are pending, then we should be locked");
+            Debug.Assert(_isLocked || (null != _pending && 0 == _pending.Count),
+                "Either we are locked or we have an empty queue");
         }
 
         public IDisposable TryLock()
@@ -157,6 +158,9 @@ namespace SM.Media.Utility
                     CheckInvariant();
 
                     Debug.Assert(_isLocked, "AsyncLock.Release() was unlocked");
+
+                    if (null == _pending)
+                        return;     // We have been disposed (so stay locked)
 
                     if (0 == _pending.Count)
                     {

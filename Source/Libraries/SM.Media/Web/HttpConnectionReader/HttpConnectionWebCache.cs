@@ -94,19 +94,19 @@ namespace SM.Media.Web.HttpConnectionReader
                 using (var response = await _webReader.SendAsync(request, true, cancellationToken, webResponse)
                     .ConfigureAwait(false))
                 {
-                    var statusCode = (int)response.Status.StatusCode;
-
-                    if (statusCode >= 200 && statusCode < 300)
+                    if (response.IsSuccessStatusCode)
                     {
                         _firstRequestCompleted = true;
                         _cachedObject = factory(response.ResponseUri, await FetchObject(response, cancellationToken).ConfigureAwait(false));
                         return;
                     }
 
-                    if (HttpStatusCode.NotModified == response.Status.StatusCode)
+                    var statusCode = response.Status.StatusCode;
+
+                    if (HttpStatusCode.NotModified == statusCode)
                         return;
 
-                    if (!RetryPolicy.IsRetryable(response.Status.StatusCode))
+                    if (!RetryPolicy.IsRetryable(statusCode))
                         goto fail;
 
                     if (await retry.CanRetryAfterDelayAsync(cancellationToken).ConfigureAwait(false))
@@ -114,7 +114,10 @@ namespace SM.Media.Web.HttpConnectionReader
 
                 fail:
                     _cachedObject = null;
-                    throw new WebException("Unable to fetch");
+                
+                    response.EnsureSuccessStatusCode();
+                    
+                    throw new WebException("Unable to fetch " + request.Url);
                 }
             }
         }
@@ -141,14 +144,17 @@ namespace SM.Media.Web.HttpConnectionReader
 
             var haveConditional = false;
 
-            if (null != _cachedObject)
+            if (null == _cachedObject)
             {
-                if (null != _lastModified)
-                    haveConditional = true;
-
-                if (null != _etag)
-                    haveConditional = true;
+                _lastModified = null;
+                _etag = null;
             }
+
+            if (null != _lastModified)
+                haveConditional = true;
+
+            if (null != _etag)
+                haveConditional = true;
 
             // Do not rotate the nocache query string if the server has an explicit cache policy.
             if (_firstRequestCompleted && (!haveConditional && null == _cacheControl))
@@ -170,11 +176,11 @@ namespace SM.Media.Web.HttpConnectionReader
 
             var headers = new List<KeyValuePair<string, string>>();
 
-            if (null != _cachedObject && haveConditional)
-            {
+            if (null != _lastModified)
                 headers.Add(new KeyValuePair<string, string>("If-Modified-Since", _lastModified));
+
+            if (null != _etag)
                 headers.Add(new KeyValuePair<string, string>("If-None-Match", _etag));
-            }
 
             if (!haveConditional)
                 headers.Add(new KeyValuePair<string, string>("Cache-Control", NoCache));

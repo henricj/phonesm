@@ -84,6 +84,10 @@ namespace SM.Media.Utility
                 {
                     return await operation().ConfigureAwait(false);
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     if (!_retryableException(ex))

@@ -40,11 +40,11 @@ namespace SM.Media.Web.HttpConnectionReader
     public class HttpConnectionWebReaderManager : IWebReaderManager, IDisposable
     {
         readonly IContentTypeDetector _contentTypeDetector;
-        readonly Func<IHttpConnection> _httpConnectionFactory;
+        readonly IHttpConnectionFactory _httpConnectionFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
 
-        public HttpConnectionWebReaderManager(Func<IHttpConnection> httpConnectionFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
+        public HttpConnectionWebReaderManager(IHttpConnectionFactory httpConnectionFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpConnectionFactory)
                 throw new ArgumentNullException("httpConnectionFactory");
@@ -74,7 +74,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         #region IWebReaderManager Members
 
-        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent, ContentType contentType)
+        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
         {
             return CreateHttpConnectionWebReader(url, parent, contentType);
         }
@@ -174,7 +174,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         internal virtual async Task<IHttpConnectionResponse> GetAsync(HttpConnectionRequest request, CancellationToken cancellationToken)
         {
-            var connection = _httpConnectionFactory();
+            var connection = _httpConnectionFactory.CreateHttpConnection();
 
             var requestUrl = request.Url;
             var url = requestUrl;

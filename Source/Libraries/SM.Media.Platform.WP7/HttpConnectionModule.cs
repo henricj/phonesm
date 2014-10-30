@@ -41,6 +41,7 @@ namespace SM.Media
 
             Bind<IHttpConnection>().To<HttpConnection>().InTransientScope();
             Bind<Func<IHttpConnection>>().ToMethod(ctx => () => ctx.Kernel.Get<IHttpConnection>());
+            Bind<IHttpConnectionFactory>().To<HttpConnectionFactory>().InSingletonScope();
 
             Bind<IWebReaderManager>().To<HttpConnectionWebReaderManager>().InSingletonScope();
 

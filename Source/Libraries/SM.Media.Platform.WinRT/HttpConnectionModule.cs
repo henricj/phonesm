@@ -38,6 +38,8 @@ namespace SM.Media
             builder.RegisterType<StreamSocketWrapper>().As<ISocket>().ExternallyOwned();
 
             builder.RegisterType<HttpConnection>().As<IHttpConnection>().ExternallyOwned();
+            builder.RegisterType<HttpConnectionFactory>().As<IHttpConnectionFactory>().SingleInstance();
+
             builder.RegisterType<HttpConnectionWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 
             builder.RegisterType<HttpEncoding>().As<IHttpEncoding>().SingleInstance();

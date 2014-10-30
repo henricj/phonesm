@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 
 namespace SM.Media.H264
 {
@@ -53,7 +54,9 @@ namespace SM.Media.H264
 
         void CompleteNalUnit(byte[] buffer, int offset, int length)
         {
-            //Debug.WriteLine("NAL Unit ({0}): {1}", length, BitConverter.ToString(buffer, offset, length));
+            //var nalUnitType = length > 0 ? (NalUnitType)(0x1f & buffer[offset]) : NalUnitType.Uns;
+
+            //Debug.WriteLine("NAL Unit ({0}/{1}): {2}", length, nalUnitType, BitConverter.ToString(buffer, offset, length));
 
             _lastCompletedOffset = offset + length;
 

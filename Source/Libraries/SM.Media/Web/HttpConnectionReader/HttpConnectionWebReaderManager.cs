@@ -28,6 +28,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -222,7 +223,32 @@ namespace SM.Media.Web.HttpConnectionReader
                 RangeTo = toBytes
             };
 
+            if (null != contentType)
+                request.Accept = CreateAcceptHeader(contentType);
+
             return request;
+        }
+
+        static string CreateAcceptHeader(ContentType contentType)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append(contentType.MimeType);
+
+            if (null != contentType.AlternateMimeTypes)
+            {
+                foreach (var mimeType in contentType.AlternateMimeTypes)
+                {
+                    sb.Append(", ");
+                    sb.Append(mimeType);
+                }
+            }
+
+            sb.Append(", */*; q=0.1");
+
+            var accept = sb.ToString();
+
+            return accept;
         }
 
         protected static Uri GetReferrer(IWebReader parent)

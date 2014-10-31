@@ -1,8 +1,14 @@
 pushd %~dp0..\
+@if %errorlevel% neq 0 exit /b %errorlevel%
+
+rmdir /s /q "%~dp0..\Distribution\"
+@if %errorlevel% neq 0 goto errorexit
 
 md Distribution\
+@if %errorlevel% neq 0 goto errorexit
 
 cd Distribution\
+@if %errorlevel% neq 0 goto errorexit
 
 md .nuget\
 
@@ -31,19 +37,11 @@ md bin\Debug\
 md bin\Release\
 md bin\Debug\WP7\
 md bin\Debug\WP8\
-md bin\Debug\WP8\
-md bin\Debug\WP8\
 md bin\Debug\Silverlight\
-md bin\Debug\WinRT\
-md bin\Debug\WinRT\
 md bin\Debug\WinRT\
 md bin\Release\WP7\
 md bin\Release\WP8\
-md bin\Release\WP8\
-md bin\Release\WP8\
 md bin\Release\Silverlight\
-md bin\Release\WinRT\
-md bin\Release\WinRT\
 md bin\Release\WinRT\
 
 md Global\
@@ -88,3 +86,8 @@ md Phone\SamplePlayer.WP8\Assets\Tiles\
 md Phone\SamplePlayer.WP8\Resources\
 
 popd
+@exit /b %errorlevel%
+
+:errorexit
+popd
+@exit /b 1

@@ -1,5 +1,12 @@
 pushd "%~dp0..\Source\"
+@if %errorlevel% neq 0 exit /b %errorlevel%
 
+@if exist ..\Distribution\ goto dirok
+popd
+@echo Distribution directory does not exist.
+@exit /b 1
+
+:dirok
 copy Libraries\SM.Media\bin\Debug\SM.Media.dll ..\Distribution\bin\Debug\
 copy Libraries\SM.Media\bin\Debug\SM.Media.pdb ..\Distribution\bin\Debug\
 copy Libraries\SM.Media.Web.HttpClientReader\bin\Debug\SM.Media.Web.HttpClientReader.dll ..\Distribution\bin\Debug\
@@ -210,3 +217,4 @@ copy .nuget\NuGet.config ..\Distribution\.nuget\
 copy Sample*.sln ..\Distribution\
 
 popd
+@exit /b %errorlevel%

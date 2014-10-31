@@ -1,9 +1,23 @@
 "%~dp0..\tools\NuGet\NuGet.exe" restore "%~dp0..\Distribution\Samples.WP7.sln"
+@if %errorlevel% neq 0 exit /b %errorlevel%
+
 "%~dp0..\tools\NuGet\NuGet.exe" restore "%~dp0..\Distribution\Samples.WP8.sln"
+@if %errorlevel% neq 0 exit /b %errorlevel%
+
 "%~dp0..\tools\NuGet\NuGet.exe" restore "%~dp0..\Distribution\Sample.Silverlight.sln"
+@if %errorlevel% neq 0 exit /b %errorlevel%
 
-copy "%~dp0..\Source\smf\*.dll" "%~dp0..\Distribution\smf\"
-copy "%~dp0..\Source\smf\*.pdb" "%~dp0..\Distribution\smf\"
-copy "%~dp0..\Source\smf\*.xml" "%~dp0..\Distribution\smf\"
+@setlocal
 
-msbuild /m "%~dp0buildDist2012.proj"
+call "%VS110COMNTOOLS%vsvars32.bat"
+@if %errorlevel% neq 0 goto errorexit
+
+msbuild /m /consoleloggerparameters:Summary /verbosity:minimal "%~dp0buildDist2012.proj"
+@if %errorlevel% neq 0 goto errorexit
+
+@endlocal
+@exit /b 0
+
+:errorexit
+@endlocal
+@exit /b 1

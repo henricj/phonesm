@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Segments
@@ -50,6 +51,6 @@ namespace SM.Media.Segments
         /// </summary>
         /// <param name="stream"></param>
         /// <returns>null if no filter is required</returns>
-        Task<Stream> CreateFilterAsync(Stream stream);
+        Task<Stream> CreateFilterAsync(Stream stream, CancellationToken cancellationToken);
     }
 }

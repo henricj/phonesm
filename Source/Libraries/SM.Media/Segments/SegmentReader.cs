@@ -297,7 +297,7 @@ namespace SM.Media.Segments
 
                             _responseStream = new PositionStream(await _response.GetStreamAsync(cancellationToken).ConfigureAwait(false));
 
-                            var filterStreamTask = _segment.CreateFilterAsync(_responseStream);
+                            var filterStreamTask = _segment.CreateFilterAsync(_responseStream, cancellationToken);
 
                             if (null != filterStreamTask)
                                 _readStream = await filterStreamTask.ConfigureAwait(false);

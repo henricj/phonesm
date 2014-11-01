@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SM.Media.Segments
@@ -64,7 +65,7 @@ namespace SM.Media.Segments
 
         public long? MediaSequence { get; set; }
 
-        public Task<Stream> CreateFilterAsync(Stream stream)
+        public Task<Stream> CreateFilterAsync(Stream stream, CancellationToken cancellationToken)
         {
             return null;
         }

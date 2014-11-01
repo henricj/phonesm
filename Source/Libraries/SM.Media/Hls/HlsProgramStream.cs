@@ -39,7 +39,12 @@ using SM.Media.Web;
 
 namespace SM.Media.Hls
 {
-    public class HlsProgramStream : IProgramStream
+    public interface IHlsProgramStream : IProgramStream
+    {
+        Task SetParserAsync(M3U8Parser parser, CancellationToken cancellationToken);
+    }
+
+    public class HlsProgramStream : IHlsProgramStream
     {
         static readonly ISegment[] NoPlaylist = new ISegment[0];
         readonly IHlsSegmentsFactory _segmentsFactory;
@@ -50,8 +55,10 @@ namespace SM.Media.Hls
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
-        public HlsProgramStream(IWebReader webReader, IPlatformServices platformServices, IRetryManager retryManager, M3U8Parser parser = null)
+        public HlsProgramStream(IWebReader webReader, ICollection<Uri> urls, IHlsSegmentsFactory segmentsFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
+            if (null == segmentsFactory)
+                throw new ArgumentNullException("segmentsFactory");
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
             if (null == platformServices)
@@ -60,18 +67,11 @@ namespace SM.Media.Hls
                 throw new ArgumentNullException("retryManager");
 
             _webReader = webReader;
-
-            _segmentsFactory = new HlsSegmentsFactory(platformServices, retryManager);
-
-            if (null != parser)
-            {
-                UpdateSubPlaylistCache(parser.BaseUrl);
-
-                Update(parser);
-            }
+            _segmentsFactory = segmentsFactory;
+            Urls = urls;
         }
 
-        #region IProgramStream Members
+        #region IHlsProgramStream Members
 
         public IWebReader WebReader
         {
@@ -80,7 +80,7 @@ namespace SM.Media.Hls
 
         public string StreamType { get; internal set; }
         public string Language { get; internal set; }
-        public ICollection<Uri> Urls { get; internal set; }
+        public ICollection<Uri> Urls { get; set; }
 
         public bool IsDynamicPlaylist
         {
@@ -99,7 +99,7 @@ namespace SM.Media.Hls
 
             var parser = await FetchPlaylistAsync(cancellationToken).ConfigureAwait(false);
 
-            Update(parser);
+            await UpdateAsync(parser, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<ContentType> GetContentTypeAsync(CancellationToken cancellationToken)
@@ -117,11 +117,18 @@ namespace SM.Media.Hls
             return _contentType;
         }
 
+        public Task SetParserAsync(M3U8Parser parser, CancellationToken cancellationToken)
+        {
+            UpdateSubPlaylistCache(parser.BaseUrl);
+
+            return UpdateAsync(parser, cancellationToken);
+        }
+
         #endregion
 
-        void Update(M3U8Parser parser)
+        async Task UpdateAsync(M3U8Parser parser, CancellationToken cancellationToken)
         {
-            _segments = _segmentsFactory.CreateSegments(parser, _subPlaylistCache.WebReader);
+            _segments = await _segmentsFactory.CreateSegmentsAsync(parser, _subPlaylistCache.WebReader, cancellationToken).ConfigureAwait(false);
             _isDynamicPlaylist = HlsPlaylistSettings.Parameters.IsDynamicPlaylist(parser);
             _actualUrl = parser.BaseUrl;
         }
@@ -129,7 +136,12 @@ namespace SM.Media.Hls
         void UpdateSubPlaylistCache(Uri playlist)
         {
             if (null == _subPlaylistCache || _subPlaylistCache.WebReader.BaseAddress != playlist)
+            {
+                if (null != _subPlaylistCache)
+                    _subPlaylistCache.WebReader.Dispose();
+
                 _subPlaylistCache = _webReader.CreateWebCache(playlist, ContentKind.Playlist);
+            }
         }
 
         async Task<M3U8Parser> FetchPlaylistAsync(CancellationToken cancellationToken)

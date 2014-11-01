@@ -64,6 +64,12 @@ namespace SM.Media
             builder.RegisterType<HlsPlaylistSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<PlsSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
 
+            builder.RegisterType<HlsProgramManager>().AsSelf().ExternallyOwned();
+            builder.RegisterType<HlsProgramStreamFactory>().As<IHlsProgramStreamFactory>().SingleInstance();
+            builder.RegisterType<HlsSegmentsFactory>().As<IHlsSegmentsFactory>().ExternallyOwned();
+            builder.RegisterType<HlsStreamSegments>().As<IHlsStreamSegments>().ExternallyOwned();
+            builder.RegisterType<HlsStreamSegmentsFactory>().As<IHlsStreamSegmentsFactory>().SingleInstance();
+
             builder.RegisterType<MediaParserFactoryFinder>().As<IMediaParserFactoryFinder>().SingleInstance();
             builder.RegisterType<MediaParserFactory>().As<IMediaParserFactory>().SingleInstance();
 

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="HlsSegmentsFactory.cs" company="Henric Jungheim">
+//  <copyright file="HlsProgramStreamFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,38 +26,41 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using SM.Media.M3U8;
-using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Hls
 {
-    public interface IHlsSegmentsFactory
+    public interface IHlsProgramStreamFactory
     {
-        Task<ICollection<ISegment>> CreateSegmentsAsync(M3U8Parser parser, IWebReader webReader, CancellationToken cancellationToken);
+        IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader);
     }
 
-    public class HlsSegmentsFactory : IHlsSegmentsFactory
+    public class HlsProgramStreamFactory : IHlsProgramStreamFactory
     {
-        readonly IHlsStreamSegmentsFactory _streamSegmentsFactory;
+        readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
+        readonly IHlsSegmentsFactory _segmentsFactory;
 
-        public HlsSegmentsFactory(IHlsStreamSegmentsFactory streamSegmentsFactory)
+        public HlsProgramStreamFactory(IHlsSegmentsFactory segmentsFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
-            if (null == streamSegmentsFactory)
-                throw new ArgumentNullException("streamSegmentsFactory");
+            if (null == segmentsFactory)
+                throw new ArgumentNullException("segmentsFactory");
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
+            if (null == retryManager)
+                throw new ArgumentNullException("retryManager");
 
-            _streamSegmentsFactory = streamSegmentsFactory;
+            _segmentsFactory = segmentsFactory;
+            _platformServices = platformServices;
+            _retryManager = retryManager;
         }
 
-        #region IHlsSegmentsFactory Members
+        #region IHlsProgramStreamFactory Members
 
-        public Task<ICollection<ISegment>> CreateSegmentsAsync(M3U8Parser parser, IWebReader webReader, CancellationToken cancellationToken)
+        public IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader)
         {
-            var streamSegments = _streamSegmentsFactory.Create(parser, webReader);
-
-            return streamSegments.CreateSegmentsAsync(cancellationToken);
+            return new HlsProgramStream(webReader, urls, _segmentsFactory, _platformServices, _retryManager);
         }
 
         #endregion

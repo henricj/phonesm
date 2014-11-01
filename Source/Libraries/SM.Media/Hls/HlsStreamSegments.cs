@@ -40,17 +40,22 @@ using SM.Media.Web;
 
 namespace SM.Media.Hls
 {
-    public class HlsStreamSegments
+    public interface IHlsStreamSegments
+    {
+        Task<ICollection<ISegment>> CreateSegmentsAsync(CancellationToken cancellationToken);
+    }
+
+    public class HlsStreamSegments : IHlsStreamSegments
     {
         const string MethodAes = "AES-128";
         const string MethodNone = "NONE";
         const string MethodSampleAes = "SAMPLE-AES";
 
-        readonly Dictionary<Uri, Task<byte[]>> _keyCache = new Dictionary<Uri, Task<byte[]>>();
+        readonly Dictionary<Uri, byte[]> _keyCache = new Dictionary<Uri, byte[]>();
         readonly M3U8Parser _parser;
         readonly IPlatformServices _platformServices;
-        readonly IWebReader _webReader;
         readonly IRetryManager _retryManager;
+        readonly IWebReader _webReader;
         long _byteRangeOffset;
         long? _mediaSequence;
         ISegment[] _playlist;
@@ -75,15 +80,20 @@ namespace SM.Media.Hls
             _mediaSequence = M3U8Tags.ExtXMediaSequence.GetValue<long>(parser.GlobalTags);
         }
 
-        public ICollection<ISegment> CreateSegments()
-        {
-            _playlist = _parser.Playlist.Select(CreateStreamSegment)
-                               .ToArray();
+        #region IHlsStreamSegments Members
 
-            return _playlist;
+        public Task<ICollection<ISegment>> CreateSegmentsAsync(CancellationToken cancellationToken)
+        {
+            _playlist = _parser.Playlist
+                .Select(url => CreateStreamSegment(url, cancellationToken))
+                .ToArray();
+
+            return TaskEx.FromResult<ICollection<ISegment>>(_playlist);
         }
 
-        ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri)
+        #endregion
+
+        ISegment CreateStreamSegment(M3U8Parser.M3U8Uri uri, CancellationToken cancellationToken)
         {
             var url = _parser.ResolveUrl(uri.Uri);
 
@@ -111,7 +121,7 @@ namespace SM.Media.Hls
             var extKeys = M3U8Tags.ExtXKey.FindAll(tags);
 
             if (null != extKeys)
-                HandleKey(segment, extKeys);
+                HandleKey(segment, extKeys, cancellationToken);
 
             return segment;
         }
@@ -130,7 +140,7 @@ namespace SM.Media.Hls
             _byteRangeOffset += byteRange.Length;
         }
 
-        void HandleKey(SubStreamSegment segment, IEnumerable<ExtKeyTagInstance> extKeys)
+        void HandleKey(SubStreamSegment segment, IEnumerable<ExtKeyTagInstance> extKeys, CancellationToken cancellationToken)
         {
             var keys = extKeys.ToArray();
 
@@ -186,34 +196,39 @@ namespace SM.Media.Hls
 
             var uri = _parser.ResolveUrl(keyUri);
 
-            IWebReader binaryClient = null;
-
-            Task<byte[]> keyTask;
-
-            if (!_keyCache.TryGetValue(uri, out keyTask))
-            {
-                var retry = _retryManager.CreateWebRetry(4, 100);
-
-                keyTask = retry.CallAsync(() => _webReader.GetByteArrayAsync(uri, CancellationToken.None), CancellationToken.None);
-
-                _keyCache[uri] = keyTask;
-            }
-
             segment.AsyncStreamFilter =
-                async stream =>
+                async (stream, ct) =>
                 {
-                    using (binaryClient)
+                    if (null != filter)
+                        stream = await filter(stream, ct).ConfigureAwait(false);
+
+                    byte[] key;
+
+                    if (!_keyCache.TryGetValue(uri, out key))
                     {
-                        if (null != filter)
-                            stream = await filter(stream).ConfigureAwait(false);
+                        key = await LoadKeyAsync(uri, cancellationToken).ConfigureAwait(false);
 
-                        var key = await keyTask.ConfigureAwait(false);
+                        if (16 != key.Length)
+                            throw new FormatException("AES-128 key length mismatch: " + key.Length);
 
-                        Debug.WriteLine("Segment AES-128: key {0} iv {1}", BitConverter.ToString(key), BitConverter.ToString(iv));
-
-                        return _platformServices.Aes128DecryptionFilter(stream, key, iv);
+                        _keyCache[uri] = key;
                     }
+
+                    Debug.WriteLine("Segment AES-128: key {0} iv {1}", BitConverter.ToString(key), BitConverter.ToString(iv));
+
+                    return _platformServices.Aes128DecryptionFilter(stream, key, iv);
                 };
+        }
+
+        Task<byte[]> LoadKeyAsync(Uri uri, CancellationToken cancellationToken)
+        {
+            Debug.WriteLine("HlsStreamSegments.LoadKeyAsync() " + uri);
+
+            var retry = _retryManager.CreateWebRetry(4, 100);
+
+            var keyTask = retry.CallAsync(() => _webReader.GetByteArrayAsync(uri, cancellationToken), cancellationToken);
+
+            return keyTask;
         }
     }
 }

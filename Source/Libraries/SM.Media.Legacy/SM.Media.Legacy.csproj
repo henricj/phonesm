@@ -229,11 +229,17 @@
     <Compile Include="..\SM.Media\Hls\HlsProgramStream.cs">
       <Link>Hls\HlsProgramStream.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsProgramStreamFactory.cs">
+      <Link>Hls\HlsProgramStreamFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Hls\HlsSegmentsFactory.cs">
       <Link>Hls\HlsSegmentsFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Hls\HlsStreamSegments.cs">
       <Link>Hls\HlsStreamSegments.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Hls\HlsStreamSegmentsFactory.cs">
+      <Link>Hls\HlsStreamSegmentsFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\IMediaManager.cs" />
     <Compile Include="..\SM.Media\ITsTimestamp.cs" />

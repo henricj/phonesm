@@ -33,8 +33,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Playlists;
-using SM.Media.Utility;
-using SM.Media.Web;
 
 namespace SM.Media.Hls
 {
@@ -46,22 +44,14 @@ namespace SM.Media.Hls
     public class HlsPlaylistSegmentManagerPolicy : IHlsPlaylistSegmentManagerPolicy
     {
         public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
-        readonly IPlatformServices _platformServices;
-        readonly IRetryManager _retryManager;
-        readonly IWebReaderManager _webReaderManager;
+        readonly Func<HlsProgramManager> _programManagerFactory;
 
-        public HlsPlaylistSegmentManagerPolicy(IWebReaderManager webReaderManager, IRetryManager retryManager, IPlatformServices platformServices)
+        public HlsPlaylistSegmentManagerPolicy(Func<HlsProgramManager> programManagerFactory)
         {
-            if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
-            if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
-            if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+            if (null == programManagerFactory)
+                throw new ArgumentNullException("programManagerFactory");
 
-            _webReaderManager = webReaderManager;
-            _retryManager = retryManager;
-            _platformServices = platformServices;
+            _programManagerFactory = programManagerFactory;
         }
 
         #region IHlsPlaylistSegmentManagerPolicy Members
@@ -83,10 +73,9 @@ namespace SM.Media.Hls
                     null == contentType ? "<unknown>" : contentType.ToString()));
             }
 
-            var programManager = new HlsProgramManager(_webReaderManager, _retryManager, _platformServices)
-                                 {
-                                     Playlists = source
-                                 };
+            var programManager = _programManagerFactory();
+
+            programManager.Playlists = source;
 
             return programManager;
         }

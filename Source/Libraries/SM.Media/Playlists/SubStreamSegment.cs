@@ -48,7 +48,7 @@ namespace SM.Media.Playlists
             _parentUrl = parentUrl;
         }
 
-        public Func<Stream, Task<Stream>> AsyncStreamFilter { get; set; }
+        public Func<Stream, CancellationToken, Task<Stream>> AsyncStreamFilter { get; set; }
 
         #region ISegment Members
 
@@ -61,7 +61,7 @@ namespace SM.Media.Playlists
             if (null == AsyncStreamFilter)
                 return null;
 
-            return AsyncStreamFilter(stream);
+            return AsyncStreamFilter(stream, cancellationToken);
         }
 
         public long Offset { get; set; }

@@ -42,23 +42,23 @@ namespace SM.Media.Hls
     public class HlsProgramManager : IProgramManager
     {
         static readonly IDictionary<long, Program> NoPrograms = new Dictionary<long, Program>();
-        readonly IPlatformServices _platformServices;
+        readonly IHlsProgramStreamFactory _programStreamFactory;
         readonly IRetryManager _retryManager;
         readonly IWebReaderManager _webReaderManager;
         IWebReader _playlistWebReader;
 
-        public HlsProgramManager(IWebReaderManager webReaderManager, IRetryManager retryManager, IPlatformServices platformServices)
+        public HlsProgramManager(IHlsProgramStreamFactory programStreamFactory, IWebReaderManager webReaderManager, IRetryManager retryManager)
         {
+            if (null == programStreamFactory)
+                throw new ArgumentNullException("programStreamFactory");
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
-            if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
 
+            _programStreamFactory = programStreamFactory;
             _webReaderManager = webReaderManager;
             _retryManager = retryManager;
-            _platformServices = platformServices;
         }
 
         #region IProgramManager Members
@@ -83,7 +83,7 @@ namespace SM.Media.Hls
                     var actualPlaylist = await parser.ParseAsync(_playlistWebReader, _retryManager, playlist, cancellationToken)
                         .ConfigureAwait(false);
 
-                    return Load(_playlistWebReader, parser);
+                    return await LoadAsync(_playlistWebReader, parser, cancellationToken);
                 }
                 catch (WebException e)
                 {
@@ -104,7 +104,7 @@ namespace SM.Media.Hls
 
         #endregion
 
-        IDictionary<long, Program> Load(IWebReader webReader, M3U8Parser parser)
+        async Task<IDictionary<long, Program>> LoadAsync(IWebReader webReader, M3U8Parser parser, CancellationToken cancellationToken)
         {
             var audioStreams = new Dictionary<string, MediaGroup>();
 
@@ -162,10 +162,9 @@ namespace SM.Media.Hls
 
                     var program = GetProgram(programs, programId, programUrl);
 
-                    var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, _retryManager)
-                    {
-                        Urls = new[] { playlistUrl }
-                    })
+                    var hlsProgramStream = _programStreamFactory.Create(new[] { playlistUrl }, webReader);
+
+                    var subProgram = new PlaylistSubProgram(program, hlsProgramStream)
                     {
                         Bandwidth = null == bandwidth ? 0 : bandwidth.Value,
                         Playlist = playlistUrl,
@@ -182,10 +181,11 @@ namespace SM.Media.Hls
             {
                 var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
-                var subProgram = new PlaylistSubProgram(program, new HlsProgramStream(webReader, _platformServices, _retryManager, parser)
-                {
-                    Urls = new[] { webReader.RequestUri }
-                });
+                var hlsProgramStream = _programStreamFactory.Create(new[] { webReader.RequestUri }, webReader);
+
+                await hlsProgramStream.SetParserAsync(parser, cancellationToken).ConfigureAwait(false);
+
+                var subProgram = new PlaylistSubProgram(program, hlsProgramStream);
 
                 program.SubPrograms.Add(subProgram);
             }

@@ -73,6 +73,13 @@ namespace SM.Media
             Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
             Bind<Func<IBufferPool>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferPool>());
 
+            Bind<Func<HlsProgramManager>>()
+                .ToMethod(ctx => () => ctx.Kernel.Get<HlsProgramManager>());
+            Bind<IHlsProgramStreamFactory>().To<HlsProgramStreamFactory>().InSingletonScope();
+            Bind<IHlsSegmentsFactory>().To<HlsSegmentsFactory>();
+            Bind<IHlsStreamSegments>().To<HlsStreamSegments>();
+            Bind<IHlsStreamSegmentsFactory>().To<HlsStreamSegmentsFactory>().InSingletonScope();
+
             Bind<ISegmentManagerFactoryInstance>().To<SimpleSegmentManagerFactory>().InSingletonScope();
             Bind<ISegmentManagerFactoryInstance>().To<HlsPlaylistSegmentManagerFactory>().InSingletonScope();
             Bind<ISegmentManagerFactoryInstance>().To<PlsSegmentManagerFactory>().InSingletonScope();

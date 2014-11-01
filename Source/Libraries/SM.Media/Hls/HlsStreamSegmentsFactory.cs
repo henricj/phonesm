@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="HlsSegmentsFactory.cs" company="Henric Jungheim">
+//  <copyright file="HlsStreamSegmentsFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,40 +24,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.M3U8;
 using SM.Media.Segments;
+using SM.Media.Utility;
 using SM.Media.Web;
 
 namespace SM.Media.Hls
 {
-    public interface IHlsSegmentsFactory
+    public interface IHlsStreamSegmentsFactory
     {
-        Task<ICollection<ISegment>> CreateSegmentsAsync(M3U8Parser parser, IWebReader webReader, CancellationToken cancellationToken);
+        IHlsStreamSegments Create(M3U8Parser parser, IWebReader webReader);
     }
 
-    public class HlsSegmentsFactory : IHlsSegmentsFactory
+    public class HlsStreamSegmentsFactory : IHlsStreamSegmentsFactory
     {
-        readonly IHlsStreamSegmentsFactory _streamSegmentsFactory;
+        readonly IPlatformServices _platformServices;
+        readonly IRetryManager _retryManager;
 
-        public HlsSegmentsFactory(IHlsStreamSegmentsFactory streamSegmentsFactory)
+        public HlsStreamSegmentsFactory(IRetryManager retryManager, IPlatformServices platformServices)
         {
-            if (null == streamSegmentsFactory)
-                throw new ArgumentNullException("streamSegmentsFactory");
-
-            _streamSegmentsFactory = streamSegmentsFactory;
+            _retryManager = retryManager;
+            _platformServices = platformServices;
         }
 
-        #region IHlsSegmentsFactory Members
+        #region IHlsStreamSegmentsFactory Members
 
-        public Task<ICollection<ISegment>> CreateSegmentsAsync(M3U8Parser parser, IWebReader webReader, CancellationToken cancellationToken)
+        public IHlsStreamSegments Create(M3U8Parser parser, IWebReader webReader)
         {
-            var streamSegments = _streamSegmentsFactory.Create(parser, webReader);
-
-            return streamSegments.CreateSegmentsAsync(cancellationToken);
+            return new HlsStreamSegments(parser, webReader, _retryManager, _platformServices);
         }
 
         #endregion

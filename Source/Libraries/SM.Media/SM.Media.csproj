@@ -103,6 +103,8 @@
     <Compile Include="H264\NalUnitTypes.cs" />
     <Compile Include="Hls\HlsPlaylistSegmentManager.cs" />
     <Compile Include="Hls\HlsPlaylistSegmentManagerFactory.cs" />
+    <Compile Include="Hls\HlsProgramStreamFactory.cs" />
+    <Compile Include="Hls\HlsStreamSegmentsFactory.cs" />
     <Compile Include="M3U8\TagSupport\DateTimeTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8DateTimeTag.cs" />
     <Compile Include="MediaParser\IMediaParserFactoryInstance.cs" />

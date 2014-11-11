@@ -34,7 +34,7 @@ namespace SM.Media.Simulator
     public class MediaStreamFacade : MediaStreamFacadeBase<SimulatedMediaStreamConfigurator>, IMediaStreamFacade
     {
         public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
-            : base(builder ?? new TsMediaManagerBuilder())
+            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection))
         { }
     }
 }

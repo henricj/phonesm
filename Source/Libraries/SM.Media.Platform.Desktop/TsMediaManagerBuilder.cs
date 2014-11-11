@@ -38,10 +38,10 @@ namespace SM.Media
             new TsMediaModule()
         };
 
-        public TsMediaManagerBuilder()
+        public TsMediaManagerBuilder(bool useHttpConnection)
             : base(Modules)
         {
-            if (UseHttpConnection)
+            if (useHttpConnection)
                 this.RegisterModule<HttpConnectionModule>();
             else
                 this.RegisterModule<HttpClientModule>();
@@ -49,7 +49,5 @@ namespace SM.Media
             RegisterSingleton<IApplicationInformation, DesktopApplicationInformation>();
             RegisterSingleton<IPlatformServices, PlatformServices>();
         }
-
-        public static bool UseHttpConnection { get; set; }
     }
 }

@@ -31,5 +31,11 @@ namespace SM.Media
     public class MediaStreamFacadeParameters
     {
         public Func<IMediaStreamFacadeBase> Factory { get; set; }
+
+        /// <summary>
+        ///     Use the socket-based <see cref="SM.Media.Web.HttpConnection.HttpConnection" /> instead of the
+        ///     platform's default HTTP client (usually HttpClient).
+        /// </summary>
+        public bool UseHttpConnection { get; set; }
     }
 }

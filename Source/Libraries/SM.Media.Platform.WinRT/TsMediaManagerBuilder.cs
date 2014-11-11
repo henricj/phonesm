@@ -24,7 +24,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
 using Autofac.Core;
 using SM.Media.Builder;
 
@@ -35,24 +34,18 @@ namespace SM.Media
         static readonly IModule[] Modules =
         {
             new SmMediaModule(),
-            new TsMediaModule(),
-            new WinRtHttpClientModule()
-            //new HttpConnectionModule()
+            new TsMediaModule()
         };
 
         public TsMediaManagerBuilder()
             : base(Modules)
-        {}
-
-        public void RegisterModule(IModule module)
         {
-            ContainerBuilder.RegisterModule(module);
+            if (UseHttpConnection)
+                this.RegisterModule<HttpConnectionModule>();
+            else
+                this.RegisterModule<WinRtHttpClientModule>();
         }
 
-        public void RegisterModule<TModule>()
-            where TModule : IModule, new()
-        {
-            ContainerBuilder.RegisterModule<TModule>();
-        }
+        public static bool UseHttpConnection { get; set; }
     }
 }

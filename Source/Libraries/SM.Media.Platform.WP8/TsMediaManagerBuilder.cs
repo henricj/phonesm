@@ -36,15 +36,20 @@ namespace SM.Media
         static readonly IModule[] Modules =
         {
             new SmMediaModule(),
-            new TsMediaModule(),
-            new HttpClientModule()
-            //new HttpConnectionModule()
+            new TsMediaModule()
         };
 
         public TsMediaManagerBuilder()
             : base(Modules)
         {
+            if (UseHttpConnection)
+                this.RegisterModule<HttpConnectionModule>();
+            else
+                this.RegisterModule<HttpClientModule>();
+
             ContainerBuilder.Register(_ => ApplicationInformationFactory.Default).SingleInstance();
         }
+
+        public static bool UseHttpConnection { get; set; }
     }
 }

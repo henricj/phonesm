@@ -171,6 +171,9 @@ namespace SM.Media.Builder
 
         protected virtual void Dispose(bool disposing)
         {
+            if (!disposing)
+                return;
+
             IContainer container;
 
             lock (_lock)
@@ -181,6 +184,20 @@ namespace SM.Media.Builder
 
             using (container)
             { }
+        }
+    }
+
+    public static class BuilderBaseExtensions
+    {
+        public static void RegisterModule(this BuilderBase builder, IModule module)
+        {
+            builder.ContainerBuilder.RegisterModule(module);
+        }
+
+        public static void RegisterModule<TModule>(this BuilderBase builder)
+            where TModule : IModule, new()
+        {
+            builder.ContainerBuilder.RegisterModule<TModule>();
         }
     }
 

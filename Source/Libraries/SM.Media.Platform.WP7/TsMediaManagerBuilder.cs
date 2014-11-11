@@ -34,13 +34,18 @@ namespace SM.Media
         static readonly INinjectModule[] Modules =
         {
             new SmMediaModule(),
-            new TsMediaModule(),
-            new HttpClientModule()
-            //new HttpConnectionModule()
+            new TsMediaModule()
         };
 
         public TsMediaManagerBuilder()
             : base(Modules)
-        { }
+        {
+            if (UseHttpConnection)
+                this.RegisterModule<HttpConnectionModule>();
+            else
+                this.RegisterModule<HttpClientModule>();
+        }
+
+        public static bool UseHttpConnection { get; set; }
     }
 }

@@ -34,13 +34,18 @@ namespace SM.Media
         static readonly IModule[] Modules =
         {
             new SmMediaModule(),
-            new TsMediaModule(),
-            new SilverlightWebRequestModule()
-            //new HttpConnectionModule()
+            new TsMediaModule()
         };
 
         public TsMediaManagerBuilder()
             : base(Modules)
-        { }
+        {
+            if (UseHttpConnection)
+                this.RegisterModule<HttpConnectionModule>();
+            else
+                this.RegisterModule<SilverlightWebRequestModule>();
+        }
+
+        public static bool UseHttpConnection { get; set; }
     }
 }

@@ -123,6 +123,20 @@ namespace SM.Media.Builder
         protected abstract void ThrowIfBusy();
     }
 
+    public static class BuilderBaseExtensions
+    {
+        public static void RegisterModule(this BuilderBase builder, INinjectModule module)
+        {
+            builder.Kernel.Load(module);
+        }
+
+        public static void RegisterModule<TModule>(this BuilderBase builder)
+            where TModule : INinjectModule, new()
+        {
+            builder.Kernel.Load<TModule>();
+        }
+    }
+
     public class BuilderBase<TBuild> : BuilderBase, IBuilder<TBuild>
     {
         readonly INinjectModule[] _modules;

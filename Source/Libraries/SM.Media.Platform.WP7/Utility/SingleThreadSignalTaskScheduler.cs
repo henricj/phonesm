@@ -146,6 +146,11 @@ namespace SM.Media.Utility
                         var signalTask = new Task(signalHandler);
 
                         signalTask.RunSynchronously(this);
+
+                        var taskException = signalTask.Exception;
+
+                        if (null != taskException)
+                            Debug.WriteLine("SingleThreadSignalTaskScheduler.Run() signal handler failed: " + taskException.ExtendedMessage());
                     }
 
                     if (null != task)

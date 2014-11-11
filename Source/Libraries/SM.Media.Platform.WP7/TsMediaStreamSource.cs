@@ -336,18 +336,18 @@ namespace SM.Media
 
             _taskScheduler.ThrowIfNotOnThread();
 
-            if (_isClosed)
-            {
-                ForceClose();
-
-                return;
-            }
-
             var previousOperations = Operation.None;
             var requestedOperations = Operation.None;
 
             try
             {
+                if (_isClosed)
+                {
+                    ForceClose();
+
+                    return;
+                }
+
                 for (; ; )
                 {
                     if (0 != HandleOperation(Operation.Seek))
@@ -407,6 +407,10 @@ namespace SM.Media
                     if (!gotPackets)
                         return;
                 }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("TsMediaStreamSource.SignalHandler() failed: " + ex.ExtendedMessage());
             }
             finally
             {

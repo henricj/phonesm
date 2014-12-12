@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsPacket.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2014.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace SM.TsParser
@@ -206,6 +207,23 @@ namespace SM.TsParser
             if (0 != (_adaptationFieldControl & 0x2))
             {
                 _adaptationLength = buffer[i++];
+
+                if (2 == _adaptationFieldControl)
+                {
+                    if (_adaptationLength != PacketSize - 5)
+                    {
+                        Debug.WriteLine("Invalid adaptation_field_length (without payload): " + _adaptationLength);
+                        _adaptationLength = PacketSize - 5;
+                    }
+                }
+                else if (3 == _adaptationFieldControl)
+                {
+                    if (_adaptationLength > PacketSize - 6)
+                    {
+                        Debug.WriteLine("Invalid adaptation_field_length (with payload): " + _adaptationLength);
+                        _adaptationLength = PacketSize - 6;
+                    }
+                }
 
                 ++_payloadIndex;
                 --_payloadLength;

@@ -30,6 +30,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Phone.BackgroundAudio;
+using SM.Media.Utility;
 
 namespace SM.Media.BackgroundAudioStreamingAgent
 {
@@ -64,11 +65,11 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 _classInitialized = true;
                 // Subscribe to the managed exception handler
                 Deployment.Current.Dispatcher.BeginInvoke(delegate
-                                                          {
-                                                              Application.Current.UnhandledException += AudioPlayer_UnhandledException;
+                {
+                    Application.Current.UnhandledException += AudioPlayer_UnhandledException;
 
-                                                              TaskScheduler.UnobservedTaskException += AudioPlayer_UnobservedException;
-                                                          });
+                    TaskScheduler.UnobservedTaskException += AudioPlayer_UnobservedException;
+                });
             }
         }
 
@@ -112,38 +113,47 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
                 null == track ? "<no track>" : track.Tag ?? "<none>", playState);
 
-            switch (playState)
+            try
             {
-            case PlayState.TrackEnded:
-                player.Track = GetNextTrack();
-                break;
-            case PlayState.TrackReady:
-                player.Play();
-                break;
-            case PlayState.Shutdown:
-                break;
-            case PlayState.Unknown:
-                break;
-            case PlayState.Stopped:
-                break;
-            case PlayState.Paused:
-                break;
-            case PlayState.Playing:
-                break;
-            case PlayState.BufferingStarted:
-                break;
-            case PlayState.BufferingStopped:
-                break;
-            case PlayState.Rewinding:
-                break;
-            case PlayState.FastForwarding:
-                break;
-            default:
-                Debug.WriteLine("AudioPlayer.OnPlayStateChanged() unknown playstate: " + playState);
-                break;
+                switch (playState)
+                {
+                    case PlayState.TrackEnded:
+                        player.Track = GetNextTrack();
+                        break;
+                    case PlayState.TrackReady:
+                        player.Play();
+                        break;
+                    case PlayState.Shutdown:
+                        break;
+                    case PlayState.Unknown:
+                        break;
+                    case PlayState.Stopped:
+                        break;
+                    case PlayState.Paused:
+                        break;
+                    case PlayState.Playing:
+                        break;
+                    case PlayState.BufferingStarted:
+                        break;
+                    case PlayState.BufferingStopped:
+                        break;
+                    case PlayState.Rewinding:
+                        break;
+                    case PlayState.FastForwarding:
+                        break;
+                    default:
+                        Debug.WriteLine("AudioPlayer.OnPlayStateChanged() unknown playstate: " + playState);
+                        break;
+                }
             }
-
-            NotifyComplete();
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioPlayer.OnPlayStateChanged() failed: " + ex.ExtendedMessage());
+            }
+            finally
+            {
+                NotifyComplete();
+            }
         }
 
         /// <summary>
@@ -168,58 +178,77 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
                 null == track ? "<no track>" : track.Tag ?? "<none>", action);
 
-            switch (action)
+            try
             {
-            case UserAction.Play:
-                UpdateTrack(player);
+                switch (action)
+                {
+                    case UserAction.Play:
+                        UpdateTrack(player);
 
-                if (PlayState.Playing != player.PlayerState && null != player.Track)
-                    player.Play();
+                        if (PlayState.Playing != player.PlayerState && null != player.Track)
+                            player.Play();
 
-                break;
-            case UserAction.Stop:
-                player.Stop();
+                        break;
+                    case UserAction.Stop:
+                        player.Stop();
 
-                break;
-            case UserAction.Pause:
-                if (PlayState.Playing == player.PlayerState)
-                    player.Pause();
+                        break;
+                    case UserAction.Pause:
+                        if (PlayState.Playing == player.PlayerState)
+                            player.Pause();
 
-                break;
-            case UserAction.FastForward:
-                if (null != track && null != track.Source)
-                    player.FastForward();
+                        break;
+                    case UserAction.FastForward:
+                        if (null != track && null != track.Source)
+                            player.FastForward();
 
-                break;
-            case UserAction.Rewind:
-                if (null != track && null != track.Source)
-                    player.Rewind();
+                        break;
+                    case UserAction.Rewind:
+                        if (null != track && null != track.Source)
+                            player.Rewind();
 
-                break;
-            case UserAction.Seek:
-                if (null != track)
-                    player.Position = (TimeSpan) param;
+                        break;
+                    case UserAction.Seek:
+                        if (null != track)
+                            player.Position = (TimeSpan)param;
 
-                break;
-            case UserAction.SkipNext:
-                player.Track = GetNextTrack();
+                        break;
+                    case UserAction.SkipNext:
+                        player.Track = GetNextTrack();
 
-                if (PlayState.Playing != player.PlayerState && null != player.Track)
-                    player.Play();
+                        if (PlayState.Playing != player.PlayerState && null != player.Track)
+                            player.Play();
 
-                break;
-            case UserAction.SkipPrevious:
-                var previousTrack = GetPreviousTrack();
-                if (previousTrack != null)
-                    player.Track = previousTrack;
+                        break;
+                    case UserAction.SkipPrevious:
+                        var previousTrack = GetPreviousTrack();
+                        if (previousTrack != null)
+                            player.Track = previousTrack;
 
-                if (PlayState.Playing != player.PlayerState && null != player.Track)
-                    player.Play();
+                        if (PlayState.Playing != player.PlayerState && null != player.Track)
+                            player.Play();
 
-                break;
+                        break;
+                }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioPlayer.OnUserAction() failed: " + ex.ExtendedMessage());
 
-            NotifyComplete();
+                // Is there anything we can do about this?
+                try
+                {
+                    player.Close();
+                }
+                catch (Exception ex2)
+                {
+                    Debug.WriteLine("AudioPlayer.OnUserAction() close failed: " + ex2.ExtendedMessage());
+                }
+            }
+            finally
+            {
+                NotifyComplete();
+            }
         }
 
         static void UpdateTrack(BackgroundAudioPlayer player)

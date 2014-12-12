@@ -138,8 +138,17 @@ namespace SM.Media.Web.HttpConnection
         {
             var socket = Interlocked.Exchange(ref _socket, null);
 
-            if (null != socket)
+            if (null == socket)
+                return;
+
+            try
+            {
                 socket.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("StreamSocketWrapper.Close() failed " + ex.Message);
+            }
         }
 
         #endregion

@@ -435,11 +435,12 @@ namespace SM.Media
                     async t =>
                     {
                         var ex = t.Exception;
-                        if (null != ex)
-                        {
-                            Debug.WriteLine("TsMediaManager.StartReaders() ReadAsync failed: " + ex.ExtendedMessage());
-                            SetMediaState(MediaState.Error, ex.ExtendedMessage());
-                        }
+
+                        if (null == ex)
+                            return; // This should never happen ("OnlyOnFaulted" below)
+
+                        Debug.WriteLine("TsMediaManager.StartReaders() ReadAsync failed: " + ex.ExtendedMessage());
+                        SetMediaState(MediaState.Error, ex.ExtendedMessage());
 
                         lock (_lock)
                         {
@@ -447,7 +448,14 @@ namespace SM.Media
                                 return;
                         }
 
-                        await CloseMediaAsync().ConfigureAwait(false);
+                        try
+                        {
+                            await CloseMediaAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex2)
+                        {
+                            Debug.WriteLine("TsMediaManager.StartReaders() ReadAsync close media failed " + ex2);
+                        }
                     }, token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
 
             TaskCollector.Default.Add(cleanupTask, "TsMediaManager.StartReaders() cleanup tasks");
@@ -455,7 +463,7 @@ namespace SM.Media
 
         async Task OpenAsync(ICollection<Uri> source)
         {
-            Debug.WriteLine("TsMediaManager.OpenMediaAsync() state " + State);
+            Debug.WriteLine("TsMediaManager.OpenAsync() state " + State);
 
             State = MediaState.Opening;
 
@@ -477,7 +485,7 @@ namespace SM.Media
 
                 if (null == _readerManager)
                 {
-                    Debug.WriteLine("TsMediaManager.OpenMediaAsync() unable to create reader manager");
+                    Debug.WriteLine("TsMediaManager.OpenAsync() unable to create reader manager");
 
                     SetMediaState(MediaState.Error, "Unable to create reader");
 
@@ -510,7 +518,7 @@ namespace SM.Media
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("TsMediaManager.OpenMediaAsync failed: " + ex.Message);
+                Debug.WriteLine("TsMediaManager.OpenAsync() failed: " + ex.Message);
 
                 SetMediaState(MediaState.Error, "Unable to play media");
 
@@ -524,7 +532,7 @@ namespace SM.Media
 
         async Task CleanupFailedOpenAsync(Task<IMediaReader>[] readerTasks)
         {
-            Debug.WriteLine("TsMediaManager.CleanupFaileOpenAsync() state " + State);
+            Debug.WriteLine("TsMediaManager.CleanupFailedOpenAsync() state " + State);
 
             _playbackCancellationTokenSource.Cancel();
 
@@ -541,7 +549,7 @@ namespace SM.Media
 
                         if (null != readerException)
                         {
-                            Debug.WriteLine("TsMediaManager.OpenMediaAsync(): reader create failed: " + readerException.Message);
+                            Debug.WriteLine("TsMediaManager.CleanupFailedOpenAsync(): reader create failed: " + readerException.Message);
                             return false;
                         }
 
@@ -617,7 +625,7 @@ namespace SM.Media
 
         async Task CloseReadersAsync()
         {
-            Debug.WriteLine("TsMediaManager.CloseAsync() closing readers");
+            Debug.WriteLine("TsMediaManager.CloseReadersAsync() closing readers");
 
             if (null == _readers || _readers.Length < 1)
                 return;
@@ -647,10 +655,10 @@ namespace SM.Media
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("TsMediaManager.CloseAsync: task failed: " + ex.Message);
+                Debug.WriteLine("TsMediaManager.CloseReadersAsync: task failed: " + ex.Message);
             }
 
-            Debug.WriteLine("TsMediaManager.CloseAsync() readers closed");
+            Debug.WriteLine("TsMediaManager.CloseReadersAsync() readers closed");
         }
 
         void DisposeReaders()

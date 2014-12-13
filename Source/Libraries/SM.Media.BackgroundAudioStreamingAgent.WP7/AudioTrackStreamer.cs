@@ -45,7 +45,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         readonly IBufferingPolicy _bufferingPolicy;
         readonly IMediaManagerParameters _mediaManagerParameters;
         IMediaStreamFacade _mediaStreamFacade;
-        readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         int _isDisposed;
 
         public AudioTrackStreamer()
@@ -104,6 +104,9 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 null == track ? "<no track>" : track.Tag ?? "<none>");
 
             var callNotifyComplete = true;
+            if (_cancellationTokenSource.IsCancellationRequested)
+                _cancellationTokenSource = new CancellationTokenSource();
+
 
             try
             {
@@ -122,7 +125,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 InitializeMediaStream();
 
-                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, CancellationToken.None).ConfigureAwait(false);
+                var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationTokenSource.Token).ConfigureAwait(false);
 
                 if (null == mss)
                 {

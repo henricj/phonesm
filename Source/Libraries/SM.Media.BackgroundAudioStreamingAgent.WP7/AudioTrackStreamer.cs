@@ -212,7 +212,6 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             base.OnCancel();
 
-            Dispose();
         }
 
         void TryCancel()
@@ -230,6 +229,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
         public void Dispose()
         {
+            Debug.WriteLine("AudioTrackStreamer.Dispose()");
+
             if (0 != Interlocked.Exchange(ref _isDisposed, 1))
                 return;
 

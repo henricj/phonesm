@@ -29,6 +29,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
@@ -74,10 +75,14 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         }
 
 #if DEBUG
-        readonly Timer _memoryPoll = new Timer(
-            _ => Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
+        readonly Timer _memoryPoll = new Timer(_ => DumpMemory());
+
+        static void DumpMemory()
+        {
+            Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
                 DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB()));
+                DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB());
+        }
 #endif
 
         [Conditional("DEBUG")]
@@ -103,10 +108,12 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
                 null == track ? "<no track>" : track.Tag ?? "<none>");
 
-            var callNotifyComplete = true;
+            Debug.Assert(null == _mediaStreamFacade, "_mediaStreamFacade is in use");
+
             if (_cancellationTokenSource.IsCancellationRequested)
                 _cancellationTokenSource = new CancellationTokenSource();
 
+            var callCleanup = true;
 
             try
             {
@@ -125,6 +132,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 InitializeMediaStream();
 
+                Debug.Assert(null != _mediaStreamFacade);
+
                 var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationTokenSource.Token).ConfigureAwait(false);
 
                 if (null == mss)
@@ -137,7 +146,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 StartPoll();
 
-                callNotifyComplete = false;
+                callCleanup = false;
             }
             catch (Exception ex)
             {
@@ -145,8 +154,22 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             }
             finally
             {
-                if (callNotifyComplete)
-                    NotifyComplete();
+                if (callCleanup)
+                {
+                    Debug.WriteLine("AudioPlayer.OnBeginStreaming() cleanup");
+
+                    if (null == _mediaStreamFacade)
+                    {
+                        Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() NotifyComplete");
+                        NotifyComplete();
+                    }
+                    else
+                    {
+                        var cleanupTask = CleanupMediaStreamFacade();
+
+                        TaskCollector.Default.Add(cleanupTask, "OnBeginStreaming CleanupMediaStreamFacade");
+                    }
+                }
             }
         }
 
@@ -175,24 +198,72 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             if (TsMediaManager.MediaState.Closed == state || TsMediaManager.MediaState.Error == state)
             {
-                var mediaStreamFacade = _mediaStreamFacade;
+                var cleanupTask = CleanupMediaStreamFacade();
 
-                _mediaStreamFacade = null;
-
-                mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
-                mediaStreamFacade.CloseAsync().ContinueWith(
-                    t =>
-                    {
-                        mediaStreamFacade.DisposeSafe();
-
-                        var exception = t.Exception;
-
-                        Debug.WriteLine("AudioTrackStreamer.TsMediaManagerOnOnStateChange() calling NotifyComplete() exception " + exception);
-
-                        NotifyComplete();
-                        //Abort();
-                    });
+                TaskCollector.Default.Add(cleanupTask, "TsMediaManagerOnStateChange CleanupMediaStreamFacade");
             }
+        }
+
+        async Task CleanupMediaStreamFacade()
+        {
+            Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade()");
+
+            var mediaStreamFacade = Interlocked.Exchange(ref _mediaStreamFacade, null);
+
+            if (null == mediaStreamFacade)
+                return;
+
+            mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
+
+            try
+            {
+                var localMediaStreamFacade = mediaStreamFacade;
+
+                var closeTask = TaskEx.Run(() => localMediaStreamFacade.CloseAsync());
+
+                var task = await TaskEx.WhenAny(closeTask, TaskEx.Delay(6000)).ConfigureAwait(false);
+
+                var cleanupTask = closeTask.ContinueWith(t =>
+                {
+                    var ex = t.Exception;
+                    if (null != ex)
+                        Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade() CloseAsync() failed: " + ex.Message);
+
+                    localMediaStreamFacade.DisposeSafe();
+                });
+
+                if (!ReferenceEquals(task, closeTask))
+                {
+                    Debug.WriteLine("AudioTrackStreamer.TsMediaManagerOnStateChange CloseAsync timeout");
+
+                    Abort();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.TsMediaManagerOnStateChange CloseAsync failed: " + ex.ExtendedMessage());
+
+                Abort();
+            }
+
+            mediaStreamFacade = null;
+
+            Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade() NotifyComplete");
+            NotifyComplete();
+
+            // Should this Collect be inside the #if DEBUG?
+            // The available memory is usually only on the
+            // order of a couple of megabytes on a 512MB device.
+            // We are at a point where we can afford to stall
+            // for a while and we have just released a large
+            // number of objects.
+            GC.Collect();
+#if DEBUG
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            DumpMemory();
+#endif
         }
 
         /// <summary>
@@ -212,6 +283,9 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
             base.OnCancel();
 
+            var cleanupTask = CleanupMediaStreamFacade();
+
+            TaskCollector.Default.Add(cleanupTask, "OnCancel CleanupMediaStreamFacade");
         }
 
         void TryCancel()

@@ -121,9 +121,9 @@ namespace SM.Media.Web.HttpConnectionReader
             return response;
         }
 
-        public HttpConnectionRequest CreateWebRequest(Uri url)
+        public HttpConnectionRequest CreateWebRequest(Uri url, Uri referrer = null)
         {
-            return _webReaderManager.CreateRequest(url, null, this, ContentType);
+            return _webReaderManager.CreateRequest(url, referrer ?? _referrer, this, ContentType);
         }
 
         void Update(Uri url, IHttpConnectionResponse response, WebResponse webResponse)

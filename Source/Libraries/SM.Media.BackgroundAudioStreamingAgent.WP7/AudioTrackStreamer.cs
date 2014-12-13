@@ -64,6 +64,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                     }
             };
 
+            //MediaStreamFacadeSettings.Parameters.UseHttpConnection = true;
+
             _bufferingPolicy = new DefaultBufferingPolicy
             {
                 BytesMinimumStarting = 24 * 1024,

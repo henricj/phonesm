@@ -18,6 +18,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
 // The Blank Application template is documented at http://go.microsoft.com/fwlink/?LinkId=234227
+using SM.Media.Utility;
 
 namespace SamplePlayer.WinRT
 {
@@ -113,7 +114,7 @@ namespace SamplePlayer.WinRT
 
         void Application_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Debug.WriteLine("*** Unhandled exception: " + e.Exception.Message);
+            Debug.WriteLine("*** Unhandled exception: " + e.Exception.ExtendedMessage());
 
             if (Debugger.IsAttached)
                 Debugger.Break();
@@ -121,7 +122,7 @@ namespace SamplePlayer.WinRT
 
         void Application_UnobservedException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            Debug.WriteLine("*** Unobserved task exception {0}", e.Exception.Message);
+            Debug.WriteLine("*** Unobserved task exception {0}", e.Exception.ExtendedMessage());
 
             if (Debugger.IsAttached)
                 Debugger.Break();

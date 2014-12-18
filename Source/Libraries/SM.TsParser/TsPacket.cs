@@ -220,8 +220,21 @@ namespace SM.TsParser
                 {
                     if (_adaptationLength > PacketSize - 6)
                     {
-                        Debug.WriteLine("Invalid adaptation_field_length (with payload): " + _adaptationLength);
-                        _adaptationLength = PacketSize - 6;
+                        // ITU-T Rec. H.222.0 (05/2006) section 2.4.3.5 "Semantic definition of fields in adaptation field"
+                        // says,
+                        //
+                        // adaptation_field_length – The adaptation_field_length is an 8-bit field specifying the number of bytes in the
+                        // adaptation_field immediately following the adaptation_field_length. The value '0' is for inserting a single stuffing byte
+                        // in a Transport Stream packet. When the adaptation_field_control value is '11', the value of the adaptation_field_length
+                        // shall be in the range 0 to 182. When the adaptation_field_control value is '10', the value of the adaptation_field_length
+                        // shall be 183.
+                        //
+                        // However, being picky about '11' requiring a length less than 183 results in a great deal of noise, so we silently accept 183.
+                        if (PacketSize - 5 != _adaptationLength)
+                        {
+                            Debug.WriteLine("Invalid adaptation_field_length (with payload): " + _adaptationLength);
+                            _adaptationLength = PacketSize - 5;
+                        }
                     }
                 }
 

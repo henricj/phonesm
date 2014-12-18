@@ -84,6 +84,14 @@
       <Project>{45d9419a-d717-47e5-a095-c50ff477b302}</Project>
       <Name>SM.Media.BackgroundAudio.WP81</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\Libraries\SM.Media\SM.Media.csproj">
+      <Project>{5f1cdac0-d5c9-4c2c-84fd-d2a48d0d9be9}</Project>
+      <Name>SM.Media</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
+      <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+      <Name>SM.TsParser</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="Exists('..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\SM.Media.BackgroundAudio.WP81.csproj')">

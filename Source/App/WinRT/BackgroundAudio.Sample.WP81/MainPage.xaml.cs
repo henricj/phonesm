@@ -36,6 +36,7 @@ using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
+using SM.Media.Utility;
 
 namespace BackgroundAudio.Sample
 {
@@ -45,6 +46,7 @@ namespace BackgroundAudio.Sample
     public sealed partial class MainPage : Page
     {
         readonly Guid _id = Guid.NewGuid();
+        readonly DispatcherTimer _timer;
         Guid? _backgroundId;
         TaskCompletionSource<object> _backgroundRunningCompletionSource = new TaskCompletionSource<object>();
         MediaPlayer _mediaPlayer;
@@ -56,6 +58,32 @@ namespace BackgroundAudio.Sample
             InitializeComponent();
 
             NavigationCacheMode = NavigationCacheMode.Required;
+
+            _timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(0.6)
+            };
+
+            _timer.Tick += (sender, o) =>
+            {
+                var mediaPlayer = MediaPlayer;
+
+                if (null == mediaPlayer)
+                    return;
+
+                try
+                {
+                    var position = mediaPlayer.Position;
+
+                    txtPosition.Text = position.ToString();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MainPage position update failed: " + ex.Message);
+                }
+
+                NotifyBackground("memory");
+            };
         }
 
         MediaPlayer MediaPlayer
@@ -85,9 +113,13 @@ namespace BackgroundAudio.Sample
                     RefreshUi(_mediaPlayer.CurrentState, _trackName);
 
                     PingBackground();
+
+                    _timer.Start();
                 }
                 else
                 {
+                    _timer.Stop();
+
                     _trackName = null;
                     RefreshUi(MediaPlayerState.Closed, null);
                 }
@@ -177,6 +209,8 @@ namespace BackgroundAudio.Sample
             BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
 
             Suspend();
+
+            _timer.Stop();
         }
 
         void OnResuming(object sender, object o)
@@ -225,12 +259,24 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MainPage.OnMessageReceivedFromBackground()");
 
+            long? memoryValue = null;
+            ulong? appMemoryValue = null;
+            ulong? appMemoryLimitValue = null;
+            var updateMemory = false;
+
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
                 Debug.WriteLine(" b->f {0}: {1}", kv.Key, kv.Value);
 
                 try
                 {
+                    if (null == kv.Key)
+                    {
+                        Debug.WriteLine("*** MainPage.OnMessageReceivedFromBackground() null key");
+
+                        continue; // This does happen.  It shouldn't, but it does.
+                    }
+
                     switch (kv.Key.ToLowerInvariant())
                     {
                         case "ping":
@@ -257,11 +303,32 @@ namespace BackgroundAudio.Sample
                         case "track":
                             _trackName = kv.Value as string;
                             RequestRefresh();
+
                             break;
                         case "fail":
                             {
                                 var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => MediaPlayer = null);
                             }
+
+                            break;
+                        case "memory":
+                            memoryValue = kv.Value as long?;
+                            if (memoryValue.HasValue)
+                                updateMemory = true;
+
+                            break;
+                        case "appmemory":
+                            appMemoryValue = kv.Value as ulong?;
+                            if (appMemoryValue.HasValue)
+                                updateMemory = true;
+
+                            break;
+
+                        case "appmemorylimit":
+                            appMemoryLimitValue = kv.Value as ulong?;
+                            if (appMemoryLimitValue.HasValue)
+                                updateMemory = true;
+
                             break;
                     }
                 }
@@ -269,6 +336,14 @@ namespace BackgroundAudio.Sample
                 {
                     Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() failed: " + ex.Message);
                 }
+            }
+
+            if (updateMemory)
+            {
+                var memoryString = string.Format("{0:F2}MiB {1:F2}MiB/{2:F2}MiB",
+                    memoryValue.BytesToMiB(), appMemoryValue.BytesToMiB(), appMemoryLimitValue.BytesToMiB());
+
+                var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low, () => txtMemory.Text = memoryString);
             }
         }
 
@@ -293,6 +368,7 @@ namespace BackgroundAudio.Sample
 
                     if (null == mediaPlayer)
                     {
+                        txtPosition.Text = string.Empty;
                         RefreshUi(MediaPlayerState.Closed, null);
                         return;
                     }
@@ -341,7 +417,7 @@ namespace BackgroundAudio.Sample
 
         void NotifyBackground(string key, object value = null, bool ping = false)
         {
-            Debug.WriteLine("MainPage.NotifyBackground() " + _id);
+            Debug.WriteLine("MainPage.NotifyBackground() " + _id + ": " + key);
 
             try
             {
@@ -357,6 +433,11 @@ namespace BackgroundAudio.Sample
                 Debug.WriteLine("MainPage.NotifyBackground() failed: " + ex.Message);
                 MediaPlayer = null;
             }
+        }
+
+        void gcButton_Click(object sender, RoutedEventArgs e)
+        {
+            NotifyBackground("gc");
         }
 
         #region Button Click Event Handlers

@@ -48,17 +48,23 @@ namespace SM.Media.BackgroundAudio
 
 #if DEBUG
         readonly Timer _memoryPoll = new Timer(
-            _ => Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
-                MemoryManager.AppMemoryUsage.BytesToMiB(),
-                MemoryManager.AppMemoryUsageLimit.BytesToMiB()),
-                null, Timeout.Infinite, Timeout.Infinite);
+            _ => DumpMemory(),
+            null, Timeout.Infinite, Timeout.Infinite);
 #endif
+
+        [Conditional("DEBUG")]
+        static void DumpMemory()
+        {
+            Debug.WriteLine("<{0:F2}MiB/{1:F2}MiB>",
+                MemoryManager.AppMemoryUsage.BytesToMiB(),
+                MemoryManager.AppMemoryUsageLimit.BytesToMiB());
+        }
 
         [Conditional("DEBUG")]
         void StartPoll()
         {
 #if DEBUG
-            _memoryPoll.Change(TimeSpan.Zero, TimeSpan.FromSeconds(15));
+            _memoryPoll.Change(TimeSpan.Zero, TimeSpan.FromSeconds(3));
 #endif
         }
 
@@ -69,7 +75,6 @@ namespace SM.Media.BackgroundAudio
             _memoryPoll.Change(Timeout.Infinite, Timeout.Infinite);
 #endif
         }
-
 
         #region IBackgroundTask Members
 
@@ -143,9 +148,18 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("SmMediaBackgroundAudioTask.NotifyForeground() " + _id);
 
+            var valueSet = new ValueSet { { key, value } };
+
+            NotifyForeground(valueSet);
+        }
+
+        void NotifyForeground(ValueSet valueSet)
+        {
+            valueSet["Id"] = _id;
+
             try
             {
-                BackgroundMediaPlayer.SendMessageToForeground(new ValueSet { { key, value }, { "Id", _id } });
+                BackgroundMediaPlayer.SendMessageToForeground(valueSet);
             }
             catch (Exception ex)
             {
@@ -173,6 +187,13 @@ namespace SM.Media.BackgroundAudio
             {
                 Debug.WriteLine(" f->b {0}: {1}", kv.Key, kv.Value);
 
+                if (null == kv.Key)
+                {
+                    Debug.WriteLine("*** SmMediaBackgroundAudioTask.BackgroundMediaPlayerOnMessageReceivedFromForeground() null key");
+
+                    continue; // This does happen.  It shouldn't, but it does.
+                }
+
                 try
                 {
                     switch (kv.Key.ToLowerInvariant())
@@ -195,6 +216,25 @@ namespace SM.Media.BackgroundAudio
                                 HandleSmtcButton(button);
                             }
                             break;
+                        case "memory":
+                            NotifyForegroundMemory();
+                            break;
+                        case "gc":
+                            var task = Task.Run(() =>
+                            {
+                                DumpMemory();
+                                Debug.WriteLine("Force GC: {0:F2}MiB", GC.GetTotalMemory(false).BytesToMiB());
+
+                                GC.Collect();
+                                GC.WaitForPendingFinalizers();
+                                GC.Collect();
+
+                                Debug.WriteLine("Forced GC: {0:F2}MiB", GC.GetTotalMemory(true).BytesToMiB());
+                                DumpMemory();
+
+                                NotifyForegroundMemory();
+                            });
+                            break;
                     }
                 }
                 catch (Exception ex)
@@ -202,6 +242,16 @@ namespace SM.Media.BackgroundAudio
                     Debug.WriteLine("SmMediaBackgroundAudioTask.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " failed: " + ex.Message);
                 }
             }
+        }
+
+        void NotifyForegroundMemory()
+        {
+            NotifyForeground(new ValueSet
+            {
+                { "memory", GC.GetTotalMemory(false) },
+                { "appMemory", MemoryManager.AppMemoryUsage },
+                { "appMemoryLimit", MemoryManager.AppMemoryUsageLimit },
+            });
         }
 
         void CurrentOnCurrentStateChanged(MediaPlayer sender, object args)

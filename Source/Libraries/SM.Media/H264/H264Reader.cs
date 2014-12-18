@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using SM.Media.Utility;
@@ -192,8 +193,10 @@ namespace SM.Media.H264
 
             if (_slicePicParameterSetId == _picParameterSetId && _ppsSeqParameterSetId == _seqParameterSetId)
             {
-                if (!ComputeFrameRate())
-                    return false;
+                var gotFrameRate = ComputeFrameRate();
+
+                if (!gotFrameRate)
+                    Debug.WriteLine("H264Reader.ReaderCheckConfigure() unable to get frame rate");
 
                 return true;
             }
@@ -617,6 +620,7 @@ namespace SM.Media.H264
 
                 var dpb_output_delay = r.ReadBits((int)_dpbOutputDelayLengthMinus1.Value + 1);
             }
+
             if (_picStructPresentFlag.HasValue && _picStructPresentFlag.Value)
             {
                 var pic_struct = r.ReadBits(4);
@@ -694,9 +698,7 @@ namespace SM.Media.H264
             if (_picStructPresentFlag.Value)
             {
                 if (!_picStruct.HasValue)
-                {
                     return false;
-                }
 
                 var pic_struct = _picStruct.Value;
 

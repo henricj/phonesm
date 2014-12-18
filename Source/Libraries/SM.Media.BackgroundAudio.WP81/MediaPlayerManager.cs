@@ -53,6 +53,8 @@ namespace SM.Media.BackgroundAudio
 
             _mediaPlayer = mediaPlayer;
 
+            //MediaStreamFacadeSettings.Parameters.UseHttpConnection = true;
+
             _mediaManagerParameters = new MediaManagerParameters
             {
                 ProgramStreamsHandler =

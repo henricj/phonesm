@@ -458,8 +458,7 @@ namespace SM.Media.Hls
                 if (segments.Length > 0)
                 {
                     if (null != lastPlaylist
-                        && lastPlaylist[0].MediaSequence == segments[0].MediaSequence
-                        && (segments[0].MediaSequence.HasValue || lastPlaylist[0].Url == segments[0].Url)
+                        && SegmentsMatch(lastPlaylist[0], segments[0])
                         && lastPlaylist.Length == segments.Length)
                     {
                         // We are running out of playlist, but the server just gave us the
@@ -517,20 +516,19 @@ namespace SM.Media.Hls
 
                 for (var i = 0; i < previousPlaylist.Length; ++i)
                 {
-                    if (previousPlaylist[i].MediaSequence.HasValue && previousPlaylist[i].MediaSequence == playlist[0].MediaSequence
-                        || !previousPlaylist[i].MediaSequence.HasValue && previousPlaylist[i].Url == playlist[0].Url)
+                    if (!SegmentsMatch(previousPlaylist[i], playlist[0]))
+                        continue;
+
+                    for (var j = 1; j < playlist.Length; ++j)
                     {
-                        for (var j = 0; j < playlist.Length; ++j)
-                        {
-                            if (i + j < previousPlaylist.Length && previousPlaylist[i + j].Url == playlist[j].Url)
-                                continue;
+                        if (i + j < previousPlaylist.Length && SegmentsMatch(previousPlaylist[i + j], playlist[j]))
+                            continue;
 
-                            _segmentList.Add(playlist[j]);
-                        }
-
-                        found = true;
-                        break;
+                        _segmentList.Add(playlist[j]);
                     }
+
+                    found = true;
+                    break;
                 }
 
                 if (!found)
@@ -548,6 +546,14 @@ namespace SM.Media.Hls
             SetDynamicStartIndex(segments, segments.Length - lastLength - 1);
 
             return segments;
+        }
+
+        static bool SegmentsMatch(ISegment a, ISegment b)
+        {
+            if (a.MediaSequence.HasValue && b.MediaSequence.HasValue)
+                return a.MediaSequence.Value == b.MediaSequence.Value;
+
+            return a.Url == b.Url;
         }
 
         void SetDynamicStartIndex(IList<ISegment> segments, int notBefore)

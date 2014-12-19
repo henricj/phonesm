@@ -205,9 +205,7 @@ namespace SM.Media
 
                     var mediaManager = MediaManager;
 
-                    if (null == mediaManager)
-                        mediaManager = await CreateMediaManagerAsync(linkedToken.Token).ConfigureAwait(false);
-                    else
+                    if (null != mediaManager)
                         await StopMediaAsync(mediaManager, linkedToken.Token).ConfigureAwait(false);
 
                     _closeCancellationTokenSource.Dispose();
@@ -215,6 +213,8 @@ namespace SM.Media
 
                     if (null == source)
                         return null;
+
+                    mediaManager = MediaManager ?? await CreateMediaManagerAsync(linkedToken.Token).ConfigureAwait(false);
 
                     var configurator = await mediaManager.OpenMediaAsync(new[] { source }, linkedToken.Token).ConfigureAwait(false);
 

@@ -388,36 +388,37 @@ namespace SM.Media
         {
             Debug.WriteLine("MediaStreamFacadeBase.UnlockedCloseMediaAsync()");
 
-            if (!_closeCancellationTokenSource.IsCancellationRequested)
-                _closeCancellationTokenSource.Cancel();
-
             IMediaManager mm;
 
             lock (_lock)
             {
                 mm = _mediaManager;
+
+                if (null == mm || !ReferenceEquals(mm, mediaManager))
+                    return;
+
                 _mediaManager = null;
             }
 
-            if (null != mm && ReferenceEquals(mm, mediaManager))
+            if (!_closeCancellationTokenSource.IsCancellationRequested)
+                _closeCancellationTokenSource.Cancel();
+
+            try
             {
-                try
-                {
-                    Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() calling mediaManager.CloseAsync()");
+                Debug.WriteLine("MediaStreamFacadeBase.UnlockedCloseMediaManagerAsync() calling mediaManager.CloseAsync()");
 
-                    await mm.CloseMediaAsync().ConfigureAwait(false);
+                await mm.CloseMediaAsync().ConfigureAwait(false);
 
-                    Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() returned from mediaManager.CloseAsync()");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() Media manager close failed: " + ex.Message);
-                }
-
-                CleanupMediaManager(mm);
+                Debug.WriteLine("MediaStreamFacadeBase.UnlockedCloseMediaManagerAsync() returned from mediaManager.CloseAsync()");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaStreamFacadeBase.UnlockedCloseMediaManagerAsync() Media manager close failed: " + ex.Message);
             }
 
-            Debug.WriteLine("MediaStreamFacadeBase.CloseMediaAsync() completed");
+            CleanupMediaManager(mm);
+
+            Debug.WriteLine("MediaStreamFacadeBase.UnlockedCloseMediaManagerAsync() completed");
         }
 
         async void MediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)

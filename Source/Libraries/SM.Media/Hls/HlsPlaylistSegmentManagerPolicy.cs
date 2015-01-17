@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HlsPlaylistSegmentManagerPolicy.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -43,7 +43,7 @@ namespace SM.Media.Hls
 
     public class HlsPlaylistSegmentManagerPolicy : IHlsPlaylistSegmentManagerPolicy
     {
-        public static Func<IEnumerable<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
+        public static Func<ICollection<ISubProgram>, ISubProgram> SelectSubProgram = programs => programs.FirstOrDefault();
         readonly Func<HlsProgramManager> _programManagerFactory;
 
         public HlsPlaylistSegmentManagerPolicy(Func<HlsProgramManager> programManagerFactory)

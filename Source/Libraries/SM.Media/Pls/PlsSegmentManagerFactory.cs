@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="PlsSegmentManagerFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,18 +41,21 @@ namespace SM.Media.Pls
     public class PlsSegmentManagerFactory : ISegmentManagerFactoryInstance
     {
         static readonly ICollection<ContentType> Types = new[] { ContentTypes.Pls };
+        readonly IPlsSegmentManagerPolicy _plsSegmentManagerPolicy;
         readonly IRetryManager _retryManager;
-
         readonly IWebReaderManager _webReaderManager;
 
-        public PlsSegmentManagerFactory(IWebReaderManager webReaderManager, IRetryManager retryManager)
+        public PlsSegmentManagerFactory(IWebReaderManager webReaderManager, IPlsSegmentManagerPolicy plsSegmentManagerPolicy, IRetryManager retryManager)
         {
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
+            if (null == plsSegmentManagerPolicy)
+                throw new ArgumentNullException("plsSegmentManagerPolicy");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
             _webReaderManager = webReaderManager;
+            _plsSegmentManagerPolicy = plsSegmentManagerPolicy;
             _retryManager = retryManager;
         }
 
@@ -63,7 +66,7 @@ namespace SM.Media.Pls
             get { return Types; }
         }
 
-        public async Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
+        public virtual async Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
             foreach (var url in parameters.Source)
             {
@@ -109,29 +112,12 @@ namespace SM.Media.Pls
 
         #endregion
 
-        async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, IWebReader webReader, CancellationToken cancellationToken)
+        protected virtual async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, IWebReader webReader, CancellationToken cancellationToken)
         {
-            var playlistUri = webReader.RequestUri;
+            var trackUrl = await _plsSegmentManagerPolicy.GetTrackAsync(pls, webReader.ContentType, cancellationToken);
 
-            var tracks = pls.Tracks;
-
-            if (tracks.Count < 1)
+            if (null == trackUrl)
                 return null;
-
-            if (tracks.Count > 1)
-                Debug.WriteLine("PlsSegmentManagerFactory.CreateSegmentManager() multiple tracks are not supported");
-
-            var track = tracks.First();
-
-            if (null == track.File)
-                Debug.WriteLine("PlsSegmentManagerFactory.CreateSegmentManager() track does not have a file");
-
-            Uri trackUrl;
-            if (!Uri.TryCreate(playlistUri, track.File, out trackUrl))
-            {
-                Debug.WriteLine("PlsSegmentManagerFactory.CreateSegmentManager() invalid track file: " + track.File);
-                return null;
-            }
 
             var contentType = await webReader.DetectContentTypeAsync(trackUrl, ContentKind.AnyMedia, cancellationToken).ConfigureAwait(false);
 
@@ -160,9 +146,9 @@ namespace SM.Media.Pls
             }
         }
 
-        async Task<ISegmentManager> ReadPlaylistAsync(IWebReader webReader, Uri url, Stream stream, CancellationToken cancellationToken)
+        protected virtual async Task<ISegmentManager> ReadPlaylistAsync(IWebReader webReader, Uri url, Stream stream, CancellationToken cancellationToken)
         {
-            var pls = new PlsParser();
+            var pls = new PlsParser(url);
 
             using (var tr = new StreamReader(stream))
             {

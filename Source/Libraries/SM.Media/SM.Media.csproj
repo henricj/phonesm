@@ -128,6 +128,7 @@
     <Compile Include="Playlists\PlaylistDefaults.cs" />
     <Compile Include="Hls\HlsPlaylistSegmentManagerPolicy.cs" />
     <Compile Include="Hls\HlsProgramStream.cs" />
+    <Compile Include="Pls\PlsSegmentManagerPolicy.cs" />
     <Compile Include="Segments\ISegmentManagerFactoryInstance.cs" />
     <Compile Include="Segments\SegmentManagerParameters.cs" />
     <Compile Include="Segments\SegmentReaderManagerFactory.cs" />

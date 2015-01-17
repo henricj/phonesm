@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="PlsParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,10 +37,19 @@ namespace SM.Media.Pls
     public class PlsParser
     {
         readonly Dictionary<int, PlsTrack> _tracks = new Dictionary<int, PlsTrack>();
+        readonly Uri _url;
         bool _foundPlaylist;
         int? _numberOfEntries;
         PlsTrack[] _orderedTracks;
         int? _version;
+
+        public PlsParser(Uri url)
+        {
+            if (null == url)
+                throw new ArgumentNullException("url");
+
+            _url = url;
+        }
 
         public int? Version
         {
@@ -50,6 +59,11 @@ namespace SM.Media.Pls
         public ICollection<PlsTrack> Tracks
         {
             get { return _orderedTracks; }
+        }
+
+        public Uri BaseUrl
+        {
+            get { return _url; }
         }
 
         public async Task<bool> Parse(TextReader tr)

@@ -444,6 +444,9 @@
     <Compile Include="..\SM.Media\Pls\PlsSegmentManagerFactory.cs">
       <Link>Pls\PlsSegmentManagerFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Pls\PlsSegmentManagerPolicy.cs">
+      <Link>Pls\PlsSegmentManagerPolicy.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Pls\PlsTrack.cs">
       <Link>Pls\PlsTrack.cs</Link>
     </Compile>

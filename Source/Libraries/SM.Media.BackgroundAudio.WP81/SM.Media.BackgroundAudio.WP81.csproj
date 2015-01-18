@@ -46,11 +46,18 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Choose>
-    <When Condition="Exists('..\SM.Media.Builder\SM.Media.Builder.csproj')" />
+    <When Condition="Exists('..\SM.Media.Builder\SM.Media.Builder.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.Media.Builder\SM.Media.Builder.csproj">
+          <Project>{e7ddfad9-00bd-4f60-8873-4a34b80e9acb}</Project>
+          <Name>SM.Media.Builder</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
     <Otherwise>
       <ItemGroup>
         <Reference Include="SM.Media.Builder">
-          <HintPath>..\..\bin\SM.Media.Builder.dll</HintPath>
+          <HintPath>..\..\bin\$(Configuration)\SM.Media.Builder.dll</HintPath>
         </Reference>
       </ItemGroup>
     </Otherwise>

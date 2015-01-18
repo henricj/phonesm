@@ -64,6 +64,8 @@ namespace BackgroundAudio.Sample
                 Interval = TimeSpan.FromSeconds(0.6)
             };
 
+            var count = 0;
+
             _timer.Tick += (sender, o) =>
             {
                 var mediaPlayer = MediaPlayer;
@@ -81,6 +83,11 @@ namespace BackgroundAudio.Sample
                 {
                     Debug.WriteLine("MainPage position update failed: " + ex.Message);
                 }
+
+                if (++count < 5)
+                    return;
+
+                count = 0;
 
                 NotifyBackground("memory");
             };

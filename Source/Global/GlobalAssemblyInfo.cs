@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="GlobalAssemblyInfo.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2011-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2011-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ using System.Resources;
 
 [assembly: AssemblyCompany("Henric Jungheim")]
 [assembly: AssemblyProduct("Streaming Media")]
-[assembly: AssemblyCopyright("Copyright © 2011-2014 Henric Jungheim")]
+[assembly: AssemblyCopyright("Copyright © 2011-2015 Henric Jungheim")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: NeutralResourcesLanguage("en-US")]

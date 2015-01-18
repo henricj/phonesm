@@ -6,7 +6,7 @@
 call "%VS120COMNTOOLS%vsvars32.bat"
 @if %errorlevel% neq 0 goto errorexit
 
-msbuild /m /consoleloggerparameters:Summary /verbosity:minimal "%~dp0build2013.proj"
+msbuild /m /consoleLoggerParameters:Summary /verbosity:minimal /fileLogger /fileLoggerParameters:Summary;Verbosity=normal;LogFile=build2013.log "%~dp0build2013.proj"
 @if %errorlevel% neq 0 goto errorexit
 
 @endlocal

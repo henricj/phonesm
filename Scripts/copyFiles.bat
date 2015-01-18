@@ -108,6 +108,10 @@ copy Libraries\SM.Media.MediaPlayer.WP81\*.cs ..\Distribution\Libraries\SM.Media
 copy Libraries\SM.Media.MediaPlayer.WP81\SM.Media.MediaPlayer.WP81.csproj ..\Distribution\Libraries\SM.Media.MediaPlayer.WP81\
 copy Libraries\SM.Media.MediaPlayer.WP81\Properties\*.cs ..\Distribution\Libraries\SM.Media.MediaPlayer.WP81\Properties\
 
+copy Libraries\SM.Media.BackgroundAudio.WP81\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudio.WP81\
+copy Libraries\SM.Media.BackgroundAudio.WP81\SM.Media.BackgroundAudio.WP81.csproj ..\Distribution\Libraries\SM.Media.BackgroundAudio.WP81\
+copy Libraries\SM.Media.BackgroundAudio.WP81\Properties\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudio.WP81\Properties\
+
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\packages.config ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\*.cs ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
 copy Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\SM.Media.BackgroundAudioStreamingAgent.WP7.csproj ..\Distribution\Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
@@ -158,6 +162,13 @@ copy Phone\BackgroundAudio.Sample.WP8\Properties\*.cs ..\Distribution\Phone\Back
 copy Phone\BackgroundAudio.Sample.WP8\Properties\*.xml ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Properties\
 copy Phone\BackgroundAudio.Sample.WP8\Resources\*.cs ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Resources\
 copy Phone\BackgroundAudio.Sample.WP8\Resources\*.resx ..\Distribution\Phone\BackgroundAudio.Sample.WP8\Resources\
+
+copy App\WinRT\BackgroundAudio.Sample.WP81\*.xaml ..\Distribution\App\WinRT\BackgroundAudio.Sample.WP81\
+copy App\WinRT\BackgroundAudio.Sample.WP81\*.cs ..\Distribution\App\WinRT\BackgroundAudio.Sample.WP81\
+copy App\WinRT\BackgroundAudio.Sample.WP81\BackgroundAudio.Sample.WP81.csproj ..\Distribution\App\WinRT\BackgroundAudio.Sample.WP81\
+copy App\WinRT\BackgroundAudio.Sample.WP81\Package.appxmanifest ..\Distribution\App\WinRT\BackgroundAudio.Sample.WP81\
+copy App\WinRT\BackgroundAudio.Sample.WP81\Assets\*.png ..\Distribution\App\WinRT\BackgroundAudio.Sample.WP81\Assets\
+copy App\WinRT\BackgroundAudio.Sample.WP81\Properties\*.cs ..\Distribution\App\WinRT\BackgroundAudio.Sample.WP81\Properties\
 
 copy App\WinRT\HlsView.Win81\*.xaml ..\Distribution\App\WinRT\HlsView.Win81\
 copy App\WinRT\HlsView.Win81\*.cs ..\Distribution\App\WinRT\HlsView.Win81\

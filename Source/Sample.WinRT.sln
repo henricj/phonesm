@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "HlsView.WinRT.Shared", "App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.shproj", "{7D9F3B7C-F572-4E3E-9DC4-8FB11CE51977}"
 EndProject
@@ -24,6 +24,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplePlayer.Win81", "App\WinRT\SamplePlayer.Win81\SamplePlayer.Win81.csproj", "{60909973-3882-4306-8236-C188ED185CA8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{DF9EC143-3726-48CF-9897-0436B082B7BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.BackgroundAudio.WP81", "Libraries\SM.Media.BackgroundAudio.WP81\SM.Media.BackgroundAudio.WP81.csproj", "{45D9419A-D717-47E5-A095-C50FF477B302}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackgroundAudio.Sample.WP81", "App\WinRT\BackgroundAudio.Sample.WP81\BackgroundAudio.Sample.WP81.csproj", "{E3BF6762-FEB6-4462-9667-92F96C5709B7}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -129,6 +133,30 @@ Global
 		{60909973-3882-4306-8236-C188ED185CA8}.Release|x86.ActiveCfg = Release|x86
 		{60909973-3882-4306-8236-C188ED185CA8}.Release|x86.Build.0 = Release|x86
 		{60909973-3882-4306-8236-C188ED185CA8}.Release|x86.Deploy.0 = Release|x86
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Debug|ARM.Build.0 = Debug|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Debug|x86.Build.0 = Debug|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Release|ARM.ActiveCfg = Release|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Release|ARM.Build.0 = Release|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Release|x64.ActiveCfg = Release|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Release|x86.ActiveCfg = Release|Any CPU
+		{45D9419A-D717-47E5-A095-C50FF477B302}.Release|x86.Build.0 = Release|Any CPU
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|ARM.ActiveCfg = Debug|ARM
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|ARM.Build.0 = Debug|ARM
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|ARM.Deploy.0 = Debug|ARM
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|x86.ActiveCfg = Debug|x86
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|x86.Build.0 = Debug|x86
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Debug|x86.Deploy.0 = Debug|x86
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|ARM.ActiveCfg = Release|ARM
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|ARM.Build.0 = Release|ARM
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|ARM.Deploy.0 = Release|ARM
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|x64.ActiveCfg = Release|Any CPU
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|x86.ActiveCfg = Release|x86
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|x86.Build.0 = Release|x86
+		{E3BF6762-FEB6-4462-9667-92F96C5709B7}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -142,5 +170,6 @@ Global
 		{B0A3B688-F2EC-4066-ACDE-92C281C332B2} = {94C3F630-2798-4B7B-8E73-833899264339}
 		{283E62BC-4128-4DBB-BBC5-A1EE2CEBE822} = {94C3F630-2798-4B7B-8E73-833899264339}
 		{60909973-3882-4306-8236-C188ED185CA8} = {94C3F630-2798-4B7B-8E73-833899264339}
+		{45D9419A-D717-47E5-A095-C50FF477B302} = {DF9EC143-3726-48CF-9897-0436B082B7BF}
 	EndGlobalSection
 EndGlobal

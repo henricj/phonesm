@@ -14,6 +14,9 @@ md .nuget\
 
 md App\
 md App\WinRT\
+md App\WinRT\BackgroundAudio.Sample.WP81\
+md App\WinRT\BackgroundAudio.Sample.WP81\Assets\
+md App\WinRT\BackgroundAudio.Sample.WP81\Properties\
 md App\WinRT\HlsView.Win81\
 md App\WinRT\HlsView.Win81\Assets\
 md App\WinRT\HlsView.Win81\Properties\
@@ -51,6 +54,8 @@ md Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\
 md Libraries\SM.Media.BackgroundAudioStreamingAgent.WP7\Properties\
 md Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\
 md Libraries\SM.Media.BackgroundAudioStreamingAgent.WP8\Properties\
+md Libraries\SM.Media.BackgroundAudio.WP81\
+md Libraries\SM.Media.BackgroundAudio.WP81\Properties\
 md Libraries\SM.Media.Platform.WP7\
 md Libraries\SM.Media.MediaPlayer.WP7\
 md Libraries\SM.Media.MediaPlayer.WP7\Properties\

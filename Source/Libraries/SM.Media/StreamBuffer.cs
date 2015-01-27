@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="StreamBuffer.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -227,8 +227,11 @@ namespace SM.Media
             _freePesPacket(packet);
         }
 
-        public void DiscardPacketsBefore(TimeSpan value)
+        public bool DiscardPacketsBefore(TimeSpan value)
         {
+            bool isEmpty;
+            var discarded = false;
+
             lock (_packetsLock)
             {
                 while (_packets.Count > 0)
@@ -236,13 +239,24 @@ namespace SM.Media
                     var packet = _packets.Peek();
 
                     if (packet.PresentationTimestamp >= value)
-                        return;
+                        break;
 
                     _packets.Dequeue();
 
                     FreeSample(packet);
+
+                    discarded = true;
                 }
+
+                isEmpty = !_bufferingManager.IsBuffering;
             }
+
+            if (isEmpty)
+                _bufferingManager.ReportExhaustion();
+            else
+                _bufferingManager.Refresh();
+
+            return discarded;
         }
 
         #endregion

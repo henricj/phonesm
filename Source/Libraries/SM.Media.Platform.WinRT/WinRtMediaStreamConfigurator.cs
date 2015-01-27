@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="WinRtMediaStreamConfigurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -156,6 +156,17 @@ namespace SM.Media
                 return TplTaskExtensions.CompletedTask;
 
             return tcs.Task;
+        }
+
+        void CancelPending()
+        {
+            Debug.WriteLine("WinRtMediaStreamConfigurator.CancelPending()");
+
+            if (null != _videoStreamState)
+                _videoStreamState.Cancel();
+
+            if (null != _audioStreamState)
+                _audioStreamState.Cancel();
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
@@ -388,7 +399,7 @@ namespace SM.Media
 
         void MediaStreamSourceOnPaused(MediaStreamSource sender, object args)
         {
-            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnPaused()");
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnPaused() pts " + CurrentTimestamp());
 
             NotifyOnError(sender);
         }
@@ -484,6 +495,8 @@ namespace SM.Media
 
             Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting({0})", startPosition);
 
+            CancelPending();
+
             if (NotifyOnError(sender))
                 return;
 
@@ -501,13 +514,21 @@ namespace SM.Media
 
                 try
                 {
-                    var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
+                    var pts = ResyncPresentationTimestamp();
+
+                    if (!pts.HasValue)
+                    {
+                        Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() deferring after resync");
+
+                        _onStartingRequest = args.Request;
+                        _onStartingDeferral = args.Request.GetDeferral();
+
+                        return;
+                    }
 
                     Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() actual " + pts);
 
-                    request.SetActualStartPosition(pts);
-
-                    CheckForSamples();
+                    request.SetActualStartPosition(pts.Value);
                 }
                 catch (Exception ex)
                 {
@@ -530,8 +551,6 @@ namespace SM.Media
                 Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnStarting() actual seek " + actual);
 
                 request.SetActualStartPosition(actual);
-
-                CheckForSamples();
             }
             catch (Exception ex)
             {
@@ -573,23 +592,35 @@ namespace SM.Media
         {
             Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting()");
 
+            if (null == _onStartingDeferral)
+                return;
+
             if (IsBuffering)
                 return;
 
-            var deferral = Interlocked.Exchange(ref _onStartingDeferral, null);
-
-            if (null == deferral)
-                return;
+            MediaStreamSourceStartingRequestDeferral deferral = null;
 
             try
             {
-                var pts = ResyncPresentationTimestamp() ?? TimeSpan.Zero;
+                var pts = ResyncPresentationTimestamp();
+
+                if (!pts.HasValue)
+                {
+                    Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting() no timestamp after resync");
+
+                    return;
+                }
+
+                deferral = Interlocked.Exchange(ref _onStartingDeferral, null);
+
+                if (null == deferral)
+                    return;
 
                 Debug.WriteLine("WinRtMediaStreamConfigurator.CompleteOnStarting() pts " + pts);
 
                 if (null != _onStartingRequest)
                 {
-                    _onStartingRequest.SetActualStartPosition(pts);
+                    _onStartingRequest.SetActualStartPosition(pts.Value);
                     _onStartingRequest = null;
                 }
                 else
@@ -606,47 +637,73 @@ namespace SM.Media
             }
             finally
             {
-                deferral.Complete();
+                if (null != deferral)
+                    deferral.Complete();
             }
         }
 
         TimeSpan? ResyncPresentationTimestamp()
         {
+            if (null != _videoStreamState && _videoStreamState.PresentationTimestamp.HasValue
+                && null != _audioStreamState && _audioStreamState.PresentationTimestamp.HasValue)
+            {
+                var videoTimestamp = _videoStreamState.PresentationTimestamp.Value;
+                var audioTimestamp = _audioStreamState.PresentationTimestamp.Value;
+
+                var difference = audioTimestamp - videoTimestamp;
+
+                if (difference > ResyncThreshold)
+                {
+                    var discarded = _videoStreamState.DiscardPacketsBefore(audioTimestamp);
+
+                    if (discarded)
+                        Debug.WriteLine("WinRtMediaStreamConfigurator.ResyncPresentationTimestamp() discarded video samples before " + audioTimestamp);
+                }
+                else if (difference < -ResyncThreshold)
+                {
+                    var discarded = _audioStreamState.DiscardPacketsBefore(videoTimestamp);
+
+                    if (discarded)
+                        Debug.WriteLine("WinRtMediaStreamConfigurator.ResyncPresentationTimestamp() discarded audio samples before " + videoTimestamp);
+                }
+            }
+
+            return CurrentTimestamp();
+        }
+
+        /// <summary>
+        ///     Return the earliest timestamp in all the streams.  If a valid
+        ///     stream does not have a timestamp, then return null.
+        /// </summary>
+        /// <returns></returns>
+        TimeSpan? CurrentTimestamp()
+        {
             TimeSpan? videoTimestamp = null;
             TimeSpan? audioTimestamp = null;
 
             if (null != _videoStreamState)
+            {
                 videoTimestamp = _videoStreamState.PresentationTimestamp;
 
+                if (!videoTimestamp.HasValue)
+                    return null;
+            }
+
             if (null != _audioStreamState)
+            {
                 audioTimestamp = _audioStreamState.PresentationTimestamp;
 
-            if (videoTimestamp.HasValue && audioTimestamp.HasValue)
-            {
-                var difference = audioTimestamp.Value - videoTimestamp.Value;
-
-                if (difference > ResyncThreshold)
-                {
-                    _videoStreamState.DiscardPacketsBefore(audioTimestamp.Value);
-                    videoTimestamp = _videoStreamState.PresentationTimestamp;
-                }
-                else if (difference < -ResyncThreshold)
-                {
-                    _audioStreamState.DiscardPacketsBefore(videoTimestamp.Value);
-                    audioTimestamp = _audioStreamState.PresentationTimestamp;
-                }
+                if (!audioTimestamp.HasValue)
+                    return null;
             }
 
-            if (audioTimestamp.HasValue)
-            {
-                if (!videoTimestamp.HasValue)
-                    return audioTimestamp;
+            if (!audioTimestamp.HasValue)
+                return videoTimestamp;
 
-                if (audioTimestamp.Value < videoTimestamp.Value)
-                    videoTimestamp = audioTimestamp.Value;
-            }
+            if (!videoTimestamp.HasValue)
+                return audioTimestamp;
 
-            return videoTimestamp;
+            return audioTimestamp.Value < videoTimestamp.Value ? audioTimestamp.Value : videoTimestamp.Value;
         }
 
         public async Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)

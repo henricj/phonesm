@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsPlaylistSegmentManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -435,7 +435,7 @@ namespace SM.Media.Hls
             }
 
             Debug.WriteLine("HlsPlaylistSegmentManager.UpdatePlaylist: playlist {0} loaded with {1} entries. index: {2} dynamic: {3} expires: {4} ({5})",
-                _programStream.WebReader, _segments.Length, _startSegmentIndex, isDynamicPlaylist,
+                _programStream, _segments.Length, _startSegmentIndex, isDynamicPlaylist,
                 isDynamicPlaylist ? TimeSpan.FromMilliseconds(_segmentsExpiration - Environment.TickCount) : TimeSpan.Zero,
                 DateTimeOffset.Now);
 
@@ -447,8 +447,6 @@ namespace SM.Media.Hls
 
         void UnlockedUpdatePlaylist(bool isDynamicPlaylist, ISegment[] segments)
         {
-            var segments0 = segments;
-
             var needReload = false;
 
             if (isDynamicPlaylist || _dynamicPlaylists.Count > 0)
@@ -486,7 +484,7 @@ namespace SM.Media.Hls
                     segments = ResyncSegments();
 
                     if (isDynamicPlaylist)
-                        UpdateDynamicPlaylistExpiration(segments0);
+                        UpdateDynamicPlaylistExpiration(segments);
                 }
             }
 
@@ -574,9 +572,9 @@ namespace SM.Media.Hls
 
                 duration -= segments[i].Duration.Value;
 
-                if (duration <= TimeSpan.Zero)
+                if (duration < TimeSpan.Zero)
                 {
-                    _dynamicStartIndex = Math.Min(i, segments.Count - 2);
+                    _dynamicStartIndex = Math.Max(notBefore, Math.Min(i - 1, segments.Count - 2));
 
                     break;
                 }
@@ -587,11 +585,11 @@ namespace SM.Media.Hls
 
         void UpdateDynamicPlaylistExpiration(IList<ISegment> segments)
         {
-            var reloadDelay = GetDuration(segments, Math.Max(1, segments.Count - 4), segments.Count);
+            var reloadDelay = GetDuration(segments, Math.Min(segments.Count - 1, Math.Max(_startSegmentIndex + 2, segments.Count - 4)), segments.Count);
 
             if (!reloadDelay.HasValue)
             {
-                var segmentCount = segments.Count - 1;
+                var segmentCount = segments.Count - _startSegmentIndex;
 
                 if (segmentCount > 0)
                     reloadDelay = new TimeSpan(0, 0, 0, 3 * segmentCount);
@@ -646,6 +644,8 @@ namespace SM.Media.Hls
 
         TimeSpan? GetDuration(IList<ISegment> segments, int start, int end)
         {
+            var first = true;
+
             var duration = TimeSpan.Zero;
 
             for (var i = start; i < end; ++i)
@@ -658,7 +658,15 @@ namespace SM.Media.Hls
                 if (segment.Duration <= TimeSpan.Zero || segment.Duration > _excessiveDuration)
                     return null;
 
-                duration += segment.Duration.Value;
+                var segmentDuration = segment.Duration.Value;
+
+                if (first)
+                {
+                    first = false;
+                    segmentDuration = new TimeSpan(segmentDuration.Ticks / 2);
+                }
+
+                duration += segmentDuration;
             }
 
             return duration;

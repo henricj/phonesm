@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="BufferingManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -147,7 +147,7 @@ namespace SM.Media.Buffering
                 _isBuffering = true;
                 _isEof = false;
 
-                hasQueues = _queues.Count > 0;
+                hasQueues = queues.Length > 0;
             }
 
             foreach (var queue in queues)
@@ -252,9 +252,9 @@ namespace SM.Media.Buffering
             {
                 if (_isEof || _isBuffering)
                     return;
-            }
 
-            RefreshHandler();
+                UnlockedRefreshHandler();
+            }
         }
 
         public void ReportEndOfData()
@@ -294,10 +294,15 @@ namespace SM.Media.Buffering
         {
             lock (_lock)
             {
-                UnlockedUpdateQueueStatus();
-
-                UnlockedReport();
+                UnlockedRefreshHandler();
             }
+        }
+
+        void UnlockedRefreshHandler()
+        {
+            UnlockedUpdateQueueStatus();
+
+            UnlockedReport();
         }
 
         void UnlockedUpdateQueueStatus()

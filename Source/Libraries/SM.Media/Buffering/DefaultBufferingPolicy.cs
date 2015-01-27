@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="DefaultBufferingPolicy.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,9 +34,9 @@ namespace SM.Media.Buffering
         int _bytesMinimum = 300 * 1024;
         int _bytesMinimumStarting = 100 * 1024;
         TimeSpan _durationBufferingDone = TimeSpan.FromSeconds(9);
-        TimeSpan _durationBufferingMax = TimeSpan.FromSeconds(20);
-        TimeSpan _durationReadDisable = TimeSpan.FromSeconds(25);
-        TimeSpan _durationReadEnable = TimeSpan.FromSeconds(12);
+        TimeSpan _durationBufferingMax = TimeSpan.FromSeconds(25);
+        TimeSpan _durationReadDisable = TimeSpan.FromSeconds(30);
+        TimeSpan _durationReadEnable = TimeSpan.FromSeconds(15);
         TimeSpan _durationStartingDone = TimeSpan.FromSeconds(2.5);
 
         public int BytesMaximum
@@ -142,5 +142,46 @@ namespace SM.Media.Buffering
         }
 
         #endregion
-    };
+    }
+
+    public static class DefaultBufferingPolicyExtensions
+    {
+        const int BytesMaximumLowerLimit = 512 * 1024;
+        const int BytesMinimumLowerLimit = 1024;
+
+        public static DefaultBufferingPolicy SetBandwidth(this DefaultBufferingPolicy policy, double bitsPerSecond)
+        {
+            if (null == policy)
+                throw new ArgumentNullException("policy");
+            if (bitsPerSecond < 100 || bitsPerSecond > 500 * 1024 * 1024)
+                throw new ArgumentOutOfRangeException("bitsPerSecond");
+
+            var bytesPerSecond = bitsPerSecond * (1.0 / 8);
+
+            var starting = (int)Math.Round(policy.DurationStartingDone.TotalSeconds * bytesPerSecond);
+            var minimum = (int)Math.Round(policy.DurationBufferingDone.TotalSeconds * bytesPerSecond);
+            var maximum = (int)Math.Round(2 * policy.DurationBufferingMax.TotalSeconds * bytesPerSecond);
+
+            if (starting < BytesMinimumLowerLimit)
+                starting = BytesMinimumLowerLimit;
+
+            if (minimum < BytesMinimumLowerLimit)
+                minimum = BytesMinimumLowerLimit;
+
+            if (maximum < BytesMaximumLowerLimit)
+                maximum = BytesMaximumLowerLimit;
+
+            if (minimum > maximum)
+                minimum = maximum;
+
+            if (starting > maximum)
+                starting = maximum;
+
+            policy.BytesMinimumStarting = starting;
+            policy.BytesMinimum = minimum;
+            policy.BytesMaximum = maximum;
+
+            return policy;
+        }
+    }
 }

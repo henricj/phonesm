@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8Tags.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,6 +36,7 @@ namespace SM.Media.M3U8
     {
         #region Tags
 
+        public static readonly M3U8Tag ExtM3UMarker = new M3U8Tag("#EXTM3U", M3U8TagScope.Global, M3U8AttributeSupport.CreateInstance);
         public static readonly M3U8ExtInfTag ExtXInf = new M3U8ExtInfTag("#EXTINF", M3U8TagScope.Segment);
         public static readonly M3U8ByterangeTag ExtXByteRange = new M3U8ByterangeTag("#EXT-X-BYTERANGE", M3U8TagScope.Segment);
         public static readonly M3U8ValueTag ExtXTargetDuration = new M3U8ValueTag("#EXT-X-TARGETDURATION", M3U8TagScope.Global, ValueTagInstance.CreateLong);
@@ -59,24 +60,25 @@ namespace SM.Media.M3U8
 
         volatile Dictionary<string, M3U8Tag> _tags
             = (new[]
-               {
-                   ExtXInf,
-                   ExtXByteRange,
-                   ExtXTargetDuration,
-                   ExtXMediaSequence,
-                   ExtXKey,
-                   ExtXProgramDateTime,
-                   ExtXAllowCache,
-                   ExtXPlaylistType,
-                   ExtXEndList,
-                   ExtXMedia,
-                   ExtXStreamInf,
-                   ExtXDiscontinuity,
-                   ExtXIFramesOnly,
-                   ExtXMap,
-                   ExtXIFrameStreamInf,
-                   ExtXVersion
-               }).ToDictionary(t => t.Name);
+            {
+                ExtM3UMarker,
+                ExtXInf,
+                ExtXByteRange,
+                ExtXTargetDuration,
+                ExtXMediaSequence,
+                ExtXKey,
+                ExtXProgramDateTime,
+                ExtXAllowCache,
+                ExtXPlaylistType,
+                ExtXEndList,
+                ExtXMedia,
+                ExtXStreamInf,
+                ExtXDiscontinuity,
+                ExtXIFramesOnly,
+                ExtXMap,
+                ExtXIFrameStreamInf,
+                ExtXVersion
+            }).ToDictionary(t => t.Name);
 
         public void RegisterTag(IEnumerable<M3U8Tag> tags)
         {

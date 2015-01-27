@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8Parser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,6 +37,8 @@ namespace SM.Media.M3U8
         readonly List<M3U8TagInstance> _sharedTags = new List<M3U8TagInstance>();
         readonly List<M3U8TagInstance> _tags = new List<M3U8TagInstance>();
         Uri _baseUrl;
+        bool _hasMarker;
+        int _lineNumber;
 
         public IEnumerable<M3U8TagInstance> GlobalTags
         {
@@ -53,6 +55,11 @@ namespace SM.Media.M3U8
             get { return _baseUrl; }
         }
 
+        public bool HasMarker
+        {
+            get { return _hasMarker; }
+        }
+
         /// <summary>
         ///     Resolve a possibly relative Url.
         /// </summary>
@@ -67,7 +74,7 @@ namespace SM.Media.M3U8
         }
 
         /// <summary>
-        ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-12
+        ///     http://tools.ietf.org/html/draft-pantos-http-live-streaming-14
         /// </summary>
         /// <param name="baseUri"></param>
         /// <param name="lines"> </param>
@@ -77,26 +84,13 @@ namespace SM.Media.M3U8
 
             _playlist.Clear();
 
-            var first = true;
+            _lineNumber = 0;
+
+            _hasMarker = false;
 
             foreach (var line in lines)
             {
-                if (first)
-                {
-                    first = false;
-
-                    if (line != "#EXTM3U")
-                    {
-                        var d = lines as IDisposable;
-
-                        if (null != d)
-                            d.Dispose();
-
-                        return;
-                    }
-
-                    continue;
-                }
+                ++_lineNumber;
 
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
@@ -106,9 +100,9 @@ namespace SM.Media.M3U8
                 else if (!line.StartsWith("#"))
                 {
                     var uri = new M3U8Uri
-                              {
-                                  Uri = line
-                              };
+                    {
+                        Uri = line
+                    };
 
                     if (_tags.Count > 0 || _sharedTags.Count > 0)
                     {
@@ -144,6 +138,9 @@ namespace SM.Media.M3U8
             switch (tagInstance.Tag.Scope)
             {
                 case M3U8TagScope.Global:
+                    if (1 == _lineNumber && tagInstance.Tag == M3U8Tags.ExtM3UMarker)
+                        _hasMarker = true;
+
                     _globalTags.Add(tagInstance);
                     break;
                 case M3U8TagScope.Shared:

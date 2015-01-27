@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -105,10 +105,13 @@ namespace SamplePlayer.WinRT
             // setting another stream, playback will be cancelled.
             player.Source = null;
 
+            if (_tracks.Count < 1)
+                return;
+
             if (_trackIndex < 0)
                 _trackIndex = 0;
             else if (_trackIndex >= _tracks.Count)
-                _trackIndex = _tracks.Count;
+                _trackIndex = _tracks.Count - 1;
 
             var track = _tracks[_trackIndex];
 

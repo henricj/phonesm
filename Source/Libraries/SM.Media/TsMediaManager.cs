@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -633,21 +633,19 @@ namespace SM.Media
             try
             {
                 var tasks = _readers.Select(
-                    reader =>
+                    async reader =>
                     {
                         if (null == reader)
-                            return null;
+                            return;
 
                         try
                         {
-                            return reader.CloseAsync();
+                            await reader.CloseAsync().ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
                             Debug.WriteLine("TsMediaManager.CloseReadersAsync(): reader.CloseAsync failed: " + ex.Message);
                         }
-
-                        return null;
                     })
                     .Where(t => null != t);
 

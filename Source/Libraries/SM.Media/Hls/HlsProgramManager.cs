@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsProgramManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -158,6 +158,8 @@ namespace SM.Media.Hls
 
                     var bandwidth = streamInf.Attribute(ExtStreamInfSupport.AttrBandwidth);
 
+                    var resolution = streamInf.AttributeInstance<ResolutionAttributeInstance>(ExtStreamInfSupport.AttrResolution);
+
                     var programUrl = parser.BaseUrl;
 
                     var program = GetProgram(programs, programId, programUrl);
@@ -170,6 +172,12 @@ namespace SM.Media.Hls
                         Playlist = playlistUrl,
                         AudioGroup = audioGroup
                     };
+
+                    if (null != resolution)
+                    {
+                        subProgram.Width = resolution.X;
+                        subProgram.Height = resolution.Y;
+                    }
 
                     program.SubPrograms.Add(subProgram);
                 }

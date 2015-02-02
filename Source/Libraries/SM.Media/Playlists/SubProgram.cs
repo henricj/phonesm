@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SubProgram.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -69,15 +69,8 @@ namespace SM.Media.Playlists
             get { return _program; }
         }
 
-        public int? Height
-        {
-            get { return null; }
-        }
-
-        public int? Width
-        {
-            get { return null; }
-        }
+        public int? Height { get; set; }
+        public int? Width { get; set; }
 
         public long Bandwidth { get; set; }
 

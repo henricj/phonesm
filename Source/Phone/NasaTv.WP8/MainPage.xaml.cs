@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,6 +35,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using NasaTv;
 using SM.Media;
+using SM.Media.Utility;
 
 namespace NasaTv8
 {
@@ -174,6 +175,22 @@ namespace NasaTv8
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
+        void CleanupMediaStreamFacade()
+        {
+            if (null == _mediaStreamFacade)
+                return;
+
+            var mediaStreamFacade = _mediaStreamFacade;
+
+            _mediaStreamFacade = null;
+
+            mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
+
+            // Don't block the cleanup in case someone is mashing buttons.
+            // It could deadlock.
+            mediaStreamFacade.DisposeBackground("MainPage CleanupMediaStreamFacade");
+        }
+
         void CleanupMedia()
         {
             if (null != _mediaStreamFacade)
@@ -194,6 +211,8 @@ namespace NasaTv8
             CleanupMedia();
 
             playButton.IsEnabled = true;
+
+            CleanupMediaStreamFacade();
         }
 
         void mediaElement1_MediaEnded(object sender, RoutedEventArgs e)
@@ -213,6 +232,19 @@ namespace NasaTv8
             CleanupMedia();
         }
 
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            Debug.WriteLine("OnNavigatingFrom()");
+
+            base.OnNavigatingFrom(e);
+
+            // We need to set the source to null before the MediaElement is
+            // removed from the visual tree or MediaStreamSource.CloseMedia()
+            // will not get called. 
+            if (e.Cancel && e.IsCancelable && null != mediaElement1)
+                mediaElement1.Source = null;
+        }
+
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             Debug.WriteLine("OnNavigatedFrom()");
@@ -220,6 +252,9 @@ namespace NasaTv8
             base.OnNavigatedFrom(e);
 
             CleanupMedia();
+
+            if (NavigationMode.Back == e.NavigationMode)
+                CleanupMediaStreamFacade();
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -228,9 +263,14 @@ namespace NasaTv8
 
             base.OnNavigatedTo(e);
 
-            CleanupMedia();
+            // Wait just a bit to run the cleanup, or MediaElement will
+            // ignore it.
+            Dispatcher.BeginInvoke(() =>
+            {
+                CleanupMedia();
 
-            UpdateState();
+                UpdateState();
+            });
         }
 
         void PhoneApplicationPageTap(object sender, GestureEventArgs e)

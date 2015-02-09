@@ -391,6 +391,27 @@ namespace HlsView
             mediaElement1_CurrentStateChanged(null, null);
         }
 
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            if (null != mediaElement1)
+            {
+                try
+                {
+                    var lastPosition = mediaElement1.Position;
+
+                    Debug.WriteLine("Navigating from: " + mediaElement1.CurrentState + " " + lastPosition);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Navigating from failed: " + ex.ExtendedMessage());
+                }
+            }
+
+            StopMedia();
+
+            base.OnNavigatingFrom(e);
+        }
+
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);

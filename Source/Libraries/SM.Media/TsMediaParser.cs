@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -43,8 +43,6 @@ namespace SM.Media
         static readonly MediaStream[] NoMediaStreams = new MediaStream[0];
         readonly IBufferPool _bufferPool;
         readonly IPesHandlers _pesHandlers;
-        readonly object _timestampLock = new object();
-        readonly List<Action<TimeSpan>> _timestampOffsetHandlers = new List<Action<TimeSpan>>();
         readonly ITsDecoder _tsDecoder;
         readonly ITsPesPacketPool _tsPesPacketPool;
         readonly ITsTimestamp _tsTimemestamp;
@@ -112,11 +110,11 @@ namespace SM.Media
             var handler = programStreamsHandler ?? DefaultProgramStreamsHandler;
 
             programStreamsHandler = pss =>
-                                    {
-                                        handler(pss);
+            {
+                handler(pss);
 
-                                        _streamCount = pss.Streams.Count(s => !s.BlockStream);
-                                    };
+                _streamCount = pss.Streams.Count(s => !s.BlockStream);
+            };
 
             _tsDecoder.Initialize(CreatePacketizedElementaryStream, programStreamsHandler);
         }
@@ -135,7 +133,7 @@ namespace SM.Media
         {
             _tsDecoder.ParseEnd();
 
-            PushStreams();
+            PushStreams(true);
 
             _bufferingManager.ReportEndOfData();
         }
@@ -144,15 +142,15 @@ namespace SM.Media
         {
             _tsDecoder.Parse(buffer, offset, length);
 
-            if (PushStreams())
+            if (PushStreams(false))
                 _bufferingManager.Refresh();
         }
 
         #endregion
 
-        bool PushStreams()
+        bool PushStreams(bool force)
         {
-            if (!_tsTimemestamp.ProcessPackets())
+            if (!_tsTimemestamp.ProcessPackets() && !force)
                 return false;
 
             var newPackets = false;
@@ -282,11 +280,11 @@ namespace SM.Media
                 EventHandler configuratorOnConfigurationComplete = null;
 
                 configuratorOnConfigurationComplete = (o, e) =>
-                                                      {
-                                                          configurator.ConfigurationComplete -= configuratorOnConfigurationComplete;
+                {
+                    configurator.ConfigurationComplete -= configuratorOnConfigurationComplete;
 
-                                                          CheckConfigurationComplete();
-                                                      };
+                    CheckConfigurationComplete();
+                };
 
                 configurator.ConfigurationComplete += configuratorOnConfigurationComplete;
             }

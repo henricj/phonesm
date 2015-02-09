@@ -111,6 +111,8 @@ namespace SM.Media.Buffering
             var currrentQueueThrottling = Interlocked.CompareExchange(ref _queueThrottling, null, queueThrottling);
             if (!ReferenceEquals(currrentQueueThrottling, queueThrottling))
                 throw new InvalidOperationException("Shutting down the wrong queueThrottling instance");
+
+            RefreshHandler();
         }
 
         public IStreamBuffer CreateStreamBuffer(TsStreamType streamType)

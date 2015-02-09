@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaStreamSource.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -258,6 +258,20 @@ namespace SM.Media
                 return TplTaskExtensions.CompletedTask;
 
             CheckPending();
+
+            var timeout = TaskEx.Delay(7 * 1000)
+                .ContinueWith(
+                    t =>
+                    {
+                        if (_closeCompleted.TrySetCanceled())
+                        {
+                            Debug.WriteLine("TsMediaStreamSource.CloseAsync() close timeout (remember to set MediaElement.Source to null before removing it from the visual tree)");
+
+                            FireCloseMediaHandler();
+                        }
+                    });
+
+            TaskCollector.Default.Add(timeout, "TsMediaStreamSource CloseAsync timeout");
 
             return _closeCompleted.Task;
         }
@@ -770,6 +784,11 @@ namespace SM.Media
             if (null != closeCompleted)
                 closeCompleted.TrySetResult(string.Empty);
 
+            FireCloseMediaHandler();
+        }
+
+        void FireCloseMediaHandler()
+        {
             var task = _streamControl.CloseAsync(CancellationToken.None);
 
             TaskCollector.Default.Add(task, "TsMediaStreamSource CloseMediaHandler");

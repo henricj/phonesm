@@ -407,9 +407,13 @@ namespace HlsView
                 }
             }
 
-            StopMedia();
-
             base.OnNavigatingFrom(e);
+
+            // We need to set the source to null before the MediaElement is
+            // removed from the visual tree or MediaStreamSource.CloseMedia()
+            // will not get called. 
+            if (e.Cancel && e.IsCancelable && null != mediaElement1)
+                mediaElement1.Source = null;
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)

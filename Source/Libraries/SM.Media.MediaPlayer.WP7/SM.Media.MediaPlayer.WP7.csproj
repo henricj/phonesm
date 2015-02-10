@@ -98,8 +98,14 @@
     <Compile Include="..\SM.Media.MediaPlayer.WP8\MediaElementWrapperStreamingMediaPlugin.cs">
       <Link>MediaElementWrapperStreamingMediaPlugin.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaParameters.cs">
+      <Link>StreamingMediaParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaPlugin.cs">
       <Link>StreamingMediaPlugin.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaSettings.cs">
+      <Link>StreamingMediaSettings.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -231,6 +231,17 @@ namespace SM.Media.MediaPlayer
                         return;
                     }
 
+                    var passThrough = StreamingMediaSettings.Parameters.IsPassThrough;
+
+                    if (null != passThrough)
+                    {
+                        if (passThrough(source))
+                        {
+                            Debug.WriteLine("StreamingMediaPlugin.PlayerOnMediaLoading() passing through " + source);
+                            return;
+                        }
+                    }
+
                     playState = new PlayState();
 
                     using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))

@@ -30,6 +30,7 @@ using System.Diagnostics;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -117,6 +118,15 @@ namespace SamplePlayer.WinRT
 
             if (null != track)
                 player.Source = track.Url;
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            Debug.WriteLine("MainPage.OnNavigatedFrom()");
+
+            player.Dispose();
+
+            base.OnNavigatedFrom(e);
         }
     }
 }

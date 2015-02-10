@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Info;
@@ -59,42 +60,42 @@ namespace SamplePlayer.WP8
 
 #if STREAM_SWITCHING
             player.PlayerStateChanged += (sender, args) =>
-                                         {
-                                             if (PlayerState.Failed == args.NewValue || PlayerState.Ending == args.NewValue)
-                                             {
-                                                 if (_timer.Interval < TimeSpan.FromSeconds(3))
-                                                     _timer.Interval = TimeSpan.FromSeconds(3);
-                                             }
-                                         };
+            {
+                if (PlayerState.Failed == args.NewValue || PlayerState.Ending == args.NewValue)
+                {
+                    if (_timer.Interval < TimeSpan.FromSeconds(3))
+                        _timer.Interval = TimeSpan.FromSeconds(3);
+                }
+            };
 
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
-                           {
-                               GC.Collect();
-                               GC.WaitForPendingFinalizers();
-                               GC.Collect();
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
 
-                               var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               var source = Sources[_count];
+                var source = Sources[_count];
 
-                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
-                                   DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
+                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               player.Source = null == source ? null : new Uri(source);
+                player.Source = null == source ? null : new Uri(source);
 
-                               if (++_count >= Sources.Length)
-                                   _count = 0;
+                if (++_count >= Sources.Length)
+                    _count = 0;
 
-                               var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
+                var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
 
-                               Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
+                Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
 
-                               _timer.Interval = interval;
-                           };
+                _timer.Interval = interval;
+            };
 
             //_timer.Tick += (sender, args) =>
             //               {
@@ -126,5 +127,12 @@ namespace SamplePlayer.WP8
         //    ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            player.Dispose();
+
+            base.OnNavigatedFrom(e);
+        }
     }
 }

@@ -66,7 +66,7 @@ namespace SM.Media.Pls
             get { return _url; }
         }
 
-        public async Task<bool> Parse(TextReader tr)
+        public async Task<bool> ParseAsync(TextReader tr)
         {
             _tracks.Clear();
             _numberOfEntries = null;

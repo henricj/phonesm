@@ -152,7 +152,7 @@ namespace SM.Media.Pls
 
             using (var tr = new StreamReader(stream))
             {
-                var ret = await pls.Parse(tr).ConfigureAwait(false);
+                var ret = await pls.ParseAsync(tr).ConfigureAwait(false);
 
                 if (!ret)
                     return null;

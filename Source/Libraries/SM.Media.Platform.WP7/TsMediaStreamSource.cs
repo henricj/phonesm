@@ -254,7 +254,7 @@ namespace SM.Media
                 return TplTaskExtensions.CompletedTask;
             }
 
-            if (null == _closeCompleted)
+            if (null == closeCompleted)
                 return TplTaskExtensions.CompletedTask;
 
             CheckPending();
@@ -263,7 +263,7 @@ namespace SM.Media
                 .ContinueWith(
                     t =>
                     {
-                        if (_closeCompleted.TrySetCanceled())
+                        if (closeCompleted.TrySetCanceled())
                         {
                             Debug.WriteLine("TsMediaStreamSource.CloseAsync() close timeout (remember to set MediaElement.Source to null before removing it from the visual tree)");
 
@@ -273,7 +273,7 @@ namespace SM.Media
 
             TaskCollector.Default.Add(timeout, "TsMediaStreamSource CloseAsync timeout");
 
-            return _closeCompleted.Task;
+            return closeCompleted.Task;
         }
 
         [Conditional("DEBUG")]

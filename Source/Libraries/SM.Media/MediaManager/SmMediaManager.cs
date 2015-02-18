@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManager.cs" company="Henric Jungheim">
+//  <copyright file="SmMediaManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -37,38 +37,10 @@ using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.TsParser;
 
-namespace SM.Media
+namespace SM.Media.MediaManager
 {
-    public class TsMediaManagerStateEventArgs : EventArgs
+    public sealed class SmMediaManager : IMediaManager
     {
-        public readonly string Message;
-        public readonly TsMediaManager.MediaState State;
-
-        public TsMediaManagerStateEventArgs(TsMediaManager.MediaState state, string message = null)
-        {
-            State = state;
-            Message = message;
-        }
-    }
-
-    public sealed class TsMediaManager : IMediaManager
-    {
-        #region MediaState enum
-
-        public enum MediaState
-        {
-            Idle,
-            Opening,
-            OpenMedia,
-            Seeking,
-            Playing,
-            Closed,
-            Error,
-            Closing
-        }
-
-        #endregion
-
         const int MaxBuffers = 8;
         readonly AsyncLock _asyncLock = new AsyncLock();
         readonly Func<IBufferingManager> _bufferingManagerFactory;
@@ -81,7 +53,7 @@ namespace SM.Media
         CancellationTokenSource _closeCancellationTokenSource = new CancellationTokenSource();
         TaskCompletionSource<object> _closeTaskCompletionSource;
         int _isDisposed;
-        MediaState _mediaState;
+        MediaManagerState _mediaState;
         string _mediaStateMessage;
         int _openCount;
         Task _playTask;
@@ -89,7 +61,7 @@ namespace SM.Media
         ISegmentReaderManager _readerManager;
         IMediaReader[] _readers;
 
-        public TsMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory,
+        public SmMediaManager(ISegmentReaderManagerFactory segmentReaderManagerFactory,
             IMediaStreamConfigurator mediaStreamConfigurator, Func<IBufferingManager> bufferingManagerFactory,
             IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory)
         {
@@ -118,7 +90,7 @@ namespace SM.Media
             {
                 var state = State;
 
-                return MediaState.Idle == state || MediaState.Closed == state;
+                return MediaManagerState.Idle == state || MediaManagerState.Closed == state;
             }
         }
 
@@ -128,8 +100,8 @@ namespace SM.Media
             {
                 var state = State;
 
-                return MediaState.OpenMedia == state || MediaState.Opening == state
-                       || MediaState.Playing == state || MediaState.Seeking == state;
+                return MediaManagerState.OpenMedia == state || MediaManagerState.Opening == state
+                       || MediaManagerState.Playing == state || MediaManagerState.Seeking == state;
             }
         }
 
@@ -168,7 +140,7 @@ namespace SM.Media
             { }
         }
 
-        public MediaState State
+        public MediaManagerState State
         {
             get { lock (_lock) return _mediaState; }
             private set { SetMediaState(value, null); }
@@ -200,7 +172,7 @@ namespace SM.Media
                 if (!IsClosed)
                     await CloseAsync().ConfigureAwait(false);
 
-                State = MediaState.OpenMedia;
+                State = MediaManagerState.OpenMedia;
 
                 await OpenAsync(source).ConfigureAwait(false);
 
@@ -262,7 +234,7 @@ namespace SM.Media
             }
         }
 
-        public event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+        public event EventHandler<MediaManagerStateEventArgs> OnStateChange;
 
         #endregion
 
@@ -283,13 +255,13 @@ namespace SM.Media
                 return;
             }
 
-            State = MediaState.Closing;
+            State = MediaManagerState.Closing;
 
             _closeCancellationTokenSource.Cancel();
 
             await CloseCleanupAsync().ConfigureAwait(false);
 
-            State = MediaState.Closed;
+            State = MediaManagerState.Closed;
 
             await _reportStateTask.WaitAsync().ConfigureAwait(false);
 
@@ -360,7 +332,7 @@ namespace SM.Media
         {
             Debug.WriteLine("TsMediaManager.ReportState() state {0} message {1}", _mediaState, _mediaStateMessage);
 
-            MediaState state;
+            MediaManagerState state;
             string message;
 
             lock (_lock)
@@ -373,7 +345,7 @@ namespace SM.Media
             var handlers = OnStateChange;
 
             if (null != handlers)
-                handlers(this, new TsMediaManagerStateEventArgs(state, message));
+                handlers(this, new MediaManagerStateEventArgs(state, message));
 
             if (null != message)
             {
@@ -406,7 +378,7 @@ namespace SM.Media
             }
         }
 
-        void SetMediaState(MediaState state, string message)
+        void SetMediaState(MediaManagerState state, string message)
         {
             lock (_lock)
             {
@@ -440,7 +412,7 @@ namespace SM.Media
                             return; // This should never happen ("OnlyOnFaulted" below)
 
                         Debug.WriteLine("TsMediaManager.StartReaders() ReadAsync failed: " + ex.ExtendedMessage());
-                        SetMediaState(MediaState.Error, ex.ExtendedMessage());
+                        SetMediaState(MediaManagerState.Error, ex.ExtendedMessage());
 
                         lock (_lock)
                         {
@@ -465,7 +437,7 @@ namespace SM.Media
         {
             Debug.WriteLine("TsMediaManager.OpenAsync() state " + State);
 
-            State = MediaState.Opening;
+            State = MediaManagerState.Opening;
 
             ++_openCount;
 
@@ -487,7 +459,7 @@ namespace SM.Media
                 {
                     Debug.WriteLine("TsMediaManager.OpenAsync() unable to create reader manager");
 
-                    SetMediaState(MediaState.Error, "Unable to create reader");
+                    SetMediaState(MediaManagerState.Error, "Unable to create reader");
 
                     return;
                 }
@@ -512,7 +484,7 @@ namespace SM.Media
             }
             catch (OperationCanceledException ex)
             {
-                SetMediaState(MediaState.Error, "Media play canceled");
+                SetMediaState(MediaManagerState.Error, "Media play canceled");
 
                 exception = ex;
             }
@@ -520,7 +492,7 @@ namespace SM.Media
             {
                 Debug.WriteLine("TsMediaManager.OpenAsync() failed: " + ex.Message);
 
-                SetMediaState(MediaState.Error, "Unable to play media");
+                SetMediaState(MediaManagerState.Error, "Unable to play media");
 
                 exception = new AggregateException(ex.Message, ex);
             }
@@ -587,7 +559,7 @@ namespace SM.Media
         {
             var state = State;
 
-            if (MediaState.Opening != state && MediaState.OpenMedia != state)
+            if (MediaManagerState.Opening != state && MediaManagerState.OpenMedia != state)
                 return;
 
             if (null == _readers || _readers.Any(r => !r.IsConfigured))
@@ -595,7 +567,7 @@ namespace SM.Media
 
             _playTask = _mediaStreamConfigurator.PlayAsync(_readers.SelectMany(r => r.MediaStreams), _readerManager.Duration, _closeCancellationTokenSource.Token);
 
-            State = MediaState.Playing;
+            State = MediaManagerState.Playing;
 
             var openCount = _openCount;
 
@@ -706,7 +678,7 @@ namespace SM.Media
                 foreach (var reader in readers)
                     reader.IsEnabled = true;
 
-                State = MediaState.Seeking;
+                State = MediaManagerState.Seeking;
 
                 var actualPosition = await _readerManager.SeekAsync(position, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 

@@ -35,12 +35,13 @@ using SM.Media.Builder;
 using SM.Media.Content;
 using SM.Media.H262;
 using SM.Media.H264;
-using SM.Media.Hls;
+using SM.Media.MediaManager;
 using SM.Media.MediaParser;
 using SM.Media.MP3;
 using SM.Media.Pes;
 using SM.Media.Pls;
 using SM.Media.Segments;
+using SM.Media.TransportStream;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;
@@ -48,7 +49,7 @@ using SM.TsParser.Utility;
 
 namespace SM.Media
 {
-    class SmMediaModule : NinjectModule, IBuilderScopeModule
+    public class SmMediaModule : NinjectModule, IBuilderScopeModule
     {
         #region IBuilderScopeModule Members
 
@@ -60,7 +61,7 @@ namespace SM.Media
         {
             var scope = Scope;
 
-            Bind<IMediaManager>().To<TsMediaManager>().InScope(scope);
+            Bind<IMediaManager>().To<SmMediaManager>().InScope(scope);
 
             Bind<IContentTypeDetector>().ToConstant(new ContentTypeDetector(ContentTypes.AllTypes));
 
@@ -73,15 +74,7 @@ namespace SM.Media
             Bind<IBufferPoolParameters>().To<DefaultBufferPoolParameters>().InSingletonScope();
             Bind<Func<IBufferPool>>().ToMethod(ctx => () => ctx.Kernel.Get<IBufferPool>());
 
-            Bind<Func<HlsProgramManager>>()
-                .ToMethod(ctx => () => ctx.Kernel.Get<HlsProgramManager>());
-            Bind<IHlsProgramStreamFactory>().To<HlsProgramStreamFactory>().InSingletonScope();
-            Bind<IHlsSegmentsFactory>().To<HlsSegmentsFactory>();
-            Bind<IHlsStreamSegments>().To<HlsStreamSegments>();
-            Bind<IHlsStreamSegmentsFactory>().To<HlsStreamSegmentsFactory>().InSingletonScope();
-
             Bind<ISegmentManagerFactoryInstance>().To<SimpleSegmentManagerFactory>().InSingletonScope();
-            Bind<ISegmentManagerFactoryInstance>().To<HlsPlaylistSegmentManagerFactory>().InSingletonScope();
             Bind<ISegmentManagerFactoryInstance>().To<PlsSegmentManagerFactory>().InSingletonScope();
 
             Bind<IMediaParserFactoryFinder>().To<MediaParserFactoryFinder>().InSingletonScope();
@@ -112,7 +105,6 @@ namespace SM.Media
             Bind<IPesHandlers>().To<PesHandlers>();
 
             Bind<IMediaManagerParameters>().To<MediaManagerParameters>().InSingletonScope();
-            Bind<IHlsPlaylistSegmentManagerPolicy>().To<HlsPlaylistSegmentManagerPolicy>().InSingletonScope();
             Bind<IPlsSegmentManagerPolicy>().To<PlsSegmentManagerPolicy>().InSingletonScope();
             Bind<IBufferingPolicy>().To<DefaultBufferingPolicy>();
             Bind<IBufferingManager>().To<BufferingManager>();

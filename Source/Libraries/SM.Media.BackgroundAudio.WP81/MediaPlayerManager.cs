@@ -32,6 +32,7 @@ using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Media.Playback;
 using SM.Media.Buffering;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 using SM.TsParser;
 
@@ -112,7 +113,7 @@ namespace SM.Media.BackgroundAudio
             _mediaStreamFacade.StateChange += MediaStreamFacadeOnStateChange;
         }
 
-        void MediaStreamFacadeOnStateChange(object sender, TsMediaManagerStateEventArgs args)
+        void MediaStreamFacadeOnStateChange(object sender, MediaManagerStateEventArgs args)
         {
             Debug.WriteLine("MediaPlayerManager.MediaStreamFacadeOnStateChange(): " + args.State + " message " + args.Message);
         }

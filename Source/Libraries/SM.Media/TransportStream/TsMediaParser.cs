@@ -36,7 +36,7 @@ using SM.Media.Utility;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
-namespace SM.Media
+namespace SM.Media.TransportStream
 {
     public sealed class TsMediaParser : IMediaParser
     {

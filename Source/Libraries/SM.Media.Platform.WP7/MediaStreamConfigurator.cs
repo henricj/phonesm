@@ -32,6 +32,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using SM.Media.Configuration;
+using SM.Media.MediaManager;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
 

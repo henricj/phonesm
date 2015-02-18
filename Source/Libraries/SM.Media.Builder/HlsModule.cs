@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="HlsModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Ninject.Modules;
-using SM.Media.Builder;
-using SM.Media.MediaManager;
+using Autofac;
+using SM.Media.Hls;
+using SM.Media.Segments;
 
 namespace SM.Media
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class HlsModule : Module
     {
-        static readonly INinjectModule[] Modules =
+        protected override void Load(ContainerBuilder builder)
         {
-            new SmMediaModule(),
-            new HlsModule(),
-            new TsMediaModule()
-        };
+            builder.RegisterType<HlsPlaylistSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
 
-        public TsMediaManagerBuilder(bool useHttpConnection, bool useSingleStreamMediaManager)
-            : base(Modules)
-        {
-            if (useHttpConnection)
-                this.RegisterModule<HttpConnectionModule>();
-            else
-                this.RegisterModule<HttpClientModule>();
+            builder.RegisterType<HlsProgramManager>().AsSelf().ExternallyOwned();
+            builder.RegisterType<HlsProgramStreamFactory>().As<IHlsProgramStreamFactory>().SingleInstance();
+            builder.RegisterType<HlsSegmentsFactory>().As<IHlsSegmentsFactory>().ExternallyOwned();
+            builder.RegisterType<HlsStreamSegments>().As<IHlsStreamSegments>().ExternallyOwned();
+            builder.RegisterType<HlsStreamSegmentsFactory>().As<IHlsStreamSegmentsFactory>().SingleInstance();
 
-            if (useSingleStreamMediaManager)
-                this.RegisterModule<SingleStreamMediaManagerModule>();
-            else
-                this.RegisterModule<SmMediaManagerModule>();
+            builder.RegisterType<HlsPlaylistSegmentManagerPolicy>().As<IHlsPlaylistSegmentManagerPolicy>().SingleInstance();
         }
     }
 }

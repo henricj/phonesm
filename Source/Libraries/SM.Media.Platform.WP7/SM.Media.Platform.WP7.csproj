@@ -105,12 +105,15 @@
       <Link>Utility\DispatcherExtensions.cs</Link>
     </Compile>
     <Compile Include="Builder\BuilderBase.cs" />
+    <Compile Include="HlsModule.cs" />
     <Compile Include="HttpClientModule.cs" />
     <Compile Include="HttpConnectionModule.cs" />
     <Compile Include="IMediaStreamControl.cs" />
     <Compile Include="MediaStreamConfiguration.cs" />
     <Compile Include="MediaStreamConfigurator.cs" />
     <Compile Include="MediaStreamFacade.cs" />
+    <Compile Include="SingleStreamMediaManagerModule.cs" />
+    <Compile Include="SmMediaManagerModule.cs" />
     <Compile Include="SmMediaModule.cs" />
     <Compile Include="DefaultMediaStreamFacadeParameters.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />

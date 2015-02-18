@@ -117,6 +117,15 @@
     <Compile Include="..\SM.Media.Builder\Builder\BuilderHandle.cs">
       <Link>Builder\BuilderHandle.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Builder\HlsModule.cs">
+      <Link>HlsModule.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Builder\SingleStreamMediaManagerModule.cs">
+      <Link>SingleStreamMediaManagerModule.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media.Builder\SmMediaManagerModule.cs">
+      <Link>SmMediaManagerModule.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.Builder\SmMediaModule.cs">
       <Link>SmMediaModule.cs</Link>
     </Compile>

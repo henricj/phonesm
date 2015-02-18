@@ -41,9 +41,8 @@ using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Info;
 using SM.Media;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace HlsView
 {
@@ -70,43 +69,43 @@ namespace HlsView
             InitializeComponent();
 
             _positionSampler = new DispatcherTimer
-                               {
-                                   Interval = TimeSpan.FromMilliseconds(75)
-                               };
+            {
+                Interval = TimeSpan.FromMilliseconds(75)
+            };
             _positionSampler.Tick += OnPositionSamplerOnTick;
 
 #if STREAM_SWITCHING
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
-                           {
-                               GC.Collect();
-                               GC.WaitForPendingFinalizers();
-                               GC.Collect();
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
 
-                               var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               if (++_track >= _tracks.Count)
-                                   _track = 0;
+                if (++_track >= _tracks.Count)
+                    _track = 0;
 
-                               var task = PlayCurrentTrackAsync();
+                var task = PlayCurrentTrackAsync();
 
-                               TaskCollector.Default.Add(task, "MainPage Play");
+                TaskCollector.Default.Add(task, "MainPage Play");
 
-                               var track = CurrentTrack;
+                var track = CurrentTrack;
 
-                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)",
-                                   null == track ? "<none>" : track.Url.ToString(), gcMemory,
-                                   DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)",
+                    null == track ? "<none>" : track.Url.ToString(), gcMemory,
+                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
+                var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
 
-                               Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
+                Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
 
-                               _timer.Interval = interval;
-                           };
+                _timer.Interval = interval;
+            };
 
             //_timer.Tick += (sender, args) =>
             //               {
@@ -142,7 +141,7 @@ namespace HlsView
 
                 if (MediaElementState.Closed == state)
                 {
-                    if (TsMediaManager.MediaState.OpenMedia == managerState || TsMediaManager.MediaState.Opening == managerState || TsMediaManager.MediaState.Playing == managerState)
+                    if (MediaManagerState.OpenMedia == managerState || MediaManagerState.Opening == managerState || MediaManagerState.Playing == managerState)
                         state = MediaElementState.Opening;
                 }
             }
@@ -297,20 +296,20 @@ namespace HlsView
             mediaStreamFacade.DisposeBackground("MainPage CloseMedia");
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
-                                   {
-                                       var message = tsMediaManagerStateEventArgs.Message;
+            {
+                var message = tsMediaManagerStateEventArgs.Message;
 
-                                       if (!string.IsNullOrWhiteSpace(message))
-                                       {
-                                           errorBox.Text = message;
-                                           errorBox.Visibility = Visibility.Visible;
-                                       }
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    errorBox.Text = message;
+                    errorBox.Visibility = Visibility.Visible;
+                }
 
-                                       mediaElement1_CurrentStateChanged(null, null);
-                                   });
+                mediaElement1_CurrentStateChanged(null, null);
+            });
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)
@@ -372,9 +371,9 @@ namespace HlsView
             CloseMedia();
 
             var me = new MediaElement
-                     {
-                         Margin = new Thickness(0)
-                     };
+            {
+                Margin = new Thickness(0)
+            };
 
             me.MediaFailed += mediaElement1_MediaFailed;
             me.MediaEnded += mediaElement1_MediaEnded;

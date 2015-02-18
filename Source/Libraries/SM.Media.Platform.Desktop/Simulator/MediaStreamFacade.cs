@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using SM.Media.Builder;
+using SM.Media.MediaManager;
 
 namespace SM.Media.Simulator
 {
@@ -34,7 +35,7 @@ namespace SM.Media.Simulator
     public class MediaStreamFacade : MediaStreamFacadeBase<SimulatedMediaStreamConfigurator>, IMediaStreamFacade
     {
         public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
-            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection))
+            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection, MediaStreamFacadeSettings.Parameters.UseSingleStreamMediaManager))
         { }
     }
 }

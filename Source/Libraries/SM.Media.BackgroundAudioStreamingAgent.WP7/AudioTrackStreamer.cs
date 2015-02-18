@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 using SM.TsParser;
 
@@ -187,16 +188,16 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs mediaManagerStateEventArgs)
         {
-            var state = tsMediaManagerStateEventArgs.State;
+            var state = mediaManagerStateEventArgs.State;
 
-            Debug.WriteLine("Media manager state in background agent: {0}, message: {1}", state, tsMediaManagerStateEventArgs.Message);
+            Debug.WriteLine("Media manager state in background agent: {0}, message: {1}", state, mediaManagerStateEventArgs.Message);
 
             if (null == _mediaStreamFacade)
                 return;
 
-            if (TsMediaManager.MediaState.Closed == state || TsMediaManager.MediaState.Error == state)
+            if (MediaManagerState.Closed == state || MediaManagerState.Error == state)
             {
                 var cleanupTask = CleanupMediaStreamFacade();
 

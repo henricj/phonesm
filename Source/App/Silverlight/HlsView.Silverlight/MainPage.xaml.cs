@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+//#define STREAM_SWITCHING
+
 using System;
 using System.Diagnostics;
 using System.Text;
@@ -33,6 +35,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using SM.Media;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.Media.Web.HttpClientReader;
@@ -69,38 +72,38 @@ namespace HlsView.Silverlight
             _httpClientFactory = new SilverlightHttpClientFactory();
 
             _positionSampler = new DispatcherTimer
-                               {
-                                   Interval = TimeSpan.FromMilliseconds(75)
-                               };
+            {
+                Interval = TimeSpan.FromMilliseconds(75)
+            };
             _positionSampler.Tick += OnPositionSamplerOnTick;
 
 #if STREAM_SWITCHING
             _timer = new DispatcherTimer();
 
             _timer.Tick += (sender, args) =>
-                           {
-                               GC.Collect();
-                               GC.WaitForPendingFinalizers();
-                               GC.Collect();
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
 
-                               var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
+                var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                               var source = Sources[_count];
+                var source = Sources[_count];
 
-                               Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
-                                   DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
-                                   DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
+                Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
+                    DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
+                    DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                               InitializeMediaStream();
+                InitializeMediaStream();
 
-                               _mediaStreamFacade.Source = null == source ? null : new Uri(source);
+                _mediaStreamFacade.Source = null == source ? null : new Uri(source);
 
-                               if (++_count >= Sources.Length)
-                                   _count = 0;
+                if (++_count >= Sources.Length)
+                    _count = 0;
 
-                               _positionSampler.Start();
-                           };
+                _positionSampler.Start();
+            };
 
             _timer.Interval = TimeSpan.FromSeconds(15);
 
@@ -118,7 +121,7 @@ namespace HlsView.Silverlight
 
                 if (MediaElementState.Closed == state)
                 {
-                    if (TsMediaManager.MediaState.OpenMedia == managerState || TsMediaManager.MediaState.Opening == managerState || TsMediaManager.MediaState.Playing == managerState)
+                    if (MediaManagerState.OpenMedia == managerState || MediaManagerState.Opening == managerState || MediaManagerState.Playing == managerState)
                         state = MediaElementState.Opening;
                 }
             }
@@ -285,20 +288,20 @@ namespace HlsView.Silverlight
             mediaStreamFacade.DisposeBackground("MainPage CloseMedia");
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
-                                   {
-                                       var message = tsMediaManagerStateEventArgs.Message;
+            {
+                var message = tsMediaManagerStateEventArgs.Message;
 
-                                       if (!string.IsNullOrWhiteSpace(message))
-                                       {
-                                           errorBox.Text = message;
-                                           errorBox.Visibility = Visibility.Visible;
-                                       }
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    errorBox.Text = message;
+                    errorBox.Visibility = Visibility.Visible;
+                }
 
-                                       mediaElement1_CurrentStateChanged(null, null);
-                                   });
+                mediaElement1_CurrentStateChanged(null, null);
+            });
         }
 
         void mediaElement1_MediaFailed(object sender, ExceptionRoutedEventArgs e)

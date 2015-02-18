@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="SingleStreamMediaManagerModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+using Ninject.Activation;
 using Ninject.Modules;
 using SM.Media.Builder;
 using SM.Media.MediaManager;
 
 namespace SM.Media
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class SingleStreamMediaManagerModule : NinjectModule, IBuilderScopeModule
     {
-        static readonly INinjectModule[] Modules =
-        {
-            new SmMediaModule(),
-            new HlsModule(),
-            new TsMediaModule()
-        };
+        #region IBuilderScopeModule Members
 
-        public TsMediaManagerBuilder(bool useHttpConnection, bool useSingleStreamMediaManager)
-            : base(Modules)
-        {
-            if (useHttpConnection)
-                this.RegisterModule<HttpConnectionModule>();
-            else
-                this.RegisterModule<HttpClientModule>();
+        public Func<IContext, object> Scope { get; set; }
 
-            if (useSingleStreamMediaManager)
-                this.RegisterModule<SingleStreamMediaManagerModule>();
-            else
-                this.RegisterModule<SmMediaManagerModule>();
+        #endregion
+
+        public override void Load()
+        {
+            var scope = Scope;
+
+            Bind<IMediaManager>().To<SingleStreamMediaManager>().InScope(scope);
         }
     }
 }

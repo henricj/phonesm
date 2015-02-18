@@ -31,12 +31,13 @@ using SM.Media.Buffering;
 using SM.Media.Content;
 using SM.Media.H262;
 using SM.Media.H264;
-using SM.Media.Hls;
+using SM.Media.MediaManager;
 using SM.Media.MediaParser;
 using SM.Media.MP3;
 using SM.Media.Pes;
 using SM.Media.Pls;
 using SM.Media.Segments;
+using SM.Media.TransportStream;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;
@@ -48,7 +49,7 @@ namespace SM.Media
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<TsMediaManager>().As<IMediaManager>().InstancePerMatchingLifetimeScope("builder-scope");
+            builder.RegisterType<SmMediaManager>().As<IMediaManager>().InstancePerMatchingLifetimeScope("builder-scope");
 
             builder.RegisterInstance(new ContentTypeDetector(ContentTypes.AllTypes)).As<IContentTypeDetector>();
 
@@ -61,14 +62,7 @@ namespace SM.Media
             builder.RegisterType<DefaultBufferPoolParameters>().As<IBufferPoolParameters>().SingleInstance();
 
             builder.RegisterType<SimpleSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
-            builder.RegisterType<HlsPlaylistSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<PlsSegmentManagerFactory>().As<ISegmentManagerFactoryInstance>().SingleInstance().PreserveExistingDefaults();
-
-            builder.RegisterType<HlsProgramManager>().AsSelf().ExternallyOwned();
-            builder.RegisterType<HlsProgramStreamFactory>().As<IHlsProgramStreamFactory>().SingleInstance();
-            builder.RegisterType<HlsSegmentsFactory>().As<IHlsSegmentsFactory>().ExternallyOwned();
-            builder.RegisterType<HlsStreamSegments>().As<IHlsStreamSegments>().ExternallyOwned();
-            builder.RegisterType<HlsStreamSegmentsFactory>().As<IHlsStreamSegmentsFactory>().SingleInstance();
 
             builder.RegisterType<MediaParserFactoryFinder>().As<IMediaParserFactoryFinder>().SingleInstance();
             builder.RegisterType<MediaParserFactory>().As<IMediaParserFactory>().SingleInstance();
@@ -98,7 +92,6 @@ namespace SM.Media
             builder.RegisterType<PesHandlers>().As<IPesHandlers>();
 
             builder.RegisterType<MediaManagerParameters>().As<IMediaManagerParameters>().SingleInstance();
-            builder.RegisterType<HlsPlaylistSegmentManagerPolicy>().As<IHlsPlaylistSegmentManagerPolicy>().SingleInstance();
             builder.RegisterType<PlsSegmentManagerPolicy>().As<IPlsSegmentManagerPolicy>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerMatchingLifetimeScope("builder-scope");
 

@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.MediaManager;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
 using SM.TsParser;
@@ -121,8 +122,6 @@ namespace SM.Media.Simulator
 
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
-
-            mediaManager.OpenMediaAsync(new [] { new Uri("TODO")}, CancellationToken.None);
         }
 
         public void SeekAsync(long seekToTime)

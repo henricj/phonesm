@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,9 +36,8 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using SM.Media;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
-using SM.Media.Web;
-using SM.Media.Web.HttpClientReader;
 
 namespace NasaTv
 {
@@ -199,9 +198,9 @@ namespace NasaTv
             base.OnNavigatedTo(e);
 
             var me = new MediaElement
-                     {
-                         Margin = new Thickness(0)
-                     };
+            {
+                Margin = new Thickness(0)
+            };
 
             me.MediaFailed += mediaElement1_MediaFailed;
             me.MediaEnded += mediaElement1_MediaEnded;
@@ -259,20 +258,20 @@ namespace NasaTv
             UpdateState();
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs tsMediaManagerStateEventArgs)
         {
             Dispatcher.InvokeAsync(() =>
-                                   {
-                                       var message = tsMediaManagerStateEventArgs.Message;
+            {
+                var message = tsMediaManagerStateEventArgs.Message;
 
-                                       if (!string.IsNullOrWhiteSpace(message))
-                                       {
-                                           errorBox.Text = message;
-                                           errorBox.Visibility = Visibility.Visible;
-                                       }
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    errorBox.Text = message;
+                    errorBox.Visibility = Visibility.Visible;
+                }
 
-                                       UpdateState();
-                                   });
+                UpdateState();
+            });
         }
 
         void UpdateState()

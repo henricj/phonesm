@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+//  <copyright file="MediaManagerParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Ninject.Modules;
-using SM.Media.Builder;
-using SM.Media.MediaManager;
+using System;
+using SM.TsParser;
 
-namespace SM.Media
+namespace SM.Media.MediaManager
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public interface IMediaManagerParameters
     {
-        static readonly INinjectModule[] Modules =
-        {
-            new SmMediaModule(),
-            new HlsModule(),
-            new TsMediaModule()
-        };
+        Action<IProgramStreams> ProgramStreamsHandler { get; set; }
+    }
 
-        public TsMediaManagerBuilder(bool useHttpConnection, bool useSingleStreamMediaManager)
-            : base(Modules)
-        {
-            if (useHttpConnection)
-                this.RegisterModule<HttpConnectionModule>();
-            else
-                this.RegisterModule<HttpClientModule>();
+    public class MediaManagerParameters : IMediaManagerParameters
+    {
+        #region IMediaManagerParameters Members
 
-            if (useSingleStreamMediaManager)
-                this.RegisterModule<SingleStreamMediaManagerModule>();
-            else
-                this.RegisterModule<SmMediaManagerModule>();
-        }
+        public Action<IProgramStreams> ProgramStreamsHandler { get; set; }
+
+        #endregion
     }
 }

@@ -40,6 +40,7 @@ using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Info;
 using SM.Media;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 
 namespace HlsView
@@ -133,7 +134,7 @@ namespace HlsView
 
                 if (MediaElementState.Closed == state)
                 {
-                    if (TsMediaManager.MediaState.OpenMedia == managerState || TsMediaManager.MediaState.Opening == managerState || TsMediaManager.MediaState.Playing == managerState)
+                    if (MediaManagerState.OpenMedia == managerState || MediaManagerState.Opening == managerState || MediaManagerState.Playing == managerState)
                         state = MediaElementState.Opening;
                 }
             }
@@ -331,11 +332,11 @@ namespace HlsView
             mediaStreamFacade.DisposeBackground("MainPage CloseMedia");
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs mediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
             {
-                var message = tsMediaManagerStateEventArgs.Message;
+                var message = mediaManagerStateEventArgs.Message;
 
                 if (!string.IsNullOrWhiteSpace(message))
                 {

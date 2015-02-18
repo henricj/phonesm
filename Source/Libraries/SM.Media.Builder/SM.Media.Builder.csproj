@@ -50,8 +50,11 @@
     </Compile>
     <Compile Include="Builder\BuilderBase.cs" />
     <Compile Include="Builder\BuilderHandle.cs" />
+    <Compile Include="HlsModule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SingleStreamMediaManagerModule.cs" />
     <Compile Include="SmMediaModule.cs" />
+    <Compile Include="SmMediaManagerModule.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Global\phonesm.snk">

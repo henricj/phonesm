@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,6 +39,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using SM.Media;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 
 namespace HlsView
@@ -188,7 +189,7 @@ namespace HlsView
 
                 if (MediaElementState.Closed == state)
                 {
-                    if (TsMediaManager.MediaState.OpenMedia == managerState || TsMediaManager.MediaState.Opening == managerState || TsMediaManager.MediaState.Playing == managerState)
+                    if (MediaManagerState.OpenMedia == managerState || MediaManagerState.Opening == managerState || MediaManagerState.Playing == managerState)
                         state = MediaElementState.Opening;
                 }
             }
@@ -345,37 +346,37 @@ namespace HlsView
                 return;
             }
 
-                if (track.UseNativePlayer)
+            if (track.UseNativePlayer)
+            {
+                if (null != _mediaStreamFacade)
+                    await _mediaStreamFacade.StopAsync(CancellationToken.None);
+
+                mediaElement1.Source = track.Url;
+            }
+            else
+            {
+                mediaElement1.Source = null;
+
+                try
                 {
-                    if (null != _mediaStreamFacade)
-                        await _mediaStreamFacade.StopAsync(CancellationToken.None);
+                    InitializeMediaStream();
 
-                    mediaElement1.Source = track.Url;
-                }
-                else
-                {
-                    mediaElement1.Source = null;
+                    var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
 
-                    try
+                    if (null == mss)
                     {
-                        InitializeMediaStream();
-
-                        var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
-
-                        if (null == mss)
-                        {
-                            Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source");
-                            return;
-                        }
-
-                        mediaElement1.SetMediaStreamSource(mss);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source: " + ex.Message);
+                        Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source");
                         return;
                     }
+
+                    mediaElement1.SetMediaStreamSource(mss);
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MainPage.PlayCurrentTrackAsync() Unable to create media stream source: " + ex.Message);
+                    return;
+                }
+            }
 
             mediaElement1.Play();
 
@@ -434,12 +435,12 @@ namespace HlsView
             _mediaStreamFacade = null;
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs mediaManagerStateEventArgs)
         {
             var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low,
                 () =>
                 {
-                    var message = tsMediaManagerStateEventArgs.Message;
+                    var message = mediaManagerStateEventArgs.Message;
 
                     if (!string.IsNullOrWhiteSpace(message))
                     {

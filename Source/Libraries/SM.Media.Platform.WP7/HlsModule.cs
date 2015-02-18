@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  <copyright file="HlsModule.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,32 +25,27 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using SM.Media.Content;
-using SM.Media.MediaParser;
+using Ninject;
+using Ninject.Modules;
+using SM.Media.Hls;
+using SM.Media.Segments;
 
 namespace SM.Media
 {
-    public interface IMediaManager : IDisposable
+    public class HlsModule : NinjectModule
     {
-        TimeSpan? SeekTarget { get; set; }
-        TsMediaManager.MediaState State { get; }
+        public override void Load()
+        {
+            Bind<ISegmentManagerFactoryInstance>().To<HlsPlaylistSegmentManagerFactory>().InSingletonScope();
 
-        /// <summary>
-        ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
-        ///     The type will be detected if null.  Set this value before setting <see cref="Source" />.
-        /// </summary>
-        /// <seealso cref="SM.Media.Content.ContentTypes" />
-        ContentType ContentType { get; set; }
+            Bind<Func<HlsProgramManager>>()
+                .ToMethod(ctx => () => ctx.Kernel.Get<HlsProgramManager>());
+            Bind<IHlsProgramStreamFactory>().To<HlsProgramStreamFactory>().InSingletonScope();
+            Bind<IHlsSegmentsFactory>().To<HlsSegmentsFactory>();
+            Bind<IHlsStreamSegments>().To<HlsStreamSegments>();
+            Bind<IHlsStreamSegmentsFactory>().To<HlsStreamSegmentsFactory>().InSingletonScope();
 
-        Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken);
-        Task StopMediaAsync(CancellationToken cancellationToken);
-        Task CloseMediaAsync();
-
-        Task<TimeSpan> SeekMediaAsync(TimeSpan position);
-
-        event EventHandler<TsMediaManagerStateEventArgs> OnStateChange;
+            Bind<IHlsPlaylistSegmentManagerPolicy>().To<HlsPlaylistSegmentManagerPolicy>().InSingletonScope();
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.Platform.WinRT", "Libraries\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj", "{7441BE13-D07C-424E-AD1A-54CC78A51E0F}"
 EndProject
@@ -91,6 +91,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.Platform.WP8", "Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj", "{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.MediaPlayer.WP8", "Libraries\SM.Media.MediaPlayer.WP8\SM.Media.MediaPlayer.WP8.csproj", "{503BEB79-3826-4966-9767-F957F1D83E0C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimplePlayer", "Console\SimplePlayer\SimplePlayer.csproj", "{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -453,6 +455,14 @@ Global
 		{503BEB79-3826-4966-9767-F957F1D83E0C}.Release|x64.ActiveCfg = Release|Any CPU
 		{503BEB79-3826-4966-9767-F957F1D83E0C}.Release|x86.ActiveCfg = Release|Any CPU
 		{503BEB79-3826-4966-9767-F957F1D83E0C}.Release|x86.Build.0 = Release|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Debug|x64.Build.0 = Debug|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Debug|x86.Build.0 = Debug|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Release|ARM.ActiveCfg = Release|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Release|x64.ActiveCfg = Release|Any CPU
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -493,5 +503,6 @@ Global
 		{E3BF6762-FEB6-4462-9667-92F96C5709B7} = {42933BAF-F45A-4729-846C-29BEF418FBF6}
 		{8D1CEC97-F698-4920-9644-EAB0EDB4CDD2} = {E8B42D48-C2D8-4361-B1D9-C5119CD07727}
 		{503BEB79-3826-4966-9767-F957F1D83E0C} = {E8B42D48-C2D8-4361-B1D9-C5119CD07727}
+		{0C4B3513-C9E3-416A-AA9F-63B92A3CCEFE} = {682C3DE3-DCB6-435C-8ACE-F43F2ED3C06F}
 	EndGlobalSection
 EndGlobal

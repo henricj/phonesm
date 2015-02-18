@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaStreamFacadeBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@ using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.Builder;
 using SM.Media.Content;
+using SM.Media.MediaManager;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
 
@@ -46,11 +47,11 @@ namespace SM.Media
         ContentType ContentType { get; set; }
 
         TimeSpan? SeekTarget { get; set; }
-        TsMediaManager.MediaState State { get; }
+        MediaManagerState State { get; }
         IBuilder<IMediaManager> Builder { get; }
         bool IsDisposed { get; }
 
-        event EventHandler<TsMediaManagerStateEventArgs> StateChange;
+        event EventHandler<MediaManagerStateEventArgs> StateChange;
 
         Task StopAsync(CancellationToken cancellationToken);
         Task CloseAsync();
@@ -138,14 +139,14 @@ namespace SM.Media
             }
         }
 
-        public TsMediaManager.MediaState State
+        public MediaManagerState State
         {
             get
             {
                 var mediaManager = MediaManager;
 
                 if (null == mediaManager)
-                    return TsMediaManager.MediaState.Closed;
+                    return MediaManagerState.Closed;
 
                 return mediaManager.State;
             }
@@ -156,7 +157,7 @@ namespace SM.Media
             get { return _mediaManagerBuilder; }
         }
 
-        public event EventHandler<TsMediaManagerStateEventArgs> StateChange;
+        public event EventHandler<MediaManagerStateEventArgs> StateChange;
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
@@ -421,11 +422,11 @@ namespace SM.Media
             Debug.WriteLine("MediaStreamFacadeBase.UnlockedCloseMediaManagerAsync() completed");
         }
 
-        async void MediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs e)
+        async void MediaManagerOnStateChange(object sender, MediaManagerStateEventArgs e)
         {
             Debug.WriteLine("MediaStreamFacadeBase.MediaManagerOnStateChange() to {0}: {1}", e.State, e.Message);
 
-            if (e.State == TsMediaManager.MediaState.Closed)
+            if (e.State == MediaManagerState.Closed)
             {
                 try
                 {

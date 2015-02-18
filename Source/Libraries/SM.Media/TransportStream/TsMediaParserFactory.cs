@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="TsMediaParserFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Ninject.Modules;
-using SM.Media.Builder;
-using SM.Media.MediaManager;
+using System;
+using System.Collections.Generic;
+using SM.Media.Content;
+using SM.Media.MediaParser;
 
-namespace SM.Media
+namespace SM.Media.TransportStream
 {
-    sealed class TsMediaManagerBuilder : BuilderBase<IMediaManager>
+    public class TsMediaParserFactory : MediaParserFactoryBase<TsMediaParser>
     {
-        static readonly INinjectModule[] Modules =
-        {
-            new SmMediaModule(),
-            new HlsModule(),
-            new TsMediaModule()
-        };
+        static readonly ContentType[] Types = { ContentTypes.TransportStream };
 
-        public TsMediaManagerBuilder(bool useHttpConnection, bool useSingleStreamMediaManager)
-            : base(Modules)
-        {
-            if (useHttpConnection)
-                this.RegisterModule<HttpConnectionModule>();
-            else
-                this.RegisterModule<HttpClientModule>();
+        public TsMediaParserFactory(Func<TsMediaParser> factory)
+            : base(factory)
+        { }
 
-            if (useSingleStreamMediaManager)
-                this.RegisterModule<SingleStreamMediaManagerModule>();
-            else
-                this.RegisterModule<SmMediaManagerModule>();
+        public override ICollection<ContentType> KnownContentTypes
+        {
+            get { return Types; }
         }
     }
 }

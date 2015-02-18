@@ -26,6 +26,7 @@
 
 using Windows.Media.Core;
 using SM.Media.Builder;
+using SM.Media.MediaManager;
 
 namespace SM.Media
 {
@@ -35,7 +36,7 @@ namespace SM.Media
     public class MediaStreamFacade : MediaStreamFacadeBase<IMediaSource>, IMediaStreamFacade
     {
         public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
-            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection))
+            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection, MediaStreamFacadeSettings.Parameters.UseSingleStreamMediaManager))
         { }
     }
 }

@@ -241,7 +241,6 @@
     <Compile Include="..\SM.Media\Hls\HlsStreamSegmentsFactory.cs">
       <Link>Hls\HlsStreamSegmentsFactory.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\IMediaManager.cs" />
     <Compile Include="..\SM.Media\ITsTimestamp.cs" />
     <Compile Include="..\SM.Media\M3U8\AttributeSupport\ByterangeAttributeInstance.cs">
       <Link>M3U8\AttributeSupport\ByterangeAttributeInstance.cs</Link>
@@ -357,8 +356,23 @@
     <Compile Include="..\SM.Media\M3U8\TagSupport\ValueTagInstance.cs">
       <Link>M3U8\TagSupport\ValueTagInstance.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\MediaManagerParameters.cs">
-      <Link>MediaManagerParameters.cs</Link>
+    <Compile Include="..\SM.Media\MediaManager\IMediaManager.cs">
+      <Link>MediaManager\IMediaManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManager\MediaManagerParameters.cs">
+      <Link>MediaManager\MediaManagerParameters.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManager\MediaManagerState.cs">
+      <Link>MediaManager\MediaManagerState.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManager\MediaManagerStateEventArgs.cs">
+      <Link>MediaManager\MediaManagerStateEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManager\SingleStreamMediaManager.cs">
+      <Link>MediaManager\SingleStreamMediaManager.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManager\SmMediaManager.cs">
+      <Link>MediaManager\SmMediaManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\IMediaParser.cs">
       <Link>MediaParser\IMediaParser.cs</Link>
@@ -471,8 +485,11 @@
     <Compile Include="..\SM.Media\Segments\SimpleSegmentManagerFactory.cs">
       <Link>Segments\SimpleSegmentManagerFactory.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\TsMediaParserFactory.cs">
-      <Link>TsMediaParserFactory.cs</Link>
+    <Compile Include="..\SM.Media\TransportStream\TsMediaParser.cs">
+      <Link>TransportStream\TsMediaParser.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsMediaParserFactory.cs">
+      <Link>TransportStream\TsMediaParserFactory.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\ApplicationInformation.cs">
       <Link>Utility\ApplicationInformation.cs</Link>
@@ -668,7 +685,6 @@
     <Compile Include="..\SM.Media\Segments\SegmentReaderManager.cs">
       <Link>Segments\SegmentReaderManager.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\TsMediaParser.cs" />
     <Compile Include="..\SM.Media\H264\NalUnitParser.cs">
       <Link>H264\NalUnitParser.cs</Link>
     </Compile>
@@ -762,7 +778,6 @@
       <Link>Segments\SimpleSegmentManager.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\StreamBuffer.cs" />
-    <Compile Include="..\SM.Media\TsMediaManager.cs" />
     <Compile Include="..\SM.Media\TsTimestamp.cs" />
     <Compile Include="..\SM.Media\Utility\AsyncManualResetEvent.cs">
       <Link>Utility\AsyncManualResetEvent.cs</Link>
@@ -835,6 +850,7 @@
       <HintPath>..\..\packages\Microsoft.Bcl.1.1.9\lib\portable-net40+sl4+win8+wp71+wpa81\System.Threading.Tasks.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

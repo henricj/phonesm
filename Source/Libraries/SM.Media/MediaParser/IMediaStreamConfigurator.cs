@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 
 namespace SM.Media.MediaParser

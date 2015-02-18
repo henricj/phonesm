@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaStreamFacade.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using System.Windows.Media;
 using SM.Media.Builder;
+using SM.Media.MediaManager;
 
 namespace SM.Media
 {
@@ -35,7 +36,7 @@ namespace SM.Media
     public class MediaStreamFacade : MediaStreamFacadeBase<MediaStreamSource>, IMediaStreamFacade
     {
         public MediaStreamFacade(IBuilder<IMediaManager> builder = null)
-            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection))
+            : base(builder ?? new TsMediaManagerBuilder(MediaStreamFacadeSettings.Parameters.UseHttpConnection, MediaStreamFacadeSettings.Parameters.UseSingleStreamMediaManager))
         { }
     }
 }

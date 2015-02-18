@@ -107,6 +107,8 @@
     <Compile Include="Hls\HlsStreamSegmentsFactory.cs" />
     <Compile Include="M3U8\TagSupport\DateTimeTagInstance.cs" />
     <Compile Include="M3U8\TagSupport\M3U8DateTimeTag.cs" />
+    <Compile Include="MediaManager\MediaManagerState.cs" />
+    <Compile Include="MediaManager\MediaManagerStateEventArgs.cs" />
     <Compile Include="MediaParser\IMediaParserFactoryInstance.cs" />
     <Compile Include="MediaParser\MediaConfiguration.cs" />
     <Compile Include="MediaParser\MediaParserBase.cs" />
@@ -135,7 +137,8 @@
     <Compile Include="Segments\SimpleSegmentManager.cs" />
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
     <Compile Include="Content\ContentServiceFactory.cs" />
-    <Compile Include="TsMediaParserFactory.cs" />
+    <Compile Include="MediaManager\SingleStreamMediaManager.cs" />
+    <Compile Include="TransportStream\TsMediaParserFactory.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
@@ -153,7 +156,7 @@
     <Compile Include="Content\ContentTypes.cs" />
     <Compile Include="H262\H262Configurator.cs" />
     <Compile Include="H262\H262StreamHandler.cs" />
-    <Compile Include="IMediaManager.cs" />
+    <Compile Include="MediaManager\IMediaManager.cs" />
     <Compile Include="MediaParser\IMediaParser.cs" />
     <Compile Include="MediaParser\IMediaStreamConfigurator.cs" />
     <Compile Include="ITsTimestamp.cs" />
@@ -165,7 +168,7 @@
     <Compile Include="M3U8\TagSupport\M3U8ExtKeyTag.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ExtStreamInfTag.cs" />
     <Compile Include="M3U8\TagSupport\M3U8ValueTag.cs" />
-    <Compile Include="MediaManagerParameters.cs" />
+    <Compile Include="MediaManager\MediaManagerParameters.cs" />
     <Compile Include="MP3\Mp3FrameHeader.cs" />
     <Compile Include="MP3\Mp3MediaParser.cs" />
     <Compile Include="MP3\Mp3Parser.cs" />
@@ -238,7 +241,7 @@
     <Compile Include="Utility\StopCloseExtensions.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
     <Compile Include="Utility\TaskEx.cs" />
-    <Compile Include="TsMediaParser.cs" />
+    <Compile Include="TransportStream\TsMediaParser.cs" />
     <Compile Include="H264\NalUnitParser.cs" />
     <Compile Include="H264\H264Bitstream.cs" />
     <Compile Include="H264\H264BitstreamExtensions.cs" />
@@ -274,7 +277,7 @@
     <Compile Include="Segments\SimpleSegment.cs" />
     <Compile Include="Segments\SimpleSegmentManagerBase.cs" />
     <Compile Include="StreamBuffer.cs" />
-    <Compile Include="TsMediaManager.cs" />
+    <Compile Include="MediaManager\SmMediaManager.cs" />
     <Compile Include="TsTimestamp.cs" />
     <Compile Include="Utility\AsyncManualResetEvent.cs" />
     <Compile Include="Utility\BlockingPool.cs" />

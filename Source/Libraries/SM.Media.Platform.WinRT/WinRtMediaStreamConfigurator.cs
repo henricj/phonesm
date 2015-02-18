@@ -31,6 +31,7 @@ using System.Threading.Tasks;
 using Windows.Media.Core;
 using Windows.Media.MediaProperties;
 using SM.Media.Configuration;
+using SM.Media.MediaManager;
 using SM.Media.MediaParser;
 using SM.Media.Utility;
 

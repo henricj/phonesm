@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="MediaManagerParameters.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  <copyright file="IMediaManager.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,21 +25,32 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.TsParser;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using SM.Media.Content;
+using SM.Media.MediaParser;
 
-namespace SM.Media
+namespace SM.Media.MediaManager
 {
-    public interface IMediaManagerParameters
+    public interface IMediaManager : IDisposable
     {
-        Action<IProgramStreams> ProgramStreamsHandler { get; set; }
-    }
+        TimeSpan? SeekTarget { get; set; }
+        MediaManagerState State { get; }
 
-    public class MediaManagerParameters : IMediaManagerParameters
-    {
-        #region IMediaManagerParameters Members
+        /// <summary>
+        ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
+        ///     The type will be detected if null.  Set this value before setting <see cref="Source" />.
+        /// </summary>
+        /// <seealso cref="SM.Media.Content.ContentTypes" />
+        ContentType ContentType { get; set; }
 
-        public Action<IProgramStreams> ProgramStreamsHandler { get; set; }
+        Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken);
+        Task StopMediaAsync(CancellationToken cancellationToken);
+        Task CloseMediaAsync();
 
-        #endregion
+        Task<TimeSpan> SeekMediaAsync(TimeSpan position);
+
+        event EventHandler<MediaManagerStateEventArgs> OnStateChange;
     }
 }

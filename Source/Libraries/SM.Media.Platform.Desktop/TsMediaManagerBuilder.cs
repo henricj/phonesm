@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaManagerBuilder.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using Autofac.Core;
 using SM.Media.Builder;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 
 namespace SM.Media
@@ -35,16 +36,22 @@ namespace SM.Media
         static readonly IModule[] Modules =
         {
             new SmMediaModule(),
+            new HlsModule(),
             new TsMediaModule()
         };
 
-        public TsMediaManagerBuilder(bool useHttpConnection)
+        public TsMediaManagerBuilder(bool useHttpConnection, bool useSingleStreamMediaManager)
             : base(Modules)
         {
             if (useHttpConnection)
                 this.RegisterModule<HttpConnectionModule>();
             else
                 this.RegisterModule<HttpClientModule>();
+
+            if (useSingleStreamMediaManager)
+                this.RegisterModule<SingleStreamMediaManagerModule>();
+            else
+                this.RegisterModule<SmMediaManagerModule>();
 
             RegisterSingleton<IApplicationInformation, DesktopApplicationInformation>();
             RegisterSingleton<IPlatformServices, PlatformServices>();

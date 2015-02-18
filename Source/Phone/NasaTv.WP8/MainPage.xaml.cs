@@ -35,6 +35,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using NasaTv;
 using SM.Media;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 
 namespace NasaTv8
@@ -315,11 +316,11 @@ namespace NasaTv8
             root.Navigate(new Uri(viewsAboutXaml, UriKind.Relative));
         }
 
-        void TsMediaManagerOnStateChange(object sender, TsMediaManagerStateEventArgs tsMediaManagerStateEventArgs)
+        void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs mediaManagerStateEventArgs)
         {
             Dispatcher.BeginInvoke(() =>
             {
-                var message = tsMediaManagerStateEventArgs.Message;
+                var message = mediaManagerStateEventArgs.Message;
 
                 if (!string.IsNullOrWhiteSpace(message))
                 {

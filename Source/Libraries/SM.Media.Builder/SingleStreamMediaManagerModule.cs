@@ -1,10 +1,10 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="TsMediaParserFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+// -----------------------------------------------------------------------
+//  <copyright file="SingleStreamMediaManagerMediaModule.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,24 +24,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using SM.Media.Content;
-using SM.Media.MediaParser;
+using Autofac;
+using SM.Media.MediaManager;
 
 namespace SM.Media
 {
-    public class TsMediaParserFactory : MediaParserFactoryBase<TsMediaParser>
+    public class SingleStreamMediaManagerModule : Module
     {
-        static readonly ContentType[] Types = { ContentTypes.TransportStream };
-
-        public TsMediaParserFactory(Func<TsMediaParser> factory)
-            : base(factory)
-        { }
-
-        public override ICollection<ContentType> KnownContentTypes
+        protected override void Load(ContainerBuilder builder)
         {
-            get { return Types; }
+            builder.RegisterType<SingleStreamMediaManager>().As<IMediaManager>().InstancePerMatchingLifetimeScope("builder-scope");
         }
     }
 }

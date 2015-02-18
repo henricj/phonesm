@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HttpConnectionWebReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -133,7 +133,8 @@ namespace SM.Media.Web.HttpConnectionReader
                 webResponse.RequestUri = response.ResponseUri;
                 webResponse.ContentLength = response.Status.ContentLength >= 0 ? response.Status.ContentLength : null;
                 webResponse.Headers = GetHeaders(response.Headers);
-                webResponse.ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+
+                webResponse.ContentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
             }
 
             if (url != BaseAddress)

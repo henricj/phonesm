@@ -49,8 +49,6 @@ namespace SM.Media
     {
         protected override void Load(ContainerBuilder builder)
         {
-            builder.RegisterType<SmMediaManager>().As<IMediaManager>().InstancePerMatchingLifetimeScope("builder-scope");
-
             builder.RegisterInstance(new ContentTypeDetector(ContentTypes.AllTypes)).As<IContentTypeDetector>();
 
             builder.RegisterType<SegmentManagerFactoryFinder>().As<ISegmentManagerFactoryFinder>().SingleInstance();

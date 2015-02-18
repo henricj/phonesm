@@ -61,8 +61,6 @@ namespace SM.Media
         {
             var scope = Scope;
 
-            Bind<IMediaManager>().To<SmMediaManager>().InScope(scope);
-
             Bind<IContentTypeDetector>().ToConstant(new ContentTypeDetector(ContentTypes.AllTypes));
 
             Bind<ISegmentManagerFactoryFinder>().To<SegmentManagerFactoryFinder>().InSingletonScope();

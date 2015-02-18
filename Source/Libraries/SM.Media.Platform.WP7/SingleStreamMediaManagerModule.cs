@@ -44,7 +44,12 @@ namespace SM.Media
         {
             var scope = Scope;
 
-            Bind<IMediaManager>().To<SingleStreamMediaManager>().InScope(scope);
+            var b = Bind<IMediaManager>().To<SingleStreamMediaManager>();
+
+            Bind<IMediaManager>().To<SingleStreamMediaManager>();
+
+            if (null != scope)
+                b.InScope(scope);
         }
     }
 }

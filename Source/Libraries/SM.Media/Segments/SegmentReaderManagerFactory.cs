@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SegmentReaderManagerFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.Utility;
-using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
@@ -44,12 +43,9 @@ namespace SM.Media.Segments
         readonly IPlatformServices _platformServices;
         readonly IRetryManager _retryManager;
         readonly ISegmentManagerFactory _segmentManagerFactory;
-        readonly IWebReaderManager _webReaderManager;
 
-        public SegmentReaderManagerFactory(IWebReaderManager webReaderManager, ISegmentManagerFactory segmentManagerFactory, IRetryManager retryManager, IPlatformServices platformServices)
+        public SegmentReaderManagerFactory(ISegmentManagerFactory segmentManagerFactory, IRetryManager retryManager, IPlatformServices platformServices)
         {
-            if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
             if (null == segmentManagerFactory)
                 throw new ArgumentNullException("segmentManagerFactory");
             if (null == retryManager)
@@ -57,7 +53,6 @@ namespace SM.Media.Segments
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
 
-            _webReaderManager = webReaderManager;
             _segmentManagerFactory = segmentManagerFactory;
             _retryManager = retryManager;
             _platformServices = platformServices;

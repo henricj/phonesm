@@ -393,9 +393,9 @@ namespace SM.Media
         {
             Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnSwitchStreamsRequested()");
 
-            NotifyOnError(sender);
+            //NotifyOnError(sender);
 
-            throw new NotSupportedException();
+            //throw new NotSupportedException();
         }
 
         void MediaStreamSourceOnPaused(MediaStreamSource sender, object args)

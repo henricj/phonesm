@@ -91,6 +91,8 @@ namespace SM.Media.Buffering
             if (null != Interlocked.CompareExchange(ref _queueThrottling, queueThrottling, null))
                 throw new InvalidOperationException("The buffering manager is in use");
 
+            HandleStateChange();
+
             _reportingTask = new SignalTask(() =>
             {
                 reportBufferingChange();

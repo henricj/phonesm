@@ -263,31 +263,42 @@ namespace SM.Media.MediaManager
 
                 using (var bufferingManager = _bufferingManagerFactory())
                 {
+                    var throttle = new QueueThrottle();
+
+                    bufferingManager.Initialize(throttle, _mediaStreamConfigurator.CheckForSamples);
+
                     mediaParser.Initialize(bufferingManager);
 
-                    using (webReader)
+                    try
                     {
-                        try
+                        using (webReader)
                         {
-                            if (null == webStreamResponse)
-                                webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                if (null == webStreamResponse)
+                                    webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken).ConfigureAwait(false);
 
-                            var reader = ReadResponseAsync(mediaParser, webStreamResponse, cancellationToken);
+                                var reader = ReadResponseAsync(mediaParser, webStreamResponse, throttle, cancellationToken);
 
-                            await TaskEx.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
+                                await TaskEx.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
 
-                            if (!configurationTaskCompletionSource.Task.IsCompleted)
-                                return;
+                                if (!configurationTaskCompletionSource.Task.IsCompleted)
+                                    return;
 
-                            await _mediaStreamConfigurator.PlayAsync(mediaParser.MediaStreams, null, cancellationToken).ConfigureAwait(false);
+                                await _mediaStreamConfigurator.PlayAsync(mediaParser.MediaStreams, null, cancellationToken).ConfigureAwait(false);
 
-                            await reader.ConfigureAwait(false);
+                                await reader.ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                if (null != webStreamResponse)
+                                    webStreamResponse.Dispose();
+                            }
                         }
-                        finally
-                        {
-                            if (null != webStreamResponse)
-                                webStreamResponse.Dispose();
-                        }
+                    }
+                    finally
+                    {
+                        bufferingManager.Shutdown(throttle);
                     }
                 }
             }
@@ -298,9 +309,11 @@ namespace SM.Media.MediaManager
             }
         }
 
-        async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, CancellationToken cancellationToken)
+        async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, QueueThrottle throttle, CancellationToken cancellationToken)
         {
-            var buffer = new byte[4 * 1024];
+            var buffer = new byte[16 * 1024];
+
+            var cancellationTask = cancellationToken.AsTask();
 
             try
             {
@@ -308,6 +321,13 @@ namespace SM.Media.MediaManager
                 {
                     for (; ; )
                     {
+                        var waitTask = throttle.WaitAsync();
+
+                        if (!waitTask.IsCompleted)
+                        {
+                            await TaskEx.WhenAny(waitTask, cancellationTask).ConfigureAwait(false);
+                        }
+
                         var length = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
 
                         if (length <= 0)
@@ -322,5 +342,33 @@ namespace SM.Media.MediaManager
                 mediaParser.ProcessEndOfData();
             }
         }
+
+        #region Nested type: QueueThrottle
+
+        sealed class QueueThrottle : IQueueThrottling
+        {
+            readonly AsyncManualResetEvent _event = new AsyncManualResetEvent();
+
+            #region IQueueThrottling Members
+
+            public void Pause()
+            {
+                _event.Reset();
+            }
+
+            public void Resume()
+            {
+                _event.Set();
+            }
+
+            #endregion
+
+            public Task WaitAsync()
+            {
+                return _event.WaitAsync();
+            }
+        }
+
+        #endregion
     }
 }

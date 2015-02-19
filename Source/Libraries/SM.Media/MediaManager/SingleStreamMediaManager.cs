@@ -73,7 +73,25 @@ namespace SM.Media.MediaManager
         #region IMediaManager Members
 
         public void Dispose()
-        { }
+        {
+            Debug.WriteLine("SingleStreamMediaManager.Dispose()");
+
+            if (null != OnStateChange)
+            {
+                Debug.WriteLine("SingleStreamMediaManager.Dispose(): OnStateChange is not null");
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+
+                OnStateChange = null;
+            }
+
+            _mediaStreamConfigurator.MediaManager = null;
+
+            _reportStateTask.Dispose();
+
+            _playCancellationTokenSource.Dispose();
+        }
 
         public TimeSpan? SeekTarget { get; set; }
         public ContentType ContentType { get; set; }
@@ -86,6 +104,8 @@ namespace SM.Media.MediaManager
 
         public async Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken)
         {
+            State = MediaManagerState.OpenMedia;
+
             var response = new WebResponse();
 
             using (var rootWebReader = _webReaderManager.CreateRootReader())
@@ -201,9 +221,34 @@ namespace SM.Media.MediaManager
 
         #endregion
 
-        async Task ReportState()
+        Task ReportState()
         {
             Debug.WriteLine("SingleStreamMediaManager.ReportState() state {0} message {1}", _mediaState, _mediaStateMessage);
+
+            MediaManagerState state;
+            string message;
+
+            lock (_lock)
+            {
+                state = _mediaState;
+                message = _mediaStateMessage;
+                _mediaStateMessage = null;
+            }
+
+            var handlers = OnStateChange;
+
+            if (null != handlers)
+                handlers(this, new MediaManagerStateEventArgs(state, message));
+
+            if (null != message)
+            {
+                var mss = _mediaStreamConfigurator;
+
+                if (null != mss)
+                    mss.ReportError(message);
+            }
+
+            return TplTaskExtensions.CompletedTask;
         }
 
         void SetMediaState(MediaManagerState state, string message)
@@ -244,10 +289,14 @@ namespace SM.Media.MediaManager
         {
             try
             {
+                _mediaStreamConfigurator.MediaManager = this;
+
                 var mediaParser = await _mediaParserFactory.CreateAsync(new MediaParserParameters(), contentType, cancellationToken).ConfigureAwait(false);
 
                 if (null == mediaParser)
                     throw new NotSupportedException("Unsupported content type: " + contentType);
+
+                State = MediaManagerState.Opening;
 
                 EventHandler configurationComplete = null;
 
@@ -282,10 +331,11 @@ namespace SM.Media.MediaManager
 
                                 await TaskEx.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
 
-                                if (!configurationTaskCompletionSource.Task.IsCompleted)
-                                    return;
+                                cancellationToken.ThrowIfCancellationRequested();
 
                                 await _mediaStreamConfigurator.PlayAsync(mediaParser.MediaStreams, null, cancellationToken).ConfigureAwait(false);
+
+                                State = MediaManagerState.Playing;
 
                                 await reader.ConfigureAwait(false);
                             }
@@ -296,17 +346,37 @@ namespace SM.Media.MediaManager
                             }
                         }
                     }
-                    finally
+                    catch (OperationCanceledException)
+                    { }
+                    catch (Exception ex)
                     {
-                        bufferingManager.Shutdown(throttle);
+                        var message = ex.ExtendedMessage();
+
+                        Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() failed: " + message);
+
+                        SetMediaState(MediaManagerState.Error, message);
                     }
+
+                    State = MediaManagerState.Closing;
+
+                    bufferingManager.Shutdown(throttle);
+
+                    await _mediaStreamConfigurator.CloseAsync().ConfigureAwait(false);
                 }
             }
-            finally
+            catch (Exception ex)
             {
-                if (!configurationTaskCompletionSource.Task.IsCompleted)
-                    configurationTaskCompletionSource.TrySetCanceled();
+                Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() cleanup failed: " + ex.ExtendedMessage());
             }
+
+            _mediaStreamConfigurator.MediaManager = null;
+
+            if (!configurationTaskCompletionSource.Task.IsCompleted)
+                configurationTaskCompletionSource.TrySetCanceled();
+
+            State = MediaManagerState.Closed;
+
+            await _reportStateTask.WaitAsync().ConfigureAwait(false);
         }
 
         async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, QueueThrottle throttle, CancellationToken cancellationToken)

@@ -547,7 +547,7 @@ namespace SM.Media.MediaManager
             var reader = new MediaReader(_bufferingManagerFactory(), _mediaParserFactory, segmentManagerReaders, new BlockingPool<WorkBuffer>(MaxBuffers));
 
             await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted,
-                () => _mediaStreamConfigurator.CheckForSamples(),
+                _mediaStreamConfigurator.CheckForSamples,
                 _playbackCancellationTokenSource.Token, _programStreamsHandler)
                 .ConfigureAwait(false);
 

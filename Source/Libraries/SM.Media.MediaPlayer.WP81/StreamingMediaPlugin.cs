@@ -213,6 +213,10 @@ namespace SM.Media.MediaPlayer
                         if (passThrough(source))
                         {
                             Debug.WriteLine("StreamingMediaPlugin.PlayerOnMediaLoading() passing through " + source);
+
+                            deferral.Complete();
+                            deferral = null;
+                            
                             return;
                         }
                     }

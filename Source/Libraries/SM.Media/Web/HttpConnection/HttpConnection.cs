@@ -222,7 +222,11 @@ namespace SM.Media.Web.HttpConnection
             // version [SP] code [SP] message
             // where the message is optional.
 
+#if SM_MEDIA_LEGACY
+            var parts = statusLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+#else
             var parts = statusLine.Split(new[] { ' ' }, 3, StringSplitOptions.RemoveEmptyEntries);
+#endif
 
             _httpStatus.Version = parts[0];
 

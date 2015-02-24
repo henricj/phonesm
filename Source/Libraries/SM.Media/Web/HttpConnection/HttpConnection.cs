@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpConnection.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -213,7 +213,7 @@ namespace SM.Media.Web.HttpConnection
                 ParseRealHttp(statusLine);
 
                 _httpStatus.IsHttp = true;
-                
+
                 return;
             }
 
@@ -222,7 +222,7 @@ namespace SM.Media.Web.HttpConnection
             // version [SP] code [SP] message
             // where the message is optional.
 
-            var parts = statusLine.Split(' ');
+            var parts = statusLine.Split(new[] { ' ' }, 3, StringSplitOptions.RemoveEmptyEntries);
 
             _httpStatus.Version = parts[0];
 

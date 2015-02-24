@@ -90,7 +90,16 @@ namespace SM.Media.MediaManager
 
             _reportStateTask.Dispose();
 
-            _playCancellationTokenSource.Dispose();
+            CancellationTokenSource pcts;
+
+            lock (_lock)
+            {
+                pcts = _playCancellationTokenSource;
+                _playCancellationTokenSource = null;
+            }
+
+            if (null != pcts)
+                pcts.Dispose();
         }
 
         public TimeSpan? SeekTarget { get; set; }
@@ -318,6 +327,8 @@ namespace SM.Media.MediaManager
 
                     mediaParser.Initialize(bufferingManager);
 
+                    Task reader = null;
+
                     try
                     {
                         using (webReader)
@@ -327,7 +338,7 @@ namespace SM.Media.MediaManager
                                 if (null == webStreamResponse)
                                     webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken).ConfigureAwait(false);
 
-                                var reader = ReadResponseAsync(mediaParser, webStreamResponse, throttle, cancellationToken);
+                                reader = ReadResponseAsync(mediaParser, webStreamResponse, throttle, cancellationToken);
 
                                 await TaskEx.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
 
@@ -338,6 +349,8 @@ namespace SM.Media.MediaManager
                                 State = MediaManagerState.Playing;
 
                                 await reader.ConfigureAwait(false);
+
+                                reader = null;
                             }
                             finally
                             {
@@ -358,6 +371,20 @@ namespace SM.Media.MediaManager
                     }
 
                     State = MediaManagerState.Closing;
+
+                    if (null != reader)
+                    {
+                        try
+                        {
+                            await reader.ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        { }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() reader failed: " + ex.ExtendedMessage());
+                        }
+                    }
 
                     bufferingManager.Shutdown(throttle);
 

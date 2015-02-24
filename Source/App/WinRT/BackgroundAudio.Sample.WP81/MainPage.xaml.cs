@@ -424,7 +424,7 @@ namespace BackgroundAudio.Sample
 
         void NotifyBackground(string key, object value = null, bool ping = false)
         {
-            Debug.WriteLine("MainPage.NotifyBackground() " + _id + ": " + key);
+            //Debug.WriteLine("MainPage.NotifyBackground() " + _id + ": " + key);
 
             try
             {

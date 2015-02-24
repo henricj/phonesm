@@ -189,10 +189,8 @@ namespace SM.Media.BackgroundAudio
             _completionSource.TrySetResult(null);
         }
 
-        void MediaPlayerManagerOnFailed(MediaPlayerManager sender, Exception ex)
+        void MediaPlayerManagerOnFailed(MediaPlayerManager sender, string message)
         {
-            var message = null == ex ? "<none>" : ex.Message;
-
             Debug.WriteLine("BackgroundAudioRun.MediaPlayerManagerOnFailed() " + _id + " exception " + message);
 
             try
@@ -204,11 +202,15 @@ namespace SM.Media.BackgroundAudio
                 smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
                 smtc.DisplayUpdater.Update();
 
-                _foregroundNotifier.Notify(new ValueSet
+                var valueSet = new ValueSet
                 {
-                    { "fail", message },
                     { "track", _mediaPlayerManager.TrackName }
-                });
+                };
+
+                if (!string.IsNullOrEmpty(message))
+                    valueSet["fail"] = message;
+
+                _foregroundNotifier.Notify(valueSet);
             }
             catch (Exception ex2)
             {

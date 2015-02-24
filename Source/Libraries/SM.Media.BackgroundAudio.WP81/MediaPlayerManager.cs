@@ -128,6 +128,8 @@ namespace SM.Media.BackgroundAudio
 
             if (null != _mediaStreamFacade)
             {
+                _mediaStreamFacade.StateChange -= MediaStreamFacadeOnStateChange;
+
                 _mediaStreamFacade.Dispose();
                 _mediaStreamFacade = null;
             }
@@ -138,12 +140,36 @@ namespace SM.Media.BackgroundAudio
         #endregion
 
         public event TypedEventHandler<MediaPlayerManager, string> TrackChanged;
-        public event TypedEventHandler<MediaPlayerManager, Exception> Failed;
+        public event TypedEventHandler<MediaPlayerManager, string> Failed;
 
-        void InitializeMediaStream()
+        async Task InitializeMediaStreamAsync()
         {
+            Debug.WriteLine("MediaPlayerManager.InitializeMediaStreamAsync()");
+
             if (null != _mediaStreamFacade)
-                return;
+            {
+                StopMediaPlayer();
+
+                try
+                {
+                    await _mediaStreamFacade.StopAsync(_cancellationToken).ConfigureAwait(false);
+
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MediaPlayerManager.InitializeMediaStreamAsync() stop failed: " + ex.ExtendedMessage());
+                }
+
+                try
+                {
+                    await CleanupMediaStreamFacadeAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MediaPlayerManager.InitializeMediaStreamAsync() cleanup failed: " + ex.ExtendedMessage());
+                }
+            }
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
@@ -161,33 +187,45 @@ namespace SM.Media.BackgroundAudio
 
         async void MediaPlayerOnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
         {
-            Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed(): " + args.Error + "/" + args.ErrorMessage);
+            var message = args.Error + "/" + args.ErrorMessage;
+
+            Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed(): " + message);
 
             var ex = args.ExtendedErrorCode;
 
             if (null != ex)
                 Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed() extended error: " + ex.Message);
 
-            Failed.Invoke(this, ex);
+            Failed.Invoke(this, message);
+
+            try
+            {
+                using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
+                {
+                    await CleanupMediaStreamFacadeAsync().ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex2)
+            {
+                Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed() cleanup failed: " + ex2.ExtendedMessage());
+            }
+        }
+
+        async Task CleanupMediaStreamFacadeAsync()
+        {
+            Debug.WriteLine("MediaPlayerManager.CleanupMediaStreamFacadeAsync()");
 
             var msf = _mediaStreamFacade;
 
             if (null != msf)
             {
-                try
-                {
-                    _mediaStreamFacade = null;
+                _mediaStreamFacade = null;
 
-                    msf.StateChange -= MediaStreamFacadeOnStateChange;
+                msf.StateChange -= MediaStreamFacadeOnStateChange;
 
-                    await msf.CloseAsync().ConfigureAwait(false);
+                await msf.CloseAsync().ConfigureAwait(false);
 
-                    msf.DisposeBackground("MediaPlayerManager OnFailed");
-                }
-                catch (Exception ex2)
-                {
-                    Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed() cleanup failed: " + ex2.ExtendedMessage());
-                }
+                msf.DisposeBackground("MediaPlayerManager OnFailed");
             }
         }
 
@@ -266,6 +304,7 @@ namespace SM.Media.BackgroundAudio
             if (null == track)
             {
                 StopMediaPlayer();
+
                 return;
             }
 
@@ -274,6 +313,7 @@ namespace SM.Media.BackgroundAudio
             if (null == url)
             {
                 StopMediaPlayer();
+
                 return;
             }
 
@@ -296,7 +336,7 @@ namespace SM.Media.BackgroundAudio
                     }
                     else
                     {
-                        InitializeMediaStream();
+                        await InitializeMediaStreamAsync().ConfigureAwait(false);
 
                         var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationToken).ConfigureAwait(false);
 
@@ -312,9 +352,7 @@ namespace SM.Media.BackgroundAudio
                     return;
                 }
                 catch (OperationCanceledException)
-                {
-                    return;
-                }
+                { }
                 catch (Exception ex)
                 {
                     Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() failed: " + ex.Message);
@@ -396,10 +434,18 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("MediaPlayerManager.StopMediaPlayer()");
 
-            // TODO: How do we stop????
+            try
+            {
+                // TODO: How do we stop????
 
-            //_mediaPlayer.SetUriSource(new Uri("ms-appx:///Assets/There is no such file"));
-            _mediaPlayer.SetStreamSource(EmptyStream);
+                //_mediaPlayer.SetUriSource(new Uri("ms-appx:///Assets/There is no such file"));
+                //_mediaPlayer.SetStreamSource(EmptyStream);
+                _mediaPlayer.SetUriSource(null);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerManager.StopMediaPlayer() failed: " + ex.ExtendedMessage());
+            }
         }
 
         public async Task CloseAsync()

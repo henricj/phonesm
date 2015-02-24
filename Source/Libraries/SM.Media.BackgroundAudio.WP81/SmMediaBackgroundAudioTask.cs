@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="SmMediaBackgroundAudioTask.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,350 +29,91 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Background;
-using Windows.Foundation.Collections;
-using Windows.Media;
-using Windows.Media.Playback;
-using Windows.System;
 using SM.Media.Utility;
 
 namespace SM.Media.BackgroundAudio
 {
     public sealed class SmMediaBackgroundAudioTask : IBackgroundTask
     {
-        readonly AsyncManualResetEvent _isRunningEvent = new AsyncManualResetEvent();
-        BackgroundTaskDeferral _deferral;
-        Guid _id;
-        MediaPlayerManager _mediaPlayerManager;
-        SystemMediaTransportControls _systemMediaTransportControls;
-        Guid _appId;
+        BackgroundAudioRun _run;
 
 #if DEBUG
-        readonly Timer _memoryPoll = new Timer(
-            _ => DumpMemory(),
-            null, Timeout.Infinite, Timeout.Infinite);
+        readonly MemoryDiagnostics _memoryDiagnostics = new MemoryDiagnostics();
 #endif
-
-        [Conditional("DEBUG")]
-        static void DumpMemory()
-        {
-            Debug.WriteLine("<{0:F2}MiB/{1:F2}MiB>",
-                MemoryManager.AppMemoryUsage.BytesToMiB(),
-                MemoryManager.AppMemoryUsageLimit.BytesToMiB());
-        }
-
-        [Conditional("DEBUG")]
-        void StartPoll()
-        {
-#if DEBUG
-            _memoryPoll.Change(TimeSpan.Zero, TimeSpan.FromSeconds(3));
-#endif
-        }
-
-        [Conditional("DEBUG")]
-        void StopPoll()
-        {
-#if DEBUG
-            _memoryPoll.Change(Timeout.Infinite, Timeout.Infinite);
-#endif
-        }
 
         #region IBackgroundTask Members
 
         public void Run(IBackgroundTaskInstance taskInstance)
         {
-            _id = taskInstance.InstanceId;
+            Debug.WriteLine("SmMediaBackgroundAudioTask.Run() " + taskInstance.Task.Name + " instance " + taskInstance.InstanceId);
 
-            Debug.WriteLine("SmMediaBackgroundAudioTask.Run() " + taskInstance.Task.Name + " instance " + _id);
+            var task = RunAsync(taskInstance);
 
-            _deferral = taskInstance.GetDeferral();
-
-            _systemMediaTransportControls = SystemMediaTransportControls.GetForCurrentView();
-
-            var smtc = _systemMediaTransportControls;
-
-            smtc.ButtonPressed += SystemMediaTransportControlsOnButtonPressed;
-            smtc.PropertyChanged += SystemMediaTransportControlsOnPropertyChanged;
-
-            smtc.IsEnabled = true;
-            smtc.IsPauseEnabled = true;
-            smtc.IsPlayEnabled = true;
-            smtc.IsNextEnabled = true;
-            smtc.IsPreviousEnabled = true;
-
-            taskInstance.Canceled += TaskInstanceOnCanceled;
-            taskInstance.Task.Completed += TaskOnCompleted;
-
-            BackgroundMediaPlayer.Current.CurrentStateChanged += CurrentOnCurrentStateChanged;
-            BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
-
-            _mediaPlayerManager = new MediaPlayerManager(BackgroundMediaPlayer.Current);
-
-            _mediaPlayerManager.TrackChanged += MediaPlayerManagerOnTrackChanged;
-            _mediaPlayerManager.Failed += MediaPlayerManagerOnFailed;
-
-            NotifyForeground("start", _id);
-
-            _isRunningEvent.Set();
-
-            StartPoll();
-        }
-
-        void MediaPlayerManagerOnFailed(MediaPlayerManager sender, Exception ex)
-        {
-            var message = null == ex ? "<none>" : ex.Message;
-
-            Debug.WriteLine("SmMediaBackgroundAudioTask.MediaPlayerManagerOnFailed() " + _id + " exception " + message);
-
-            NotifyForeground("fail", message);
-
-            Shutdown();
-        }
-
-        void MediaPlayerManagerOnTrackChanged(MediaPlayerManager sender, string trackName)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.MediaPlayerManagerOnTrackChanged() " + _id + " track " + trackName);
-
-            var smtc = _systemMediaTransportControls;
-
-            smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
-            smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
-            smtc.DisplayUpdater.MusicProperties.Title = trackName;
-            smtc.DisplayUpdater.Update();
-
-            NotifyForeground("track", trackName);
+            TaskCollector.Default.Add(task, "Play");
         }
 
         #endregion
 
-        void NotifyForeground(string key, object value = null)
+        async Task RunAsync(IBackgroundTaskInstance taskInstance)
         {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.NotifyForeground() " + _id);
-
-            var valueSet = new ValueSet { { key, value } };
-
-            NotifyForeground(valueSet);
-        }
-
-        void NotifyForeground(ValueSet valueSet)
-        {
-            valueSet["Id"] = _id;
+            BackgroundTaskDeferral deferral = null;
+            BackgroundAudioRun run = null;
 
             try
             {
-                BackgroundMediaPlayer.SendMessageToForeground(valueSet);
+#if DEBUG
+                _memoryDiagnostics.StartPoll();
+#endif
+
+                deferral = taskInstance.GetDeferral();
+
+                run = new BackgroundAudioRun(taskInstance.InstanceId);
+
+                var oldRun = Interlocked.Exchange(ref _run, run);
+
+                if (null != oldRun)
+                {
+                    Debug.WriteLine("SmMediaBackgroundAudioTask.Run() run already exists");
+                    oldRun.Dispose();
+                }
+
+                taskInstance.Canceled += run.OnCanceled;
+                taskInstance.Task.Completed += run.OnTaskCompleted;
+
+                await run.ExecuteAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("SmMediaBackgroundAudioTask.NotifyForeground() failed: " + ex.Message);
+                Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() failed " + ex.ExtendedMessage());
             }
-        }
-
-        void BackgroundMediaPlayerOnMessageReceivedFromForeground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id);
-
-            object idValue;
-            if (mediaPlayerDataReceivedEventArgs.Data.TryGetValue("id", out idValue))
-            {
-                var id = idValue as Guid?;
-
-                if (id.HasValue && id.Value != _id)
-                {
-                    Debug.WriteLine("SmMediaBackgroundAudioTask.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id);
-                    return;
-                }
-            }
-
-            foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
-            {
-                Debug.WriteLine(" f->b {0}: {1}", kv.Key, kv.Value);
-
-                if (null == kv.Key)
-                {
-                    Debug.WriteLine("*** SmMediaBackgroundAudioTask.BackgroundMediaPlayerOnMessageReceivedFromForeground() null key");
-
-                    continue; // This does happen.  It shouldn't, but it does.
-                }
-
-                try
-                {
-                    switch (kv.Key.ToLowerInvariant())
-                    {
-                        case "resume":
-                            var appId = kv.Value as Guid?;
-                            if (appId.HasValue)
-                                _appId = appId.Value;
-                            break;
-                        case "suspend":
-                            break;
-                        case "ping":
-                            NotifyForeground("pong", _id);
-                            break;
-                        case "smtc":
-                            SystemMediaTransportControlsButton button;
-
-                            if (Enum.TryParse((string)kv.Value, true, out button))
-                            {
-                                HandleSmtcButton(button);
-                            }
-                            break;
-                        case "memory":
-                            NotifyForegroundMemory();
-                            break;
-                        case "gc":
-                            var task = Task.Run(() =>
-                            {
-                                DumpMemory();
-                                Debug.WriteLine("Force GC: {0:F2}MiB", GC.GetTotalMemory(false).BytesToMiB());
-
-                                GC.Collect();
-                                GC.WaitForPendingFinalizers();
-                                GC.Collect();
-
-                                Debug.WriteLine("Forced GC: {0:F2}MiB", GC.GetTotalMemory(true).BytesToMiB());
-                                DumpMemory();
-
-                                NotifyForegroundMemory();
-                            });
-                            break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("SmMediaBackgroundAudioTask.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " failed: " + ex.Message);
-                }
-            }
-        }
-
-        void NotifyForegroundMemory()
-        {
-            NotifyForeground(new ValueSet
-            {
-                { "memory", GC.GetTotalMemory(false) },
-                { "appMemory", MemoryManager.AppMemoryUsage },
-                { "appMemoryLimit", MemoryManager.AppMemoryUsageLimit },
-            });
-        }
-
-        void CurrentOnCurrentStateChanged(MediaPlayer sender, object args)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.CurrentOnCurrentStateChanged() " + _id + " state " + sender.CurrentState);
-
-            switch (sender.CurrentState)
-            {
-                case MediaPlayerState.Playing:
-                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Playing;
-                    break;
-                case MediaPlayerState.Paused:
-                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Paused;
-                    break;
-            }
-        }
-
-        void TaskOnCompleted(BackgroundTaskRegistration sender, BackgroundTaskCompletedEventArgs args)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.TaskOnCompleted() " + _id);
 
             try
             {
-                args.CheckResult();
+#if DEBUG
+                _memoryDiagnostics.StopPoll();
+#endif
+
+                var currentRun = Interlocked.CompareExchange(ref _run, null, run);
+
+                if (!ReferenceEquals(currentRun, run))
+                    Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() mismatching run");
+
+                if (null != run)
+                {
+                    taskInstance.Canceled -= run.OnCanceled;
+                    taskInstance.Task.Completed -= run.OnTaskCompleted;
+                }
+
+                if (null != run)
+                    run.Dispose();
+
+                if (null != deferral)
+                    deferral.Complete();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("SmMediaBackgroundAudioTask.TaskOnCompleted() " + _id + " failed: " + ex.Message);
+                Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() cleanup failed: " + ex.ExtendedMessage());
             }
-
-            StopPoll();
-
-            _deferral.Complete();
-
-            var mpm = _mediaPlayerManager;
-            if (null != mpm)
-            {
-                _mediaPlayerManager = null;
-                mpm.Dispose();
-            }
-        }
-
-        void TaskInstanceOnCanceled(IBackgroundTaskInstance sender, BackgroundTaskCancellationReason reason)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.TaskInstanceOnCanceled() " + _id + " reason " + reason);
-
-            Shutdown();
-
-            var mediaPlayerManager = _mediaPlayerManager;
-
-            _mediaPlayerManager = null;
-
-            mediaPlayerManager.DisposeSafe();
-
-            _deferral.Complete();
-
-            Debug.WriteLine("SmMediaBackgroundAudioTask.TaskInstanceOnCanceled() " + _id + " done");
-        }
-
-        void Shutdown()
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.Shutdown() " + _id);
-
-            if (!_isRunningEvent.WaitAsync().IsCompleted)
-                return;
-
-            try
-            {
-                _systemMediaTransportControls.ButtonPressed -= SystemMediaTransportControlsOnButtonPressed;
-                _systemMediaTransportControls.PropertyChanged -= SystemMediaTransportControlsOnPropertyChanged;
-
-                _isRunningEvent.Reset();
-
-                BackgroundMediaPlayer.Shutdown();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("SmMediaBackgroundAudioTask.Shutdown() " + _id + " failed: " + ex.Message);
-            }
-        }
-
-        async void SystemMediaTransportControlsOnButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.SystemMediaTransportControlsOnButtonPressed() " + _id + " button " + args.Button);
-
-            var runningTask = _isRunningEvent.WaitAsync();
-            if (!runningTask.IsCompleted && await Task.WhenAny(runningTask, Task.Delay(2000)) != runningTask)
-                throw new TimeoutException("Audio is not running");
-
-            HandleSmtcButton(args.Button);
-        }
-
-        void HandleSmtcButton(SystemMediaTransportControlsButton button)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.HandleSmtcButton() " + _id + " button " + button);
-
-            switch (button)
-            {
-                case SystemMediaTransportControlsButton.Play:
-                    _mediaPlayerManager.Play();
-                    break;
-                case SystemMediaTransportControlsButton.Pause:
-                    _mediaPlayerManager.Pause();
-                    break;
-                case SystemMediaTransportControlsButton.Next:
-                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Changing;
-                    _mediaPlayerManager.Next();
-                    break;
-                case SystemMediaTransportControlsButton.Previous:
-                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Changing;
-                    _mediaPlayerManager.Previous();
-                    break;
-                case SystemMediaTransportControlsButton.Stop:
-                    _mediaPlayerManager.Stop();
-                    break;
-            }
-        }
-
-        void SystemMediaTransportControlsOnPropertyChanged(SystemMediaTransportControls sender, SystemMediaTransportControlsPropertyChangedEventArgs args)
-        {
-            Debug.WriteLine("SmMediaBackgroundAudioTask.SystemMediaTransportControlsOnPropertyChanged() " + _id);
         }
     }
 }

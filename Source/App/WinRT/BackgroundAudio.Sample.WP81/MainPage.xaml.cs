@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -264,7 +264,7 @@ namespace BackgroundAudio.Sample
 
         void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
         {
-            Debug.WriteLine("MainPage.OnMessageReceivedFromBackground()");
+            //Debug.WriteLine("MainPage.OnMessageReceivedFromBackground()");
 
             long? memoryValue = null;
             ulong? appMemoryValue = null;
@@ -273,7 +273,7 @@ namespace BackgroundAudio.Sample
 
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
-                Debug.WriteLine(" b->f {0}: {1}", kv.Key, kv.Value);
+                //Debug.WriteLine(" b->f {0}: {1}", kv.Key, kv.Value);
 
                 try
                 {
@@ -313,9 +313,9 @@ namespace BackgroundAudio.Sample
 
                             break;
                         case "fail":
-                            {
-                                var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => MediaPlayer = null);
-                            }
+                            var message = kv.Value as string;
+
+                            Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() fail " + message);
 
                             break;
                         case "memory":
@@ -400,9 +400,9 @@ namespace BackgroundAudio.Sample
 
             if (MediaPlayerState.Opening == currentState)
             {
-                prevButton.IsEnabled = false;
+                //prevButton.IsEnabled = false;
                 playButton.IsEnabled = false;
-                nextButton.IsEnabled = false;
+                //nextButton.IsEnabled = false;
             }
             else
             {
@@ -442,12 +442,24 @@ namespace BackgroundAudio.Sample
             }
         }
 
+        #region Button Click Event Handlers
+
         void gcButton_Click(object sender, RoutedEventArgs e)
         {
+            Debug.WriteLine("MainPage gc");
+
             NotifyBackground("gc");
         }
 
-        #region Button Click Event Handlers
+        void wakeButton_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("MainPage wake");
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
+
+            RequestRefresh();
+        }
 
         /// <summary>
         ///     Sends message to the background task to skip to the previous track.
@@ -457,8 +469,6 @@ namespace BackgroundAudio.Sample
             Debug.WriteLine("MainPage prev");
 
             NotifyBackground("smtc", SystemMediaTransportControlsButton.Previous.ToString());
-
-            prevButton.IsEnabled = false;
         }
 
         async void playButton_Click(object sender, RoutedEventArgs e)
@@ -531,8 +541,6 @@ namespace BackgroundAudio.Sample
             Debug.WriteLine("MainPage click");
 
             NotifyBackground("smtc", SystemMediaTransportControlsButton.Next.ToString());
-
-            nextButton.IsEnabled = false;
         }
 
         void killButton_Click(object sender, RoutedEventArgs e)

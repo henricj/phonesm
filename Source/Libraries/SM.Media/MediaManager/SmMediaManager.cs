@@ -228,7 +228,7 @@ namespace SM.Media.MediaManager
         {
             Debug.WriteLine("SmMediaManager.SeekMediaAsync({0})", position);
 
-            using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
+            using (await _asyncLock.LockAsync(_closeCancellationTokenSource.Token).ConfigureAwait(false))
             {
                 return await SeekAsync(position).ConfigureAwait(false);
             }

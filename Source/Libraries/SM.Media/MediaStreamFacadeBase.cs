@@ -473,6 +473,9 @@ namespace SM.Media
                         Debug.WriteLine("RequestStop failed: " + ex.ExtendedMessage());
 
                     if (t.IsCanceled)
+                        Debug.WriteLine("RequestStop canceled");
+
+                    if (timeout.IsCancellationRequested)
                         Debug.WriteLine("RequestStop timeout");
 
                     timeout.Dispose();

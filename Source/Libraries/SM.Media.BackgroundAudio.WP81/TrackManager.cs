@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace SM.Media.BackgroundAudio
 {
@@ -34,6 +35,36 @@ namespace SM.Media.BackgroundAudio
         public Uri Url { get; set; }
         public string Title { get; set; }
         public bool UseNativePlayer { get; set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(Title))
+            {
+                sb.Append('"');
+                sb.Append(Title);
+                sb.Append('"');
+            }
+
+            if (null != Url)
+            {
+                if (sb.Length > 0)
+                    sb.Append(' ');
+
+                sb.Append('<' + Url.OriginalString + '>');
+            }
+
+            if (UseNativePlayer)
+            {
+                if (sb.Length > 0)
+                    sb.Append(' ');
+
+                sb.Append("[native]");
+            }
+
+            return sb.ToString();
+        }
     }
 
     static class TrackManager

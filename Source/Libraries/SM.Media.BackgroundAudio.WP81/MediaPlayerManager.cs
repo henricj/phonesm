@@ -196,19 +196,24 @@ namespace SM.Media.BackgroundAudio
             if (null != ex)
                 Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed() extended error: " + ex.Message);
 
-            Failed.Invoke(this, message);
+            var task = Task.Run(async () =>
+            {
+                Failed.Invoke(this, message);
 
-            try
-            {
-                using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
+                try
                 {
-                    await CleanupMediaStreamFacadeAsync().ConfigureAwait(false);
+                    using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
+                    {
+                        await CleanupMediaStreamFacadeAsync().ConfigureAwait(false);
+                    }
                 }
-            }
-            catch (Exception ex2)
-            {
-                Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed() cleanup failed: " + ex2.ExtendedMessage());
-            }
+                catch (Exception ex2)
+                {
+                    Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed() cleanup failed: " + ex2.ExtendedMessage());
+                }
+            });
+
+            TaskCollector.Default.Add(task, "MediaPlayerManager OnMediaFailed");
         }
 
         async Task CleanupMediaStreamFacadeAsync()

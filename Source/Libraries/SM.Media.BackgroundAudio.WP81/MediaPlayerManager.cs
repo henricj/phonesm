@@ -154,6 +154,8 @@ namespace SM.Media.BackgroundAudio
                 {
                     await _mediaStreamFacade.StopAsync(_cancellationToken).ConfigureAwait(false);
 
+                    ForceGc();
+
                     return;
                 }
                 catch (Exception ex)
@@ -170,6 +172,8 @@ namespace SM.Media.BackgroundAudio
                     Debug.WriteLine("MediaPlayerManager.InitializeMediaStreamAsync() cleanup failed: " + ex.ExtendedMessage());
                 }
             }
+
+            ForceGc();
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
@@ -471,6 +475,16 @@ namespace SM.Media.BackgroundAudio
                     Debug.WriteLine("MediaPlayerManager.CloseAsync() failed: " + ex.ExtendedMessage());
                 }
             }
+        }
+
+        /// <summary>
+        ///     We eventually run out of unmanaged (!) memory.  Forcing a GC seems to help.  Yes this is a hack.
+        /// </summary>
+        static void ForceGc()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
     }
 }

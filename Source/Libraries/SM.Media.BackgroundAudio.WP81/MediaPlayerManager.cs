@@ -259,10 +259,14 @@ namespace SM.Media.BackgroundAudio
 
             sender.Play();
 
+            FireTrackChanged();
+        }
+
+        void FireTrackChanged()
+        {
             var track = _track;
 
-            if (null != track)
-                TrackChanged.Invoke(this, track.Title);
+            TrackChanged.Invoke(this, null == track ? null : track.Title);
         }
 
         public void Next()
@@ -306,36 +310,33 @@ namespace SM.Media.BackgroundAudio
 
         async Task StartPlaybackAsync(MediaTrack track)
         {
-            Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync()");
-
-            _track = null;
-
-            if (null == track)
-            {
-                StopMediaPlayer();
-
-                return;
-            }
-
-            var url = track.Url;
-
-            if (null == url)
-            {
-                StopMediaPlayer();
-
-                return;
-            }
+            Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() " + (null == track ? "<null>" : track.ToString()));
 
             _mediaPlayer.AutoPlay = false;
 
-            if (url.HasExtension(".pls"))
-            {
-                url = await GetUrlFromPlsPlaylistAsync(url).ConfigureAwait(false);
-            }
-
             using (await _asyncLock.LockAsync(_cancellationToken).ConfigureAwait(false))
             {
+                _track = null;
+
+                if (null == track || null == track.Url)
+                {
+                    StopMediaPlayer();
+
+                    FireTrackChanged();
+
+                    return;
+                }
+
+                var url = track.Url;
+
+                if (url.HasExtension(".pls"))
+                {
+                    url = await GetUrlFromPlsPlaylistAsync(url).ConfigureAwait(false);
+                }
+
                 _track = track;
+
+                FireTrackChanged();
 
                 try
                 {

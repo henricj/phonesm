@@ -227,8 +227,18 @@ namespace SM.Media.BackgroundAudio
                 var smtc = _systemMediaTransportControls;
 
                 smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
-                smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
-                smtc.DisplayUpdater.MusicProperties.Title = trackName;
+
+                if (string.IsNullOrWhiteSpace(trackName))
+                {
+                    smtc.DisplayUpdater.ClearAll();
+                    smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
+                }
+                else
+                {
+                    smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
+                    smtc.DisplayUpdater.MusicProperties.Title = trackName;
+                }
+
                 smtc.DisplayUpdater.Update();
 
                 _foregroundNotifier.Notify("track", trackName);

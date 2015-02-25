@@ -82,6 +82,9 @@ namespace BackgroundAudio.Sample
                 catch (Exception ex)
                 {
                     Debug.WriteLine("MainPage position update failed: " + ex.Message);
+
+                    // The COM object is probably dead...
+                    CleanupFailedPlayer();
                 }
 
                 if (++count < 5)
@@ -108,7 +111,17 @@ namespace BackgroundAudio.Sample
                 BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
 
                 if (null != _mediaPlayer)
-                    _mediaPlayer.CurrentStateChanged -= OnCurrentStateChanged;
+                {
+                    try
+                    {
+                        _mediaPlayer.CurrentStateChanged -= OnCurrentStateChanged;
+                    }
+                    catch (Exception ex)
+                    {
+                        // The COM object is probably dead...
+                        Debug.WriteLine("MainPage.MediaPlayer setter: unable to deregister event: " + ex.Message);
+                    }
+                }
 
                 _mediaPlayer = value;
 
@@ -162,6 +175,22 @@ namespace BackgroundAudio.Sample
                 Debug.Assert(Dispatcher.HasThreadAccess, "IsRunning requires the dispatcher thread");
 
                 return null != _mediaPlayer && _backgroundId.HasValue;
+            }
+        }
+
+        void CleanupFailedPlayer()
+        {
+            Debug.WriteLine("MainPage.CleanupFailedPlayer()");
+
+            try
+            {
+                MediaPlayer = null;
+
+                BackgroundMediaPlayer.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage.CleanupFailedPlayer() failed: " + ex.ExtendedMessage());
             }
         }
 
@@ -270,6 +299,8 @@ namespace BackgroundAudio.Sample
             ulong? appMemoryValue = null;
             ulong? appMemoryLimitValue = null;
             var updateMemory = false;
+            string failMessage = null;
+            string trackName = null;
 
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
@@ -308,14 +339,13 @@ namespace BackgroundAudio.Sample
 
                             break;
                         case "track":
-                            _trackName = kv.Value as string;
-                            RequestRefresh();
+                            trackName = kv.Value as string ?? string.Empty;
 
                             break;
                         case "fail":
-                            var message = kv.Value as string;
+                            failMessage = kv.Value as string;
 
-                            Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() fail " + message);
+                            Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() fail " + failMessage);
 
                             break;
                         case "memory":
@@ -344,6 +374,15 @@ namespace BackgroundAudio.Sample
                     Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() failed: " + ex.Message);
                 }
             }
+
+            if (null != failMessage)
+                _trackName = null;
+
+            if (null != trackName)
+                _trackName = trackName;
+
+            if (null != failMessage || null != trackName)
+                RequestRefresh();
 
             if (updateMemory)
             {
@@ -380,7 +419,21 @@ namespace BackgroundAudio.Sample
                         return;
                     }
 
-                    RefreshUi(mediaPlayer.CurrentState, _trackName);
+                    MediaPlayerState? mediaPlayerState = null;
+
+                    try
+                    {
+                        mediaPlayerState = mediaPlayer.CurrentState;
+                    }
+                    catch (Exception mediaPlayerException)
+                    {
+                        Debug.WriteLine("MainPage.RefreshUi() mediaPlayer failed: " + mediaPlayerException.ExtendedMessage());
+                    }
+
+                    if (mediaPlayerState.HasValue)
+                        RefreshUi(mediaPlayerState.Value, _trackName);
+                    else
+                        CleanupFailedPlayer();
                 }
                 catch (Exception ex)
                 {

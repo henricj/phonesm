@@ -55,6 +55,9 @@
     <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\AudioTrackStreamer.cs">
       <Link>AudioTrackStreamer.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\TrackManager.cs">
+      <Link>TrackManager.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

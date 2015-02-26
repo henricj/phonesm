@@ -5,7 +5,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 // Copyright (c) 2013 Mikael Koskinen <mikael.koskinen@live.com>
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Phone.BackgroundAudio;
@@ -36,18 +37,12 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 {
     public class AudioPlayer : AudioPlayerAgent
     {
-        static readonly AudioTrack[] AudioTracks =
-        {
-            new AudioTrack(null, "Apple", null, null, null,
-                "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
-                EnabledPlayerControls.All),
-            new AudioTrack(null, "BBC", null, null, null,
-                "http://www.bbc.co.uk/mediaselector/playlists/hls/radio/bbc_london.m3u8",
-                EnabledPlayerControls.All),
-            new AudioTrack(null, "NPR", null, null, null,
-                "http://www.npr.org/streams/mp3/nprlive24.pls",
-                EnabledPlayerControls.All)
-        };
+        static readonly AudioTrack[] AudioTracks = TrackManager.Tracks
+            .Where(t => null != t)
+            .Select(t => t.UseNativePlayer
+                ? new AudioTrack(t.Url, t.Title, null, null, null, null, EnabledPlayerControls.All)
+                : new AudioTrack(null, t.Title, null, null, null, t.Url.ToString(), EnabledPlayerControls.All))
+            .ToArray();
 
         static volatile bool _classInitialized;
 
@@ -65,11 +60,11 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 _classInitialized = true;
                 // Subscribe to the managed exception handler
                 Deployment.Current.Dispatcher.BeginInvoke(delegate
-                {
-                    Application.Current.UnhandledException += AudioPlayer_UnhandledException;
+                        {
+                            Application.Current.UnhandledException += AudioPlayer_UnhandledException;
 
-                    TaskScheduler.UnobservedTaskException += AudioPlayer_UnobservedException;
-                });
+                            TaskScheduler.UnobservedTaskException += AudioPlayer_UnobservedException;
+                        });
             }
         }
 

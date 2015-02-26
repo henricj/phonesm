@@ -40,6 +40,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using SM.Media;
 using SM.Media.MediaManager;
+using SM.Media.Playlists;
 using SM.Media.Utility;
 
 namespace HlsView

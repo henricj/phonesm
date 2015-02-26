@@ -27,10 +27,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using SM.Media.MediaPlayer;
+using SM.Media.Playlists;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -48,6 +51,10 @@ namespace SamplePlayer.WinRT
         public MainPage()
         {
             InitializeComponent();
+
+            var passThroughTracks = new HashSet<Uri>(_tracks.Where(t => t.UseNativePlayer).Select(t => t.Url));
+
+            StreamingMediaSettings.Parameters.IsPassThrough = passThroughTracks.Contains;
         }
 
         void play_Click(object sender, RoutedEventArgs e)

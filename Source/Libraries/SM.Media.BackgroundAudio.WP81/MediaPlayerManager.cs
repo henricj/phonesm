@@ -38,6 +38,7 @@ using Windows.Storage.Streams;
 using Windows.Web.Http;
 using SM.Media.Buffering;
 using SM.Media.MediaManager;
+using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -189,7 +190,7 @@ namespace SM.Media.BackgroundAudio
             Debug.WriteLine("MediaPlayerManager.MediaStreamFacadeOnStateChange(): " + args.State + " message " + args.Message);
         }
 
-        async void MediaPlayerOnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+        void MediaPlayerOnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
         {
             var message = args.Error + "/" + args.ErrorMessage;
 

@@ -1,5 +1,5 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="TrackManager.cs" company="Henric Jungheim">
+// -----------------------------------------------------------------------
+//  <copyright file="MediaTrack.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,46 +25,44 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Collections.Generic;
-using SM.Media.Playlists;
+using System.Text;
 
-namespace SamplePlayer
+namespace SM.Media.Playlists
 {
-    static class TrackManager
+    public class MediaTrack
     {
-        static readonly MediaTrack[] Sources =
-        {
-            new MediaTrack
-            {
-                Title = "NASA TV",
-                Url = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
-            },
-            new MediaTrack
-            {
-                Title = "NPR",
-                Url = new Uri("http://www.npr.org/streams/mp3/nprlive24.pls")
-            },
-            new MediaTrack
-            {
-                Title = "Bjarne Stroustrup - The Essence of C++",
-                Url = new Uri("http://media.ch9.ms/ch9/ca9a/66ac2da7-efca-4e13-a494-62843281ca9a/GN13BjarneStroustrup.mp3"),
-            },
-            new MediaTrack
-            {
-                Title = "Apple",
-                Url = new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
-            },
-            null,
-            new MediaTrack
-            {
-                Title = "Apple 16x9",
-                Url = new Uri("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8")
-            }
-        };
+        public Uri Url { get; set; }
+        public string Title { get; set; }
+        public bool UseNativePlayer { get; set; }
 
-        public static IList<MediaTrack> Tracks
+        public override string ToString()
         {
-            get { return Sources; }
+            var sb = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(Title))
+            {
+                sb.Append('"');
+                sb.Append(Title);
+                sb.Append('"');
+            }
+
+            if (null != Url)
+            {
+                if (sb.Length > 0)
+                    sb.Append(' ');
+
+                sb.Append('<' + Url.OriginalString + '>');
+            }
+
+            if (UseNativePlayer)
+            {
+                if (sb.Length > 0)
+                    sb.Append(' ');
+
+                sb.Append("[native]");
+            }
+
+            return sb.ToString();
         }
     }
 }

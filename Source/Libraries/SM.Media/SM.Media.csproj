@@ -127,6 +127,7 @@
     <Compile Include="MP3\Mp3MediaParserFactory.cs" />
     <Compile Include="Hls\HlsSegmentsFactory.cs" />
     <Compile Include="Playlists\IProgramStream.cs" />
+    <Compile Include="Playlists\MediaTrack.cs" />
     <Compile Include="Playlists\PlaylistDefaults.cs" />
     <Compile Include="Hls\HlsPlaylistSegmentManagerPolicy.cs" />
     <Compile Include="Hls\HlsProgramStream.cs" />

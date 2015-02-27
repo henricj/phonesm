@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="AsyncLock.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -140,7 +140,11 @@ namespace SM.Media.Utility
                     }
 
                     if (wasPending)
-                        tcs.TrySetCanceled();
+                    {
+                        var task = TaskEx.Run(() => tcs.TrySetCanceled());
+
+                        TaskCollector.Default.Add(task, "AsyncLock Propagate cancel");
+                    }
                 }))
             {
                 return await tcs.Task.ConfigureAwait(false);
@@ -160,7 +164,7 @@ namespace SM.Media.Utility
                     Debug.Assert(_isLocked, "AsyncLock.Release() was unlocked");
 
                     if (null == _pending)
-                        return;     // We have been disposed (so stay locked)
+                        return; // We have been disposed (so stay locked)
 
                     if (0 == _pending.Count)
                     {

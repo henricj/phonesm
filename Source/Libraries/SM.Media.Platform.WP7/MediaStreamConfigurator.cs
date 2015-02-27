@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaStreamConfigurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -81,25 +81,13 @@ namespace SM.Media
             get { return _videoStreamSource; }
         }
 
-        #region IMediaStreamConfigurator Members
-
-        public Task PlayAsync(IMediaConfiguration configuration, CancellationToken cancellationToken)
+        public TimeSpan? SeekTarget
         {
-            //Debug.WriteLine("MediaStreamConfigurator.PlayAsync()");
-
-            if (null != configuration.Audio)
-                ConfigureAudioStream(configuration.Audio);
-
-            if (null != configuration.Video)
-                ConfigureVideoStream(configuration.Video);
-
-            lock (_streamConfigurationLock)
-            {
-                CompleteConfigure(configuration.Duration);
-            }
-
-            return _playingCompletionSource.Task;
+            get { return _mediaStreamSource.SeekTarget; }
+            set { _mediaStreamSource.SeekTarget = value; }
         }
+
+        #region  Members
 
         public void Dispose()
         {
@@ -112,6 +100,10 @@ namespace SM.Media
             CleanupMediaStreamSource();
         }
 
+        #endregion
+
+        #region IMediaStreamConfigurator Members
+
         public IMediaManager MediaManager
         {
             get { return _mediaManager; }
@@ -120,68 +112,18 @@ namespace SM.Media
                 if (ReferenceEquals(_mediaManager, value))
                     return;
 
+                if (null != value)
+                {
+                    _playingCompletionSource = new TaskCompletionSource<object>();
+
+                    ResetOpenCompletionSource();
+                }
+
                 _mediaManager = value;
 
                 if (null == value)
                     CleanupMediaStreamSource();
             }
-        }
-
-        public TimeSpan? SeekTarget
-        {
-            get { return _mediaStreamSource.SeekTarget; }
-            set { _mediaStreamSource.SeekTarget = value; }
-        }
-
-        public Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)
-            where TMediaStreamSource : class
-        {
-            //Debug.WriteLine("MediaStreamConfigurator.CreateMediaStreamSourceAsync()");
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (null != _mediaStreamSource)
-                throw new InvalidOperationException("MediaStreamSource already exists");
-
-            _mediaStreamSource = _mediaStreamSourceFactory();
-
-            var ret = _mediaStreamSource as TMediaStreamSource;
-
-            if (null == ret)
-                throw new InvalidCastException(string.Format("Cannot convert {0} to {1}", _mediaStreamSource.GetType().FullName, typeof(TMediaStreamSource).FullName));
-
-            _playingCompletionSource = new TaskCompletionSource<object>();
-
-            return TaskEx.FromResult(ret);
-        }
-
-        public async Task CloseAsync()
-        {
-            //Debug.WriteLine("MediaStreamConfigurator.CloseAsync()");
-
-            var mediaStreamSource = _mediaStreamSource;
-
-            if (null != mediaStreamSource)
-                await mediaStreamSource.CloseAsync().ConfigureAwait(false);
-
-            var playingTask = _playingCompletionSource;
-
-            if (null != playingTask)
-            {
-                await _playingCompletionSource.Task.ConfigureAwait(false);
-            }
-        }
-
-        public void ReportError(string message)
-        {
-            //Debug.WriteLine("MediaStreamConfigurator.ReportError() " + message);
-
-            var mediaStreamSource = _mediaStreamSource;
-
-            if (null == mediaStreamSource)
-                Debug.WriteLine("MediaStreamConfigurator.ReportError() null _mediaStreamSource");
-            else
-                mediaStreamSource.ReportError(message);
         }
 
         public void CheckForSamples()
@@ -216,12 +158,7 @@ namespace SM.Media
             if (null == mediaManager)
                 throw new InvalidOperationException("MediaManager has not been initialized");
 
-            if (null != _openCompletionSource && !_openCompletionSource.Task.IsCompleted)
-                _openCompletionSource.TrySetCanceled();
-
-            var openCompletionSource = new TaskCompletionSource<IMediaStreamConfiguration>();
-
-            _openCompletionSource = openCompletionSource;
+            var openCompletionSource = _openCompletionSource;
 
             Action cancellationAction = () =>
             {
@@ -275,6 +212,83 @@ namespace SM.Media
         }
 
         #endregion
+
+        public Task PlayAsync(IMediaConfiguration configuration, CancellationToken cancellationToken)
+        {
+            //Debug.WriteLine("MediaStreamConfigurator.PlayAsync()");
+
+            if (null != configuration.Audio)
+                ConfigureAudioStream(configuration.Audio);
+
+            if (null != configuration.Video)
+                ConfigureVideoStream(configuration.Video);
+
+            lock (_streamConfigurationLock)
+            {
+                CompleteConfigure(configuration.Duration);
+            }
+
+            return _playingCompletionSource.Task;
+        }
+
+        public Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(CancellationToken cancellationToken)
+            where TMediaStreamSource : class
+        {
+            //Debug.WriteLine("MediaStreamConfigurator.CreateMediaStreamSourceAsync()");
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (null != _mediaStreamSource)
+                throw new InvalidOperationException("MediaStreamSource already exists");
+
+            _mediaStreamSource = _mediaStreamSourceFactory();
+
+            var ret = _mediaStreamSource as TMediaStreamSource;
+
+            if (null == ret)
+                throw new InvalidCastException(string.Format("Cannot convert {0} to {1}", _mediaStreamSource.GetType().FullName, typeof(TMediaStreamSource).FullName));
+
+            return TaskEx.FromResult(ret);
+        }
+
+        public async Task CloseAsync()
+        {
+            //Debug.WriteLine("MediaStreamConfigurator.CloseAsync()");
+
+            var mediaStreamSource = _mediaStreamSource;
+
+            if (null != mediaStreamSource)
+                await mediaStreamSource.CloseAsync().ConfigureAwait(false);
+
+            var playingTask = _playingCompletionSource;
+
+            if (null != playingTask)
+            {
+                await _playingCompletionSource.Task.ConfigureAwait(false);
+            }
+        }
+
+        public void ReportError(string message)
+        {
+            //Debug.WriteLine("MediaStreamConfigurator.ReportError() " + message);
+
+            var mediaStreamSource = _mediaStreamSource;
+
+            if (null == mediaStreamSource)
+                Debug.WriteLine("MediaStreamConfigurator.ReportError() null _mediaStreamSource");
+            else
+                mediaStreamSource.ReportError(message);
+        }
+
+        void ResetOpenCompletionSource()
+        {
+            if (null != _openCompletionSource && !_openCompletionSource.Task.IsCompleted)
+                _openCompletionSource.TrySetCanceled();
+
+            var openCompletionSource = new TaskCompletionSource<IMediaStreamConfiguration>();
+
+            _openCompletionSource = openCompletionSource;
+        }
 
         void CleanupMediaStreamSource()
         {

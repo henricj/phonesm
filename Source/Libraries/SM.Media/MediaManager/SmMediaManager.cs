@@ -58,6 +58,7 @@ namespace SM.Media.MediaManager
         int _openCount;
         Task _playTask;
         CancellationTokenSource _playbackCancellationTokenSource = new CancellationTokenSource();
+        TaskCompletionSource<object> _playbackTaskCompletionSource = new TaskCompletionSource<object>();
         ISegmentReaderManager _readerManager;
         IMediaReader[] _readers;
 
@@ -80,6 +81,7 @@ namespace SM.Media.MediaManager
 
             // Start with a canceled token (i.e., we are not playing)
             _playbackCancellationTokenSource.Cancel();
+            _playbackTaskCompletionSource.TrySetResult(null);
 
             _reportStateTask = new SignalTask(ReportState);
         }
@@ -155,6 +157,11 @@ namespace SM.Media.MediaManager
         /// <inheritdoc />
         public ContentType ContentType { get; set; }
 
+        public Task PlayingTask
+        {
+            get { return _playbackTaskCompletionSource.Task; }
+        }
+
         public async Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken)
         {
             Debug.WriteLine("SmMediaManager.OpenMediaAsync()");
@@ -171,6 +178,8 @@ namespace SM.Media.MediaManager
             {
                 if (!IsClosed)
                     await CloseAsync().ConfigureAwait(false);
+
+                _playbackTaskCompletionSource = new TaskCompletionSource<object>();
 
                 State = MediaManagerState.OpenMedia;
 
@@ -257,6 +266,8 @@ namespace SM.Media.MediaManager
 
             State = MediaManagerState.Closing;
 
+            var playbackTaskCompletionSource = _playbackTaskCompletionSource;
+
             _closeCancellationTokenSource.Cancel();
 
             await CloseCleanupAsync().ConfigureAwait(false);
@@ -269,9 +280,13 @@ namespace SM.Media.MediaManager
 
             Interlocked.CompareExchange(ref _closeTaskCompletionSource, null, closeTaskCompletionSource);
 
-            var t = TaskEx.Run(() => closeTaskCompletionSource.TrySetResult(null));
+            var task = TaskEx.Run(() =>
+            {
+                closeTaskCompletionSource.TrySetResult(null);
+                playbackTaskCompletionSource.TrySetResult(null);
+            });
 
-            TaskCollector.Default.Add(t, "SmMediaManager close");
+            TaskCollector.Default.Add(task, "SmMediaManager close");
         }
 
         async Task CloseCleanupAsync()

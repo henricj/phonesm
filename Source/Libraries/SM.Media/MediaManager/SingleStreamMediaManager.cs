@@ -111,6 +111,21 @@ namespace SM.Media.MediaManager
             private set { SetMediaState(value, null); }
         }
 
+        public Task PlayingTask
+        {
+            get
+            {
+                Task playingTask = null;
+
+                lock (_lock)
+                {
+                    playingTask = _playTask;
+                }
+
+                return playingTask ?? TplTaskExtensions.CompletedTask;
+            }
+        }
+
         public async Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken)
         {
             State = MediaManagerState.OpenMedia;
@@ -223,7 +238,7 @@ namespace SM.Media.MediaManager
 
         public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
         {
-            throw new NotSupportedException();
+            return TaskEx.FromResult(position);
         }
 
         public event EventHandler<MediaManagerStateEventArgs> OnStateChange;

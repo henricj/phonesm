@@ -45,6 +45,8 @@ namespace SM.Media.MediaManager
         /// <seealso cref="SM.Media.Content.ContentTypes" />
         ContentType ContentType { get; set; }
 
+        Task PlayingTask { get; }
+
         Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken);
         Task StopMediaAsync(CancellationToken cancellationToken);
         Task CloseMediaAsync();

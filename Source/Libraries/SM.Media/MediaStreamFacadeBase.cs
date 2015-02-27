@@ -51,6 +51,8 @@ namespace SM.Media
         IBuilder<IMediaManager> Builder { get; }
         bool IsDisposed { get; }
 
+        Task PlayingTask { get; }
+
         event EventHandler<MediaManagerStateEventArgs> StateChange;
 
         Task StopAsync(CancellationToken cancellationToken);
@@ -66,7 +68,7 @@ namespace SM.Media
     public abstract class MediaStreamFacadeBase<TMediaStreamSource> : IMediaStreamFacadeBase<TMediaStreamSource>
         where TMediaStreamSource : class
     {
-        static readonly TimeSpan CreateTimeout = TimeSpan.FromSeconds(25); //TODO: Don't hard-code the timeout
+        static readonly TimeSpan CreateTimeout = TimeSpan.FromSeconds(7); //TODO: Don't hard-code the timeout
         readonly AsyncLock _asyncLock = new AsyncLock();
         readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
@@ -103,6 +105,24 @@ namespace SM.Media
         public bool IsDisposed
         {
             get { return 0 != _isDisposed; }
+        }
+
+        public Task PlayingTask
+        {
+            get
+            {
+                IMediaManager mediaManager;
+
+                lock (_lock)
+                {
+                    mediaManager = _mediaManager;
+                }
+
+                if (null == mediaManager)
+                    return TplTaskExtensions.CompletedTask;
+
+                return mediaManager.PlayingTask;
+            }
         }
 
         public void Dispose()

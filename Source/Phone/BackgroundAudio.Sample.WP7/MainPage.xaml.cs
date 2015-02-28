@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -63,9 +63,9 @@ namespace BackgroundAudio.Sample.WP7
         {
             // Initialize a timer to update the UI every half-second.
             _timer = new DispatcherTimer
-                     {
-                         Interval = TimeSpan.FromSeconds(0.5)
-                     };
+            {
+                Interval = TimeSpan.FromSeconds(0.5)
+            };
 
             _timer.Tick += UpdateState;
 
@@ -147,30 +147,53 @@ namespace BackgroundAudio.Sample.WP7
                 if (null == player)
                     return;
 
-                txtState.Text = string.Format("State: {0}", player.PlayerState);
+                txtState.Text = "State: " + player.PlayerState;
 
                 var track = player.Track;
 
-                if (null != track)
-                    txtTrack.Text = string.Format("Track: {0}", track.Title);
+                var position = player.Position;
+
+                var timeRemaining = TimeSpan.Zero;
+
+                if (null == track)
+                    txtTrack.Text = null;
+                else
+                {
+                    txtTrack.Text = "Track: " + track.Title;
+
+                    try
+                    {
+                        timeRemaining = track.Duration - position;
+                    }
+                    // ReSharper disable once EmptyGeneralCatchClause
+                    catch (Exception)
+                    {
+                        // Sometimes we get a COM exception.
+                    }
+                }
 
                 // Set the current position on the ProgressBar.
-                positionIndicator.Value = player.Position.TotalSeconds;
+                positionIndicator.Value = position.TotalSeconds;
 
                 // Update the current playback position.
-                var position = player.Position;
                 textPosition.Text = string.Format("{0:d2}:{1:d2}:{2:d2}", position.Hours, position.Minutes, position.Seconds);
 
                 // Update the time remaining digits.
-                if (null != track)
-                {
-                    var timeRemaining = track.Duration - position;
+                if (TimeSpan.Zero == timeRemaining)
+                    textRemaining.Text = null;
+                else
                     textRemaining.Text = string.Format("-{0:d2}:{1:d2}:{2:d2}", timeRemaining.Hours, timeRemaining.Minutes, timeRemaining.Seconds);
-                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("MainPage.UpdateState() failed: " + ex.Message);
+
+                txtTrack.Text = null;
+                txtState.Text = "State: Invalid";
+
+                _playButton.IsEnabled = true;
+                _nextButton.IsEnabled = true;
+                _prevButton.IsEnabled = true;
             }
         }
 

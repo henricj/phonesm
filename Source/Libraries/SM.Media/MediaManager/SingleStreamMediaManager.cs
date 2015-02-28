@@ -415,6 +415,13 @@ namespace SM.Media.MediaManager
                         }
                     }
 
+                    mediaParser.ConfigurationComplete -= configurationComplete;
+
+                    mediaParser.EnableProcessing = false;
+                    mediaParser.FlushBuffers();
+
+                    bufferingManager.Flush();
+
                     bufferingManager.Shutdown(throttle);
 
                     await _mediaStreamConfigurator.CloseAsync().ConfigureAwait(false);

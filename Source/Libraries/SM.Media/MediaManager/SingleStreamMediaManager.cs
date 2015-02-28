@@ -46,6 +46,7 @@ namespace SM.Media.MediaManager
         readonly IMediaStreamConfigurator _mediaStreamConfigurator;
         readonly SignalTask _reportStateTask;
         readonly IWebReaderManager _webReaderManager;
+        int _isDisposed;
         MediaManagerState _mediaState;
         string _mediaStateMessage;
         CancellationTokenSource _playCancellationTokenSource;
@@ -74,32 +75,12 @@ namespace SM.Media.MediaManager
 
         public void Dispose()
         {
-            Debug.WriteLine("SingleStreamMediaManager.Dispose()");
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
 
-            if (null != OnStateChange)
-            {
-                Debug.WriteLine("SingleStreamMediaManager.Dispose(): OnStateChange is not null");
+            Dispose(true);
 
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-
-                OnStateChange = null;
-            }
-
-            _mediaStreamConfigurator.MediaManager = null;
-
-            _reportStateTask.Dispose();
-
-            CancellationTokenSource pcts;
-
-            lock (_lock)
-            {
-                pcts = _playCancellationTokenSource;
-                _playCancellationTokenSource = null;
-            }
-
-            if (null != pcts)
-                pcts.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public TimeSpan? SeekTarget { get; set; }
@@ -244,6 +225,39 @@ namespace SM.Media.MediaManager
         public event EventHandler<MediaManagerStateEventArgs> OnStateChange;
 
         #endregion
+
+        protected virtual void Dispose(bool disposing)
+        {
+            Debug.WriteLine("SingleStreamMediaManager.Dispose(bool)");
+
+            if (!disposing)
+                return;
+
+            if (null != OnStateChange)
+            {
+                Debug.WriteLine("SingleStreamMediaManager.Dispose(bool): OnStateChange is not null");
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+
+                OnStateChange = null;
+            }
+
+            _mediaStreamConfigurator.MediaManager = null;
+
+            _reportStateTask.Dispose();
+
+            CancellationTokenSource pcts;
+
+            lock (_lock)
+            {
+                pcts = _playCancellationTokenSource;
+                _playCancellationTokenSource = null;
+            }
+
+            if (null != pcts)
+                pcts.Dispose();
+        }
 
         Task ReportState()
         {

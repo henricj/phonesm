@@ -419,6 +419,21 @@
     <Compile Include="..\SM.Media\MediaStreamFacadeSetting.cs">
       <Link>MediaStreamFacadeSetting.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Metadata\SegmentMetadata.cs">
+      <Link>Metadata\SegmentMetadata.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Metadata\ShoutcastStreamMetadata.cs">
+      <Link>Metadata\ShoutcastStreamMetadata.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Metadata\StreamMetadata.cs">
+      <Link>Metadata\StreamMetadata.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Metadata\TrackMetadata.cs">
+      <Link>Metadata\TrackMetadata.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Metadata\WebMetadataFactory.cs">
+      <Link>Metadata\WebMetadataFactory.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\MP3\Mp3FrameHeader.cs">
       <Link>MP3\Mp3FrameHeader.cs</Link>
     </Compile>

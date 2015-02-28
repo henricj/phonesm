@@ -37,6 +37,7 @@ using SM.Media.H262;
 using SM.Media.H264;
 using SM.Media.MediaManager;
 using SM.Media.MediaParser;
+using SM.Media.Metadata;
 using SM.Media.MP3;
 using SM.Media.Pes;
 using SM.Media.Pls;
@@ -77,6 +78,7 @@ namespace SM.Media
 
             Bind<IMediaParserFactoryFinder>().To<MediaParserFactoryFinder>().InSingletonScope();
             Bind<IMediaParserFactory>().To<MediaParserFactory>().InSingletonScope();
+            Bind<IWebMetadataFactory>().To<WebMetadataFactory>().InSingletonScope();
 
             Bind<IMediaParserFactoryInstance>().To<AacMediaParserFactory>().InSingletonScope();
             Bind<IMediaParserFactoryInstance>().To<Ac3MediaParserFactory>().InSingletonScope();

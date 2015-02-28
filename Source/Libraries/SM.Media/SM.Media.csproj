@@ -85,6 +85,7 @@
     <Compile Include="Audio\AudioStreamHandler.cs" />
     <Compile Include="Audio\IAudioConfigurator.cs" />
     <Compile Include="Audio\IAudioParser.cs" />
+    <Compile Include="Audio\ShoutcastMetadataFilter.cs" />
     <Compile Include="Builder\IBuilder.cs" />
     <Compile Include="Builder\IBuilderHandle.cs" />
     <Compile Include="CallbackReader.cs" />
@@ -121,6 +122,11 @@
     <Compile Include="MediaStreamFacadeBase.cs" />
     <Compile Include="MediaStreamFacadeParameters.cs" />
     <Compile Include="MediaStreamFacadeSetting.cs" />
+    <Compile Include="Metadata\SegmentMetadata.cs" />
+    <Compile Include="Metadata\ShoutcastStreamMetadata.cs" />
+    <Compile Include="Metadata\StreamMetadata.cs" />
+    <Compile Include="Metadata\TrackMetadata.cs" />
+    <Compile Include="Metadata\WebMetadataFactory.cs" />
     <Compile Include="MP3\Mp3StreamHandlerFactory.cs" />
     <Compile Include="Pes\DefaultPesStreamHandler.cs" />
     <Compile Include="Pes\IPesStreamFactoryInstance.cs" />

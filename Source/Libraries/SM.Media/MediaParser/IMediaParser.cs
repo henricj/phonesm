@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using SM.Media.Buffering;
+using SM.Media.Metadata;
 using SM.TsParser;
 
 namespace SM.Media.MediaParser
@@ -41,5 +42,9 @@ namespace SM.Media.MediaParser
         void ProcessData(byte[] buffer, int offset, int length);
         void FlushBuffers();
         void Initialize(IBufferingManager bufferingManager, Action<IProgramStreams> programStreamsHandler = null);
+
+        void InitializeStream(IStreamMetadata streamMetadata);
+        void StartSegment(ISegmentMetadata segmentMetadata);
+        void SetTrackMetadata(ITrackMetadata trackMetadata);
     }
 }

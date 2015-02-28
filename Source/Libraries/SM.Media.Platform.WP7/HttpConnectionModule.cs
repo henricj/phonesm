@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpConnectionModule.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -42,6 +42,8 @@ namespace SM.Media
             Bind<IHttpConnection>().To<HttpConnection>().InTransientScope();
             Bind<Func<IHttpConnection>>().ToMethod(ctx => () => ctx.Kernel.Get<IHttpConnection>());
             Bind<IHttpConnectionFactory>().To<HttpConnectionFactory>().InSingletonScope();
+            Bind<IHttpConnectionRequestFactory>().To<HttpConnectionRequestFactory>().InSingletonScope();
+            Bind<IHttpConnectionRequestFactoryParameters>().To<HttpConnectionRequestFactoryParameters>().InSingletonScope();
 
             Bind<IWebReaderManager>().To<HttpConnectionWebReaderManager>().InSingletonScope();
 

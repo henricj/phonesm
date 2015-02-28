@@ -28,7 +28,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -41,19 +40,23 @@ namespace SM.Media.Web.HttpConnectionReader
     {
         readonly IContentTypeDetector _contentTypeDetector;
         readonly IHttpConnectionFactory _httpConnectionFactory;
+        readonly IHttpConnectionRequestFactory _httpConnectionRequestFactory;
         readonly IRetryManager _retryManager;
         int _disposed;
 
-        public HttpConnectionWebReaderManager(IHttpConnectionFactory httpConnectionFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
+        public HttpConnectionWebReaderManager(IHttpConnectionFactory httpConnectionFactory, IHttpConnectionRequestFactory httpConnectionRequestFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpConnectionFactory)
                 throw new ArgumentNullException("httpConnectionFactory");
+            if (null == httpConnectionRequestFactory)
+                throw new ArgumentNullException("httpConnectionRequestFactory");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
             _httpConnectionFactory = httpConnectionFactory;
+            _httpConnectionRequestFactory = httpConnectionRequestFactory;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
         }
@@ -215,40 +218,9 @@ namespace SM.Media.Web.HttpConnectionReader
             if (null != referrer && (null == url || !url.IsAbsoluteUri))
                 url = new Uri(referrer, url);
 
-            var request = new HttpConnectionRequest
-            {
-                Url = url,
-                Referrer = referrer,
-                RangeFrom = fromBytes,
-                RangeTo = toBytes
-            };
-
-            if (null != contentType)
-                request.Accept = CreateAcceptHeader(contentType);
+            var request = _httpConnectionRequestFactory.CreateRequest(url, referrer, contentType, fromBytes, toBytes);
 
             return request;
-        }
-
-        static string CreateAcceptHeader(ContentType contentType)
-        {
-            var sb = new StringBuilder();
-
-            sb.Append(contentType.MimeType);
-
-            if (null != contentType.AlternateMimeTypes)
-            {
-                foreach (var mimeType in contentType.AlternateMimeTypes)
-                {
-                    sb.Append(", ");
-                    sb.Append(mimeType);
-                }
-            }
-
-            sb.Append(", */*; q=0.1");
-
-            var accept = sb.ToString();
-
-            return accept;
         }
 
         protected static Uri GetReferrer(IWebReader parent)

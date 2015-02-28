@@ -39,6 +39,8 @@ namespace SM.Media
 
             builder.RegisterType<HttpConnection>().As<IHttpConnection>().ExternallyOwned();
             builder.RegisterType<HttpConnectionFactory>().As<IHttpConnectionFactory>().SingleInstance();
+            builder.RegisterType<HttpConnectionRequestFactory>().As<IHttpConnectionRequestFactory>().SingleInstance();
+            builder.RegisterType<HttpConnectionRequestFactoryParameters>().As<IHttpConnectionRequestFactoryParameters>().SingleInstance();
 
             builder.RegisterType<HttpConnectionWebReaderManager>().As<IWebReaderManager>().SingleInstance();
 

@@ -302,6 +302,8 @@
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionFactory.cs" />
+    <Compile Include="Web\HttpConnectionReader\HttpConnectionRequestFactory.cs" />
+    <Compile Include="Web\HttpConnectionReader\HttpConnectionRequestFactoryParameters.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionWebReader.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionWebReaderManager.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionWebCache.cs" />

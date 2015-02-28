@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="HttpConnectionModule.cs" company="Henric Jungheim">
+//  <copyright file="HttpConnectionRequestFactoryParameters.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using Autofac;
-using SM.Media.Web;
-using SM.Media.Web.HttpConnection;
-using SM.Media.Web.HttpConnectionReader;
+using System;
 
-namespace SM.Media
+namespace SM.Media.Web.HttpConnectionReader
 {
-    public class HttpConnectionModule : Module
+    public interface IHttpConnectionRequestFactoryParameters
     {
-        protected override void Load(ContainerBuilder builder)
+        Uri Proxy { get; }
+    }
+
+    public class HttpConnectionRequestFactoryParameters : IHttpConnectionRequestFactoryParameters
+    {
+        #region IHttpConnectionRequestFactoryParameters Members
+
+        public Uri Proxy { get; set; }
+
+        #endregion
+    }
+
+    public static class HttpCOnnectionRequestFactoryParametersExtensions
+    {
+        public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IHttpConnectionRequestFactoryParameters parameters)
         {
-            builder.RegisterType<SocketWrapper>().As<ISocket>().ExternallyOwned();
-
-            builder.RegisterType<HttpConnection>().As<IHttpConnection>().ExternallyOwned();
-            builder.RegisterType<HttpConnectionFactory>().As<IHttpConnectionFactory>().SingleInstance();
-            builder.RegisterType<HttpConnectionRequestFactory>().As<IHttpConnectionRequestFactory>().SingleInstance();
-            builder.RegisterType<HttpConnectionRequestFactoryParameters>().As<IHttpConnectionRequestFactoryParameters>().SingleInstance();
-
-            builder.RegisterType<HttpConnectionWebReaderManager>().As<IWebReaderManager>().SingleInstance();
-
-            builder.RegisterType<HttpEncoding>().As<IHttpEncoding>().SingleInstance();
-            builder.RegisterType<HttpHeaderSerializer>().As<IHttpHeaderSerializer>().SingleInstance();
-            builder.RegisterType<UserAgentEncoder>().As<IUserAgentEncoder>().SingleInstance();
+            mediaStreamFacade.Builder.RegisterSingleton(parameters);
         }
     }
 }

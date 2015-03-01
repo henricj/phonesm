@@ -51,11 +51,11 @@ namespace SM.Media.Audio
             set { Parser.StartPosition = value; }
         }
 
-        public override void InitializeStream(IStreamMetadata streamMetadata)
+        public override void StartSegment(ISegmentMetadata segmentMetadata)
         {
             _audioParser = Parser;
 
-            var shoutcastMetadata = streamMetadata as IShoutcastStreamMetadata;
+            var shoutcastMetadata = segmentMetadata as IShoutcastSegmentMetadata;
 
             if (null != shoutcastMetadata)
             {
@@ -65,7 +65,7 @@ namespace SM.Media.Audio
                     _audioParser = new ShoutcastMetadataFilter(Parser, SetTrackMetadata, icyMetaInt.Value);
             }
 
-            base.InitializeStream(streamMetadata);
+            base.StartSegment(segmentMetadata);
         }
 
         public override void ProcessData(byte[] buffer, int offset, int length)

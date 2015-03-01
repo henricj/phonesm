@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ShoutcastStreamMetadata.cs" company="Henric Jungheim">
+//  <copyright file="ShoutcastSegmentMetadata.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -26,15 +26,15 @@
 
 namespace SM.Media.Metadata
 {
-    public interface IShoutcastStreamMetadata : IStreamMetadata
+    public interface IShoutcastSegmentMetadata : ISegmentMetadata
     {
         bool SupportsIcyMetadata { get; }
         int? IcyMetaInt { get; }
     }
 
-    public class ShoutcastStreamMetadata : StreamMetadata, IShoutcastStreamMetadata
+    public class ShoutcastSegmentMetadata : SegmentMetadata, IShoutcastSegmentMetadata
     {
-        #region IShoutcastStreamMetadata Members
+        #region IShoutcastSegmentMetadata Members
 
         public bool SupportsIcyMetadata { get; set; }
         public int? IcyMetaInt { get; set; }

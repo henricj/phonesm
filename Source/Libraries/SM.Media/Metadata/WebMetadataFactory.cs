@@ -24,101 +24,65 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using System.Linq;
+using SM.Media.Content;
 using SM.Media.Web;
 
 namespace SM.Media.Metadata
 {
     public interface IWebMetadataFactory
     {
-        IStreamMetadata CreateStreamMetadata(WebResponse webResponse);
-        ISegmentMetadata CreateSegmentMetadata(WebResponse webResponse);
+        IStreamMetadata CreateStreamMetadata(WebResponse webResponse, ContentType contentType = null);
+        ISegmentMetadata CreateSegmentMetadata(WebResponse webResponse, ContentType contentType = null);
     }
 
     public class WebMetadataFactory : IWebMetadataFactory
     {
         #region IWebMetadataFactory Members
 
-        public IStreamMetadata CreateStreamMetadata(WebResponse webResponse)
+        public IStreamMetadata CreateStreamMetadata(WebResponse webResponse, ContentType contentType = null)
         {
-            var streamMetadata = new ShoutcastStreamMetadata
+            var shoutcast = new ShoutcastHeaders(webResponse.RequestUri, webResponse.Headers);
+
+            var streamMetadata = new StreamMetadata
             {
                 Url = webResponse.RequestUri,
-                ContentType = webResponse.ContentType
+                ContentType = contentType ?? webResponse.ContentType,
+                Bitrate = shoutcast.Bitrate,
+                Description = shoutcast.Description,
+                Genre = shoutcast.Genre,
+                Name = shoutcast.Name,
+                Website = shoutcast.Website
             };
-
-            foreach (var header in webResponse.Headers)
-            {
-                switch (header.Key.ToLowerInvariant())
-                {
-                    case "icy-br":
-                        foreach (var br in header.Value)
-                        {
-                            int bitrate;
-                            if (int.TryParse(br, out bitrate))
-                            {
-                                if (bitrate > 0)
-                                {
-                                    streamMetadata.Bitrate = bitrate * 1000;
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-                    case "icy-description":
-                        streamMetadata.Description = header.Value.FirstOrDefault();
-                        break;
-                    case "icy-genre":
-                        streamMetadata.Genre = header.Value.FirstOrDefault();
-                        break;
-                    case "icy-metadata":
-                        streamMetadata.SupportsIcyMetadata = true;
-                        break;
-                    case "icy-metaint":
-                        foreach (var metaint in header.Value)
-                        {
-                            int interval;
-                            if (int.TryParse(metaint, out interval))
-                            {
-                                if (interval > 0)
-                                {
-                                    streamMetadata.IcyMetaInt = interval;
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-                    case "icy-name":
-                        streamMetadata.Name = header.Value.FirstOrDefault();
-                        break;
-                    case "icy-url":
-                        foreach (var site in header.Value)
-                        {
-                            Uri url;
-                            if (Uri.TryCreate(streamMetadata.Url, site, out url))
-                            {
-                                streamMetadata.Website = url;
-                                break;
-                            }
-                        }
-                        break;
-                }
-            }
 
             return streamMetadata;
         }
 
-        public ISegmentMetadata CreateSegmentMetadata(WebResponse webResponse)
+        public ISegmentMetadata CreateSegmentMetadata(WebResponse webResponse, ContentType contentType)
         {
-            var segmentMetadata = new SegmentMetadata
+            var shoutcast = new ShoutcastHeaders(webResponse.RequestUri, webResponse.Headers);
+
+            if (shoutcast.MetaInterval > 0 || shoutcast.SupportsIcyMetadata)
+            {
+                var segmentMetadata = new ShoutcastSegmentMetadata
+                {
+                    Url = webResponse.RequestUri,
+                    ContentType = contentType ?? webResponse.ContentType,
+                    Length = webResponse.ContentLength,
+                    IcyMetaInt = shoutcast.MetaInterval,
+                    SupportsIcyMetadata = shoutcast.SupportsIcyMetadata
+                };
+
+                return segmentMetadata;
+            }
+
+            var streamMetadata = new SegmentMetadata
             {
                 Url = webResponse.RequestUri,
-                ContentType = webResponse.ContentType,
+                ContentType = contentType ?? webResponse.ContentType,
                 Length = webResponse.ContentLength
             };
 
-            return segmentMetadata;
+            return streamMetadata;
         }
 
         #endregion

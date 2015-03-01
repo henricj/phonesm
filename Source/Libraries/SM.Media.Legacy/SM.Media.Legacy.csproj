@@ -430,8 +430,11 @@
     <Compile Include="..\SM.Media\Metadata\SegmentMetadata.cs">
       <Link>Metadata\SegmentMetadata.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Metadata\ShoutcastStreamMetadata.cs">
-      <Link>Metadata\ShoutcastStreamMetadata.cs</Link>
+    <Compile Include="..\SM.Media\Metadata\ShoutcastHeaders.cs">
+      <Link>Metadata\ShoutcastHeaders.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Metadata\ShoutcastSegmentMetadata.cs">
+      <Link>Metadata\ShoutcastSegmentMetadata.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Metadata\StreamMetadata.cs">
       <Link>Metadata\StreamMetadata.cs</Link>

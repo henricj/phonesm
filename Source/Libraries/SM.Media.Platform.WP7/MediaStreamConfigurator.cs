@@ -87,8 +87,6 @@ namespace SM.Media
             set { _mediaStreamSource.SeekTarget = value; }
         }
 
-        #region  Members
-
         public void Dispose()
         {
             AudioStreamSource = null;
@@ -99,8 +97,6 @@ namespace SM.Media
 
             CleanupMediaStreamSource();
         }
-
-        #endregion
 
         #region IMediaStreamConfigurator Members
 
@@ -241,12 +237,22 @@ namespace SM.Media
             if (null != _mediaStreamSource)
                 throw new InvalidOperationException("MediaStreamSource already exists");
 
-            _mediaStreamSource = _mediaStreamSourceFactory();
+            var mediaStreamSource = _mediaStreamSourceFactory();
 
-            var ret = _mediaStreamSource as TMediaStreamSource;
+            var ret = mediaStreamSource as TMediaStreamSource;
 
             if (null == ret)
-                throw new InvalidCastException(string.Format("Cannot convert {0} to {1}", _mediaStreamSource.GetType().FullName, typeof(TMediaStreamSource).FullName));
+            {
+                mediaStreamSource.Dispose();
+
+                _openCompletionSource.TrySetCanceled();
+
+                _playingCompletionSource.TrySetResult(null);
+
+                throw new InvalidCastException(string.Format("Cannot convert {0} to {1}", mediaStreamSource.GetType().FullName, typeof(TMediaStreamSource).FullName));
+            }
+
+            _mediaStreamSource = mediaStreamSource;
 
             return TaskEx.FromResult(ret);
         }
@@ -257,15 +263,23 @@ namespace SM.Media
 
             var mediaStreamSource = _mediaStreamSource;
 
-            if (null != mediaStreamSource)
-                await mediaStreamSource.CloseAsync().ConfigureAwait(false);
+            var pcs = _playingCompletionSource;
 
-            var playingTask = _playingCompletionSource;
-
-            if (null != playingTask)
+            if (null == mediaStreamSource)
             {
-                await _playingCompletionSource.Task.ConfigureAwait(false);
+                if (null != _openCompletionSource)
+                    _openCompletionSource.TrySetCanceled();
+
+                if (null != pcs)
+                    pcs.TrySetResult(null);
+
+                return;
             }
+
+            await mediaStreamSource.CloseAsync().ConfigureAwait(false);
+
+            if (null != pcs)
+                await pcs.Task.ConfigureAwait(false);
         }
 
         public void ReportError(string message)

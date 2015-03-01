@@ -120,29 +120,52 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 null == track ? "<no track>" : null == track.Source ? "<none>" : track.Source.ToString(),
                 null == track ? "<no track>" : track.Tag ?? "<none>");
 
-            Debug.Assert(null == _mediaStreamFacade, "_mediaStreamFacade is in use");
+            try
+            {
+                Debug.Assert(null == _mediaStreamFacade, "_mediaStreamFacade is in use");
 
-            if (_cancellationTokenSource.IsCancellationRequested)
-                _cancellationTokenSource = new CancellationTokenSource();
+                StartPoll();
 
-            var callCleanup = true;
+                if (_cancellationTokenSource.IsCancellationRequested)
+                    _cancellationTokenSource = new CancellationTokenSource();
+
+                await RunStreamingAsync(track, streamer).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() failed: " + ex.ExtendedMessage());
+            }
+            finally
+            {
+                StopPoll();
+
+                Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() play done NotifyComplete");
+                NotifyComplete();
+            }
+        }
+
+        async Task RunStreamingAsync(AudioTrack track, AudioStreamer streamer)
+        {
+            IMediaStreamFacade mediaStreamFacade = null;
 
             try
             {
                 if (null == track || null == track.Tag)
                 {
-                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() null url");
+                    Debug.WriteLine("AudioTrackStreamer.RunStreamingAsync() null url");
                     return;
                 }
 
                 Uri url;
                 if (!Uri.TryCreate(track.Tag, UriKind.Absolute, out url))
                 {
-                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() invalid url: " + track.Tag);
+                    Debug.WriteLine("AudioTrackStreamer.RunStreamingAsync() invalid url: " + track.Tag);
                     return;
                 }
 
-                var mediaStreamFacade = await InitializeMediaStreamAsync().ConfigureAwait(false);
+                mediaStreamFacade = await InitializeMediaStreamAsync().ConfigureAwait(false);
 
                 Debug.Assert(null != mediaStreamFacade);
 
@@ -150,85 +173,75 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 if (null == mss)
                 {
-                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreamingAudio() unable to create media stream source");
+                    Debug.WriteLine("AudioTrackStreamer.RunStreamingAsync() unable to create media stream source");
+                }
+                else
+                {
+                    streamer.SetSource(mss);
+
+                    await mediaStreamFacade.PlayingTask.ConfigureAwait(false);
+
                     return;
                 }
-
-                streamer.SetSource(mss);
-
-                callCleanup = false;
-
-                var notifyCompleteTask = mediaStreamFacade.PlayingTask.ContinueWith(t =>
-                {
-                    Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() play done NotifyComplete");
-                    NotifyComplete();
-                });
-
-                TaskCollector.Default.Add(notifyCompleteTask, "AudioTrackStreamer notify complete");
-
-                StartPoll();
+            }
+            catch (OperationCanceledException)
+            {
+                return;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("AudioTrackStreamer.OnBeginStreamingAudio() failed: " + ex.Message);
+                Debug.WriteLine("AudioTrackStreamer.RunStreamingAsync() failed: " + ex.ExtendedMessage());
             }
-            finally
-            {
-                if (callCleanup)
-                {
-                    Debug.WriteLine("AudioPlayer.OnBeginStreaming() cleanup");
 
-                    if (null == _mediaStreamFacade)
-                    {
-                        Debug.WriteLine("AudioTrackStreamer.OnBeginStreaming() cleanup NotifyComplete");
-                        NotifyComplete();
-                    }
-                    else
-                    {
-                        var cleanupTask = CleanupMediaStreamFacadeAsync();
+            if (null == mediaStreamFacade)
+                return;
 
-                        TaskCollector.Default.Add(cleanupTask, "OnBeginStreaming CleanupMediaStreamFacade");
-                    }
-                }
-            }
+            await CleanupMediaStreamFacadeAsync(mediaStreamFacade).ConfigureAwait(false);
         }
 
         async Task<IMediaStreamFacade> InitializeMediaStreamAsync()
         {
-            if (null != _mediaStreamFacade)
+#if SM_MEDIA_LEGACY
+            var mediaStreamFacade = _mediaStreamFacade;
+#else
+            var mediaStreamFacade = Volatile.Read(ref _mediaStreamFacade);
+#endif
+            if (null != mediaStreamFacade)
             {
                 try
                 {
-                    await _mediaStreamFacade.StopAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+                    await mediaStreamFacade.StopAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
 
-                    return _mediaStreamFacade;
+                    return mediaStreamFacade;
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine("AudioTrackStreamer.InitializeMediaStreamAsync() stop failed: " + ex.ExtendedMessage());
                 }
 
-                try
-                {
-                    await CleanupMediaStreamFacadeAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("AudioTrackStreamer.InitializeMediaStreamAsync() cleanup failed: " + ex.ExtendedMessage());
-                }
+                await CleanupMediaStreamFacadeAsync(mediaStreamFacade).ConfigureAwait(false);
             }
 
-            _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
+            mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 
-            _mediaStreamFacade.SetParameter(_bufferingPolicy);
+            mediaStreamFacade.SetParameter(_bufferingPolicy);
 
-            _mediaStreamFacade.SetParameter(_mediaManagerParameters);
+            mediaStreamFacade.SetParameter(_mediaManagerParameters);
 
-            _mediaStreamFacade.SetParameter(_webReaderManagerParameters);
+            mediaStreamFacade.SetParameter(_webReaderManagerParameters);
 
-            _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
+            mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
 
-            return _mediaStreamFacade;
+            var wasNull = null == Interlocked.CompareExchange(ref _mediaStreamFacade, mediaStreamFacade, null);
+
+            if (!wasNull)
+            {
+                await UnsafeCleanupMediaStreamFacadeAsync(mediaStreamFacade).ConfigureAwait(false);
+
+                throw new InvalidOperationException("Mismatched media stream facade in InitializeMediaStreamAsync()");
+            }
+
+            return mediaStreamFacade;
         }
 
         void TsMediaManagerOnStateChange(object sender, MediaManagerStateEventArgs mediaManagerStateEventArgs)
@@ -257,6 +270,37 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             if (null == mediaStreamFacade)
                 return;
 
+            try
+            {
+                await UnsafeCleanupMediaStreamFacadeAsync(mediaStreamFacade).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade() cleanup failed: " + ex.ExtendedMessage());
+            }
+        }
+
+        async Task CleanupMediaStreamFacadeAsync(IMediaStreamFacade mediaStreamFacade)
+        {
+            Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade(msf)");
+
+            try
+            {
+                var wasOk = mediaStreamFacade == Interlocked.CompareExchange(ref _mediaStreamFacade, null, mediaStreamFacade);
+
+                if (wasOk)
+                    await UnsafeCleanupMediaStreamFacadeAsync(mediaStreamFacade).ConfigureAwait(false);
+                else
+                    Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade(msf) cleanup lost race with something");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade(msf) cleanup failed: " + ex.ExtendedMessage());
+            }
+        }
+
+        async Task UnsafeCleanupMediaStreamFacadeAsync(IMediaStreamFacade mediaStreamFacade)
+        {
             mediaStreamFacade.StateChange -= TsMediaManagerOnStateChange;
 
             try
@@ -265,34 +309,38 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 var closeTask = TaskEx.Run(() => localMediaStreamFacade.CloseAsync());
 
-                var task = await TaskEx.WhenAny(closeTask, TaskEx.Delay(6000)).ConfigureAwait(false);
+                var timeoutTask = TaskEx.Delay(6000);
 
-                var cleanupTask = closeTask.ContinueWith(t =>
+                await TaskEx.WhenAny(closeTask, timeoutTask).ConfigureAwait(false);
+
+                if (closeTask.IsCompleted)
+                    closeTask.Wait();
+                else
                 {
-                    var ex = t.Exception;
-                    if (null != ex)
-                        Debug.WriteLine("AudioTrackStreamer.CleanupMediaStreamFacade() CloseAsync() failed: " + ex.Message);
+                    Debug.WriteLine("AudioTrackStreamer.UnsafeCleanupMediaStreamFacadeAsync() CloseAsync timeout");
 
-                    localMediaStreamFacade.DisposeSafe();
-                });
+                    var cleanupTask = closeTask.ContinueWith(t =>
+                    {
+                        var ex = t.Exception;
+                        if (null != ex)
+                            Debug.WriteLine("AudioTrackStreamer.UnsafeCleanupMediaStreamFacadeAsync() CloseAsync() failed: " + ex.Message);
 
-                TaskCollector.Default.Add(cleanupTask, "AudioTrackStreamer facade cleanup");
+                        localMediaStreamFacade.DisposeSafe();
+                    });
 
-                if (!ReferenceEquals(task, closeTask))
-                {
-                    Debug.WriteLine("AudioTrackStreamer.TsMediaManagerOnStateChange CloseAsync timeout");
+                    TaskCollector.Default.Add(cleanupTask, "AudioTrackStreamer facade cleanup");
 
                     Abort();
+
+                    return;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("AudioTrackStreamer.TsMediaManagerOnStateChange CloseAsync failed: " + ex.ExtendedMessage());
+                Debug.WriteLine("AudioTrackStreamer.UnsafeCleanupMediaStreamFacadeAsync() close async failed: " + ex.ExtendedMessage());
 
                 Abort();
             }
-
-            mediaStreamFacade = null;
 
             // Should this Collect be inside the #if DEBUG?
             // The available memory is usually only on the
@@ -317,48 +365,60 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         {
             Debug.WriteLine("AudioTrackStreamer.OnCancel()");
 
-            TryCancel();
-
-            if (null != _mediaStreamFacade)
+            try
             {
-                var allOk = false;
+                TryCancel();
 
-                try
+#if SM_MEDIA_LEGACY
+                var mediaStreamFacade = _mediaStreamFacade;
+#else
+                var mediaStreamFacade = Volatile.Read(ref _mediaStreamFacade);
+#endif
+                if (null != mediaStreamFacade)
                 {
-                    using (var cts = new CancellationTokenSource())
-                    {
-                        cts.CancelAfter(TimeSpan.FromSeconds(5));
+                    var allOk = false;
 
-                        await _mediaStreamFacade.StopAsync(cts.Token).ConfigureAwait(false);
+                    try
+                    {
+                        using (var cts = new CancellationTokenSource())
+                        {
+                            cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+                            await mediaStreamFacade.StopAsync(cts.Token).ConfigureAwait(false);
+                        }
+
+                        allOk = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("AudioTrackStreamer.OnCancel() stop failed: " + ex.Message);
                     }
 
-                    allOk = true;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("AudioTrackStreamer.OnCancel() stop failed: " + ex.Message);
-                }
-
-                if (!allOk)
-                {
-                    var cleanupTask = CleanupMediaStreamFacadeAsync();
-
-                    await TaskEx.WhenAny(cleanupTask, TaskEx.Delay(5000)).ConfigureAwait(false);
-
-                    if (!cleanupTask.IsCompleted)
+                    if (!allOk)
                     {
-                        Debug.WriteLine("AudioTrackStreamer.OnCancel() cleanup timeout");
+                        var cleanupTask = CleanupMediaStreamFacadeAsync();
 
-                        TaskCollector.Default.Add(cleanupTask, "OnCancel CleanupMediaStreamFacade");
+                        await TaskEx.WhenAny(cleanupTask, TaskEx.Delay(5000)).ConfigureAwait(false);
 
-                        Abort();
+                        if (!cleanupTask.IsCompleted)
+                        {
+                            Debug.WriteLine("AudioTrackStreamer.OnCancel() cleanup timeout");
+
+                            TaskCollector.Default.Add(cleanupTask, "OnCancel CleanupMediaStreamFacade");
+
+                            Abort();
+                        }
                     }
                 }
             }
-
-            StopPoll();
-
-            base.OnCancel();
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AudioTrackStreamer.OnCancel() failed: " + ex.ExtendedMessage());
+            }
+            finally
+            {
+                base.OnCancel();
+            }
         }
 
         void TryCancel()

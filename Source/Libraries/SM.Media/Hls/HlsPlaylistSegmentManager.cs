@@ -205,9 +205,9 @@ namespace SM.Media.Hls
             return CleanupReader(readTask, cancellationTokenSource);
         }
 
-        public Task CloseAsync()
+        public IStreamMetadata StreamMetadata
         {
-            return StopAsync();
+            get { return _programStream.StreamMetadata; }
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)

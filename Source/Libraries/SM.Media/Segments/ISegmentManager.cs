@@ -27,6 +27,7 @@
 using System;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -40,6 +41,7 @@ namespace SM.Media.Segments
 
         ContentType ContentType { get; }
         IAsyncEnumerable<ISegment> Playlist { get; }
+        IStreamMetadata StreamMetadata { get; }
 
         Task StartAsync();
         Task<TimeSpan> SeekAsync(TimeSpan timestamp);

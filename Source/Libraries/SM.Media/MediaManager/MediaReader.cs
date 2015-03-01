@@ -254,6 +254,8 @@ namespace SM.Media.MediaManager
             _mediaParser.ConfigurationComplete += ConfigurationComplete;
 
             _mediaParser.Initialize(_bufferingManager, programStreamsHandler);
+
+            _mediaParser.InitializeStream(_segmentReaders.Manager.StreamMetadata);
         }
 
         void ConfigurationComplete(object sender, EventArgs eventArgs)

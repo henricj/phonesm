@@ -26,9 +26,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -88,6 +90,29 @@ namespace SM.Media.Segments
         public Task StopAsync()
         {
             return TplTaskExtensions.CompletedTask;
+        }
+
+        public IStreamMetadata StreamMetadata
+        {
+            get
+            {
+                var url = _webReader.BaseAddress;
+
+                if (null == url)
+                {
+                    var segment = _segments.FirstOrDefault();
+
+                    if (null != segment)
+                        url = segment.Url;
+                }
+
+                return new StreamMetadata
+                {
+                    Url = url,
+                    ContentType = _contentType,
+                    Duration = Duration
+                };
+            }
         }
 
         public Task CloseAsync()

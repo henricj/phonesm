@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ISegmentReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,9 +49,11 @@ namespace SM.Media.Segments
 
     static class SegmentReaderManagerExtensions
     {
-        public static Task<TimeSpan> StartAsync(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
+        public static async Task<TimeSpan> StartAsync(this ISegmentReaderManager segmentManager, CancellationToken cancellationToken)
         {
-            return segmentManager.SeekAsync(TimeSpan.Zero, cancellationToken);
+            await segmentManager.StartAsync().ConfigureAwait(false);
+
+            return await segmentManager.SeekAsync(TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
         }
     }
 }

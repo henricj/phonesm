@@ -35,6 +35,7 @@ namespace SM.Media.Metadata
         ContentType ContentType { get; }
 
         int? Bitrate { get; }
+        TimeSpan? Duration { get; }
 
         string Name { get; }
         string Description { get; }
@@ -52,6 +53,7 @@ namespace SM.Media.Metadata
         public ContentType ContentType { get; set; }
 
         public int? Bitrate { get; set; }
+        public TimeSpan? Duration { get; set; }
 
         public string Name { get; set; }
         public string Description { get; set; }

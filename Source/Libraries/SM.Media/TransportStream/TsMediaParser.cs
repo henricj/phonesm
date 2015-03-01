@@ -31,6 +31,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.MediaParser;
+using SM.Media.Metadata;
 using SM.Media.Pes;
 using SM.Media.Utility;
 using SM.TsParser;
@@ -118,6 +119,15 @@ namespace SM.Media.TransportStream
 
             _tsDecoder.Initialize(CreatePacketizedElementaryStream, programStreamsHandler);
         }
+
+        public void InitializeStream(IStreamMetadata streamMetadata)
+        { }
+
+        public void StartSegment(ISegmentMetadata segmentMetadata)
+        { }
+
+        public void SetTrackMetadata(ITrackMetadata trackMetadata)
+        { }
 
         public void FlushBuffers()
         {

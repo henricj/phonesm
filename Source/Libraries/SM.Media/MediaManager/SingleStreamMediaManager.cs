@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.Content;
 using SM.Media.MediaParser;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -45,6 +46,7 @@ namespace SM.Media.MediaManager
         readonly IMediaParserFactory _mediaParserFactory;
         readonly IMediaStreamConfigurator _mediaStreamConfigurator;
         readonly SignalTask _reportStateTask;
+        readonly IWebMetadataFactory _webMetadataFactory;
         readonly IWebReaderManager _webReaderManager;
         int _isDisposed;
         MediaManagerState _mediaState;
@@ -52,7 +54,8 @@ namespace SM.Media.MediaManager
         CancellationTokenSource _playCancellationTokenSource;
         Task _playTask;
 
-        public SingleStreamMediaManager(Func<IBufferingManager> bufferingManagerFactory, IMediaParserFactory mediaParserFactory, IMediaStreamConfigurator mediaStreamConfigurator, IWebReaderManager webReaderManager)
+        public SingleStreamMediaManager(Func<IBufferingManager> bufferingManagerFactory, IMediaParserFactory mediaParserFactory,
+            IMediaStreamConfigurator mediaStreamConfigurator, IWebMetadataFactory webMetadataFactory, IWebReaderManager webReaderManager)
         {
             if (null == bufferingManagerFactory)
                 throw new ArgumentNullException("bufferingManagerFactory");
@@ -60,12 +63,15 @@ namespace SM.Media.MediaManager
                 throw new ArgumentNullException("mediaParserFactory");
             if (null == mediaStreamConfigurator)
                 throw new ArgumentNullException("mediaStreamConfigurator");
+            if (null == webMetadataFactory)
+                throw new ArgumentNullException("webMetadataFactory");
             if (null == webReaderManager)
                 throw new ArgumentNullException("webReaderManager");
 
             _bufferingManagerFactory = bufferingManagerFactory;
             _mediaParserFactory = mediaParserFactory;
             _mediaStreamConfigurator = mediaStreamConfigurator;
+            _webMetadataFactory = webMetadataFactory;
             _webReaderManager = webReaderManager;
 
             _reportStateTask = new SignalTask(ReportState);
@@ -154,7 +160,7 @@ namespace SM.Media.MediaManager
 
                         TaskCollector.Default.Add(cancelPlayTask, "SingleStreamMediaManager play cancellation");
 
-                        playTask = SimplePlayAsync(contentType, webReader, webStream, configurationTaskCompletionSource, playCancellationTokenSource.Token);
+                        playTask = SimplePlayAsync(contentType, webReader, webStream, response, configurationTaskCompletionSource, playCancellationTokenSource.Token);
 
                         var isConfigured = await configurationTaskCompletionSource.Task.ConfigureAwait(false);
 
@@ -323,7 +329,7 @@ namespace SM.Media.MediaManager
                 playCancellationTokenSource.Cancel();
         }
 
-        async Task SimplePlayAsync(ContentType contentType, IWebReader webReader, IWebStreamResponse webStreamResponse, TaskCompletionSource<bool> configurationTaskCompletionSource, CancellationToken cancellationToken)
+        async Task SimplePlayAsync(ContentType contentType, IWebReader webReader, IWebStreamResponse webStreamResponse, WebResponse webResponse, TaskCompletionSource<bool> configurationTaskCompletionSource, CancellationToken cancellationToken)
         {
             try
             {
@@ -356,6 +362,10 @@ namespace SM.Media.MediaManager
 
                     mediaParser.Initialize(bufferingManager);
 
+                    var streamMetadata = _webMetadataFactory.CreateStreamMetadata(webResponse);
+
+                    mediaParser.InitializeStream(streamMetadata);
+
                     Task reader = null;
 
                     try
@@ -365,9 +375,9 @@ namespace SM.Media.MediaManager
                             try
                             {
                                 if (null == webStreamResponse)
-                                    webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken).ConfigureAwait(false);
+                                    webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken, response: webResponse).ConfigureAwait(false);
 
-                                reader = ReadResponseAsync(mediaParser, webStreamResponse, throttle, cancellationToken);
+                                reader = ReadResponseAsync(mediaParser, webStreamResponse, webResponse, throttle, cancellationToken);
 
                                 await TaskEx.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
 
@@ -442,7 +452,7 @@ namespace SM.Media.MediaManager
             await _reportStateTask.WaitAsync().ConfigureAwait(false);
         }
 
-        async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, QueueThrottle throttle, CancellationToken cancellationToken)
+        async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, WebResponse webResponse, QueueThrottle throttle, CancellationToken cancellationToken)
         {
             var buffer = new byte[16 * 1024];
 
@@ -450,6 +460,10 @@ namespace SM.Media.MediaManager
 
             try
             {
+                var segmentMetadata = _webMetadataFactory.CreateSegmentMetadata(webResponse);
+
+                mediaParser.StartSegment(segmentMetadata);
+
                 using (var stream = await webStreamResponse.GetStreamAsync(cancellationToken).ConfigureAwait(false))
                 {
                     for (; ; )

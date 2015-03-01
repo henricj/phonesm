@@ -111,6 +111,9 @@
     <Compile Include="..\SM.Media\Audio\IAudioParser.cs">
       <Link>Audio\IAudioParser.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Audio\ShoutcastMetadataFilter.cs">
+      <Link>Audio\ShoutcastMetadataFilter.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Buffering\BufferingManager.cs">
       <Link>Buffering\BufferingManager.cs</Link>
     </Compile>

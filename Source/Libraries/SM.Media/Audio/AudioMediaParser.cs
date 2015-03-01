@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AudioMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@ using System;
 using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
+using SM.Media.Metadata;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
@@ -38,6 +39,7 @@ namespace SM.Media.Audio
         where TConfigurator : IConfigurationSource
     {
         protected TParser Parser;
+        IAudioParser _audioParser;
 
         protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool pesPacketPool)
             : base(streamType, configurator, pesPacketPool)
@@ -49,19 +51,36 @@ namespace SM.Media.Audio
             set { Parser.StartPosition = value; }
         }
 
+        public override void InitializeStream(IStreamMetadata streamMetadata)
+        {
+            _audioParser = Parser;
+
+            var shoutcastMetadata = streamMetadata as IShoutcastStreamMetadata;
+
+            if (null != shoutcastMetadata)
+            {
+                var icyMetaInt = shoutcastMetadata.IcyMetaInt;
+
+                if (icyMetaInt.HasValue && icyMetaInt > 0)
+                    _audioParser = new ShoutcastMetadataFilter(Parser, SetTrackMetadata, icyMetaInt.Value);
+            }
+
+            base.InitializeStream(streamMetadata);
+        }
+
         public override void ProcessData(byte[] buffer, int offset, int length)
         {
             Debug.Assert(length > 0);
             Debug.Assert(offset + length <= buffer.Length);
 
-            Parser.ProcessData(buffer, offset, length);
+            _audioParser.ProcessData(buffer, offset, length);
 
             PushStreams();
         }
 
         public override void FlushBuffers()
         {
-            Parser.FlushBuffers();
+            _audioParser.FlushBuffers();
 
             base.FlushBuffers();
         }
@@ -70,7 +89,7 @@ namespace SM.Media.Audio
         {
             if (disposing)
             {
-                using (Parser)
+                using (_audioParser)
                 { }
             }
 

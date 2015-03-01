@@ -126,6 +126,9 @@
     <Compile Include="..\SM.Media\Buffering\IBufferingPolicy.cs">
       <Link>Buffering\IBufferingPolicy.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Buffering\IQueueThrottling.cs">
+      <Link>Buffering\IQueueThrottling.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Buffering\NullBufferingManager.cs">
       <Link>Buffering\NullBufferingManager.cs</Link>
     </Compile>
@@ -135,7 +138,6 @@
     <Compile Include="..\SM.Media\Builder\IBuilderHandle.cs">
       <Link>Builder\IBuilderHandle.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\CallbackReader.cs" />
     <Compile Include="..\SM.Media\Configuration\AudioFormat.cs">
       <Link>Configuration\AudioFormat.cs</Link>
     </Compile>
@@ -359,6 +361,9 @@
     <Compile Include="..\SM.Media\M3U8\TagSupport\ValueTagInstance.cs">
       <Link>M3U8\TagSupport\ValueTagInstance.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\MediaManager\CallbackReader.cs">
+      <Link>MediaManager\CallbackReader.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\MediaManager\IMediaManager.cs">
       <Link>MediaManager\IMediaManager.cs</Link>
     </Compile>
@@ -370,6 +375,9 @@
     </Compile>
     <Compile Include="..\SM.Media\MediaManager\MediaManagerStateEventArgs.cs">
       <Link>MediaManager\MediaManagerStateEventArgs.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\MediaManager\MediaReader.cs">
+      <Link>MediaManager\MediaReader.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaManager\SingleStreamMediaManager.cs">
       <Link>MediaManager\SingleStreamMediaManager.cs</Link>
@@ -409,9 +417,6 @@
     </Compile>
     <Compile Include="..\SM.Media\MediaParser\MediaParserParameters.cs">
       <Link>MediaParser\MediaParserParameters.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\MediaReader.cs">
-      <Link>MediaReader.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\MediaStreamFacadeBase.cs">
       <Link>MediaStreamFacadeBase.cs</Link>
@@ -705,7 +710,6 @@
     <Compile Include="..\SM.Media\Configuration\IVideoConfigurationSource.cs">
       <Link>Configuration\IVideoConfigurationSource.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\IQueueThrottling.cs" />
     <Compile Include="..\SM.Media\Segments\SegmentReader.cs">
       <Link>Segments\SegmentReader.cs</Link>
     </Compile>

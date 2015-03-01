@@ -31,7 +31,7 @@ using System.Threading.Tasks;
 using SM.Media.Segments;
 using SM.Media.Utility;
 
-namespace SM.Media
+namespace SM.Media.MediaManager
 {
     public class CallbackReader : IDisposable
     {

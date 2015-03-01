@@ -36,7 +36,7 @@ using SM.Media.Segments;
 using SM.Media.Utility;
 using SM.TsParser;
 
-namespace SM.Media
+namespace SM.Media.MediaManager
 {
     interface IMediaReader : IDisposable
     {

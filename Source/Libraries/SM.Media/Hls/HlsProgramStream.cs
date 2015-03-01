@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsProgramStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,6 +32,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
 using SM.Media.M3U8;
+using SM.Media.Metadata;
 using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
@@ -48,6 +49,7 @@ namespace SM.Media.Hls
     {
         static readonly ISegment[] NoPlaylist = new ISegment[0];
         readonly IHlsSegmentsFactory _segmentsFactory;
+        readonly IWebMetadataFactory _webMetadataFactory;
         readonly IWebReader _webReader;
         Uri _actualUrl;
         ContentType _contentType;
@@ -55,10 +57,12 @@ namespace SM.Media.Hls
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
-        public HlsProgramStream(IWebReader webReader, ICollection<Uri> urls, IHlsSegmentsFactory segmentsFactory, IPlatformServices platformServices, IRetryManager retryManager)
+        public HlsProgramStream(IWebReader webReader, ICollection<Uri> urls, IHlsSegmentsFactory segmentsFactory, IWebMetadataFactory webMetadataFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
             if (null == segmentsFactory)
                 throw new ArgumentNullException("segmentsFactory");
+            if (null == webMetadataFactory)
+                throw new ArgumentNullException("webMetadataFactory");
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
             if (null == platformServices)
@@ -68,6 +72,7 @@ namespace SM.Media.Hls
 
             _webReader = webReader;
             _segmentsFactory = segmentsFactory;
+            _webMetadataFactory = webMetadataFactory;
             Urls = urls;
         }
 
@@ -86,6 +91,8 @@ namespace SM.Media.Hls
         {
             get { return _isDynamicPlaylist; }
         }
+
+        public IStreamMetadata StreamMetadata { get; set; }
 
         public ICollection<ISegment> Segments
         {
@@ -157,6 +164,11 @@ namespace SM.Media.Hls
 
                 cancellationToken.ThrowIfCancellationRequested();
 
+                WebResponse webResponse = null;
+
+                if (null == StreamMetadata)
+                    webResponse = new WebResponse();
+
                 var parsedPlaylist = await _subPlaylistCache.ReadAsync(
                     (actualUri, bytes) =>
                     {
@@ -173,11 +185,17 @@ namespace SM.Media.Hls
                         }
 
                         return parser;
-                    }, cancellationToken)
+                    }, cancellationToken, webResponse)
                     .ConfigureAwait(false);
 
+
                 if (null != parsedPlaylist)
+                {
+                    if (null != webResponse)
+                        StreamMetadata = _webMetadataFactory.CreateStreamMetadata(webResponse);
+
                     return parsedPlaylist;
+                }
             }
 
             return null;

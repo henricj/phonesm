@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsProgramStreamFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
 
@@ -41,17 +42,21 @@ namespace SM.Media.Hls
         readonly IPlatformServices _platformServices;
         readonly IRetryManager _retryManager;
         readonly IHlsSegmentsFactory _segmentsFactory;
+        readonly IWebMetadataFactory _webMetadataFactory;
 
-        public HlsProgramStreamFactory(IHlsSegmentsFactory segmentsFactory, IPlatformServices platformServices, IRetryManager retryManager)
+        public HlsProgramStreamFactory(IHlsSegmentsFactory segmentsFactory, IWebMetadataFactory webMetadataFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
             if (null == segmentsFactory)
                 throw new ArgumentNullException("segmentsFactory");
+            if (null == webMetadataFactory)
+                throw new ArgumentNullException("webMetadataFactory");
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
             _segmentsFactory = segmentsFactory;
+            _webMetadataFactory = webMetadataFactory;
             _platformServices = platformServices;
             _retryManager = retryManager;
         }
@@ -60,7 +65,7 @@ namespace SM.Media.Hls
 
         public IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader)
         {
-            return new HlsProgramStream(webReader, urls, _segmentsFactory, _platformServices, _retryManager);
+            return new HlsProgramStream(webReader, urls, _segmentsFactory, _webMetadataFactory, _platformServices, _retryManager);
         }
 
         #endregion

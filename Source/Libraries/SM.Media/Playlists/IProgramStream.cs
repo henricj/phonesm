@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IProgramStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Segments;
 using SM.Media.Web;
 
@@ -46,6 +47,8 @@ namespace SM.Media.Playlists
 
         IWebReader WebReader { get; }
         bool IsDynamicPlaylist { get; }
+        IStreamMetadata StreamMetadata { get; }
+
         ICollection<ISegment> Segments { get; }
 
         Task RefreshPlaylistAsync(CancellationToken cancellationToken);

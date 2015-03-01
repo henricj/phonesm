@@ -245,7 +245,6 @@
       </SubType>
     </Compile>
     <Compile Include="Utility\IStopClose.cs" />
-    <Compile Include="Utility\StopCloseExtensions.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
     <Compile Include="Utility\TaskEx.cs" />
     <Compile Include="TransportStream\TsMediaParser.cs" />

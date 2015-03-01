@@ -563,9 +563,6 @@
     <Compile Include="..\SM.Media\Utility\SignalTask.cs">
       <Link>Utility\SignalTask.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Utility\StopCloseExtensions.cs">
-      <Link>Utility\StopCloseExtensions.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media\Utility\TaskCollector.cs">
       <Link>Utility\TaskCollector.cs</Link>
     </Compile>

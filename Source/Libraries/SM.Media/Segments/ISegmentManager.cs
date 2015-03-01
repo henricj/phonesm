@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ISegmentManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
-    public interface ISegmentManager : IStopClose
+    public interface ISegmentManager : IDisposable
     {
         IWebReader WebReader { get; }
         TimeSpan StartPosition { get; }
@@ -41,15 +41,8 @@ namespace SM.Media.Segments
         ContentType ContentType { get; }
         IAsyncEnumerable<ISegment> Playlist { get; }
 
-        Task<TimeSpan> SeekAsync(TimeSpan timestamp);
         Task StartAsync();
-    }
-
-    public static class SegmentManagerAsyncExtensions
-    {
-        public static Task<TimeSpan> Start(this ISegmentManager segmentManager)
-        {
-            return segmentManager.SeekAsync(TimeSpan.Zero);
-        }
+        Task<TimeSpan> SeekAsync(TimeSpan timestamp);
+        Task StopAsync();
     }
 }

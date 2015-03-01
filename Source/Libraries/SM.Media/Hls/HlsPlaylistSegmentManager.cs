@@ -33,6 +33,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Playlists;
 using SM.Media.Segments;
 using SM.Media.Utility;
@@ -59,24 +60,20 @@ namespace SM.Media.Hls
         bool _isDynamicPlaylist;
         bool _isInitialized;
         bool _isRunning;
-        ContentType _playlistType;
         int _readSubListFailureCount;
         SignalTask _readTask;
         ISegment[] _segments;
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
 
-        public HlsPlaylistSegmentManager(IProgramStream programStream, ContentType playlistType, IPlatformServices platformServices, CancellationToken cancellationToken)
+        public HlsPlaylistSegmentManager(IProgramStream programStream, IPlatformServices platformServices, CancellationToken cancellationToken)
         {
             if (null == programStream)
                 throw new ArgumentNullException("programStream");
-            if (null == playlistType)
-                throw new ArgumentNullException("playlistType");
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
 
             _programStream = programStream;
-            _playlistType = playlistType;
             _platformServices = platformServices;
             _cancellationToken = cancellationToken;
 

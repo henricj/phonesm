@@ -39,14 +39,13 @@ namespace SM.Media.Metadata
 
         string Name { get; }
         string Description { get; }
+        string Genre { get; }
 
         Uri Website { get; }
     }
 
     public class StreamMetadata : IStreamMetadata
     {
-        public string Genre { get; set; }
-
         #region IStreamMetadata Members
 
         public Uri Url { get; set; }
@@ -57,6 +56,7 @@ namespace SM.Media.Metadata
 
         public string Name { get; set; }
         public string Description { get; set; }
+        public string Genre { get; set; }
 
         public Uri Website { get; set; }
 

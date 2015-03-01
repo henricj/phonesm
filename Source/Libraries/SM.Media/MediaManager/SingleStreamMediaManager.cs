@@ -160,7 +160,11 @@ namespace SM.Media.MediaManager
 
                         TaskCollector.Default.Add(cancelPlayTask, "SingleStreamMediaManager play cancellation");
 
-                        playTask = SimplePlayAsync(contentType, webReader, webStream, response, configurationTaskCompletionSource, playCancellationTokenSource.Token);
+                        var localWebReader = webReader;
+                        var localWebStream = webStream;
+                        var playCancellationToken = playCancellationTokenSource.Token;
+
+                        playTask = TaskEx.Run(() => SimplePlayAsync(contentType, localWebReader, localWebStream, response, configurationTaskCompletionSource, playCancellationToken), playCancellationToken);
 
                         var isConfigured = await configurationTaskCompletionSource.Task.ConfigureAwait(false);
 
@@ -214,6 +218,9 @@ namespace SM.Media.MediaManager
 
             if (null != playCancellationTokenSource)
                 playCancellationTokenSource.Cancel();
+
+            if (null == playTask)
+                return TplTaskExtensions.CompletedTask;
 
             return playTask ?? TplTaskExtensions.CompletedTask;
         }

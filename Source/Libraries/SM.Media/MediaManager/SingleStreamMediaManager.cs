@@ -166,19 +166,19 @@ namespace SM.Media.MediaManager
 
                         playTask = TaskEx.Run(() => SimplePlayAsync(contentType, localWebReader, localWebStream, response, configurationTaskCompletionSource, playCancellationToken), playCancellationToken);
 
+                        lock (_lock)
+                        {
+                            _playCancellationTokenSource = playCancellationTokenSource;
+                            playCancellationTokenSource = null;
+
+                            _playTask = playTask;
+                            playTask = null;
+                        }
+
                         var isConfigured = await configurationTaskCompletionSource.Task.ConfigureAwait(false);
 
                         if (isConfigured)
                         {
-                            lock (_lock)
-                            {
-                                _playCancellationTokenSource = playCancellationTokenSource;
-                                playCancellationTokenSource = null;
-
-                                _playTask = playTask;
-                                playTask = null;
-                            }
-
                             webReader = null;
                             webStream = null;
 
@@ -207,8 +207,8 @@ namespace SM.Media.MediaManager
 
         public Task StopMediaAsync(CancellationToken cancellationToken)
         {
-            Task playTask = null;
-            CancellationTokenSource playCancellationTokenSource = null;
+            Task playTask;
+            CancellationTokenSource playCancellationTokenSource;
 
             lock (_lock)
             {
@@ -218,9 +218,6 @@ namespace SM.Media.MediaManager
 
             if (null != playCancellationTokenSource)
                 playCancellationTokenSource.Cancel();
-
-            if (null == playTask)
-                return TplTaskExtensions.CompletedTask;
 
             return playTask ?? TplTaskExtensions.CompletedTask;
         }

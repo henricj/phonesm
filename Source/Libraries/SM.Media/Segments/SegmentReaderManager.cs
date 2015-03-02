@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,7 +57,7 @@ namespace SM.Media.Segments
                 .Select(sm => new ManagerReaders
                 {
                     Manager = sm,
-                    Readers = new SegmentReaderEnumerable(sm, sm.WebReader, retryManager, platformServices)
+                    Readers = new SegmentReaderEnumerable(sm, retryManager, platformServices)
                 })
                 .ToArray();
         }
@@ -133,21 +133,17 @@ namespace SM.Media.Segments
             readonly IPlatformServices _platformServices;
             readonly IRetryManager _retryManager;
             readonly ISegmentManager _segmentManager;
-            readonly IWebReader _webReader;
 
-            public SegmentReaderEnumerable(ISegmentManager segmentManager, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
+            public SegmentReaderEnumerable(ISegmentManager segmentManager, IRetryManager retryManager, IPlatformServices platformServices)
             {
                 if (null == segmentManager)
                     throw new ArgumentNullException("segmentManager");
-                if (null == webReader)
-                    throw new ArgumentNullException("webReader");
                 if (null == platformServices)
                     throw new ArgumentNullException("platformServices");
                 if (null == retryManager)
                     throw new ArgumentNullException("retryManager");
 
                 _segmentManager = segmentManager;
-                _webReader = webReader;
                 _platformServices = platformServices;
                 _retryManager = retryManager;
             }
@@ -156,7 +152,7 @@ namespace SM.Media.Segments
 
             public IAsyncEnumerator<ISegmentReader> GetEnumerator()
             {
-                return new SegmentReaderEnumerator(_segmentManager, _webReader, _retryManager, _platformServices);
+                return new SegmentReaderEnumerator(_segmentManager, _retryManager, _platformServices);
             }
 
             #endregion
@@ -174,19 +170,17 @@ namespace SM.Media.Segments
             readonly IWebReader _webReader;
             ISegmentReader _segmentReader;
 
-            public SegmentReaderEnumerator(ISegmentManager segmentManager, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
+            public SegmentReaderEnumerator(ISegmentManager segmentManager, IRetryManager retryManager, IPlatformServices platformServices)
             {
                 if (null == segmentManager)
                     throw new ArgumentNullException("segmentManager");
-                if (webReader == null)
-                    throw new ArgumentNullException("webReader");
                 if (null == retryManager)
                     throw new ArgumentNullException("retryManager");
                 if (null == platformServices)
                     throw new ArgumentNullException("platformServices");
 
                 _segmentEnumerator = segmentManager.Playlist.GetEnumerator();
-                _webReader = webReader;
+                _webReader = segmentManager.WebReader;
                 _retryManager = retryManager;
                 _platformServices = platformServices;
             }

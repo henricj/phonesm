@@ -29,6 +29,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 
 namespace SM.Media.Segments
@@ -43,17 +44,21 @@ namespace SM.Media.Segments
         readonly IPlatformServices _platformServices;
         readonly IRetryManager _retryManager;
         readonly ISegmentManagerFactory _segmentManagerFactory;
+        readonly IWebMetadataFactory _webMetadataFactory;
 
-        public SegmentReaderManagerFactory(ISegmentManagerFactory segmentManagerFactory, IRetryManager retryManager, IPlatformServices platformServices)
+        public SegmentReaderManagerFactory(ISegmentManagerFactory segmentManagerFactory, IWebMetadataFactory webMetadataFactory, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == segmentManagerFactory)
                 throw new ArgumentNullException("segmentManagerFactory");
+            if (null == webMetadataFactory)
+                throw new ArgumentNullException("webMetadataFactory");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
             if (null == platformServices)
                 throw new ArgumentNullException("platformServices");
 
             _segmentManagerFactory = segmentManagerFactory;
+            _webMetadataFactory = webMetadataFactory;
             _retryManager = retryManager;
             _platformServices = platformServices;
         }
@@ -72,7 +77,7 @@ namespace SM.Media.Segments
             if (null == playlist)
                 throw new FileNotFoundException("Unable to create playlist");
 
-            return new SegmentReaderManager(new[] { playlist }, _retryManager, _platformServices);
+            return new SegmentReaderManager(new[] { playlist }, _webMetadataFactory, _retryManager, _platformServices);
         }
 
         #endregion

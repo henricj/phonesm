@@ -186,11 +186,16 @@ namespace SM.Media.MediaManager
                 while (!segmentReader.IsEof)
                 {
                     if (null == buffer)
+                    {
                         buffer = await _bufferPool.AllocateAsync(cancellationToken).ConfigureAwait(false);
+                        Debug.Assert(null == buffer.Metadata, "Pending metadata");
+                    }
 
                     Debug.Assert(null != buffer);
 
-                    var length = await segmentReader.ReadAsync(buffer.Buffer, 0, buffer.Buffer.Length, cancellationToken).ConfigureAwait(false);
+                    var localBuffer = buffer;
+
+                    var length = await segmentReader.ReadAsync(buffer.Buffer, 0, buffer.Buffer.Length, metadata => localBuffer.Metadata = metadata, cancellationToken).ConfigureAwait(false);
 
                     buffer.Length = length;
 

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,8 +30,10 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
+using WebResponse = SM.Media.Web.WebResponse;
 
 namespace SM.Media.Segments
 {
@@ -41,6 +43,7 @@ namespace SM.Media.Segments
         readonly IPlatformServices _platformServices;
         readonly IRetryManager _retryManager;
         readonly ISegment _segment;
+        readonly IWebMetadataFactory _webMetadataFactory;
         readonly IWebReader _webReader;
         Uri _actualUrl;
         long? _endOffset;
@@ -51,12 +54,14 @@ namespace SM.Media.Segments
         Stream _responseStream;
         long? _startOffset;
 
-        public SegmentReader(ISegment segment, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
+        public SegmentReader(ISegment segment, IWebReader webReader, IWebMetadataFactory webMetadataFactory, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == segment)
                 throw new ArgumentNullException("segment");
             if (null == webReader)
                 throw new ArgumentNullException("webReader");
+            if (null == webMetadataFactory)
+                throw new ArgumentNullException("webMetadataFactory");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
             if (null == platformServices)
@@ -64,6 +69,7 @@ namespace SM.Media.Segments
 
             _segment = segment;
             _webReader = webReader;
+            _webMetadataFactory = webMetadataFactory;
             _retryManager = retryManager;
             _platformServices = platformServices;
 
@@ -100,7 +106,7 @@ namespace SM.Media.Segments
             Close();
         }
 
-        public async Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken)
+        public async Task<int> ReadAsync(byte[] buffer, int offset, int length, Action<ISegmentMetadata> setMetadata, CancellationToken cancellationToken)
         {
             ThrowIfDisposed();
 
@@ -114,7 +120,7 @@ namespace SM.Media.Segments
                 do
                 {
                     if (null == _readStream)
-                        await OpenStream(cancellationToken).ConfigureAwait(false);
+                        await OpenStream(setMetadata, cancellationToken).ConfigureAwait(false);
 
                     Debug.Assert(null != _readStream);
 
@@ -264,9 +270,11 @@ namespace SM.Media.Segments
             }
         }
 
-        Task OpenStream(CancellationToken cancellationToken)
+        Task OpenStream(Action<ISegmentMetadata> setMetadata, CancellationToken cancellationToken)
         {
             ThrowIfDisposed();
+
+            var webResponse = new WebResponse();
 
             var retry = _retryManager.CreateRetry(2, 200, RetryPolicy.IsWebExceptionRetryable);
             return retry.CallAsync(
@@ -280,7 +288,7 @@ namespace SM.Media.Segments
                             _expectedBytes = null;
 
                         _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, cancellationToken,
-                            _segment.ParentUrl, _startOffset, _endOffset)
+                            _segment.ParentUrl, _startOffset, _endOffset, webResponse)
                             .ConfigureAwait(false);
 
                         if (_response.IsSuccessStatusCode)
@@ -303,6 +311,10 @@ namespace SM.Media.Segments
                                 _readStream = await filterStreamTask.ConfigureAwait(false);
                             else
                                 _readStream = _responseStream;
+
+                            var segmentMetadata = _webMetadataFactory.CreateSegmentMetadata(webResponse);
+
+                            setMetadata(segmentMetadata);
 
                             return;
                         }

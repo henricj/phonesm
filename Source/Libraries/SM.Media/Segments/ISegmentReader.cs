@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ISegmentReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Metadata;
 
 namespace SM.Media.Segments
 {
@@ -34,7 +35,7 @@ namespace SM.Media.Segments
     {
         Uri Url { get; }
         bool IsEof { get; }
-        Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken);
+        Task<int> ReadAsync(byte[] buffer, int offset, int length, Action<ISegmentMetadata> setMetadata, CancellationToken cancellationToken);
         void Close();
     }
 }

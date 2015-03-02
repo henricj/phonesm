@@ -220,8 +220,21 @@ namespace SM.Media.MediaManager
                     if (null == wi)
                         mediaParser.ProcessEndOfData();
                     else
+                    {
+                        if (null != wi.Metadata)
+                        {
+                            mediaParser.StartSegment(wi.Metadata);
+                            wi.Metadata = null;
+                        }
+
                         mediaParser.ProcessData(wi.Buffer, 0, wi.Length);
-                }, _blockingPool.Free);
+                    }
+                },
+                buffer =>
+                {
+                    buffer.Metadata = null;
+                    _blockingPool.Free(buffer);
+                });
 
             _callbackReader = new CallbackReader(segmentManagerReaders.Readers, _queueWorker.Enqueue, _blockingPool);
 

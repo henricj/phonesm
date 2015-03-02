@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpClientFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,11 +25,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using SM.Media.Content;
+using SM.Media.Utility;
 
 namespace SM.Media.Web.HttpClientReader
 {
@@ -40,12 +42,15 @@ namespace SM.Media.Web.HttpClientReader
         readonly Func<HttpClientHandler> _httpClientHandlerFactory;
         readonly Uri _referrer;
         readonly ProductInfoHeaderValue _userAgent;
+        readonly IWebReaderManagerParameters _webReaderManagerParameters;
         int _disposed;
 
-        public HttpClientFactory(IHttpClientFactoryParameters parameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
+        public HttpClientFactory(IHttpClientFactoryParameters parameters, IWebReaderManagerParameters webReaderManagerParameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
+            if (null == webReaderManagerParameters)
+                throw new ArgumentNullException("webReaderManagerParameters");
             if (null == userAgentFactory)
                 throw new ArgumentNullException("userAgentFactory");
             if (null == httpClientHandlerFactory)
@@ -56,6 +61,7 @@ namespace SM.Media.Web.HttpClientReader
             _credentials = parameters.Credentials;
             _cookieContainer = parameters.CookieContainer;
 
+            _webReaderManagerParameters = webReaderManagerParameters;
             _httpClientHandlerFactory = httpClientHandlerFactory;
         }
 
@@ -133,6 +139,22 @@ namespace SM.Media.Web.HttpClientReader
 
             if (null != _userAgent)
                 headers.UserAgent.Add(_userAgent);
+
+            if (null != _webReaderManagerParameters.DefaultHeaders)
+            {
+                foreach (var header in _webReaderManagerParameters.DefaultHeaders)
+                {
+                    try
+                    {
+                        headers.Add(header.Key, header.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("HttpClientFactory.CreateHttpClient({0}) header {1}={2} failed: {3}",
+                            baseAddress, header.Key, header.Value, ex.ExtendedMessage());
+                    }
+                }
+            }
 
             return httpClient;
         }

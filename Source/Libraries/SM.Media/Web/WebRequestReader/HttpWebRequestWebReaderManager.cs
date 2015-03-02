@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HttpWebRequestWebReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,18 +39,22 @@ namespace SM.Media.Web.WebRequestReader
         readonly IContentTypeDetector _contentTypeDetector;
         readonly IHttpWebRequests _httpWebRequests;
         readonly IRetryManager _retryManager;
+        readonly IWebReaderManagerParameters _webReaderManagerParameters;
         int _disposed;
 
-        public HttpWebRequestWebReaderManager(IHttpWebRequests httpWebRequests, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
+        public HttpWebRequestWebReaderManager(IHttpWebRequests httpWebRequests, IWebReaderManagerParameters webReaderManagerParameters, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpWebRequests)
                 throw new ArgumentNullException("httpWebRequests");
+            if (null == webReaderManagerParameters)
+                throw new ArgumentNullException("webReaderManagerParameters");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
             if (null == retryManager)
                 throw new ArgumentNullException("retryManager");
 
             _httpWebRequests = httpWebRequests;
+            _webReaderManagerParameters = webReaderManagerParameters;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
         }
@@ -181,6 +185,21 @@ namespace SM.Media.Web.WebRequestReader
 
             var request = _httpWebRequests.CreateWebRequest(url, referrer, method, contentType, allowBuffering, fromBytes, toBytes);
 
+            if (null != _webReaderManagerParameters.DefaultHeaders)
+            {
+                foreach (var header in _webReaderManagerParameters.DefaultHeaders)
+                {
+                    try
+                    {
+                        request.Headers[header.Key] = header.Value;
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        Debug.WriteLine("HttpWebRequestWebReaderManager.CreateRequest({0}) header {1}={2} failed: {3}",
+                            url, header.Key, header.Value, ex.ExtendedMessage());
+                    }
+                }
+            }
             return request;
         }
 

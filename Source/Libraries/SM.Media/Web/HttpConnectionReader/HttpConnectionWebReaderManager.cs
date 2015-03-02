@@ -42,14 +42,17 @@ namespace SM.Media.Web.HttpConnectionReader
         readonly IHttpConnectionFactory _httpConnectionFactory;
         readonly IHttpConnectionRequestFactory _httpConnectionRequestFactory;
         readonly IRetryManager _retryManager;
+        readonly IWebReaderManagerParameters _webReaderManagerParameters;
         int _disposed;
 
-        public HttpConnectionWebReaderManager(IHttpConnectionFactory httpConnectionFactory, IHttpConnectionRequestFactory httpConnectionRequestFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
+        public HttpConnectionWebReaderManager(IHttpConnectionFactory httpConnectionFactory, IHttpConnectionRequestFactory httpConnectionRequestFactory, IWebReaderManagerParameters webReaderManagerParameters, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpConnectionFactory)
                 throw new ArgumentNullException("httpConnectionFactory");
             if (null == httpConnectionRequestFactory)
                 throw new ArgumentNullException("httpConnectionRequestFactory");
+            if (null == webReaderManagerParameters)
+                throw new ArgumentNullException("webReaderManagerParameters");
             if (null == contentTypeDetector)
                 throw new ArgumentNullException("contentTypeDetector");
             if (null == retryManager)
@@ -57,6 +60,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
             _httpConnectionFactory = httpConnectionFactory;
             _httpConnectionRequestFactory = httpConnectionRequestFactory;
+            _webReaderManagerParameters = webReaderManagerParameters;
             _contentTypeDetector = contentTypeDetector;
             _retryManager = retryManager;
         }
@@ -218,7 +222,7 @@ namespace SM.Media.Web.HttpConnectionReader
             if (null != referrer && (null == url || !url.IsAbsoluteUri))
                 url = new Uri(referrer, url);
 
-            var request = _httpConnectionRequestFactory.CreateRequest(url, referrer, contentType, fromBytes, toBytes);
+            var request = _httpConnectionRequestFactory.CreateRequest(url, referrer, contentType, fromBytes, toBytes, _webReaderManagerParameters.DefaultHeaders);
 
             return request;
         }

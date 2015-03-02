@@ -668,6 +668,9 @@
     <Compile Include="..\SM.Media\Web\WebReaderExtensions.cs">
       <Link>Web\WebReaderExtensions.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\WebReaderManagerParameters.cs">
+      <Link>Web\WebReaderManagerParameters.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\WebRequestReader\HttpWebRequestExtensions.cs">
       <Link>Web\WebRequestReader\HttpWebRequestExtensions.cs</Link>
     </Compile>

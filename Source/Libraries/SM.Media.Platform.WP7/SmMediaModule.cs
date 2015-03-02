@@ -104,6 +104,7 @@ namespace SM.Media
             Bind<ITsTimestamp>().To<TsTimestamp>();
             Bind<IPesHandlers>().To<PesHandlers>();
 
+            Bind<IWebReaderManagerParameters>().To<WebReaderManagerParameters>().InSingletonScope();
             Bind<IMediaManagerParameters>().To<MediaManagerParameters>().InSingletonScope();
             Bind<IPlsSegmentManagerPolicy>().To<PlsSegmentManagerPolicy>().InSingletonScope();
             Bind<IBufferingPolicy>().To<DefaultBufferingPolicy>();

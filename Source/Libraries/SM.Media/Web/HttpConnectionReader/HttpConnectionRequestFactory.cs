@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using SM.Media.Content;
 using SM.Media.Web.HttpConnection;
@@ -33,7 +34,7 @@ namespace SM.Media.Web.HttpConnectionReader
 {
     public interface IHttpConnectionRequestFactory
     {
-        HttpConnectionRequest CreateRequest(Uri url, Uri referrer, ContentType contentType, long? fromBytes, long? toBytes);
+        HttpConnectionRequest CreateRequest(Uri url, Uri referrer, ContentType contentType, long? fromBytes, long? toBytes, IEnumerable<KeyValuePair<string, string>> headers);
     }
 
     public class HttpConnectionRequestFactory : IHttpConnectionRequestFactory
@@ -50,7 +51,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         #region IHttpConnectionRequestFactory Members
 
-        public virtual HttpConnectionRequest CreateRequest(Uri url, Uri referrer, ContentType contentType, long? fromBytes, long? toBytes)
+        public virtual HttpConnectionRequest CreateRequest(Uri url, Uri referrer, ContentType contentType, long? fromBytes, long? toBytes, IEnumerable<KeyValuePair<string, string>> headers)
         {
             var request = new HttpConnectionRequest
             {
@@ -58,7 +59,8 @@ namespace SM.Media.Web.HttpConnectionReader
                 Referrer = referrer,
                 RangeFrom = fromBytes,
                 RangeTo = toBytes,
-                Proxy = _parameters.Proxy
+                Proxy = _parameters.Proxy,
+                Headers = headers
             };
 
             if (null != contentType)

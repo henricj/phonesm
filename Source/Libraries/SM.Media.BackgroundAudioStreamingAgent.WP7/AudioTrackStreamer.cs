@@ -26,6 +26,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -35,6 +36,7 @@ using Microsoft.Phone.Info;
 using SM.Media.Buffering;
 using SM.Media.MediaManager;
 using SM.Media.Utility;
+using SM.Media.Web;
 using SM.TsParser;
 
 namespace SM.Media.BackgroundAudioStreamingAgent
@@ -46,6 +48,12 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     {
         readonly IBufferingPolicy _bufferingPolicy;
         readonly IMediaManagerParameters _mediaManagerParameters;
+
+        readonly IWebReaderManagerParameters _webReaderManagerParameters = new WebReaderManagerParameters
+        {
+            DefaultHeaders = new[] { new KeyValuePair<string, string>("icy-metadata", "1") }
+        };
+
         IMediaStreamFacade _mediaStreamFacade;
         CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         int _isDisposed;
@@ -215,6 +223,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             _mediaStreamFacade.SetParameter(_bufferingPolicy);
 
             _mediaStreamFacade.SetParameter(_mediaManagerParameters);
+
+            _mediaStreamFacade.SetParameter(_webReaderManagerParameters);
 
             _mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
 

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="WinRtHttpClientFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,12 +25,15 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using Windows.Security.Credentials;
 using Windows.Web.Http;
 using Windows.Web.Http.Filters;
 using Windows.Web.Http.Headers;
 using SM.Media.Content;
+using SM.Media.Utility;
+using SM.Media.Web;
 
 namespace SM.Media.WinRtHttpClientReader
 {
@@ -40,12 +43,15 @@ namespace SM.Media.WinRtHttpClientReader
         readonly Func<HttpBaseProtocolFilter> _httpClientHandlerFactory;
         readonly Uri _referrer;
         readonly HttpProductInfoHeaderValue _userAgent;
+        readonly IWebReaderManagerParameters _webReaderManagerParameters;
         int _disposed;
 
-        public WinRtHttpClientFactory(IWinRtHttpClientFactoryParameters parameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
+        public WinRtHttpClientFactory(IWinRtHttpClientFactoryParameters parameters, IWebReaderManagerParameters webReaderManagerParameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
         {
             if (null == parameters)
                 throw new ArgumentNullException("parameters");
+            if (null == webReaderManagerParameters)
+                throw new ArgumentNullException("webReaderManagerParameters");
             if (null == httpProductInfoFactory)
                 throw new ArgumentNullException("httpProductInfoFactory");
             if (null == httpClientHandlerFactory)
@@ -55,6 +61,7 @@ namespace SM.Media.WinRtHttpClientReader
             _userAgent = httpProductInfoFactory.Create();
             _credentials = parameters.Credentials;
 
+            _webReaderManagerParameters = webReaderManagerParameters;
             _httpClientHandlerFactory = httpClientHandlerFactory;
         }
 
@@ -123,6 +130,22 @@ namespace SM.Media.WinRtHttpClientReader
 
             if (null != _userAgent)
                 headers.UserAgent.Add(_userAgent);
+
+            if (null != _webReaderManagerParameters.DefaultHeaders)
+            {
+                foreach (var header in _webReaderManagerParameters.DefaultHeaders)
+                {
+                    try
+                    {
+                        headers.Add(header.Key, header.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("WinRtHttpClientFactory.CreateHttpClient({0}) header {1}={2} failed: {3}",
+                            baseAddress, header.Key, header.Value, ex.ExtendedMessage());
+                    }
+                }
+            }
 
             return httpClient;
         }

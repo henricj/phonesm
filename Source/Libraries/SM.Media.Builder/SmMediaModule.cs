@@ -91,6 +91,7 @@ namespace SM.Media
             builder.RegisterType<TsTimestamp>().As<ITsTimestamp>();
             builder.RegisterType<PesHandlers>().As<IPesHandlers>();
 
+            builder.RegisterType<WebReaderManagerParameters>().As<IWebReaderManagerParameters>().SingleInstance();
             builder.RegisterType<MediaManagerParameters>().As<IMediaManagerParameters>().SingleInstance();
             builder.RegisterType<PlsSegmentManagerPolicy>().As<IPlsSegmentManagerPolicy>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<DefaultBufferingPolicy>().As<IBufferingPolicy>().InstancePerMatchingLifetimeScope("builder-scope");

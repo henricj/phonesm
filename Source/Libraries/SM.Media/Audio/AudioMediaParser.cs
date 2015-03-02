@@ -72,6 +72,9 @@ namespace SM.Media.Audio
         {
             Debug.Assert(length > 0);
             Debug.Assert(offset + length <= buffer.Length);
+            
+            if (null == _audioParser)
+                throw new InvalidOperationException("StartSegment has not been called");
 
             _audioParser.ProcessData(buffer, offset, length);
 
@@ -80,7 +83,8 @@ namespace SM.Media.Audio
 
         public override void FlushBuffers()
         {
-            _audioParser.FlushBuffers();
+            if (null != _audioParser)
+                _audioParser.FlushBuffers();
 
             base.FlushBuffers();
         }

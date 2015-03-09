@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HttpReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -86,12 +86,16 @@ namespace SM.Media.Web.HttpConnection
 
         public void Clear()
         {
+            ThrowIfDisposed();
+
             _begin = 0;
             _end = 0;
         }
 
         public async Task<string> ReadLineAsync(CancellationToken cancellationToken)
         {
+            ThrowIfDisposed();
+
             _badLine = false;
 
             for (; ; )
@@ -139,6 +143,8 @@ namespace SM.Media.Web.HttpConnection
 
         public async Task<int> ReadAsync(byte[] buffer, int offset, int length, CancellationToken cancellationToken)
         {
+            ThrowIfDisposed();
+
             if (length < 1)
                 throw new ArgumentException("argument must be positive", "length");
 
@@ -298,6 +304,12 @@ namespace SM.Media.Web.HttpConnection
             var line = end > begin ? _encoding.GetString(_buffer, begin, end - begin) : string.Empty;
 
             return line;
+        }
+
+        void ThrowIfDisposed()
+        {
+            if (null == _buffer)
+                throw new ObjectDisposedException(GetType().Name);
         }
     }
 

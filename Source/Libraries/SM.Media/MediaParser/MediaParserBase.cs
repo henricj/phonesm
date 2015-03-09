@@ -122,14 +122,9 @@ namespace SM.Media.MediaParser
             _mediaStreams = new[] { _mediaStream };
         }
 
-        public virtual void InitializeStream(IStreamMetadata streamMetadata)
-        { }
-
-        public virtual void StartSegment(ISegmentMetadata segmentMetadata)
-        { }
-
-        public virtual void SetTrackMetadata(ITrackMetadata trackMetadata)
-        { }
+        public abstract void InitializeStream(IStreamMetadata streamMetadata);
+        public abstract void StartSegment(ISegmentMetadata segmentMetadata);
+        public abstract void SetTrackMetadata(ITrackMetadata trackMetadata);
 
         #endregion
 

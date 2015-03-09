@@ -38,17 +38,28 @@ namespace SM.Media.Audio
         where TParser : class, IAudioParser
         where TConfigurator : IConfigurationSource
     {
+        readonly IMetadataSink _metadataSink;
         protected TParser Parser;
         IAudioParser _audioParser;
 
-        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool pesPacketPool)
+        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool pesPacketPool, IMetadataSink metadataSink)
             : base(streamType, configurator, pesPacketPool)
-        { }
+        {
+            if (null == metadataSink)
+                throw new ArgumentNullException("metadataSink");
+
+            _metadataSink = metadataSink;
+        }
 
         public override TimeSpan StartPosition
         {
             get { return Parser.StartPosition; }
             set { Parser.StartPosition = value; }
+        }
+
+        public override void InitializeStream(IStreamMetadata streamMetadata)
+        {
+            _metadataSink.ReportStreamMetadata(Parser.Position ?? TimeSpan.Zero, streamMetadata);
         }
 
         public override void StartSegment(ISegmentMetadata segmentMetadata)
@@ -65,14 +76,19 @@ namespace SM.Media.Audio
                     _audioParser = new ShoutcastMetadataFilter(Parser, SetTrackMetadata, icyMetaInt.Value);
             }
 
-            base.StartSegment(segmentMetadata);
+            _metadataSink.ReportSegmentMetadata(Parser.Position ?? TimeSpan.Zero, segmentMetadata);
+        }
+
+        public override void SetTrackMetadata(ITrackMetadata trackMetadata)
+        {
+            _metadataSink.ReportTrackMetadata(trackMetadata);
         }
 
         public override void ProcessData(byte[] buffer, int offset, int length)
         {
             Debug.Assert(length > 0);
             Debug.Assert(offset + length <= buffer.Length);
-            
+
             if (null == _audioParser)
                 throw new InvalidOperationException("StartSegment has not been called");
 

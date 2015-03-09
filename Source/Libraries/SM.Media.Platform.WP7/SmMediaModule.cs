@@ -44,6 +44,7 @@ using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.TransportStream;
 using SM.Media.Utility;
+using SM.Media.Utility.TextEncodings;
 using SM.Media.Web;
 using SM.TsParser;
 using SM.TsParser.Utility;
@@ -79,6 +80,7 @@ namespace SM.Media
             Bind<IMediaParserFactoryFinder>().To<MediaParserFactoryFinder>().InSingletonScope();
             Bind<IMediaParserFactory>().To<MediaParserFactory>().InSingletonScope();
             Bind<IWebMetadataFactory>().To<WebMetadataFactory>().InSingletonScope();
+            Bind<IMetadataSink>().To<MetadataSink>().InScope(scope);
 
             Bind<IMediaParserFactoryInstance>().To<AacMediaParserFactory>().InSingletonScope();
             Bind<IMediaParserFactoryInstance>().To<Ac3MediaParserFactory>().InSingletonScope();

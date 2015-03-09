@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaDumpBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.MediaParser;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.TsParser;
 using SM.TsParser.Utility;
@@ -40,6 +41,7 @@ namespace TsDump
     class MediaDumpBase : IDisposable
     {
         protected readonly IBufferPool BufferPool;
+        protected readonly IMetadataSink MetadataSink = new MetadataSink();
         protected readonly ITsPesPacketPool PacketPool;
         readonly IBufferingManager _bufferingManager;
         readonly Action<IProgramStreams> _programStreamsHandler;

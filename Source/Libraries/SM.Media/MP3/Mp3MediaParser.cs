@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3MediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using SM.Media.Audio;
+using SM.Media.Metadata;
 using SM.TsParser;
 using SM.TsParser.Utility;
 
@@ -34,8 +35,8 @@ namespace SM.Media.MP3
     {
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Mp3Iso11172);
 
-        public Mp3MediaParser(ITsPesPacketPool pesPacketPool)
-            : base(StreamType, new Mp3Configurator(), pesPacketPool)
+        public Mp3MediaParser(ITsPesPacketPool pesPacketPool, IMetadataSink metadataSink)
+            : base(StreamType, new Mp3Configurator(), pesPacketPool, metadataSink)
         {
             Parser = new Mp3Parser(pesPacketPool, Configurator.Configure, SubmitPacket);
         }

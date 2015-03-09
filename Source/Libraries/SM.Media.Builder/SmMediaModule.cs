@@ -67,6 +67,7 @@ namespace SM.Media
             builder.RegisterType<MediaParserFactoryFinder>().As<IMediaParserFactoryFinder>().SingleInstance();
             builder.RegisterType<MediaParserFactory>().As<IMediaParserFactory>().SingleInstance();
             builder.RegisterType<WebMetadataFactory>().As<IWebMetadataFactory>().SingleInstance();
+            builder.RegisterType<MetadataSink>().As<IMetadataSink>();
 
             builder.RegisterType<AacMediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<Ac3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();

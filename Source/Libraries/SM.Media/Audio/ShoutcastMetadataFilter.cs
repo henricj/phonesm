@@ -289,6 +289,8 @@ namespace SM.Media.Audio
         {
             Debug.WriteLine("ShoutcastMetadataFilter.AddNameValueProperty(): " + name + "=" + value);
 
+            value = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
             switch (name.ToLowerInvariant())
             {
                 case "streamtitle":

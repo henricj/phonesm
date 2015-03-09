@@ -37,6 +37,7 @@ namespace SM.Media.Metadata
         string Artist { get; }
         int? Year { get; }
         string Genre { get; }
+        Uri Website { get; }
     }
 
     public class TrackMetadata : ITrackMetadata
@@ -50,6 +51,7 @@ namespace SM.Media.Metadata
         public string Artist { get; set; }
         public int? Year { get; set; }
         public string Genre { get; set; }
+        public Uri Website { get; set; }
 
         #endregion
 

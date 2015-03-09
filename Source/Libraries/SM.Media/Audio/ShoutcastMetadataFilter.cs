@@ -297,6 +297,12 @@ namespace SM.Media.Audio
                     trackMetadata.Title = value;
                     break;
                 case "streamurl":
+                    {
+                        // Scope
+                        Uri url;
+                        if (Uri.TryCreate(value, UriKind.Absolute, out url))
+                            trackMetadata.Website = url;
+                    }
                     break;
             }
         }

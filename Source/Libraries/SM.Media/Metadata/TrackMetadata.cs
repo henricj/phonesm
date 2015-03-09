@@ -52,5 +52,13 @@ namespace SM.Media.Metadata
         public string Genre { get; set; }
 
         #endregion
+
+        public override string ToString()
+        {
+            var title = string.IsNullOrWhiteSpace(Title) ? "<null>" : '"' + Title + '"';
+            var time = TimeStamp.HasValue ? TimeStamp.ToString() : "<null>";
+
+            return "Track " + title + " @ " + time;
+        }
     }
 }

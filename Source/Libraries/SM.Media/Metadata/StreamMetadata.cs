@@ -61,5 +61,14 @@ namespace SM.Media.Metadata
         public Uri Website { get; set; }
 
         #endregion
+
+        public override string ToString()
+        {
+            var name = string.IsNullOrWhiteSpace(Name) ? "{null}" : '"' + Name + '"';
+            var url = null == Url ? "null" : Url.ToString();
+            var type = null == ContentType ? "<unknown>" : ContentType.Name;
+
+            return "Stream " + name + " <" + url + "> " + type;
+        }
     }
 }

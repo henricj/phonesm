@@ -47,5 +47,13 @@ namespace SM.Media.Metadata
         public long? Length { get; set; }
 
         #endregion
+
+        public override string ToString()
+        {
+            var url = null == Url ? "null" : Url.ToString();
+            var type = null == ContentType ? "<unknown>" : ContentType.Name;
+
+            return "Segment <" + url + "> " + type;
+        }
     }
 }

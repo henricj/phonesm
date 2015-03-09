@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="IHttpEncoding.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  <copyright file="HttpEncoding.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Text;
+using SM.Media.Utility.TextEncodings;
 
 namespace SM.Media.Web.HttpConnection
 {
@@ -32,5 +33,31 @@ namespace SM.Media.Web.HttpConnection
     {
         Encoding HeaderDecoding { get; }
         Encoding HeaderEncoding { get; }
+    }
+
+    public sealed class HttpEncoding : IHttpEncoding
+    {
+        readonly Encoding _decoding;
+        readonly Encoding _encoding;
+
+        public HttpEncoding(ISmEncodings encodings)
+        {
+            _encoding = encodings.AsciiEncoding;
+            _decoding = encodings.Latin1Encoding;
+        }
+
+        #region IHttpEncoding Members
+
+        public Encoding HeaderDecoding
+        {
+            get { return _decoding; }
+        }
+
+        public Encoding HeaderEncoding
+        {
+            get { return _encoding; }
+        }
+
+        #endregion
     }
 }

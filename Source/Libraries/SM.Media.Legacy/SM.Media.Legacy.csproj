@@ -583,6 +583,9 @@
     <Compile Include="..\SM.Media\Utility\TextEncodings\EncodingHelpers.cs">
       <Link>Utility\TextEncodings\EncodingHelpers.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\TextEncodings\SmEncodings.cs">
+      <Link>Utility\TextEncodings\SmEncodings.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\TextEncodings\Windows1252Encoding.cs">
       <Link>Utility\TextEncodings\Windows1252Encoding.cs</Link>
     </Compile>
@@ -625,6 +628,9 @@
     <Compile Include="..\SM.Media\Web\HttpConnection\HttpConnectionResponse.cs">
       <Link>Web\HttpConnection\HttpConnectionResponse.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Web\HttpConnection\HttpEncoding.cs">
+      <Link>Web\HttpConnection\HttpEncoding.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpConnection\HttpHeaderSerializer.cs">
       <Link>Web\HttpConnection\HttpHeaderSerializer.cs</Link>
     </Compile>
@@ -633,9 +639,6 @@
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpConnection\HttpStatus.cs">
       <Link>Web\HttpConnection\HttpStatus.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\Web\HttpConnection\IHttpEncoding.cs">
-      <Link>Web\HttpConnection\IHttpEncoding.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Web\HttpConnection\ISocket.cs">
       <Link>Web\HttpConnection\ISocket.cs</Link>

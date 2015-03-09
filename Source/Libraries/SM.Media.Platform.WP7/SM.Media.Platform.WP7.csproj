@@ -98,9 +98,6 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WinRT\Web\HttpConnection\HttpEncoding.cs">
-      <Link>Web\HttpConnection\HttpEncoding.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Platform.WP8\Utility\DispatcherExtensions.cs">
       <Link>Utility\DispatcherExtensions.cs</Link>
     </Compile>

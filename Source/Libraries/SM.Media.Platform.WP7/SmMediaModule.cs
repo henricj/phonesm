@@ -113,6 +113,8 @@ namespace SM.Media
 
             Bind<IRetryManager>().To<RetryManager>().InSingletonScope();
 
+            Bind<ISmEncodings>().To<SmEncodings>().InSingletonScope();
+
             Bind<IUserAgent>().To<UserAgent>().InSingletonScope();
         }
     }

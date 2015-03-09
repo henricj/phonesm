@@ -304,6 +304,7 @@
     <Compile Include="Utility\TaskTimer.cs" />
     <Compile Include="Utility\TextEncodings\AsciiEncoding.cs" />
     <Compile Include="Utility\TextEncodings\EncodingHelpers.cs" />
+    <Compile Include="Utility\TextEncodings\SmEncodings.cs" />
     <Compile Include="Utility\TextEncodings\Windows1252Encoding.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
@@ -323,7 +324,7 @@
     <Compile Include="Web\HttpConnection\HttpReader.cs" />
     <Compile Include="Web\HttpConnection\HttpConnection.cs" />
     <Compile Include="Web\HttpConnection\HttpStatus.cs" />
-    <Compile Include="Web\HttpConnection\IHttpEncoding.cs" />
+    <Compile Include="Web\HttpConnection\HttpEncoding.cs" />
     <Compile Include="Web\HttpConnection\ISocket.cs" />
     <Compile Include="Web\HttpConnection\UserAgentEncoder.cs" />
     <Compile Include="Web\StatusCodeWebException.cs" />

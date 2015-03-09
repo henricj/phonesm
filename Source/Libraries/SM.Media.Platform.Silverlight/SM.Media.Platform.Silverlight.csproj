@@ -129,9 +129,6 @@
     <Compile Include="..\SM.Media.Builder\SmMediaModule.cs">
       <Link>SmMediaModule.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WinRT\Web\HttpConnection\HttpEncoding.cs">
-      <Link>HttpConnection\HttpEncoding.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFacadeParameters.cs">
       <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
-//  <copyright file="HttpEncoding.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  <copyright file="SmEncodings.cs" company="Henric Jungheim">
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,36 +27,41 @@
 using System;
 using System.Diagnostics;
 using System.Text;
-using SM.Media.Utility.TextEncodings;
 
-namespace SM.Media.Web.HttpConnection
+namespace SM.Media.Utility.TextEncodings
 {
-    public sealed class HttpEncoding : IHttpEncoding
+    public interface ISmEncodings
     {
-        static readonly Encoding Decode;
-        static readonly Encoding Encode;
+        Encoding AsciiEncoding { get; }
+        Encoding Latin1Encoding { get; }
+    }
 
-        static HttpEncoding()
+    public class SmEncodings : ISmEncodings
+    {
+        internal static readonly Encoding Latin1;
+        internal static readonly Encoding Ascii;
+
+        static SmEncodings()
         {
-            Encode = GetHeaderEncoding();
-            Decode = GetHeaderDecoding();
+            Ascii = GetAsciiEncoding();
+            Latin1 = GetLatin1Encoding();
         }
 
-        #region IHttpEncoding Members
+        #region ISmEncodings Members
 
-        public Encoding HeaderDecoding
+        public Encoding Latin1Encoding
         {
-            get { return Decode; }
+            get { return Latin1; }
         }
 
-        public Encoding HeaderEncoding
+        public Encoding AsciiEncoding
         {
-            get { return Encode; }
+            get { return Ascii; }
         }
 
         #endregion
 
-        static Encoding GetHeaderDecoding()
+        static Encoding GetLatin1Encoding()
         {
             var decoding = GetEncoding("Windows-1252");
 
@@ -70,7 +75,7 @@ namespace SM.Media.Web.HttpConnection
             return new Windows1252Encoding();
         }
 
-        static Encoding GetHeaderEncoding()
+        static Encoding GetAsciiEncoding()
         {
             var encoding = GetEncoding("us-ascii");
 

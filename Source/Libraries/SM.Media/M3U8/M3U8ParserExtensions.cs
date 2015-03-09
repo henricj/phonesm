@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="M3U8ParserExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,34 +39,6 @@ namespace SM.Media.M3U8
     public static class M3U8ParserExtensions
     {
         /// <summary>
-        ///     The "HTTP Live Streaming" draft says US ASCII; the original .m3u says Windows 1252 (a superset of US ASCII).
-        /// </summary>
-        static readonly Encoding M3UEncoding = GetM3UEncoding();
-
-        static Encoding GetM3UEncoding()
-        {
-            try
-            {
-                return Encoding.GetEncoding("Windows-1252");
-            }
-            catch (ArgumentException)
-            {
-                // Nope.
-            }
-
-            try
-            {
-                return Encoding.GetEncoding("iso-8859-1");
-            }
-            catch (ArgumentException)
-            {
-                // Silverlight...?
-            }
-
-            return new Windows1252Encoding();
-        }
-
-        /// <summary>
         ///     Resolve a possibly relative url.
         /// </summary>
         /// <param name="parser"></param>
@@ -86,7 +58,7 @@ namespace SM.Media.M3U8
         public static void Parse(this M3U8Parser parser, Uri baseUrl, Stream stream, Encoding encoding = null)
         {
             if (null == encoding)
-                encoding = baseUrl.HasExtension(".m3u") ? M3UEncoding : Encoding.UTF8;
+                encoding = baseUrl.HasExtension(".m3u") ? SmEncodings.Latin1 : Encoding.UTF8;
 
             using (var sr = new StreamReader(stream, encoding))
             {

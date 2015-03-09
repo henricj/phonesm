@@ -52,9 +52,6 @@
     <Compile Include="..\SM.Media.Platform.WinRT\HttpConnectionModule.cs">
       <Link>HttpConnectionModule.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WinRT\Web\HttpConnection\HttpEncoding.cs">
-      <Link>Web\HttpConnection\HttpEncoding.cs</Link>
-    </Compile>
     <Compile Include="..\SM.Media.Platform.WinRT\Web\HttpConnection\StreamSocketWrapper.cs">
       <Link>Web\HttpConnection\StreamSocketWrapper.cs</Link>
     </Compile>

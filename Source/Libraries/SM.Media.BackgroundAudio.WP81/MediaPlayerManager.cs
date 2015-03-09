@@ -34,10 +34,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Media.Playback;
-using Windows.Storage.Streams;
 using Windows.Web.Http;
 using SM.Media.Buffering;
 using SM.Media.MediaManager;
+using SM.Media.Metadata;
 using SM.Media.Playlists;
 using SM.Media.Pls;
 using SM.Media.Utility;
@@ -48,25 +48,39 @@ namespace SM.Media.BackgroundAudio
 {
     sealed class MediaPlayerManager : IDisposable
     {
-        static readonly IRandomAccessStream EmptyStream = new InMemoryRandomAccessStream();
+        //static readonly IRandomAccessStream EmptyStream = new InMemoryRandomAccessStream();
+
+        static readonly IWebReaderManagerParameters WebReaderManagerParameters
+            = new WebReaderManagerParameters
+            {
+                DefaultHeaders = new[] { new KeyValuePair<string, string>("icy-metadata", "1") }
+            };
+
         readonly AsyncLock _asyncLock = new AsyncLock();
         readonly DefaultBufferingPolicy _bufferingPolicy;
         readonly CancellationToken _cancellationToken;
+
         readonly MediaManagerParameters _mediaManagerParameters;
         readonly MediaPlayer _mediaPlayer;
+        readonly MetadataHandler _metadataHandler;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
+
         IMediaStreamFacade _mediaStreamFacade;
         MediaTrack _track;
         int _trackIndex;
 
-        public MediaPlayerManager(MediaPlayer mediaPlayer, CancellationToken cancellationToken)
-        {
-            Debug.WriteLine("MediaPlayerManager.ctor()");
 
+        public MediaPlayerManager(MediaPlayer mediaPlayer, MetadataHandler metadataHandler, CancellationToken cancellationToken)
+        {
             if (null == mediaPlayer)
                 throw new ArgumentNullException("mediaPlayer");
+            if (null == metadataHandler)
+                throw new ArgumentNullException("metadataHandler");
+
+            Debug.WriteLine("MediaPlayerManager.ctor()");
 
             _mediaPlayer = mediaPlayer;
+            _metadataHandler = metadataHandler;
             _cancellationToken = cancellationToken;
 
             var parameters = MediaStreamFacadeSettings.Parameters;
@@ -181,6 +195,10 @@ namespace SM.Media.BackgroundAudio
             _mediaStreamFacade.SetParameter(_bufferingPolicy);
 
             _mediaStreamFacade.SetParameter(_mediaManagerParameters);
+
+            _mediaStreamFacade.SetParameter(WebReaderManagerParameters);
+
+            _mediaStreamFacade.SetParameter(_metadataHandler.MetadataSink);
 
             _mediaStreamFacade.StateChange += MediaStreamFacadeOnStateChange;
         }

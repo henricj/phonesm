@@ -124,18 +124,19 @@ namespace SM.Media.Metadata
 
                 if (timeStamp > _position)
                     return timeStamp;
-                var track = _pendingTracks.Peek();
 
-                Debug.Assert(track.TimeStamp.HasValue, "Invalid track metadata (no timestamp)");
+                var pendingTrack = _pendingTracks.Peek();
 
-                if (track.TimeStamp > _position)
-                    return track.TimeStamp;
+                Debug.Assert(pendingTrack.TimeStamp.HasValue, "Invalid track metadata (no timestamp)");
 
-                var track2 = _pendingTracks.Dequeue();
+                if (pendingTrack.TimeStamp > _position)
+                    return pendingTrack.TimeStamp;
 
-                Debug.Assert(ReferenceEquals(track, track2), "Dequeue track mismatch");
+                var dequeueTrack = _pendingTracks.Dequeue();
 
-                _metadataState.TrackMetadata = track;
+                Debug.Assert(ReferenceEquals(pendingTrack, dequeueTrack), "Dequeue track mismatch");
+
+                _metadataState.TrackMetadata = pendingTrack;
             }
 
             if (null != _metadataState.TrackMetadata)

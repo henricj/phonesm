@@ -43,15 +43,26 @@ namespace SM.Media.BackgroundAudio
         readonly TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>();
         readonly ForegroundNotifier _foregroundNotifier;
         readonly Guid _id;
-        readonly AsyncManualResetEvent _isRunningEvent = new AsyncManualResetEvent();
+        readonly Timer _timer;
         Guid _appId;
         MediaPlayerManager _mediaPlayerManager;
+        MetadataHandler _metadataHandler;
+        TimeSpan _nextEvent;
         SystemMediaTransportControls _systemMediaTransportControls;
 
         public BackgroundAudioRun(Guid id)
         {
             _id = id;
             _foregroundNotifier = new ForegroundNotifier(id);
+            _timer = new Timer(_ =>
+            {
+                var metadataHandler = _metadataHandler;
+
+                if (null == metadataHandler)
+                    return;
+
+                metadataHandler.Refresh();
+            }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         #region IDisposable Members
@@ -78,9 +89,15 @@ namespace SM.Media.BackgroundAudio
 
                 var mediaPlayer = BackgroundMediaPlayer.Current;
 
+                _metadataHandler = new MetadataHandler(_systemMediaTransportControls, _foregroundNotifier,
+                    () => mediaPlayer.Position,
+                    position => UpdateMediaPlayerEvents(mediaPlayer, position),
+                    _cancellationTokenSource.Token);
+
                 try
                 {
                     mediaPlayer.CurrentStateChanged += CurrentOnCurrentStateChanged;
+                    mediaPlayer.PlaybackMediaMarkerReached += OnPlaybackMediaMarkerReached;
                     BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
 
                     isOk = true;
@@ -96,7 +113,7 @@ namespace SM.Media.BackgroundAudio
                 {
                     try
                     {
-                        mediaPlayerManager = new MediaPlayerManager(mediaPlayer, _cancellationTokenSource.Token);
+                        mediaPlayerManager = new MediaPlayerManager(mediaPlayer, _metadataHandler, _cancellationTokenSource.Token);
 
                         mediaPlayerManager.TrackChanged += MediaPlayerManagerOnTrackChanged;
                         mediaPlayerManager.Failed += MediaPlayerManagerOnFailed;
@@ -114,8 +131,6 @@ namespace SM.Media.BackgroundAudio
 
                         _foregroundNotifier.Notify("start", _id);
 
-                        _isRunningEvent.Set();
-
                         await _completionSource.Task.ConfigureAwait(false);
                     }
                     catch (Exception ex)
@@ -125,8 +140,6 @@ namespace SM.Media.BackgroundAudio
                 }
 
                 _mediaPlayerManager = null;
-
-                _isRunningEvent.Reset();
 
                 smtc.PropertyChanged -= SystemMediaTransportControlsOnPropertyChanged;
                 smtc.ButtonPressed -= SystemMediaTransportControlsOnButtonPressed;
@@ -143,10 +156,60 @@ namespace SM.Media.BackgroundAudio
 
                 BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
                 mediaPlayer.CurrentStateChanged -= CurrentOnCurrentStateChanged;
+                mediaPlayer.PlaybackMediaMarkerReached -= OnPlaybackMediaMarkerReached;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() failed: " + ex.ExtendedMessage());
+            }
+        }
+
+        void OnPlaybackMediaMarkerReached(MediaPlayer sender, PlaybackMediaMarkerReachedEventArgs args)
+        {
+            Debug.WriteLine("BackgroundAudioRun.OnPlaybackMediaMarkerReached() " + args.PlaybackMediaMarker.Time);
+
+            _metadataHandler.Refresh();
+        }
+
+        void UpdateMediaPlayerEvents(MediaPlayer mediaPlayer, TimeSpan position)
+        {
+            Debug.WriteLine("BackgroundAudioRun.UpdateMediaPlayerEvents() " + position);
+
+            // How can one get the PlaybackMediaMarkerReached event to fire?
+            //mediaPlayer.PlaybackMediaMarkers.Clear();
+            //mediaPlayer.PlaybackMediaMarkers.Insert(new PlaybackMediaMarker(position));
+
+            _nextEvent = position;
+
+            UpdateTimer(mediaPlayer);
+        }
+
+        void UpdateTimer(MediaPlayer mediaPlayer)
+        {
+            Debug.WriteLine("BackgroundAudioRun.UpdateTimer()");
+
+            try
+            {
+                var playerPosition = mediaPlayer.Position;
+
+                var nextEvent = _nextEvent;
+
+                if (nextEvent <= playerPosition)
+                {
+                    _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    _metadataHandler.Refresh();
+
+                    return;
+                }
+
+                var state = mediaPlayer.CurrentState;
+
+                if (MediaPlayerState.Playing == state)
+                    _timer.Change(nextEvent - playerPosition + TimeSpan.FromSeconds(0.5), Timeout.InfiniteTimeSpan);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("BackgroundAudioRun.UpdateTimer() failed: " + ex.ExtendedMessage());
             }
         }
 
@@ -195,12 +258,11 @@ namespace SM.Media.BackgroundAudio
 
             try
             {
+                _metadataHandler.Reset();
+
                 var smtc = _systemMediaTransportControls;
 
                 smtc.PlaybackStatus = MediaPlaybackStatus.Stopped;
-                smtc.DisplayUpdater.ClearAll();
-                smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
-                smtc.DisplayUpdater.Update();
 
                 var valueSet = new ValueSet
                 {
@@ -224,22 +286,9 @@ namespace SM.Media.BackgroundAudio
 
             try
             {
-                var smtc = _systemMediaTransportControls;
+                _metadataHandler.DefaultTitle = trackName;
 
-                smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
-
-                if (string.IsNullOrWhiteSpace(trackName))
-                {
-                    smtc.DisplayUpdater.ClearAll();
-                    smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
-                }
-                else
-                {
-                    smtc.DisplayUpdater.Type = MediaPlaybackType.Music;
-                    smtc.DisplayUpdater.MusicProperties.Title = trackName;
-                }
-
-                smtc.DisplayUpdater.Update();
+                _metadataHandler.Refresh();
 
                 _foregroundNotifier.Notify("track", trackName);
             }
@@ -350,9 +399,22 @@ namespace SM.Media.BackgroundAudio
             {
                 case MediaPlayerState.Playing:
                     _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Playing;
+                    UpdateTimer(sender);
                     break;
                 case MediaPlayerState.Paused:
                     _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Paused;
+                    break;
+                case MediaPlayerState.Opening:
+                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Changing;
+                    break;
+                case MediaPlayerState.Buffering:
+                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Playing;
+                    break;
+                case MediaPlayerState.Stopped:
+                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Stopped;
+                    break;
+                case MediaPlayerState.Closed:
+                    _systemMediaTransportControls.PlaybackStatus = MediaPlaybackStatus.Closed;
                     break;
             }
         }

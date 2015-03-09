@@ -156,7 +156,7 @@ namespace SM.Media
 
                     if (_bufferingProgress != _reportedBufferingProgress)
                     {
-                        Debug.WriteLine("Sample {0} buffering {1}%", _name, _bufferingProgress);
+                        //Debug.WriteLine("Sample {0} buffering {1}%", _name, _bufferingProgress);
 
                         request.ReportSampleProgress(_bufferingProgress);
                         _reportedBufferingProgress = _bufferingProgress;

@@ -42,7 +42,7 @@ namespace SM.Media.BackgroundAudio
 
         public void Notify(string key, object value = null)
         {
-            Debug.WriteLine("ForegroundNotifier.Notify() " + _id);
+            //Debug.WriteLine("ForegroundNotifier.Notify() " + _id);
 
             var valueSet = new ValueSet { { key, value } };
 

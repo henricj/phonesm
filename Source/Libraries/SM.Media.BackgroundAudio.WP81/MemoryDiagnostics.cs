@@ -32,7 +32,7 @@ using SM.Media.Utility;
 
 namespace SM.Media.BackgroundAudio
 {
-    public sealed class MemoryDiagnostics
+    sealed class MemoryDiagnostics
     {
         readonly Timer _memoryPoll = new Timer(
             _ => DumpMemory(),

@@ -458,6 +458,8 @@ namespace SM.Media.MediaManager
 
         async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, WebResponse webResponse, QueueThrottle throttle, CancellationToken cancellationToken)
         {
+            //Debug.WriteLine("SingleStreamMediaManager.ReadResponseAsync()");
+
             var buffer = new byte[16 * 1024];
 
             var cancellationTask = cancellationToken.AsTask();
@@ -477,6 +479,8 @@ namespace SM.Media.MediaManager
                         if (!waitTask.IsCompleted)
                         {
                             await TaskEx.WhenAny(waitTask, cancellationTask).ConfigureAwait(false);
+
+                            cancellationToken.ThrowIfCancellationRequested();
                         }
 
                         var length = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
@@ -491,6 +495,8 @@ namespace SM.Media.MediaManager
             finally
             {
                 mediaParser.ProcessEndOfData();
+
+                //Debug.WriteLine("SingleStreamMediaManager.ReadResponseAsync() done");
             }
         }
 

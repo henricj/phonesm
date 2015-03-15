@@ -87,6 +87,8 @@ namespace SM.Media.BackgroundAudio
 
                 var isOk = false;
 
+                BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
+
                 var mediaPlayer = BackgroundMediaPlayer.Current;
 
                 _metadataHandler = new MetadataHandler(_systemMediaTransportControls, _foregroundNotifier,
@@ -98,7 +100,6 @@ namespace SM.Media.BackgroundAudio
                 {
                     mediaPlayer.CurrentStateChanged += CurrentOnCurrentStateChanged;
                     mediaPlayer.PlaybackMediaMarkerReached += OnPlaybackMediaMarkerReached;
-                    BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
 
                     isOk = true;
                 }
@@ -154,9 +155,9 @@ namespace SM.Media.BackgroundAudio
                     mediaPlayerManager.Dispose();
                 }
 
-                BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
                 mediaPlayer.CurrentStateChanged -= CurrentOnCurrentStateChanged;
                 mediaPlayer.PlaybackMediaMarkerReached -= OnPlaybackMediaMarkerReached;
+                BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
             }
             catch (Exception ex)
             {

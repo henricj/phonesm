@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ForegroundNotifier.cs" company="Henric Jungheim">
+//  <copyright file="BackgroundNotifier.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -30,15 +30,15 @@ using Windows.Media.Playback;
 
 namespace SM.Media.BackgroundAudio
 {
-    sealed class ForegroundNotifier : BackgroundMediaNotifier
+    sealed class BackgroundNotifier : BackgroundMediaNotifier
     {
-        public ForegroundNotifier(Guid id)
+        public BackgroundNotifier(Guid id)
             : base(id)
         { }
 
         protected override void SendMessage(ValueSet valueSet)
         {
-            BackgroundMediaPlayer.SendMessageToForeground(valueSet);
+            BackgroundMediaPlayer.SendMessageToBackground(valueSet);
         }
     }
 }

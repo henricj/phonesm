@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="ForegroundNotifier.cs" company="Henric Jungheim">
+//  <copyright file="BackgroundAudioNotifier.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,20 +25,55 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using Windows.Foundation.Collections;
-using Windows.Media.Playback;
 
 namespace SM.Media.BackgroundAudio
 {
-    sealed class ForegroundNotifier : BackgroundMediaNotifier
+    interface IBackgroundMediaNotifier
     {
-        public ForegroundNotifier(Guid id)
-            : base(id)
-        { }
+        void Notify(ValueSet valueSet);
+    }
 
-        protected override void SendMessage(ValueSet valueSet)
+    abstract class BackgroundMediaNotifier : IBackgroundMediaNotifier
+    {
+        readonly Guid _id;
+
+        protected BackgroundMediaNotifier(Guid id)
         {
-            BackgroundMediaPlayer.SendMessageToForeground(valueSet);
+            _id = id;
+        }
+
+        #region IBackgroundMediaNotifier Members
+
+        public void Notify(ValueSet valueSet)
+        {
+            valueSet["Id"] = _id;
+
+            try
+            {
+                SendMessage(valueSet);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("BackgroundAudioNotifier.Notify() failed: " + ex.Message);
+            }
+        }
+
+        #endregion
+
+        protected abstract void SendMessage(ValueSet valueSet);
+    }
+
+    static class BackgroundAudioNotifierExtensions
+    {
+        public static void Notify(this IBackgroundMediaNotifier notifier, string key = null, object value = null)
+        {
+            //Debug.WriteLine("NotifierExtensions.Notify() " + _id);
+
+            var valueSet = new ValueSet { { key, value } };
+
+            notifier.Notify(valueSet);
         }
     }
 }

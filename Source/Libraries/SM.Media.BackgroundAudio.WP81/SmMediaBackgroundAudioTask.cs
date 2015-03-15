@@ -61,58 +61,63 @@ namespace SM.Media.BackgroundAudio
 
             try
             {
-#if DEBUG
-                _memoryDiagnostics.StartPoll();
-#endif
-
                 deferral = taskInstance.GetDeferral();
 
-                run = new BackgroundAudioRun(taskInstance.InstanceId);
-
-                var oldRun = Interlocked.Exchange(ref _run, run);
-
-                if (null != oldRun)
+                try
                 {
-                    Debug.WriteLine("SmMediaBackgroundAudioTask.Run() run already exists");
-                    oldRun.Dispose();
-                }
-
-                taskInstance.Canceled += run.OnCanceled;
-                taskInstance.Task.Completed += run.OnTaskCompleted;
-
-                await run.ExecuteAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() failed " + ex.ExtendedMessage());
-            }
-
-            try
-            {
 #if DEBUG
-                _memoryDiagnostics.StopPoll();
+                    _memoryDiagnostics.StartPoll();
 #endif
 
-                var currentRun = Interlocked.CompareExchange(ref _run, null, run);
+                    run = new BackgroundAudioRun(taskInstance.InstanceId);
 
-                if (!ReferenceEquals(currentRun, run))
-                    Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() mismatching run");
+                    var oldRun = Interlocked.Exchange(ref _run, run);
 
-                if (null != run)
+                    if (null != oldRun)
+                    {
+                        Debug.WriteLine("SmMediaBackgroundAudioTask.Run() run already exists");
+                        oldRun.Dispose();
+                    }
+
+                    taskInstance.Canceled += run.OnCanceled;
+                    taskInstance.Task.Completed += run.OnTaskCompleted;
+
+                    await run.ExecuteAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
                 {
-                    taskInstance.Canceled -= run.OnCanceled;
-                    taskInstance.Task.Completed -= run.OnTaskCompleted;
+                    Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() failed " + ex.ExtendedMessage());
                 }
 
-                if (null != run)
-                    run.Dispose();
+                try
+                {
+#if DEBUG
+                    _memoryDiagnostics.StopPoll();
+#endif
 
+                    var currentRun = Interlocked.CompareExchange(ref _run, null, run);
+
+                    if (!ReferenceEquals(currentRun, run))
+                        Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() mismatching run");
+
+                    if (null != run)
+                    {
+                        taskInstance.Canceled -= run.OnCanceled;
+                        taskInstance.Task.Completed -= run.OnTaskCompleted;
+                    }
+
+                    if (null != run)
+                        run.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() cleanup failed: " + ex.ExtendedMessage());
+                }
+            }
+            finally
+            {
                 if (null != deferral)
                     deferral.Complete();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() cleanup failed: " + ex.ExtendedMessage());
             }
         }
     }

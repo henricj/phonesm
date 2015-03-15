@@ -464,6 +464,8 @@ namespace SM.Media.MediaManager
 
             try
             {
+                _mediaStreamConfigurator.Initialize();
+
                 _readerManager = await _segmentReaderManagerFactory.CreateAsync(
                     new SegmentManagerParameters
                     {

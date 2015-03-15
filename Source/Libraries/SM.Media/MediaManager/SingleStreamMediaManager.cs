@@ -337,6 +337,8 @@ namespace SM.Media.MediaManager
         {
             try
             {
+                _mediaStreamConfigurator.Initialize();
+
                 _mediaStreamConfigurator.MediaManager = this;
 
                 var mediaParser = await _mediaParserFactory.CreateAsync(new MediaParserParameters(), contentType, cancellationToken).ConfigureAwait(false);

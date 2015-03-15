@@ -122,6 +122,9 @@ namespace SM.Media
             }
         }
 
+        public void Initialize()
+        { }
+
         public void CheckForSamples()
         {
             var mm = _mediaStreamSource;

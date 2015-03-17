@@ -42,7 +42,7 @@
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
     <Compile Include="BackgroundAudioRun.cs" />
-    <Compile Include="BackgroundAudioNotifier.cs">
+    <Compile Include="BackgroundMediaNotifier.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ForegroundNotifier.cs" />

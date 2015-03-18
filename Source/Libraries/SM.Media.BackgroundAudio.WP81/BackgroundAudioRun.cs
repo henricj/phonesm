@@ -73,6 +73,8 @@ namespace SM.Media.BackgroundAudio
 
             if (null != _mediaPlayerManager)
                 Debug.WriteLine("BackgroundAudioRun.Dispose() " + _id + ": _mediaPlayerManager is not null");
+
+            _timer.Dispose();
         }
 
         #endregion
@@ -138,6 +140,15 @@ namespace SM.Media.BackgroundAudio
                     {
                         Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() playback failed: " + ex.ExtendedMessage());
                     }
+                }
+
+                try
+                {
+                    _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                }
+                catch (Exception)
+                {
+                    // Guard against race with cleanup
                 }
 
                 _mediaPlayerManager = null;

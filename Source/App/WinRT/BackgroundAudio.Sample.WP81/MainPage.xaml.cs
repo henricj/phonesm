@@ -29,7 +29,6 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
-using Windows.Foundation.Collections;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.UI.Core;
@@ -45,17 +44,19 @@ namespace BackgroundAudio.Sample
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        readonly Guid _id = Guid.NewGuid();
+        readonly MediaPlayerHandle _mediaPlayerHandle;
         readonly DispatcherTimer _timer;
-        Guid? _backgroundId;
-        TaskCompletionSource<object> _backgroundRunningCompletionSource = new TaskCompletionSource<object>();
-        MediaPlayer _mediaPlayer;
         int _refreshPending;
         string _trackName;
 
         public MainPage()
         {
             InitializeComponent();
+
+            _mediaPlayerHandle = new MediaPlayerHandle(Dispatcher);
+
+            _mediaPlayerHandle.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
+            _mediaPlayerHandle.CurrentStateChanged += OnCurrentStateChanged;
 
             NavigationCacheMode = NavigationCacheMode.Required;
 
@@ -92,90 +93,67 @@ namespace BackgroundAudio.Sample
 
                 count = 0;
 
-                NotifyBackground("memory");
+                _mediaPlayerHandle.NotifyBackground("memory");
             };
         }
 
         MediaPlayer MediaPlayer
         {
-            get { return _mediaPlayer; }
-            set
+            get
             {
                 Debug.Assert(Dispatcher.HasThreadAccess, "MediaPlayer requires the dispatcher thread");
 
-                if (ReferenceEquals(value, _mediaPlayer))
-                    return;
-
-                BackgroundId = null;
-
-                BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
-
-                if (null != _mediaPlayer)
-                {
-                    try
-                    {
-                        _mediaPlayer.CurrentStateChanged -= OnCurrentStateChanged;
-                    }
-                    catch (Exception ex)
-                    {
-                        // The COM object is probably dead...
-                        Debug.WriteLine("MainPage.MediaPlayer setter: unable to deregister event: " + ex.Message);
-                    }
-                }
-
-                _mediaPlayer = value;
-
-                if (null != _mediaPlayer)
-                {
-                    _mediaPlayer.CurrentStateChanged += OnCurrentStateChanged;
-                    BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
-
-                    RefreshUi(_mediaPlayer.CurrentState, _trackName);
-
-                    PingBackground();
-
-                    _timer.Start();
-                }
-                else
-                {
-                    _timer.Stop();
-
-                    _trackName = null;
-                    RefreshUi(MediaPlayerState.Closed, null);
-                }
-            }
-        }
-
-        Guid? BackgroundId
-        {
-            get { return _backgroundId; }
-            set
-            {
-                Debug.Assert(Dispatcher.HasThreadAccess, "BackgroundId requires the dispatcher thread");
-
-                if (_backgroundId == value)
-                    return;
-
-                _backgroundId = value;
-
-                if (IsRunning)
-                    _backgroundRunningCompletionSource.TrySetResult(null);
-                else
-                {
-                    if (_backgroundRunningCompletionSource.Task.IsCompleted)
-                        _backgroundRunningCompletionSource = new TaskCompletionSource<object>();
-                }
+                return _mediaPlayerHandle.MediaPlayer;
             }
         }
 
         bool IsRunning
         {
-            get
-            {
-                Debug.Assert(Dispatcher.HasThreadAccess, "IsRunning requires the dispatcher thread");
+            get { return _mediaPlayerHandle.IsRunning; }
+        }
 
-                return null != _mediaPlayer && _backgroundId.HasValue;
+        void CloseMediaPlayerAndUpdate()
+        {
+            Debug.WriteLine("MainPage.CloseMediaPlayerAndUpdate()");
+
+            CloseMediaPlayer();
+
+            RefreshUi(MediaPlayerState.Closed, null);
+        }
+
+        void CloseMediaPlayer()
+        {
+            Debug.WriteLine("MainPage.CloseMediaPlayer()");
+
+            _timer.Stop();
+
+            _mediaPlayerHandle.Close();
+
+            _trackName = null;
+        }
+
+        async Task OpenMediaPlayerAsync()
+        {
+            Debug.WriteLine("MainPage.OpenMediaPlayer()");
+
+            _timer.Start();
+
+            await _mediaPlayerHandle.OpenAsync();
+
+            var mediaPlayer = MediaPlayer;
+
+            if (null == mediaPlayer)
+            {
+                Debug.WriteLine("MainPage.OpenMediaPlayer() failed");
+
+                _timer.Stop();
+
+                RequestRefresh();
+
+                return;
             }
+
+            RefreshUi(mediaPlayer.CurrentState, _trackName);
         }
 
         void CleanupFailedPlayer()
@@ -184,7 +162,7 @@ namespace BackgroundAudio.Sample
 
             try
             {
-                MediaPlayer = null;
+                CloseMediaPlayerAndUpdate();
 
                 BackgroundMediaPlayer.Shutdown();
             }
@@ -216,23 +194,7 @@ namespace BackgroundAudio.Sample
             Application.Current.Suspending += OnSuspending;
             Application.Current.Resuming += OnResuming;
 
-            MediaPlayer = null;
-
-            PingBackground();
-        }
-
-        void PingBackground()
-        {
-            Debug.WriteLine("MainPage.PingBackground()");
-
-            try
-            {
-                NotifyBackground("ping", _id);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MainPage.PingBackground() failed: " + ex.Message);
-            }
+            CloseMediaPlayerAndUpdate();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -242,9 +204,7 @@ namespace BackgroundAudio.Sample
             Application.Current.Suspending -= OnSuspending;
             Application.Current.Resuming -= OnResuming;
 
-            BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
-
-            Suspend();
+            _mediaPlayerHandle.Suspend();
 
             _timer.Stop();
         }
@@ -253,42 +213,18 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MainPage.OnResuming()");
 
-            _backgroundRunningCompletionSource = new TaskCompletionSource<object>();
-
-            BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
-
-            MediaPlayer = null;
-
-            NotifyBackground("resume", _id, true);
+            _mediaPlayerHandle.Resume();
         }
 
         void OnSuspending(object sender, SuspendingEventArgs suspendingEventArgs)
         {
-            var deferral = suspendingEventArgs.SuspendingOperation.GetDeferral();
+            //var deferral = suspendingEventArgs.SuspendingOperation.GetDeferral();
 
             Debug.WriteLine("MainPage.OnSuspending()");
 
-            Suspend();
+            _mediaPlayerHandle.Suspend();
 
-            deferral.Complete();
-        }
-
-        void Suspend()
-        {
-            try
-            {
-                NotifyBackground("suspend", _id);
-
-                BackgroundId = null;
-
-                BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
-
-                _backgroundRunningCompletionSource.TrySetCanceled();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MainPage.Suspend() failed: " + ex.Message);
-            }
+            //deferral.Complete();
         }
 
         void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
@@ -317,27 +253,6 @@ namespace BackgroundAudio.Sample
 
                     switch (kv.Key.ToLowerInvariant())
                     {
-                        case "ping":
-                            NotifyBackground("pong", _id);
-                            break;
-                        case "pong":
-                        case "start":
-                            var backgroundIdValue = kv.Value as Guid?;
-
-                            if (backgroundIdValue.HasValue)
-                            {
-                                var backgroundId = backgroundIdValue.Value;
-                                var mediaPlayer = BackgroundMediaPlayer.Current;
-
-                                var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                                    () =>
-                                    {
-                                        MediaPlayer = mediaPlayer;
-                                        BackgroundId = backgroundId;
-                                    });
-                            }
-
-                            break;
                         case "track":
                             trackName = kv.Value as string ?? string.Empty;
 
@@ -402,7 +317,7 @@ namespace BackgroundAudio.Sample
 
         void RefreshUi()
         {
-            Debug.WriteLine("MainPage.RefreshUi() " + _id);
+            Debug.WriteLine("MainPage.RefreshUi()");
 
             Debug.Assert(Dispatcher.HasThreadAccess, "RefreshUi requires the dispatcher thread");
 
@@ -416,6 +331,7 @@ namespace BackgroundAudio.Sample
                     {
                         txtPosition.Text = string.Empty;
                         RefreshUi(MediaPlayerState.Closed, null);
+
                         return;
                     }
 
@@ -444,7 +360,7 @@ namespace BackgroundAudio.Sample
 
         void RefreshUi(MediaPlayerState currentState, string track)
         {
-            Debug.WriteLine("MainPage.RefreshUi({0}, {1}) {2}", currentState, track, _id);
+            Debug.WriteLine("MainPage.RefreshUi({0}, {1}) {2}", currentState, track, _mediaPlayerHandle.Id);
 
             txtCurrentTrack.Text = track ?? string.Empty;
             txtCurrentState.Text = currentState.ToString();
@@ -475,24 +391,12 @@ namespace BackgroundAudio.Sample
             var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low, RefreshUi);
         }
 
-        void NotifyBackground(string key, object value = null, bool ping = false)
+        Task StartAudioAsync()
         {
-            //Debug.WriteLine("MainPage.NotifyBackground() " + _id + ": " + key);
+            if (IsRunning)
+                return TplTaskExtensions.TrueTask;
 
-            try
-            {
-                var message = new ValueSet { { key, value }, { "Id", _id } };
-
-                if (ping)
-                    message.Add("ping", _id);
-
-                BackgroundMediaPlayer.SendMessageToBackground(message);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MainPage.NotifyBackground() failed: " + ex.Message);
-                MediaPlayer = null;
-            }
+            return OpenMediaPlayerAsync();
         }
 
         #region Button Click Event Handlers
@@ -501,7 +405,7 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MainPage gc");
 
-            NotifyBackground("gc");
+            _mediaPlayerHandle.NotifyBackground("gc");
         }
 
         void wakeButton_Click(object sender, RoutedEventArgs e)
@@ -517,11 +421,26 @@ namespace BackgroundAudio.Sample
         /// <summary>
         ///     Sends message to the background task to skip to the previous track.
         /// </summary>
-        void prevButton_Click(object sender, RoutedEventArgs e)
+        async void prevButton_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("MainPage prev");
 
-            NotifyBackground("smtc", SystemMediaTransportControlsButton.Previous.ToString());
+            prevButton.IsEnabled = false;
+
+            try
+            {
+                await StartAudioAsync();
+
+                _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Previous);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage prevButton Click failed: " + ex.Message);
+            }
+            finally
+            {
+                prevButton.IsEnabled = true;
+            }
         }
 
         async void playButton_Click(object sender, RoutedEventArgs e)
@@ -544,68 +463,66 @@ namespace BackgroundAudio.Sample
                         case MediaPlayerState.Paused:
                             mediaPlayer.Play();
                             return;
-                        case MediaPlayerState.Closed:
-                            break;
                     }
                 }
 
                 await StartAudioAsync();
+
+                _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Play);
             }
             catch (OperationCanceledException)
             {
-                MediaPlayer = null;
+                CloseMediaPlayer();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("MainPage playButton Click failed: " + ex.Message);
-                MediaPlayer = null;
+                CloseMediaPlayer();
             }
             finally
             {
                 playButton.IsEnabled = true;
             }
+
+            RequestRefresh();
         }
 
-        async Task StartAudioAsync()
+        async void nextButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!IsRunning)
-                MediaPlayer = BackgroundMediaPlayer.Current;
+            nextButton.IsEnabled = false;
 
-            var task = _backgroundRunningCompletionSource.Task;
-
-            if (!task.IsCompleted)
+            try
             {
-                try
-                {
-                    if (task != await Task.WhenAny(task, Task.Delay(2000)).ConfigureAwait(false))
-                        throw new TimeoutException("Background task did not start");
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+                await StartAudioAsync();
+
+                _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Next);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage nextButton Click failed: " + ex.Message);
+            }
+            finally
+            {
+                nextButton.IsEnabled = true;
             }
 
-            NotifyBackground("smtc", SystemMediaTransportControlsButton.Play.ToString());
-        }
-
-        void nextButton_Click(object sender, RoutedEventArgs e)
-        {
             Debug.WriteLine("MainPage click");
-
-            NotifyBackground("smtc", SystemMediaTransportControlsButton.Next.ToString());
         }
 
-        void killButton_Click(object sender, RoutedEventArgs e)
+        void stopButton_Click(object sender, RoutedEventArgs e)
         {
-            Debug.WriteLine("MainPage kill");
+            Debug.WriteLine("MainPage stop");
 
-            NotifyBackground("smtc", SystemMediaTransportControlsButton.Stop.ToString());
-            MediaPlayer = null;
-
-            //BackgroundMediaPlayer.Shutdown();
+            _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Stop);
         }
 
         #endregion Button Click Event Handlers
+
+        private void killButton_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("MainPage kill");
+
+            BackgroundMediaPlayer.Shutdown();
+        }
     }
 }

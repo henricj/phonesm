@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BackgroundAudio.Sample</RootNamespace>
     <AssemblyName>BackgroundAudio.Sample.WP81</AssemblyName>
-    <DefaultLanguage>en-US</DefaultLanguage>
+    <DefaultLanguage>en</DefaultLanguage>
     <TargetPlatformVersion>8.1</TargetPlatformVersion>
     <MinimumVisualStudioVersion>12</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
@@ -120,12 +120,20 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\BackgroundMediaNotifier.cs">
+      <Link>BackgroundMediaNotifier.cs</Link>
+    </Compile>
+    <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\BackgroundNotifier.cs">
+      <Link>BackgroundNotifier.cs</Link>
+    </Compile>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MediaPlayerHandle.cs" />
+    <Compile Include="MediaPlayerSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

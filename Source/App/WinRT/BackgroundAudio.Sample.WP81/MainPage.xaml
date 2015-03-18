@@ -12,11 +12,10 @@
         <StackPanel Margin="0,20,0,0">
             <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
                 <TextBlock x:Name="ApplicationTitle" Text="Background MediaPlayer" Style="{StaticResource TitleTextBlockStyle}"/>
-                <TextBlock x:Name="PageTitle" Text="play audio" Style="{StaticResource SubheaderTextBlockStyle}"/>
             </StackPanel>
 
             <!--ContentPanel - place additional content here-->
-            <StackPanel Orientation="Horizontal" Width="Auto" Margin="10,25,0,0" VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal" Width="Auto" Margin="10,15,0,0" VerticalAlignment="Top">
                 <Button Content="|&lt;&lt;" x:Name="prevButton" Height="50" Width="50" Click="prevButton_Click"/>
                 <Button Content="&gt;" x:Name="playButton" Height="50" Width="50" Click="playButton_Click"/>
                 <Button Content="&gt;&gt;|" x:Name="nextButton" Height="50" Width="50" Click="nextButton_Click"/>
@@ -25,11 +24,12 @@
             <TextBlock x:Name="txtCurrentState" Height="Auto" HorizontalAlignment="Left" Margin="10,10,0,0"  VerticalAlignment="Top" Width="Auto" TextWrapping="Wrap" Style="{StaticResource BodyTextBlockStyle}" />
             <TextBlock x:Name="txtPosition" Height="Auto" HorizontalAlignment="Left" Margin="10,10,0,0"  VerticalAlignment="Top" Width="Auto" TextWrapping="Wrap" Style="{StaticResource BodyTextBlockStyle}" />
             <StackPanel Orientation="Horizontal" Width="Auto" Margin="0">
-                <Button Content="Stop" x:Name="killButton" Height="Auto" Width="Auto" VerticalAlignment="Top" HorizontalAlignment="Left" Click="killButton_Click" Margin="0,0,5,0" />
+                <Button Content="Stop" x:Name="stopButton" Height="Auto" Width="Auto" VerticalAlignment="Top" HorizontalAlignment="Left" Click="stopButton_Click" Margin="0,0,5,0" />
                 <Button Content="Wake" x:Name="wakeButton" Height="Auto" Width="Auto" VerticalAlignment="Top" HorizontalAlignment="Left" Click="wakeButton_Click" Margin="0,0,5,0" />
                 <Button Content="GC" x:Name="gcButton" Height="Auto" Width="Auto" VerticalAlignment="Top" HorizontalAlignment="Left" Click="gcButton_Click" Margin="0,0,5,0" />
-                <TextBlock x:Name="txtMemory" Height="Auto" Width="Auto" Style="{StaticResource BodyTextBlockStyle}" VerticalAlignment="Center" />
+                <Button Content="Kill" x:Name="killButton" Height="Auto" Width="Auto" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,0,5,0" Click="killButton_Click" />
             </StackPanel>
+            <TextBlock x:Name="txtMemory" Height="Auto" Width="Auto" Style="{StaticResource BodyTextBlockStyle}" VerticalAlignment="Center" />
         </StackPanel>
     </Grid>
 </Page>

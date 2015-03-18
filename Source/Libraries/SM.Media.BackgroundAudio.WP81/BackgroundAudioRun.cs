@@ -349,7 +349,7 @@ namespace SM.Media.BackgroundAudio
                         case "suspend":
                             break;
                         case "ping":
-                            _foregroundNotifier.Notify("pong", _id);
+                            _foregroundNotifier.Notify("pong", kv.Value);
                             break;
                         case "smtc":
                             SystemMediaTransportControlsButton button;

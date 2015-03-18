@@ -59,8 +59,12 @@ namespace SM.Media.BackgroundAudio
             BackgroundTaskDeferral deferral = null;
             BackgroundAudioRun run = null;
 
+            var deferralId = Guid.NewGuid();
+
             try
             {
+                Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() getting deferral " + deferralId);
+
                 deferral = taskInstance.GetDeferral();
 
                 try
@@ -117,7 +121,10 @@ namespace SM.Media.BackgroundAudio
             finally
             {
                 if (null != deferral)
+                {
                     deferral.Complete();
+                    Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() released deferral " + deferralId);
+                }
             }
         }
     }

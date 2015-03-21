@@ -35,6 +35,7 @@ using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
 using SM.Media.MediaManager;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
 using SM.TsParser;
@@ -48,6 +49,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
     {
         readonly IBufferingPolicy _bufferingPolicy;
         readonly IMediaManagerParameters _mediaManagerParameters;
+        readonly AudioMetadataHandler _metadataHandler;
 
         readonly IWebReaderManagerParameters _webReaderManagerParameters = new WebReaderManagerParameters
         {
@@ -84,6 +86,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 BytesMinimumStarting = 24 * 1024,
                 BytesMinimum = 64 * 1024
             };
+
+            _metadataHandler = new AudioMetadataHandler(_cancellationTokenSource.Token);
         }
 
 #if DEBUG
@@ -165,6 +169,22 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                     return;
                 }
 
+                var defaultTitle = "Unknown";
+
+                var mediaTrack = TrackManager.Tracks.FirstOrDefault(t => t.Url == url);
+
+                if (null != mediaTrack)
+                    defaultTitle = mediaTrack.Title;
+
+                _metadataHandler.DefaultTitle = defaultTitle;
+
+                if (!string.Equals(track.Title, defaultTitle))
+                {
+                    track.BeginEdit();
+                    track.Title = defaultTitle;
+                    track.EndEdit();
+                }
+
                 mediaStreamFacade = await InitializeMediaStreamAsync().ConfigureAwait(false);
 
                 Debug.Assert(null != mediaStreamFacade);
@@ -229,6 +249,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             mediaStreamFacade.SetParameter(_mediaManagerParameters);
 
             mediaStreamFacade.SetParameter(_webReaderManagerParameters);
+
+            mediaStreamFacade.SetParameter(_metadataHandler.MetadataSink);
 
             mediaStreamFacade.StateChange += TsMediaManagerOnStateChange;
 

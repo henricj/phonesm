@@ -94,6 +94,7 @@
     <Compile Include="AudioPlayer.cs" />
     <Compile Include="AudioTrackExtensions.cs" />
     <Compile Include="AudioTrackStreamer.cs" />
+    <Compile Include="AudioMetadataHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TrackManager.cs" />
   </ItemGroup>

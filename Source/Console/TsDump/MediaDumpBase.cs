@@ -186,6 +186,12 @@ namespace TsDump
         {
             Parser.Initialize(_bufferingManager, _programStreamsHandler);
 
+            var url = new Uri(source);
+
+            Parser.InitializeStream(new StreamMetadata { Url = url });
+
+            Parser.StartSegment(new SegmentMetadata { Url = url });
+
             var buffer = new byte[64 * 1024];
 
             using (var f = await OpenAsync(source).ConfigureAwait(false))

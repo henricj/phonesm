@@ -35,7 +35,9 @@ namespace SM.Media.Audio
     public abstract class AudioParserBase : IAudioParser
     {
         protected readonly IAudioFrameHeader _frameHeader;
+        protected int _badBytes;
         protected Action<IAudioFrameHeader> _configurationHandler;
+        protected bool _hasSeenValidFrames;
         protected int _index;
         protected bool _isConfigured;
         int _isDisposed;
@@ -85,6 +87,9 @@ namespace SM.Media.Audio
         public virtual void FlushBuffers()
         {
             FreeBuffer();
+
+            _hasSeenValidFrames = false;
+            _badBytes = 0;
         }
 
         public abstract void ProcessData(byte[] buffer, int offset, int length);
@@ -121,6 +126,9 @@ namespace SM.Media.Audio
                 Position += _frameHeader.Duration;
 
                 _submitPacket(packet);
+
+                _hasSeenValidFrames = true;
+                _badBytes = 0;
             }
 
             _startIndex = _index;

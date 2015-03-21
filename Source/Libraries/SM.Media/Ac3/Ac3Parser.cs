@@ -57,17 +57,28 @@ namespace SM.Media.Ac3
                 {
                     var data = buffer[i++];
 
+                retry:
                     if (0 == storedLength)
                     {
                         if (0x0b == data)
                             _packet.Buffer[_index++] = 0x0b;
+                        else
+                            ++_badBytes;
                     }
                     else if (1 == storedLength)
                     {
                         if (0x77 == data)
                             _packet.Buffer[_index++] = data;
                         else
+                        {
                             _index = _startIndex;
+
+                            storedLength = 0;
+
+                            ++_badBytes;
+
+                            goto retry;
+                        }
                     }
                     else if (storedLength < 4)
                         _packet.Buffer[_index++] = data;
@@ -77,7 +88,9 @@ namespace SM.Media.Ac3
 
                         // We now have an AC3 header.
 
-                        if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, !_isConfigured))
+                        var shouldConfigure = !_isConfigured && _hasSeenValidFrames && 0 == _badBytes;
+
+                        if (!_frameHeader.Parse(_packet.Buffer, _startIndex, _index - _startIndex, shouldConfigure))
                         {
                             SkipInvalidFrameHeader();
 
@@ -86,7 +99,7 @@ namespace SM.Media.Ac3
 
                         Debug.Assert(_frameHeader.FrameLength > 7);
 
-                        if (!_isConfigured)
+                        if (shouldConfigure)
                         {
                             _configurationHandler(_frameHeader);
                             _isConfigured = true;
@@ -131,9 +144,14 @@ namespace SM.Media.Ac3
                 {
                     Array.Copy(_packet.Buffer, i, _packet.Buffer, _startIndex, _index - i);
                     _index = i;
+
+                    _badBytes += i - _startIndex;
+
                     return;
                 }
             }
+
+            _badBytes += _index - _startIndex;
 
             _index = _startIndex;
         }

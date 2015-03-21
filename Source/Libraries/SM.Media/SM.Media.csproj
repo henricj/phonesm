@@ -126,6 +126,7 @@
     <Compile Include="Metadata\SegmentMetadata.cs" />
     <Compile Include="Metadata\ShoutcastHeaders.cs" />
     <Compile Include="Metadata\ShoutcastSegmentMetadata.cs" />
+    <Compile Include="Metadata\ActionMetadataSink.cs" />
     <Compile Include="Metadata\StreamMetadata.cs" />
     <Compile Include="Metadata\TrackMetadata.cs" />
     <Compile Include="Metadata\WebMetadataFactory.cs" />

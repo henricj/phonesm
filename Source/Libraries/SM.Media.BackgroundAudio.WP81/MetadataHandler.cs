@@ -67,7 +67,7 @@ namespace SM.Media.BackgroundAudio
 
             _updateTask = new SignalTask(Update, cancellationToken);
 
-            _metadataSink = new SmtcMetadataSink(_updateTask.Fire);
+            _metadataSink = new ActionMetadataSink(_updateTask.Fire);
         }
 
         public IMetadataSink MetadataSink
@@ -199,50 +199,5 @@ namespace SM.Media.BackgroundAudio
 
             _updateTask.Fire();
         }
-
-        #region Nested type: SmtcMetadataSink
-
-        class SmtcMetadataSink : MetadataSink
-        {
-            readonly Action _updateAction;
-
-            public SmtcMetadataSink(Action updateAction)
-            {
-                if (null == updateAction)
-                    throw new ArgumentNullException("updateAction");
-
-                _updateAction = updateAction;
-            }
-
-            public override void Reset()
-            {
-                base.Reset();
-
-                _updateAction();
-            }
-
-            public override void ReportStreamMetadata(TimeSpan timestamp, IStreamMetadata streamMetadata)
-            {
-                base.ReportStreamMetadata(timestamp, streamMetadata);
-
-                _updateAction();
-            }
-
-            public override void ReportSegmentMetadata(TimeSpan timestamp, ISegmentMetadata segmentMetadata)
-            {
-                base.ReportSegmentMetadata(timestamp, segmentMetadata);
-
-                _updateAction();
-            }
-
-            public override void ReportTrackMetadata(ITrackMetadata trackMetadata)
-            {
-                base.ReportTrackMetadata(trackMetadata);
-
-                _updateAction();
-            }
-        }
-
-        #endregion
     }
 }

@@ -427,6 +427,9 @@
     <Compile Include="..\SM.Media\MediaStreamFacadeSetting.cs">
       <Link>MediaStreamFacadeSetting.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Metadata\ActionMetadataSink.cs">
+      <Link>Metadata\ActionMetadataSink.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Metadata\MetadataSink.cs">
       <Link>Metadata\MetadataSink.cs</Link>
     </Compile>

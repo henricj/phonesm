@@ -71,7 +71,7 @@ namespace BackgroundAudio.Sample.WP7
 
             BackgroundAudioPlayer.Instance.PlayStateChanged += Instance_PlayStateChanged;
 
-            Instance_PlayStateChanged(null, null);
+            UpdateState(null, null);
         }
 
         /// <summary>
@@ -81,12 +81,17 @@ namespace BackgroundAudio.Sample.WP7
         /// <param name="e"></param>
         void Instance_PlayStateChanged(object sender, EventArgs e)
         {
-            switch (BackgroundAudioPlayer.Instance.PlayerState)
+            UpdateState(null, null);
+        }
+
+        void UpdatePlayState(BackgroundAudioPlayer player)
+        {
+            switch (player.PlayerState)
             {
                 case PlayState.Playing:
                     // Update the UI.
                     {
-                        var track = BackgroundAudioPlayer.Instance.Track;
+                        var track = player.Track;
 
                         if (null != track)
                         {
@@ -97,16 +102,17 @@ namespace BackgroundAudio.Sample.WP7
                                 positionIndicator.IsIndeterminate = false;
                                 positionIndicator.Maximum = duration.TotalSeconds;
                             }
+                            else
+                                positionIndicator.IsIndeterminate = true;
                         }
                     }
 
                     _playButton.IsEnabled = false;
                     _pauseButton.IsEnabled = true;
 
-                    UpdateState(null, null);
-
                     // Start the timer for updating the UI.
-                    _timer.Start();
+                    if (!_timer.IsEnabled)
+                        _timer.Start();
 
                     break;
                 case PlayState.Stopped:
@@ -116,10 +122,9 @@ namespace BackgroundAudio.Sample.WP7
                     _playButton.IsEnabled = true;
                     _pauseButton.IsEnabled = false;
 
-                    UpdateState(null, null);
-
                     // Stop the timer for updating the UI.
-                    _timer.Stop();
+                    if (_timer.IsEnabled)
+                        _timer.Stop();
 
                     break;
                 case PlayState.Unknown:
@@ -145,7 +150,15 @@ namespace BackgroundAudio.Sample.WP7
                 var player = BackgroundAudioPlayer.Instance;
 
                 if (null == player)
+                {
+                    _playButton.IsEnabled = true;
+                    _nextButton.IsEnabled = true;
+                    _prevButton.IsEnabled = true;
+
                     return;
+                }
+
+                UpdatePlayState(player);
 
                 txtState.Text = "State: " + player.PlayerState;
 
@@ -156,10 +169,10 @@ namespace BackgroundAudio.Sample.WP7
                 var timeRemaining = TimeSpan.Zero;
 
                 if (null == track)
-                    txtTrack.Text = null;
+                    txtTitle.Text = null;
                 else
                 {
-                    txtTrack.Text = "Track: " + track.Title;
+                    txtTitle.Text = track.Title;
 
                     try
                     {
@@ -176,19 +189,19 @@ namespace BackgroundAudio.Sample.WP7
                 positionIndicator.Value = position.TotalSeconds;
 
                 // Update the current playback position.
-                textPosition.Text = string.Format("{0:d2}:{1:d2}:{2:d2}", position.Hours, position.Minutes, position.Seconds);
+                textPosition.Text = position.ToString(@"hh\:mm\:ss");
 
                 // Update the time remaining digits.
-                if (TimeSpan.Zero == timeRemaining)
+                if (timeRemaining < TimeSpan.Zero)
                     textRemaining.Text = null;
                 else
-                    textRemaining.Text = string.Format("-{0:d2}:{1:d2}:{2:d2}", timeRemaining.Hours, timeRemaining.Minutes, timeRemaining.Seconds);
+                    textRemaining.Text = timeRemaining.ToString(@"hh\:mm\:ss");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("MainPage.UpdateState() failed: " + ex.Message);
 
-                txtTrack.Text = null;
+                txtTitle.Text = null;
                 txtState.Text = "State: Invalid";
 
                 _playButton.IsEnabled = true;

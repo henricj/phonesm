@@ -52,7 +52,7 @@ namespace SamplePlayer.WinRT
         {
             InitializeComponent();
 
-            var passThroughTracks = new HashSet<Uri>(_tracks.Where(t => t.UseNativePlayer).Select(t => t.Url));
+            var passThroughTracks = new HashSet<Uri>(_tracks.Where(t => null != t && t.UseNativePlayer).Select(t => t.Url));
 
             StreamingMediaSettings.Parameters.IsPassThrough = passThroughTracks.Contains;
         }

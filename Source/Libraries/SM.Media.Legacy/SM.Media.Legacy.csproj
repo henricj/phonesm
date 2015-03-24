@@ -595,6 +595,9 @@
     <Compile Include="..\SM.Media\Utility\TextEncodings\Windows1252Encoding.cs">
       <Link>Utility\TextEncodings\Windows1252Encoding.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\WorkBufferBlockingPool.cs">
+      <Link>Utility\WorkBufferBlockingPool.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Web\HttpConnectionReader\HttpConnectionFactory.cs">
       <Link>Web\HttpConnectionReader\HttpConnectionFactory.cs</Link>
     </Compile>

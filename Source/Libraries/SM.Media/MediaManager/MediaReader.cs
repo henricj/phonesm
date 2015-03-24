@@ -53,7 +53,7 @@ namespace SM.Media.MediaManager
     sealed class MediaReader : IMediaReader
     {
         readonly IMediaParserFactory _mediaParserFactory;
-        BlockingPool<WorkBuffer> _blockingPool;
+        IBlockingPool<WorkBuffer> _blockingPool;
         IBufferingManager _bufferingManager;
         CallbackReader _callbackReader;
         Action _checkConfiguration;
@@ -63,7 +63,7 @@ namespace SM.Media.MediaManager
         QueueWorker<WorkBuffer> _queueWorker;
         ISegmentManagerReaders _segmentReaders;
 
-        public MediaReader(IBufferingManager bufferingManager, IMediaParserFactory mediaParserFactory, ISegmentManagerReaders segmentReaders, BlockingPool<WorkBuffer> blockingPool)
+        public MediaReader(IBufferingManager bufferingManager, IMediaParserFactory mediaParserFactory, ISegmentManagerReaders segmentReaders, IBlockingPool<WorkBuffer> blockingPool)
         {
             if (null == bufferingManager)
                 throw new ArgumentNullException("bufferingManager");
@@ -230,11 +230,7 @@ namespace SM.Media.MediaManager
                         mediaParser.ProcessData(wi.Buffer, 0, wi.Length);
                     }
                 },
-                buffer =>
-                {
-                    buffer.Metadata = null;
-                    _blockingPool.Free(buffer);
-                });
+                buffer => _blockingPool.Free(buffer));
 
             _callbackReader = new CallbackReader(segmentManagerReaders.Readers, _queueWorker.Enqueue, _blockingPool);
 

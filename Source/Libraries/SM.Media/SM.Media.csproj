@@ -310,6 +310,7 @@
     <Compile Include="Utility\TextEncodings\Windows1252Encoding.cs" />
     <Compile Include="Utility\TplTaskExtensions.cs" />
     <Compile Include="Utility\WorkBuffer.cs" />
+    <Compile Include="Utility\WorkBufferBlockingPool.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionFactory.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionRequestFactory.cs" />
     <Compile Include="Web\HttpConnectionReader\HttpConnectionRequestFactoryParameters.cs" />

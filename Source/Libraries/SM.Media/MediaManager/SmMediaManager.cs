@@ -561,7 +561,7 @@ namespace SM.Media.MediaManager
 
         async Task<IMediaReader> CreateReaderPipeline(ISegmentManagerReaders segmentManagerReaders)
         {
-            var reader = new MediaReader(_bufferingManagerFactory(), _mediaParserFactory, segmentManagerReaders, new BlockingPool<WorkBuffer>(MaxBuffers));
+            var reader = new MediaReader(_bufferingManagerFactory(), _mediaParserFactory, segmentManagerReaders, new WorkBufferBlockingPool(MaxBuffers));
 
             await reader.InitializeAsync(segmentManagerReaders, CheckConfigurationCompleted,
                 _mediaStreamConfigurator.CheckForSamples,

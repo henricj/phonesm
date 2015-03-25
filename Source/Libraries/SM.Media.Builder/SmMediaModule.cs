@@ -40,6 +40,7 @@ using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.TransportStream;
 using SM.Media.Utility;
+using SM.Media.Utility.RandomGenerators;
 using SM.Media.Utility.TextEncodings;
 using SM.Media.Web;
 using SM.TsParser;
@@ -105,6 +106,9 @@ namespace SM.Media
             builder.RegisterType<SmEncodings>().As<ISmEncodings>().SingleInstance();
 
             builder.RegisterType<UserAgent>().As<IUserAgent>().SingleInstance();
+
+            builder.RegisterType<XorShift1024Star>().As<IRandomGenerator>();
+            builder.RegisterType<XorShift1024Star>().As<IRandomGenerator<ulong>>();
         }
     }
 }

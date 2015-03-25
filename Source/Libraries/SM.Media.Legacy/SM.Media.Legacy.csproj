@@ -535,6 +535,9 @@
     <Compile Include="..\SM.Media\Utility\AsyncLock.cs">
       <Link>Utility\AsyncLock.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\BitTwiddling.cs">
+      <Link>Utility\BitTwiddling.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\ByteConversion.cs">
       <Link>Utility\ByteConversion.cs</Link>
     </Compile>
@@ -564,6 +567,27 @@
     </Compile>
     <Compile Include="..\SM.Media\Utility\QueueExtensions.cs">
       <Link>Utility\QueueExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\IRandomGenerator.cs">
+      <Link>Utility\RandomGenerators\IRandomGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\NormalDistribution.cs">
+      <Link>Utility\RandomGenerators\NormalDistribution.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\RandomGeneratorExtensions.cs">
+      <Link>Utility\RandomGenerators\RandomGeneratorExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\RandomTimeExtensions.cs">
+      <Link>Utility\RandomGenerators\RandomTimeExtensions.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\SystemRandomGenerator.cs">
+      <Link>Utility\RandomGenerators\SystemRandomGenerator.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\Well512.cs">
+      <Link>Utility\RandomGenerators\Well512.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Utility\RandomGenerators\XorShift1024Star.cs">
+      <Link>Utility\RandomGenerators\XorShift1024Star.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\ResettableParameters.cs">
       <Link>Utility\ResettableParameters.cs</Link>

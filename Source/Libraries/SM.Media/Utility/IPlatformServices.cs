@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IPlatformServices.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.IO;
 
 namespace SM.Media.Utility
@@ -48,5 +49,42 @@ namespace SM.Media.Utility
         /// <param name="iv"></param>
         /// <returns></returns>
         Stream Aes128DecryptionFilter(Stream stream, byte[] key, byte[] iv);
+
+        /// <summary>
+        ///     Get cryptographically secure random bytes.
+        /// </summary>
+        /// <param name="bytes"></param>
+        void GetSecureRandom(byte[] bytes);
+    }
+
+    public static class PlatformServicesExtensions
+    {
+        public static void GetSecureRandom(this IPlatformServices platformServices, ulong[] output)
+        {
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
+            if (null == output)
+                throw new ArgumentNullException("output");
+
+            var bytes = new byte[output.Length * sizeof (ulong)];
+
+            platformServices.GetSecureRandom(bytes);
+
+            Buffer.BlockCopy(bytes, 0, output, 0, bytes.Length);
+        }
+
+        public static void GetSecureRandom(this IPlatformServices platformServices, uint[] output)
+        {
+            if (null == platformServices)
+                throw new ArgumentNullException("platformServices");
+            if (null == output)
+                throw new ArgumentNullException("output");
+
+            var bytes = new byte[output.Length * sizeof (uint)];
+
+            platformServices.GetSecureRandom(bytes);
+
+            Buffer.BlockCopy(bytes, 0, output, 0, bytes.Length);
+        }
     }
 }

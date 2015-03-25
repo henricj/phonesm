@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlatformServices.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Security.Cryptography;
 using SM.Media.Utility;
 
@@ -52,6 +53,13 @@ namespace SM.Media
         public Stream Aes128DecryptionFilter(Stream stream, byte[] key, byte[] iv)
         {
             return new Aes128Pkcs7ReadStream(stream, key, iv);
+        }
+
+        public void GetSecureRandom(byte[] bytes)
+        {
+            var buffer = CryptographicBuffer.GenerateRandom((uint)bytes.Length);
+
+            buffer.CopyTo(bytes);
         }
 
         #endregion

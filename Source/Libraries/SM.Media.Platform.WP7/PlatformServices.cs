@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlatformServices.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -54,12 +54,25 @@ namespace SM.Media
             // CBC with PCKS #7 padding.  (Default for desktop and only supported values
             // for Silverlight/Phone.)
             var aes = new AesManaged
-                      {
-                          Key = key,
-                          IV = iv
-                      };
+            {
+                Key = key,
+                IV = iv
+            };
 
             return new CryptoStream(stream, aes.CreateDecryptor(), CryptoStreamMode.Read);
+        }
+
+        public void GetSecureRandom(byte[] bytes)
+        {
+#if WINDOWS_PHONE || SILVERLIGHT
+            var rng = new RNGCryptoServiceProvider();
+            {
+#else
+            using (var rng = RandomNumberGenerator.Create())
+            {
+#endif
+                rng.GetBytes(bytes);
+            }
         }
 
         #endregion
@@ -74,15 +87,7 @@ namespace SM.Media
 
             var seed = new byte[sizeof(int)];
 
-#if WINDOWS_PHONE || SILVERLIGHT
-            var rng = new RNGCryptoServiceProvider();
-            {
-#else
-            using(var rng = RandomNumberGenerator.Create())
-            {
-#endif
-                rng.GetBytes(seed);
-            }
+            GetSecureRandom(seed);
 
             return new Random(BitConverter.ToInt32(seed, 0));
         }

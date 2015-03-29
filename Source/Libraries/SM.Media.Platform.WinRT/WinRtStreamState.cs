@@ -30,7 +30,6 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Media.Core;
 using SM.Media.Utility;
 using SM.TsParser;
-using Buffer = Windows.Storage.Streams.Buffer;
 
 namespace SM.Media
 {
@@ -170,16 +169,11 @@ namespace SM.Media
                 var presentationTimestamp = packet.PresentationTimestamp;
 
 #if WORKING_PROCESSED_EVENT
-                    var packetBuffer = packet.Buffer.AsBuffer(packet.Index, packet.Length);
+                var packetBuffer = packet.Buffer.AsBuffer(packet.Index, packet.Length);
 #else
                 // Make a copy of the buffer since Sample.Processed doesn't always seem to
                 // get called.
-                var packetBuffer = new Buffer((uint)packet.Length)
-                {
-                    Length = (uint)packet.Length
-                };
-
-                packet.Buffer.CopyTo(packet.Index, packetBuffer, 0, packet.Length);
+                var packetBuffer = WindowsRuntimeBuffer.Create(packet.Buffer, packet.Index, packet.Length, packet.Length);
 #endif
 
                 var mediaStreamSample = MediaStreamSample.CreateFromBuffer(packetBuffer, presentationTimestamp);
@@ -199,12 +193,12 @@ namespace SM.Media
                 request.Sample = mediaStreamSample;
 
 #if WORKING_PROCESSED_EVENT
-                    var localPacket = packet;
+                var localPacket = packet;
 
-                    request.Sample.Processed += (sender, args) => _streamSource.FreeSample(localPacket);
+                request.Sample.Processed += (sender, args) => _streamSource.FreeSample(localPacket);
 
-                    // Prevent the .FreeSample() below from freeing this packet.
-                    packet = null;
+                // Prevent the .FreeSample() below from freeing this packet.
+                packet = null;
 #endif
 
                 return true;

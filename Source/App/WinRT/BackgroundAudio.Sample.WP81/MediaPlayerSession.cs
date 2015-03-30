@@ -42,6 +42,7 @@ namespace BackgroundAudio.Sample
         readonly IBackgroundMediaNotifier _notifier;
         readonly Action<MediaPlayer, object> _onCurrentStateChanged;
         readonly Action<object, MediaPlayerDataReceivedEventArgs> _onMessage;
+        Guid _challenge;
         int _disposed;
 
         public MediaPlayerSession(MediaPlayer mediaPlayer, IBackgroundMediaNotifier notifier,
@@ -71,6 +72,17 @@ namespace BackgroundAudio.Sample
             {
                 return TaskStatus.RanToCompletion == _backgroundRunningCompletionSource.Task.Status
                        && MediaPlayerState.Closed != MediaPlayer.CurrentState;
+            }
+        }
+
+        public Guid? BackgroundId
+        {
+            get
+            {
+                if (TaskStatus.RanToCompletion == _backgroundRunningCompletionSource.Task.Status)
+                    return _backgroundRunningCompletionSource.Task.Result;
+
+                return null;
             }
         }
 
@@ -106,7 +118,6 @@ namespace BackgroundAudio.Sample
 
             try
             {
-                BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
                 MediaPlayer.CurrentStateChanged += OnCurrentStateChanged;
             }
             catch (Exception ex)
@@ -122,7 +133,6 @@ namespace BackgroundAudio.Sample
 
             try
             {
-                BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
                 MediaPlayer.CurrentStateChanged -= OnCurrentStateChanged;
             }
             catch (Exception ex)
@@ -132,29 +142,35 @@ namespace BackgroundAudio.Sample
             }
         }
 
-        public bool TrySetRemoteId(Guid guid)
+        public bool TrySetBackgroundId(Guid backgroundId, object challenge)
         {
-            //Debug.WriteLine("MediaPlayerSession.TrySetRemoteId() " + guid);
+            var guid = challenge as Guid?;
+
+            if (guid.HasValue && guid != _challenge)
+                return false;
 
             if (TaskStatus.RanToCompletion == _backgroundRunningCompletionSource.Task.Status)
-                return guid == _backgroundRunningCompletionSource.Task.Result;
+                return backgroundId == _backgroundRunningCompletionSource.Task.Result;
 
-            return _backgroundRunningCompletionSource.TrySetResult(guid);
+            Debug.WriteLine("MediaPlayerSession.TrySetBackgroundId() " + backgroundId);
+
+            return _backgroundRunningCompletionSource.TrySetResult(backgroundId);
         }
 
-        public async Task OpenAsync(Action<MediaPlayer, object> onCurrentStateChanged)
+        public async Task<bool> OpenAsync(Action<MediaPlayer, object> onCurrentStateChanged)
         {
             if (null == onCurrentStateChanged)
                 throw new ArgumentNullException("onCurrentStateChanged");
 
-            _notifier.Notify("ping");
+            _challenge = Guid.NewGuid();
 
-            var cts = new CancellationTokenSource(StartTimeout);
+            _notifier.Notify("ping", _challenge);
 
-            using (cts.Token.Register(obj => ((TaskCompletionSource<Guid>)obj).TrySetCanceled(), _backgroundRunningCompletionSource))
-            {
-                await _backgroundRunningCompletionSource.Task.ConfigureAwait(false);
-            }
+            var timeout = Task.Delay(250);
+
+            await Task.WhenAny(_backgroundRunningCompletionSource.Task, timeout);
+
+            return _backgroundRunningCompletionSource.Task.IsCompleted;
         }
     }
 }

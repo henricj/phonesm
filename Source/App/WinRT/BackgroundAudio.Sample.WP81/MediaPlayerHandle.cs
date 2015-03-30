@@ -26,8 +26,8 @@
 
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
-using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Media;
 using Windows.Media.Playback;
@@ -39,6 +39,7 @@ namespace BackgroundAudio.Sample
 {
     sealed class MediaPlayerHandle : IDisposable
     {
+        readonly AsyncLock _asyncLock = new AsyncLock();
         readonly CoreDispatcher _dispatcher;
         readonly Guid _id = Guid.NewGuid();
         readonly IBackgroundMediaNotifier _notifier;
@@ -49,6 +50,8 @@ namespace BackgroundAudio.Sample
             _dispatcher = dispatcher;
 
             _notifier = new BackgroundNotifier(_id);
+
+            BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
         }
 
         public Guid Id
@@ -62,7 +65,9 @@ namespace BackgroundAudio.Sample
             {
                 Debug.Assert(_dispatcher.HasThreadAccess, "MediaPlayer requires the dispatcher thread");
 
-                return null == _mediaPlayerSession ? null : _mediaPlayerSession.MediaPlayer;
+                var mediaPlayerSession = _mediaPlayerSession;
+
+                return null == mediaPlayerSession ? null : mediaPlayerSession.MediaPlayer;
             }
         }
 
@@ -72,7 +77,9 @@ namespace BackgroundAudio.Sample
             {
                 Debug.Assert(_dispatcher.HasThreadAccess, "IsRunning requires the dispatcher thread");
 
-                return null != _mediaPlayerSession && _mediaPlayerSession.IsRunning;
+                var mediaPlayerSession = _mediaPlayerSession;
+
+                return null != mediaPlayerSession && mediaPlayerSession.IsRunning;
             }
         }
 
@@ -80,49 +87,67 @@ namespace BackgroundAudio.Sample
 
         public void Dispose()
         {
+            BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
+
             Close();
+
+            _asyncLock.Dispose();
         }
 
         #endregion
 
-        public event TypedEventHandler<MediaPlayer, object> CurrentStateChanged;
+        public event EventHandler<object> CurrentStateChanged;
         public event EventHandler<MediaPlayerDataReceivedEventArgs> MessageReceivedFromBackground;
 
-        public async Task OpenAsync()
+        public async Task<MediaPlayerSession> OpenAsync()
         {
             Debug.WriteLine("MediaPlayerHandle.OpenAsync()");
 
-            Debug.Assert(_dispatcher.HasThreadAccess, "MediaPlayer requires the dispatcher thread");
-
             MediaPlayerSession mediaPlayerSession = null;
 
-            try
+            for (var retry = 0; retry < 3; ++retry)
             {
-                mediaPlayerSession = new MediaPlayerSession(BackgroundMediaPlayer.Current, _notifier, OnCurrentStateChanged, OnMessageReceivedFromBackground);
+                using (await _asyncLock.LockAsync(CancellationToken.None))
+                {
+                    mediaPlayerSession = _mediaPlayerSession;
 
-                _mediaPlayerSession = mediaPlayerSession;
+                    if (null != mediaPlayerSession)
+                        return mediaPlayerSession;
 
-                await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false);
+                    try
+                    {
+                        mediaPlayerSession = new MediaPlayerSession(BackgroundMediaPlayer.Current, _notifier, OnCurrentStateChanged, OnMessageReceivedFromBackground);
 
-                return;
+                        _mediaPlayerSession = mediaPlayerSession;
+
+                        if (await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false))
+                            return mediaPlayerSession;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("MediaPlayerHandle.OpenAsync() failed: " + ex.ExtendedMessage());
+                    }
+
+                    _mediaPlayerSession = null;
+
+                    ResetNotificationSubscription();
+                }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("MediaPlayerHandle.OpenAsync() failed: " + ex.ExtendedMessage());
-            }
-
-            _mediaPlayerSession = null;
 
             if (null != mediaPlayerSession)
                 mediaPlayerSession.Dispose();
 
             BackgroundMediaPlayer.Shutdown();
+
+            return null;
         }
 
-        void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
+        async void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
         {
             //Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground()");
             Guid? backgroundId = null;
+            object challenge = null;
+            var stop = false;
 
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
@@ -143,7 +168,13 @@ namespace BackgroundAudio.Sample
                             _notifier.Notify("pong", kv.Value);
                             break;
                         case "pong":
+                            challenge = kv.Value;
+                            break;
                         case "start":
+                            break;
+                        case "fail":
+                        case "stop":
+                            stop = true;
                             break;
                         case "id":
                             var backgroundIdValue = kv.Value as Guid?;
@@ -162,54 +193,10 @@ namespace BackgroundAudio.Sample
 
             if (backgroundId.HasValue)
             {
-                var awaiter = _dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                    async () =>
-                    {
-                        var mediaPlayerSession = _mediaPlayerSession;
-
-                        try
-                        {
-                            if (null != mediaPlayerSession)
-                            {
-                                if (mediaPlayerSession.TrySetRemoteId(backgroundId.Value))
-                                    return;
-
-                                _mediaPlayerSession = null;
-
-                                mediaPlayerSession.Dispose();
-                            }
-
-                            await OpenAsync().ConfigureAwait(false);
-
-                            mediaPlayerSession = _mediaPlayerSession;
-
-                            if (null != mediaPlayerSession && mediaPlayerSession.TrySetRemoteId(backgroundId.Value))
-                                return;
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine("MediaPlayerHandle.OnMessageReceived() failed: " + ex.ExtendedMessage());
-                        }
-
-                        // We can get here if there is no response to the ping.
-
-                        try
-                        {
-                            mediaPlayerSession = _mediaPlayerSession;
-
-                            if (null != mediaPlayerSession)
-                            {
-                                _mediaPlayerSession = null;
-                                mediaPlayerSession.Dispose();
-                            }
-
-                            BackgroundMediaPlayer.Shutdown();
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine("MediaPlayerHandle.OnMessageReceived() cleanup failed: " + ex.ExtendedMessage());
-                        }
-                    });
+                if (stop)
+                    await CloseSessionAsync(backgroundId.Value).ConfigureAwait(false);
+                else
+                    await UpdateBackgroundIdAsync(backgroundId.Value, challenge).ConfigureAwait(false);
             }
 
             var handler = MessageReceivedFromBackground;
@@ -218,20 +205,66 @@ namespace BackgroundAudio.Sample
                 handler(sender, mediaPlayerDataReceivedEventArgs);
         }
 
+        async Task CloseSessionAsync(Guid backgroundId)
+        {
+            Debug.WriteLine("MediaPlayerHandle.CloseSession() " + backgroundId);
+
+            var mediaPlayerSession = _mediaPlayerSession;
+
+            if (null == mediaPlayerSession)
+                return;
+
+            using (await _asyncLock.LockAsync(CancellationToken.None))
+            {
+                if (!mediaPlayerSession.BackgroundId.HasValue || backgroundId != mediaPlayerSession.BackgroundId)
+                    return;
+
+                if (ReferenceEquals(_mediaPlayerSession, mediaPlayerSession))
+                    _mediaPlayerSession = null;
+
+                mediaPlayerSession.Dispose();
+
+                ResetNotificationSubscription();
+            }
+        }
+
+        async Task UpdateBackgroundIdAsync(Guid backgroundId, object challenge)
+        {
+            Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() " + backgroundId);
+
+            var mediaPlayerSession = _mediaPlayerSession;
+
+            try
+            {
+                if (null == mediaPlayerSession)
+                {
+                    ResetNotificationSubscription();
+
+                    mediaPlayerSession = await OpenAsync().ConfigureAwait(false);
+                }
+
+                if (null != mediaPlayerSession)
+                {
+                    if (mediaPlayerSession.TrySetBackgroundId(backgroundId, challenge))
+                        Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() matched " + backgroundId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() failed: " + ex.ExtendedMessage());
+            }
+        }
+
         public void Close()
         {
             Debug.WriteLine("MediaPlayerHandle.Close()");
 
             try
             {
-                Debug.Assert(_dispatcher.HasThreadAccess, "MediaPlayer requires the dispatcher thread");
-
-                var mediaPlayerSession = _mediaPlayerSession;
+                var mediaPlayerSession = Interlocked.Exchange(ref _mediaPlayerSession, null);
 
                 if (null == mediaPlayerSession)
                     return;
-
-                _mediaPlayerSession = null;
 
                 mediaPlayerSession.Dispose();
             }
@@ -279,6 +312,8 @@ namespace BackgroundAudio.Sample
                 _notifier.Notify("suspend");
 
                 Close();
+
+                BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
             }
             catch (Exception ex)
             {
@@ -293,6 +328,8 @@ namespace BackgroundAudio.Sample
                 {
                     try
                     {
+                        BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
+
                         await OpenAsync();
 
                         _notifier.Notify("resume");
@@ -302,6 +339,14 @@ namespace BackgroundAudio.Sample
                         Debug.WriteLine("MediaPlayerHandle.Suspend() failed: " + ex.ExtendedMessage());
                     }
                 });
+        }
+
+        public void ResetNotificationSubscription()
+        {
+            Debug.WriteLine("MediaPlayerHandle.ResetNotificationSubscription()");
+
+            BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
+            BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
         }
     }
 

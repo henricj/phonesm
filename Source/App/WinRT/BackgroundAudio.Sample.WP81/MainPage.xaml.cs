@@ -237,6 +237,7 @@ namespace BackgroundAudio.Sample
             var updateMemory = false;
             string failMessage = null;
             string trackName = null;
+            bool callShutdown = false;
 
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
@@ -258,6 +259,7 @@ namespace BackgroundAudio.Sample
 
                             break;
                         case "fail":
+                            callShutdown = true;
                             failMessage = kv.Value as string;
 
                             Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() fail " + failMessage);
@@ -306,9 +308,14 @@ namespace BackgroundAudio.Sample
 
                 var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low, () => txtMemory.Text = memoryString);
             }
+
+            if (callShutdown)
+            {
+                var awaiter2 = Dispatcher.RunAsync(CoreDispatcherPriority.Low, CleanupFailedPlayer);
+            }
         }
 
-        void OnCurrentStateChanged(MediaPlayer sender, object args)
+        void OnCurrentStateChanged(object obj, object args)
         {
             Debug.WriteLine("MainPage.OnCurrentStateChanged()");
 

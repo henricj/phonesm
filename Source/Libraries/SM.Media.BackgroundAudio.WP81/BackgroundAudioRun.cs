@@ -89,6 +89,7 @@ namespace SM.Media.BackgroundAudio
 
                 var isOk = false;
 
+                BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
                 BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
 
                 var mediaPlayer = BackgroundMediaPlayer.Current;
@@ -132,7 +133,9 @@ namespace SM.Media.BackgroundAudio
                         smtc.IsNextEnabled = true;
                         smtc.IsPreviousEnabled = true;
 
-                        _foregroundNotifier.Notify("start", _id);
+                        Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() sending start to foreground");
+
+                        _foregroundNotifier.Notify("start");
 
                         await _completionSource.Task.ConfigureAwait(false);
                     }
@@ -141,6 +144,8 @@ namespace SM.Media.BackgroundAudio
                         Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() playback failed: " + ex.ExtendedMessage());
                     }
                 }
+
+                Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() done waiting");
 
                 try
                 {
@@ -166,6 +171,8 @@ namespace SM.Media.BackgroundAudio
                     mediaPlayerManager.Dispose();
                 }
 
+                _foregroundNotifier.Notify("stop");
+
                 mediaPlayer.CurrentStateChanged -= CurrentOnCurrentStateChanged;
                 mediaPlayer.PlaybackMediaMarkerReached -= OnPlaybackMediaMarkerReached;
                 BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
@@ -173,6 +180,10 @@ namespace SM.Media.BackgroundAudio
             catch (Exception ex)
             {
                 Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() failed: " + ex.ExtendedMessage());
+            }
+            finally
+            {
+                Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() completed");
             }
         }
 
@@ -264,7 +275,7 @@ namespace SM.Media.BackgroundAudio
             _completionSource.TrySetResult(null);
         }
 
-        void MediaPlayerManagerOnFailed(MediaPlayerManager sender, string message)
+        void MediaPlayerManagerOnFailed(object o, string message)
         {
             Debug.WriteLine("BackgroundAudioRun.MediaPlayerManagerOnFailed() " + _id + " exception " + message);
 
@@ -276,10 +287,10 @@ namespace SM.Media.BackgroundAudio
 
                 smtc.PlaybackStatus = MediaPlaybackStatus.Stopped;
 
-                var valueSet = new ValueSet
-                {
-                    { "track", _mediaPlayerManager.TrackName }
-                };
+                var valueSet = new ValueSet();
+
+                if (null != _mediaPlayerManager)
+                    valueSet.Add("track", _mediaPlayerManager.TrackName);
 
                 if (!string.IsNullOrEmpty(message))
                     valueSet["fail"] = message;
@@ -290,9 +301,11 @@ namespace SM.Media.BackgroundAudio
             {
                 Debug.WriteLine("BackgroundAudioRun.MediaPlayerManagerOnFailed() failed: " + ex2.ExtendedMessage());
             }
+
+            _completionSource.TrySetResult(null);
         }
 
-        void MediaPlayerManagerOnTrackChanged(MediaPlayerManager sender, string trackName)
+        void MediaPlayerManagerOnTrackChanged(object obj, string trackName)
         {
             Debug.WriteLine("BackgroundAudioRun.MediaPlayerManagerOnTrackChanged() " + _id + " track " + trackName);
 

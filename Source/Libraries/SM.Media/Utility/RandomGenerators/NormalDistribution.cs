@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 
 namespace SM.Media.Utility.RandomGenerators
 {
@@ -82,6 +83,15 @@ namespace SM.Media.Utility.RandomGenerators
             }
 
             return result * _standardDeviation + _mean;
+        }
+    }
+
+    public static class NormalDistributionExtensions
+    {
+        public static IEnumerable<float> AsEnumerable(this NormalDistribution normalDistribution)
+        {
+            for (; ; )
+                yield return normalDistribution.Next();
         }
     }
 }

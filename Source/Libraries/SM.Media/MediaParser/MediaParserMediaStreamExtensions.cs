@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaParserMediaStreamExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using SM.Media.Configuration;
 
 namespace SM.Media.MediaParser
@@ -36,9 +35,11 @@ namespace SM.Media.MediaParser
         public static IMediaConfiguration CreateMediaConfiguration(this IEnumerable<IMediaParserMediaStream> mediaParserMediaStreams, TimeSpan? duration)
         {
             var configuration = new MediaConfiguration
-                                {
-                                    Duration = duration
-                                };
+            {
+                Duration = duration
+            };
+
+            List<IMediaParserMediaStream> alternateStreams = null;
 
             foreach (var mediaStream in mediaParserMediaStreams)
             {
@@ -46,14 +47,8 @@ namespace SM.Media.MediaParser
 
                 var video = configurationSource as IVideoConfigurationSource;
 
-                if (null != video)
+                if (null != video && null == configuration.Video)
                 {
-                    if (null != configuration.Video)
-                    {
-                        Debug.WriteLine("MediaParserMediaStreamExtensions.CheckConfigurationCompleted() multiple video streams");
-                        continue;
-                    }
-
                     configuration.Video = mediaStream;
 
                     continue;
@@ -61,21 +56,20 @@ namespace SM.Media.MediaParser
 
                 var audio = configurationSource as IAudioConfigurationSource;
 
-                if (null != audio)
+                if (null != audio && null == configuration.Audio)
                 {
-                    if (null != configuration.Audio)
-                    {
-                        Debug.WriteLine("MediaParserMediaStreamExtensions.CheckConfigurationCompleted() multiple audio streams");
-                        continue;
-                    }
-
                     configuration.Audio = mediaStream;
 
                     continue;
                 }
 
-                Debug.WriteLine("MediaParserMediaStreamExtensions.CheckConfigurationCompleted() unexpected media stream");
+                if (null == alternateStreams)
+                    alternateStreams = new List<IMediaParserMediaStream>();
+
+                alternateStreams.Add(mediaStream);
             }
+
+            configuration.AlternateStreams = alternateStreams;
 
             return configuration;
         }

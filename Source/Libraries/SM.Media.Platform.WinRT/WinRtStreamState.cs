@@ -25,9 +25,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Media.Core;
+using SM.Media.Content;
 using SM.Media.Utility;
 using SM.TsParser;
 
@@ -36,28 +36,37 @@ namespace SM.Media
     class WinRtStreamState
     {
         public readonly IMediaStreamDescriptor Descriptor;
+        readonly ContentType _contentType;
         readonly string _name;
         readonly object _sampleLock = new object();
-
         readonly IStreamSource _streamSource;
         uint _bufferingProgress;
         MediaStreamSourceSampleRequestDeferral _deferral;
         bool _isClosed;
+        int _recycleCount;
         uint _reportedBufferingProgress;
         MediaStreamSourceSampleRequest _request;
 
-        public WinRtStreamState(string name, IStreamSource streamSource, IMediaStreamDescriptor descriptor)
+        public WinRtStreamState(string name, ContentType contentType, IStreamSource streamSource, IMediaStreamDescriptor descriptor)
         {
-            if (name == null)
+            if (null == name)
                 throw new ArgumentNullException("name");
-            if (streamSource == null)
+            if (null == contentType)
+                throw new ArgumentNullException("contentType");
+            if (null == streamSource)
                 throw new ArgumentNullException("streamSource");
-            if (descriptor == null)
+            if (null == descriptor)
                 throw new ArgumentNullException("descriptor");
 
             _name = name;
+            _contentType = contentType;
             _streamSource = streamSource;
             Descriptor = descriptor;
+        }
+
+        public string Name
+        {
+            get { return _name; }
         }
 
         public bool IsBuffering
@@ -68,6 +77,11 @@ namespace SM.Media
         public TimeSpan? PresentationTimestamp
         {
             get { return _streamSource.PresentationTimestamp; }
+        }
+
+        public ContentType ContentType
+        {
+            get { return _contentType; }
         }
 
         public void CheckForSamples()

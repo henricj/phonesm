@@ -25,7 +25,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media.Core;
@@ -42,20 +44,20 @@ namespace SM.Media
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
+        static readonly TimeSpan ResyncThreshold = TimeSpan.FromSeconds(5);
+        static readonly WinRtStreamState[] NoStreamStates = new WinRtStreamState[0];
         readonly object _stateLock = new object();
         readonly object _streamConfigurationLock = new object();
         int _isDisposed;
         TimeSpan? _seekTarget;
         TimeSpan? _duration;
-        WinRtStreamState _videoStreamState;
-        WinRtStreamState _audioStreamState;
         MediaStreamSourceStartingRequestDeferral _onStartingDeferral;
         MediaStreamSourceStartingRequest _onStartingRequest;
-        static readonly TimeSpan ResyncThreshold = TimeSpan.FromSeconds(7);
         MediaStreamSource _mediaStreamSource;
         TaskCompletionSource<IMediaSource> _mediaStreamCompletionSource = new TaskCompletionSource<IMediaSource>();
         TaskCompletionSource<object> _playingCompletionSource;
         CancellationTokenRegistration? _playingCancellationTokenRegistration;
+        WinRtStreamState[] _streamStates = NoStreamStates;
 
         bool IsDisposed
         {
@@ -64,7 +66,7 @@ namespace SM.Media
 
         bool IsBuffering
         {
-            get { return (null != _videoStreamState && _videoStreamState.IsBuffering) || (null != _audioStreamState && _audioStreamState.IsBuffering); }
+            get { return _streamStates.Any(s => s.IsBuffering); }
         }
 
         public WinRtMediaStreamConfigurator()
@@ -114,25 +116,69 @@ namespace SM.Media
         {
             ThrowIfDisposed();
 
+            var streamStates = new List<WinRtStreamState>();
+
+            WinRtStreamState videoStreamState = null;
+            WinRtStreamState audioStreamState = null;
+
             if (null != configuration.Audio)
             {
                 var descriptor = CreateAudioDescriptor((IAudioConfigurationSource)configuration.Audio.ConfigurationSource);
 
-                _audioStreamState = new WinRtStreamState("Audio", configuration.Audio.StreamSource, descriptor);
+                var contentType = configuration.Audio.ConfigurationSource.ContentType;
+
+                var state = new WinRtStreamState("Audio", contentType, configuration.Audio.StreamSource, descriptor);
+
+                audioStreamState = state;
+
+                streamStates.Add(state);
             }
 
             if (null != configuration.Video)
             {
                 var descriptor = CreateVideoDescriptor((IVideoConfigurationSource)configuration.Video.ConfigurationSource);
 
-                _videoStreamState = new WinRtStreamState("Video", configuration.Video.StreamSource, descriptor);
+                var contentType = configuration.Video.ConfigurationSource.ContentType;
+
+                var state = new WinRtStreamState("Video", contentType, configuration.Video.StreamSource, descriptor);
+
+                videoStreamState = state;
+
+                streamStates.Add(state);
             }
+
+            if (null != configuration.AlternateStreams && configuration.AlternateStreams.Count > 0)
+            {
+                var audioCount = 1;
+
+                foreach (var stream in configuration.AlternateStreams)
+                {
+                    var audioConfigurationSource = stream.ConfigurationSource as IAudioConfigurationSource;
+
+                    if (null == audioConfigurationSource)
+                        continue;
+
+                    var descriptor = CreateAudioDescriptor(audioConfigurationSource);
+
+                    var contentType = audioConfigurationSource.ContentType;
+
+                    ++audioCount;
+
+                    var audioStream = new WinRtStreamState("Audio " + audioCount, contentType, stream.StreamSource, descriptor);
+
+                    streamStates.Add(audioStream);
+                }
+            }
+
+            var allStreams = streamStates.ToArray();
 
             lock (_streamConfigurationLock)
             {
+                _streamStates = allStreams;
+
                 _duration = configuration.Duration;
 
-                return ConfigureAsync(cancellationToken);
+                return ConfigureAsync(videoStreamState, audioStreamState, cancellationToken);
             }
         }
 
@@ -147,11 +193,8 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
-            if (null != _videoStreamState)
-                _videoStreamState.Close();
-
-            if (null != _audioStreamState)
-                _audioStreamState.Close();
+            foreach (var state in _streamStates)
+                state.Close();
 
             CancelMediaStreamCompletion();
 
@@ -167,11 +210,8 @@ namespace SM.Media
         {
             Debug.WriteLine("WinRtMediaStreamConfigurator.CancelPending()");
 
-            if (null != _videoStreamState)
-                _videoStreamState.Cancel();
-
-            if (null != _audioStreamState)
-                _audioStreamState.Cancel();
+            foreach (var state in _streamStates)
+                state.Cancel();
         }
 
         public void ValidateEvent(MediaStreamFsm.MediaEvent mediaEvent)
@@ -188,11 +228,8 @@ namespace SM.Media
             if (null != _onStartingDeferral)
                 CompleteOnStarting();
 
-            if (null != _videoStreamState)
-                _videoStreamState.CheckForSamples();
-
-            if (null != _audioStreamState)
-                _audioStreamState.CheckForSamples();
+            foreach (var state in _streamStates)
+                state.CheckForSamples();
         }
 
         #endregion
@@ -297,11 +334,11 @@ namespace SM.Media
         {
             var p = descriptor.EncodingProperties;
 
-            Debug.WriteLine("WinRtMediaStreamConfigurator.CreateAudioDescriptor() {0} sample rate {1} channels {2} bitrate {3}",
+            Debug.WriteLine("WinRtMediaStreamConfigurator.DumpAudioStreamDescriptor() {0} sample rate {1} channels {2} bitrate {3}",
                 p.Subtype, p.SampleRate, p.ChannelCount, p.Bitrate);
         }
 
-        Task ConfigureAsync(CancellationToken cancellationToken)
+        Task ConfigureAsync(WinRtStreamState videoStreamState, WinRtStreamState audioStreamState, CancellationToken cancellationToken)
         {
             Debug.WriteLine("WinRtMediaStreamConfigurator.ConfigureAsync()");
 
@@ -328,7 +365,7 @@ namespace SM.Media
                 return playingTask.Task;
             }
 
-            var mss = CreateMediaStreamSource();
+            var mss = CreateMediaStreamSource(videoStreamState, audioStreamState);
 
             _mediaStreamSource = mss;
 
@@ -348,16 +385,16 @@ namespace SM.Media
             return playingTask.Task;
         }
 
-        MediaStreamSource CreateMediaStreamSource()
+        MediaStreamSource CreateMediaStreamSource(WinRtStreamState videoStreamState, WinRtStreamState audioStreamState)
         {
             MediaStreamSource mediaStreamSource;
 
-            if (null != _videoStreamState && null != _audioStreamState)
-                mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor, _audioStreamState.Descriptor);
-            else if (null != _videoStreamState)
-                mediaStreamSource = new MediaStreamSource(_videoStreamState.Descriptor);
-            else if (null != _audioStreamState)
-                mediaStreamSource = new MediaStreamSource(_audioStreamState.Descriptor);
+            if (null != videoStreamState && null != audioStreamState)
+                mediaStreamSource = new MediaStreamSource(videoStreamState.Descriptor, audioStreamState.Descriptor);
+            else if (null != videoStreamState)
+                mediaStreamSource = new MediaStreamSource(videoStreamState.Descriptor);
+            else if (null != audioStreamState)
+                mediaStreamSource = new MediaStreamSource(audioStreamState.Descriptor);
             else
                 throw new InvalidOperationException("No streams configured");
 
@@ -365,6 +402,14 @@ namespace SM.Media
 
             if (_duration.HasValue)
                 mediaStreamSource.Duration = _duration.Value;
+
+            foreach (var state in _streamStates)
+            {
+                if (ReferenceEquals(audioStreamState, state) || ReferenceEquals(videoStreamState, state))
+                    continue;
+
+                mediaStreamSource.AddStreamDescriptor(state.Descriptor);
+            }
 
             RegisterCallbacks(mediaStreamSource);
 
@@ -395,14 +440,12 @@ namespace SM.Media
         {
             Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnSwitchStreamsRequested()");
 
-            //NotifyOnError(sender);
-
-            //throw new NotSupportedException();
+            NotifyOnError(sender);
         }
 
         void MediaStreamSourceOnPaused(MediaStreamSource sender, object args)
         {
-            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnPaused() pts " + CurrentTimestamp());
+            Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnPaused() pts " + GetCurrentTimestamp());
 
             NotifyOnError(sender);
         }
@@ -442,8 +485,7 @@ namespace SM.Media
 
             DisposePlayingCancellationRegistration();
 
-            _videoStreamState = null;
-            _audioStreamState = null;
+            _streamStates = NoStreamStates;
 
             switch (reason)
             {
@@ -484,17 +526,21 @@ namespace SM.Media
         {
             //Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnSampleRequested()");
 
-            // We let "FailIfDisposed()" tell the MediaStreamSource if it
-            // is time to quit, but we keep processing samples until the MediaStreamSource
-            // tells us otherwise.
+            // We let "NotifyOnError()" tell the MediaStreamSource if it is time to quit,
+            // but we keep processing samples until the MediaStreamSource tells us otherwise.
             NotifyOnError(sender);
 
             var request = args.Request;
 
-            if (null != _videoStreamState && request.StreamDescriptor == _videoStreamState.Descriptor)
-                _videoStreamState.SampleRequested(request);
-            else if (null != _audioStreamState && request.StreamDescriptor == _audioStreamState.Descriptor)
-                _audioStreamState.SampleRequested(request);
+            var state = _streamStates.FirstOrDefault(s => ReferenceEquals(s.Descriptor, request.StreamDescriptor));
+
+            if (null == state)
+            {
+                Debug.WriteLine("WinRtMediaStreamConfigurator.MediaStreamSourceOnSampleRequested() unknown stream: " + request.StreamDescriptor.Name);
+                return;
+            }
+
+            state.SampleRequested(request);
         }
 
         async void MediaStreamSourceOnStarting(MediaStreamSource sender, MediaStreamSourceStartingEventArgs args)
@@ -653,66 +699,88 @@ namespace SM.Media
 
         TimeSpan? ResyncPresentationTimestamp()
         {
-            if (null != _videoStreamState && _videoStreamState.PresentationTimestamp.HasValue
-                && null != _audioStreamState && _audioStreamState.PresentationTimestamp.HasValue)
+            var earliest = TimeSpan.MaxValue;
+            var latest = TimeSpan.MinValue;
+
+            var count = 0;
+
+            foreach (var state in _streamStates)
             {
-                var videoTimestamp = _videoStreamState.PresentationTimestamp.Value;
-                var audioTimestamp = _audioStreamState.PresentationTimestamp.Value;
+                if (!state.Descriptor.IsSelected)
+                    continue;
 
-                var difference = audioTimestamp - videoTimestamp;
+                ++count;
 
-                if (difference > ResyncThreshold)
+                var pts = state.PresentationTimestamp;
+
+                if (!pts.HasValue)
                 {
-                    var discarded = _videoStreamState.DiscardPacketsBefore(audioTimestamp);
+                    count = 0;
 
-                    if (discarded)
-                        Debug.WriteLine("WinRtMediaStreamConfigurator.ResyncPresentationTimestamp() discarded video samples before " + audioTimestamp);
+                    break;
                 }
-                else if (difference < -ResyncThreshold)
-                {
-                    var discarded = _audioStreamState.DiscardPacketsBefore(videoTimestamp);
 
-                    if (discarded)
-                        Debug.WriteLine("WinRtMediaStreamConfigurator.ResyncPresentationTimestamp() discarded audio samples before " + videoTimestamp);
+                if (pts.Value < earliest)
+                    earliest = pts.Value;
+
+                if (pts.Value > latest)
+                    latest = pts.Value;
+            }
+
+            if (count > 1)
+            {
+                var difference = latest - earliest;
+
+                if (difference >= ResyncThreshold)
+                {
+                    foreach (var state in _streamStates)
+                    {
+                        if (!state.Descriptor.IsSelected)
+                            continue;
+
+                        if (!state.PresentationTimestamp.HasValue)
+                            continue;
+
+                        var pts = state.PresentationTimestamp.Value;
+
+                        if (latest - pts <= ResyncThreshold)
+                            continue;
+
+                        var discarded = state.DiscardPacketsBefore(latest);
+
+                        if (discarded)
+                            Debug.WriteLine("WinRtMediaStreamConfigurator.ResyncPresentationTimestamp() discarded '" + state.Name + "' samples before " + latest);
+                    }
                 }
             }
 
-            return CurrentTimestamp();
+            return GetCurrentTimestamp();
         }
 
         /// <summary>
-        ///     Return the earliest timestamp in all the streams.  If a valid
+        ///     Return the earliest timestamp in all the active streams.  If a valid
         ///     stream does not have a timestamp, then return null.
         /// </summary>
         /// <returns></returns>
-        TimeSpan? CurrentTimestamp()
+        TimeSpan? GetCurrentTimestamp()
         {
-            TimeSpan? videoTimestamp = null;
-            TimeSpan? audioTimestamp = null;
+            TimeSpan? earliest = null;
 
-            if (null != _videoStreamState)
+            foreach (var state in _streamStates)
             {
-                videoTimestamp = _videoStreamState.PresentationTimestamp;
+                if (!state.Descriptor.IsSelected)
+                    continue;
 
-                if (!videoTimestamp.HasValue)
+                var pts = state.PresentationTimestamp;
+
+                if (!pts.HasValue)
                     return null;
+
+                if (!earliest.HasValue || pts.Value < earliest.Value)
+                    earliest = pts.Value;
             }
 
-            if (null != _audioStreamState)
-            {
-                audioTimestamp = _audioStreamState.PresentationTimestamp;
-
-                if (!audioTimestamp.HasValue)
-                    return null;
-            }
-
-            if (!audioTimestamp.HasValue)
-                return videoTimestamp;
-
-            if (!videoTimestamp.HasValue)
-                return audioTimestamp;
-
-            return audioTimestamp.Value < videoTimestamp.Value ? audioTimestamp.Value : videoTimestamp.Value;
+            return earliest;
         }
 
         public void Initialize()

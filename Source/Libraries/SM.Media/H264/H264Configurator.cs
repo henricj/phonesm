@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="H264Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,6 +29,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using SM.Media.Configuration;
+using SM.Media.Content;
 using SM.Media.Utility;
 
 namespace SM.Media.H264
@@ -41,7 +42,7 @@ namespace SM.Media.H264
         IEnumerable<byte> _spsBytes;
 
         public H264Configurator(string streamDescription = null)
-            : base("H264")
+            : base("H264", ContentTypes.H264)
         {
             StreamDescription = streamDescription;
         }
@@ -144,8 +145,7 @@ namespace SM.Media.H264
             FrameRateDenominator = _h264Reader.FrameRateDenominator;
 
             if (FrameRateDenominator.HasValue && FrameRateNumerator.HasValue)
-            Debug.WriteLine("H264Configurator.ComputeFrameRate() {0}/{1} -> {2:F4} fps", FrameRateNumerator, FrameRateDenominator, FrameRateNumerator / (double)FrameRateDenominator);
-
+                Debug.WriteLine("H264Configurator.ComputeFrameRate() {0}/{1} -> {2:F4} fps", FrameRateNumerator, FrameRateDenominator, FrameRateNumerator / (double)FrameRateDenominator);
 
 
 #if DEBUG

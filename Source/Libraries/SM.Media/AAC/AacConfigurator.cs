@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AacConfigurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,20 +27,22 @@
 using System;
 using SM.Media.Audio;
 using SM.Media.Configuration;
+using SM.Media.Content;
 using SM.Media.Mmreg;
 
 namespace SM.Media.AAC
 {
-    public sealed class AacConfigurator : ConfiguratorBase, IAudioConfigurationSource, IFrameParser, IAudioConfigurator
+    public sealed class AacConfigurator : ConfiguratorBase, IFrameParser, IAudioConfigurator
     {
         readonly AacFrameHeader _frameHeader = new AacFrameHeader();
 
         public AacConfigurator(string streamDescription = null)
+            : base(ContentTypes.Aac)
         {
             StreamDescription = streamDescription;
         }
 
-        #region IAudioConfigurationSource Members
+        #region IAudioConfigurator Members
 
         public AudioFormat Format
         {
@@ -49,10 +51,6 @@ namespace SM.Media.AAC
 
         public int SamplingFrequency { get; private set; }
         public int Channels { get; private set; }
-
-        #endregion
-
-        #region IAudioConfigurator Members
 
         public void Configure(IAudioFrameHeader frameHeader)
         {
@@ -106,22 +104,22 @@ namespace SM.Media.AAC
                         throw new NotSupportedException("AacDecoderSettings.Parameters.UseRawAac must be enabled when using AacDecoderParameters.WaveFormatEx.RawAac");
 
                     w = new RawAacWaveInfo
-                        {
-                            nChannels = aacFrameHeader.ChannelConfig,
-                            nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
-                            nAvgBytesPerSec = (uint)(aacFrameHeader.Duration.TotalSeconds <= 0 ? 0 : aacFrameHeader.FrameLength / aacFrameHeader.Duration.TotalSeconds),
-                            pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
-                        };
+                    {
+                        nChannels = aacFrameHeader.ChannelConfig,
+                        nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
+                        nAvgBytesPerSec = (uint)(aacFrameHeader.Duration.TotalSeconds <= 0 ? 0 : aacFrameHeader.FrameLength / aacFrameHeader.Duration.TotalSeconds),
+                        pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
+                    };
 
                     break;
                 case AacDecoderParameters.WaveFormatEx.HeAac:
                     w = new HeAacWaveInfo
-                        {
-                            wPayloadType = (ushort)(AacDecoderSettings.Parameters.UseRawAac ? HeAacWaveInfo.PayloadType.Raw : HeAacWaveInfo.PayloadType.ADTS),
-                            nChannels = aacFrameHeader.ChannelConfig,
-                            nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
-                            pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
-                        };
+                    {
+                        wPayloadType = (ushort)(AacDecoderSettings.Parameters.UseRawAac ? HeAacWaveInfo.PayloadType.Raw : HeAacWaveInfo.PayloadType.ADTS),
+                        nChannels = aacFrameHeader.ChannelConfig,
+                        nSamplesPerSec = (uint)aacFrameHeader.SamplingFrequency,
+                        pbAudioSpecificConfig = aacFrameHeader.AudioSpecificConfig
+                    };
 
                     break;
                 default:

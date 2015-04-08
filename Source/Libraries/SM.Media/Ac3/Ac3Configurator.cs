@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Ac3Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using SM.Media.Audio;
 using SM.Media.Configuration;
+using SM.Media.Content;
 
 namespace SM.Media.Ac3
 {
@@ -34,6 +35,7 @@ namespace SM.Media.Ac3
         readonly Ac3FrameHeader _frameHeader = new Ac3FrameHeader();
 
         public Ac3Configurator(string streamDescription = null)
+            : base(ContentTypes.Ac3)
         {
             StreamDescription = streamDescription;
         }

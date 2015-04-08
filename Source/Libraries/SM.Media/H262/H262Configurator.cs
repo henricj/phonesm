@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="H262Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,13 +26,14 @@
 
 using System.Diagnostics;
 using SM.Media.Configuration;
+using SM.Media.Content;
 
 namespace SM.Media.H262
 {
     public sealed class H262Configurator : VideoConfigurator, IFrameParser
     {
         public H262Configurator(string streamDescription = null)
-            : base("MP2V")
+            : base("MP2V", ContentTypes.H262)
         {
             StreamDescription = streamDescription;
         }

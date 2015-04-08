@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Mp3Configurator.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using SM.Media.Audio;
 using SM.Media.Configuration;
+using SM.Media.Content;
 using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
@@ -35,6 +36,7 @@ namespace SM.Media.MP3
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
 
         public Mp3Configurator(string streamDescription = null)
+            : base(ContentTypes.Mp3)
         {
             StreamDescription = streamDescription;
         }
@@ -54,12 +56,12 @@ namespace SM.Media.MP3
             var mp3FrameHeader = (Mp3FrameHeader)frameHeader;
 
             var waveFormat = new MpegLayer3WaveFormat
-                             {
-                                 nChannels = (ushort)mp3FrameHeader.Channels,
-                                 nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
-                                 nAvgBytesPerSec = (uint)mp3FrameHeader.Bitrate / 8,
-                                 nBlockSize = (ushort)frameHeader.FrameLength
-                             };
+            {
+                nChannels = (ushort)mp3FrameHeader.Channels,
+                nSamplesPerSec = (uint)frameHeader.SamplingFrequency,
+                nAvgBytesPerSec = (uint)mp3FrameHeader.Bitrate / 8,
+                nBlockSize = (ushort)frameHeader.FrameLength
+            };
 
             var cpd = waveFormat.ToCodecPrivateData();
 

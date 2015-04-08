@@ -122,7 +122,14 @@ namespace SM.Media.MediaManager
                 _isClosed = true;
             }
 
-            StopAsync().Wait();
+            try
+            {
+                StopAsync().Wait();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("CallbackReader.Close() failed: " + ex.ExtendedMessage());
+            }
         }
 
         protected virtual async Task ReadSegmentsAsync(CancellationToken cancellationToken)

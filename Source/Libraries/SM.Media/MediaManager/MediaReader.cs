@@ -144,7 +144,14 @@ namespace SM.Media.MediaManager
 
             _queueWorker.IsEnabled = false;
 
-            await StopReadingAsync().ConfigureAwait(false);
+            try
+            {
+                await StopReadingAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaReader.CloseAsync(): stop reading failed: " + ex.Message);
+            }
 
             var queue = _queueWorker;
 
@@ -280,16 +287,20 @@ namespace SM.Media.MediaManager
 
         async Task StopReadingAsync()
         {
-            if (null != _callbackReader)
+            //Debug.WriteLine("MediaReader.StopReadingAsync()");
+
+            var callbackReader = _callbackReader;
+
+            if (null == callbackReader)
+                return;
+
+            try
             {
-                try
-                {
-                    await _callbackReader.StopAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("MediaReader.ReaderPipeline.StopAsync(): callback reader stop failed: " + ex.Message);
-                }
+                await callbackReader.StopAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaReader.StopReadingAsync(): callback reader stop failed: " + ex.Message);
             }
         }
 

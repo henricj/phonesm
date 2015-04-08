@@ -53,6 +53,10 @@
     <Compile Include="IProgramStreams.cs" />
     <Compile Include="PesStreamParameters.cs" />
     <Compile Include="ProgramStreams.cs" />
+    <Compile Include="TsDescriptor.cs" />
+    <Compile Include="TsDescriptors.cs" />
+    <Compile Include="TsDescriptorType.cs" />
+    <Compile Include="TsDescriptorTypes.cs" />
     <Compile Include="TsPacketizedElementaryStream.cs" />
     <Compile Include="TsPesPacket.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

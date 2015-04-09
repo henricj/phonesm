@@ -98,10 +98,7 @@ namespace SM.Media
             ValidateEvent(MediaStreamFsm.MediaEvent.DisposeCalled);
 
             if (null != _mediaStreamCompletionSource)
-            {
                 _mediaStreamCompletionSource.TrySetCanceled();
-                _mediaStreamCompletionSource = null;
-            }
 
             if (null != _playingCompletionSource)
             {
@@ -812,11 +809,16 @@ namespace SM.Media
 
             ThrowIfDisposed();
 
+            var mscs = Volatile.Read(ref _mediaStreamCompletionSource);
+
+            if (null == mscs)
+                throw new InvalidOperationException("Null media stream completion source");
+
             cancellationToken.ThrowIfCancellationRequested();
 
-            using (cancellationToken.Register(() => _mediaStreamCompletionSource.TrySetCanceled()))
+            using (cancellationToken.Register(() => mscs.TrySetCanceled()))
             {
-                var mss = await _mediaStreamCompletionSource.Task.ConfigureAwait(false);
+                var mss = await mscs.Task.ConfigureAwait(false);
 
                 var ret = mss as TMediaStreamSource;
 

@@ -64,8 +64,10 @@
     <Compile Include="TsPacket.cs" />
     <Compile Include="TsProgramMapTable.cs" />
     <Compile Include="TsProgramAssociationTable.cs" />
+    <Compile Include="TsProgramSpecificInformation.cs" />
     <Compile Include="TsStream.cs" />
     <Compile Include="TsStreamType.cs" />
+    <Compile Include="TsTransportStreamDescriptionTable.cs" />
     <Compile Include="Utility\BufferInstance.cs" />
     <Compile Include="Utility\Crc32Msb.cs" />
     <Compile Include="Utility\IBufferPool.cs" />

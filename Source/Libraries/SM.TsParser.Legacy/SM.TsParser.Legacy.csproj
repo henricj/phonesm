@@ -72,8 +72,14 @@
     <Compile Include="..\SM.TsParser\TsPacket.cs" />
     <Compile Include="..\SM.TsParser\TsProgramMapTable.cs" />
     <Compile Include="..\SM.TsParser\TsProgramAssociationTable.cs" />
+    <Compile Include="..\SM.TsParser\TsProgramSpecificInformation.cs">
+      <Link>TsProgramSpecificInformation.cs</Link>
+    </Compile>
     <Compile Include="..\SM.TsParser\TsStream.cs" />
     <Compile Include="..\SM.TsParser\TsStreamType.cs" />
+    <Compile Include="..\SM.TsParser\TsTransportStreamDescriptionTable.cs">
+      <Link>TsTransportStreamDescriptionTable.cs</Link>
+    </Compile>
     <Compile Include="..\SM.TsParser\Utility\BufferInstance.cs">
       <Link>Utility\BufferInstance.cs</Link>
     </Compile>

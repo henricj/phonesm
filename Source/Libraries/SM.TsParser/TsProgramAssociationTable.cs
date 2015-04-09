@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsProgramAssociationTable.cs" company="Henric Jungheim">
-//  Copyright (c) 2012, 2013.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012, 2013 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,13 +28,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using SM.TsParser.Utility;
 
 namespace SM.TsParser
 {
-    public class TsProgramAssociationTable
+    public class TsProgramAssociationTable : TsProgramSpecificInformation
     {
-        const int MinimumProgramAssociationSize = 11;
+        const int MinimumProgramAssociationSize = 5;
 
         readonly TsDecoder _decoder;
         readonly List<ProgramAssociation> _newPrograms = new List<ProgramAssociation>();
@@ -50,61 +49,24 @@ namespace SM.TsParser
         uint _versionNumber;
 
         public TsProgramAssociationTable(TsDecoder decoder, Func<int, bool> programFilter, Action<IProgramStreams> streamFilter)
+            : base(TsTableId.program_association_section)
         {
             _decoder = decoder;
             _programFilter = programFilter;
             _streamFilter = streamFilter;
         }
 
-        internal void Add(TsPacket packet)
+        protected override void ParseSection(TsPacket packet, int offset, int length)
         {
-            if (null == packet) // Ignore end-of-stream
+            if (length < MinimumProgramAssociationSize)
                 return;
 
-            var i0 = packet.BufferOffset;
-            var i = i0;
+            var i = offset;
             var buffer = packet.Buffer;
-            var length = packet.BufferLength;
-
-            if (length < MinimumProgramAssociationSize + 1)
-                return;
-
-            var pointer = buffer[i++];
-
-            i += pointer;
-            if (i + MinimumProgramAssociationSize >= i0 + length)
-                return;
-
-            var tableIdOffset = i;
-
-            var table_id = buffer[i++];
-
-            if (0 != table_id)
-                return;
-
-            var section_length = (buffer[i] << 8) | buffer[i + 1];
-            i += 2;
-
-            var section_syntax_indicator = 0 != (section_length & (1 << 15));
-
-            if (0 != (section_length & (1 << 14)))
-                return;
-
-            section_length &= 0x0fff;
-
-            if (section_length + i - i0 > length)
-                return;
-
-            var mapLength = section_length + i - tableIdOffset;
-
-            var validChecksum = Crc32Msb.Validate(buffer, tableIdOffset, mapLength);
-
-            if (!validChecksum)
-                return;
 
             var sectionIndex = i;
-            var sectionLength = section_length + i - tableIdOffset;
-            var sectionEnd = sectionIndex + sectionLength;
+            //var sectionLength = section_length + i - tableIdOffset;
+            var sectionEnd = i + length;
 
             _transportStreamId = (buffer[i] << 8) | buffer[i + 1];
             i += 2;
@@ -155,9 +117,7 @@ namespace SM.TsParser
                 _hasData = true;
             }
 
-            var endOfMap = sectionEnd - 4; // The CRC takes 4 bytes at the end.
-
-            while (i + 4 <= endOfMap) // Check if there is room for one more 4 byte program
+            while (i + 4 <= sectionEnd) // Check if there is room for one more 4 byte program
             {
                 var program_number = (buffer[i] << 8) | buffer[i + 1];
                 i += 2;
@@ -172,16 +132,13 @@ namespace SM.TsParser
                     if (_programFilter(program_number))
                     {
                         _newPrograms.Add(new ProgramAssociation
-                                         {
-                                             ProgramNumber = program_number,
-                                             Pid = pid
-                                         });
+                        {
+                            ProgramNumber = program_number,
+                            Pid = pid
+                        });
                     }
                 }
             }
-
-            //var crc32 = (buffer[i] << 24) | (buffer[i + 1] << 16) | (buffer[i + 2] << 8) | buffer[i + 3];
-            //i += 4;
 
             if (_sectionNumber == _lastSectionNumber && _currentNextIndicator)
                 Activate();

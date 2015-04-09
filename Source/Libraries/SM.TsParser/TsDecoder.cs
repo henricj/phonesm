@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsDecoder.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,6 +49,7 @@ namespace SM.TsParser
         volatile bool _enableProcessing = true;
         Func<TsStreamType, uint, TsPacketizedElementaryStream> _pesStreamFactory;
         TsProgramAssociationTable _programAssociationTable;
+        //TsTransportStreamDescriptionTable _transportStreamDescriptionTable;
         int _tsIndex;
 
         public TsDecoder()
@@ -84,8 +85,10 @@ namespace SM.TsParser
 
             // Bootstrap with the program association handler
             _programAssociationTable = new TsProgramAssociationTable(this, program => true, programStreamsHandler);
+            //_transportStreamDescriptionTable = new TsTransportStreamDescriptionTable();
 
             _packetHandlers[0x0000] = _programAssociationTable.Add;
+            //_packetHandlers[0x0002] = _transportStreamDescriptionTable.Add;
 
             _tsIndex = 0;
         }

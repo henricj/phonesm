@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsProgramMapTable.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,13 +28,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using SM.TsParser.Utility;
 
 namespace SM.TsParser
 {
-    public class TsProgramMapTable
+    public class TsProgramMapTable : TsProgramSpecificInformation
     {
-        const int MinimumProgramMapSize = 16;
+        const int MinimumProgramMapSize = 9;
         readonly TsDecoder _decoder;
         readonly Dictionary<uint, ProgramMap> _newProgramStreams = new Dictionary<uint, ProgramMap>();
         readonly uint _pid;
@@ -49,6 +48,7 @@ namespace SM.TsParser
         uint _pcrPid;
 
         public TsProgramMapTable(TsDecoder decoder, int programNumber, uint pid, Action<IProgramStreams> streamFilter)
+            : base(TsTableId.TS_program_map_section)
         {
             _decoder = decoder;
             _programNumber = programNumber;
@@ -56,54 +56,13 @@ namespace SM.TsParser
             _streamFilter = streamFilter;
         }
 
-        public void Add(TsPacket packet)
+        protected override void ParseSection(TsPacket packet, int offset, int length)
         {
-            if (null == packet)
-                return; // Ignore end-of-stream
+            if (length < MinimumProgramMapSize)
+                return;
 
-            var i0 = packet.BufferOffset;
-            var i = i0;
+            var i = offset;
             var buffer = packet.Buffer;
-            var length = packet.BufferLength;
-
-            if (length < MinimumProgramMapSize + 1)
-                return;
-
-            var pointer = buffer[i++];
-
-            i += pointer;
-            if (i - i0 + MinimumProgramMapSize >= length)
-                return;
-
-            var tableIdOffset = i;
-
-            var table_id = buffer[i++];
-
-            if (0x02 != table_id) // Program map
-                return;
-
-            var section_length = (buffer[i] << 8) | buffer[i + 1];
-            i += 2;
-
-            var section_syntax_indicator = 0 != (section_length & (1 << 15));
-
-            if (0 != (section_length & (1 << 14)))
-                return;
-
-            section_length &= 0x0fff;
-
-            if (section_length + i - i0 > length)
-                return;
-
-            var mapTableLength = section_length + i - tableIdOffset;
-
-            if (i - i0 + MinimumProgramMapSize >= length)
-                return;
-
-            var validChecksum = Crc32Msb.Validate(buffer, tableIdOffset, mapTableLength);
-
-            if (!validChecksum)
-                return;
 
             var program_number = (buffer[i] << 8) | buffer[i + 1];
             i += 2;
@@ -131,13 +90,18 @@ namespace SM.TsParser
             i += 2;
             program_info_length &= 0x0fff;
 
-            if (i - tableIdOffset + program_info_length >= length)
+            if (i - offset + program_info_length >= length)
                 return;
+
+            //if (program_info_length > 0)
+            //{
+            //    Debug.WriteLine("TsProgramMapTable.Add() program descriptor for program " + program_number);
+            //    TsDescriptors.DebugWrite(buffer, i, program_info_length);
+            //}
 
             i += program_info_length;
 
-            // Do not include the 4 byte CRC at the end.
-            var mappingEnd = tableIdOffset + mapTableLength - 4;
+            var mappingEnd = offset + length;
 
             while (i + 5 <= mappingEnd)
             {
@@ -156,24 +120,27 @@ namespace SM.TsParser
                 if (i + ES_info_length > mappingEnd)
                     return;
 
+                //if (ES_info_length > 0)
+                //{
+                //    Debug.WriteLine("TsProgramMapTable.Add() ES descriptor for PID " + elementary_PID);
+                //    TsDescriptors.DebugWrite(buffer, i, ES_info_length);
+                //}
+
                 i += ES_info_length;
 
                 var streamType = TsStreamType.FindStreamType(stream_type);
 
                 var programMap = new ProgramMap
-                                 {
-                                     Pid = elementary_PID,
-                                     StreamType = streamType
-                                 };
+                {
+                    Pid = elementary_PID,
+                    StreamType = streamType
+                };
 
                 _newProgramStreams[elementary_PID] = programMap;
             }
 
             if (section_number == last_section_number)
                 MapProgramStreams();
-
-            //var crc32 = (buffer[i] << 24) | (buffer[i + 1] << 16) | (buffer[i + 2] << 8) | buffer[i + 3];
-            //i += 4;
         }
 
         void AddPcr(TsPacket packet)
@@ -250,16 +217,16 @@ namespace SM.TsParser
             }
 
             var programStreams = new ProgramStreams
-                                 {
-                                     ProgramNumber = _programNumber,
-                                     Streams = _newProgramStreams.Values
-                                                                 .Select(s => new ProgramStreams.ProgramStream
-                                                                              {
-                                                                                  Pid = s.Pid,
-                                                                                  StreamType = s.StreamType
-                                                                              })
-                                                                 .ToArray()
-                                 };
+            {
+                ProgramNumber = _programNumber,
+                Streams = _newProgramStreams.Values
+                    .Select(s => new ProgramStreams.ProgramStream
+                    {
+                        Pid = s.Pid,
+                        StreamType = s.StreamType
+                    })
+                    .ToArray()
+            };
 
             if (null != _streamFilter)
                 _streamFilter(programStreams);
@@ -267,10 +234,10 @@ namespace SM.TsParser
             foreach (var programStream in from ps in programStreams.Streams
                                           join pm in _newProgramStreams.Values on ps.Pid equals pm.Pid
                                           select new
-                                                 {
-                                                     ps.BlockStream,
-                                                     ProgramStream = pm
-                                                 })
+                                          {
+                                              ps.BlockStream,
+                                              ProgramStream = pm
+                                          })
             {
                 var streamRequested = !programStream.BlockStream;
 

@@ -68,7 +68,6 @@ namespace SM.Media
     public abstract class MediaStreamFacadeBase<TMediaStreamSource> : IMediaStreamFacadeBase<TMediaStreamSource>
         where TMediaStreamSource : class
     {
-        static readonly TimeSpan CreateTimeout = TimeSpan.FromSeconds(7); //TODO: Don't hard-code the timeout
         readonly AsyncLock _asyncLock = new AsyncLock();
         readonly CancellationTokenSource _disposeCancellationTokenSource = new CancellationTokenSource();
         readonly object _lock = new object();
@@ -222,7 +221,7 @@ namespace SM.Media
             {
                 using (var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, closeCts.Token))
                 {
-                    linkedToken.CancelAfter(CreateTimeout);
+                    linkedToken.CancelAfter(MediaStreamFacadeSettings.Parameters.CreateTimeout);
 
                     var mediaManager = MediaManager;
 

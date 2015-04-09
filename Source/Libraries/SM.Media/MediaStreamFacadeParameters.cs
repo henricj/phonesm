@@ -30,6 +30,13 @@ namespace SM.Media
 {
     public class MediaStreamFacadeParameters
     {
+        public static TimeSpan DefaultStartTimeout = TimeSpan.FromSeconds(10);
+
+        public MediaStreamFacadeParameters()
+        {
+            CreateTimeout = DefaultStartTimeout;
+        }
+
         public Func<IMediaStreamFacadeBase> Factory { get; set; }
 
         /// <summary>
@@ -39,5 +46,10 @@ namespace SM.Media
         public bool UseHttpConnection { get; set; }
 
         public bool UseSingleStreamMediaManager { get; set; }
+
+        /// <summary>
+        ///     Cancel playback if it takes longer than this to create the media stream source.
+        /// </summary>
+        public TimeSpan CreateTimeout { get; set; }
     }
 }

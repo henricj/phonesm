@@ -43,7 +43,6 @@ namespace SM.Media
         uint _bufferingProgress;
         MediaStreamSourceSampleRequestDeferral _deferral;
         bool _isClosed;
-        int _recycleCount;
         uint _reportedBufferingProgress;
         MediaStreamSourceSampleRequest _request;
 

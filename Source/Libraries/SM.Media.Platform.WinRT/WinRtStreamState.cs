@@ -286,5 +286,10 @@ namespace SM.Media
         {
             return _streamSource.DiscardPacketsBefore(value);
         }
+
+        public override string ToString()
+        {
+            return string.Format(_name + " " + _contentType + " closed: " + _isClosed + " pending: " + (null != _deferral));
+        }
     }
 }

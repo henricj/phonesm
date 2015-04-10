@@ -80,6 +80,24 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
+  <Choose>
+    <When Condition="Exists('..\SM.TsParser\SM.TsParser.csproj')">
+      <ItemGroup>
+        <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
+          <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
+          <Name>SM.TsParser</Name>
+        </ProjectReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <Reference Include="SM.TsParser">
+          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.dll</HintPath>
+          <Private>False</Private>
+        </Reference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>

@@ -97,7 +97,13 @@ namespace SM.Media.Hls
 
         CancellationToken CancellationToken
         {
-            get { return _abortTokenSource.Token; }
+            get
+            {
+                lock (_segmentLock)
+                {
+                    return null == _abortTokenSource ? CancellationToken.None : _abortTokenSource.Token;
+                }
+            }
         }
 
         #region ISegmentManager Members
@@ -199,7 +205,9 @@ namespace SM.Media.Hls
                 readTask = _readTask;
             }
 
-            return CleanupReader(readTask, cancellationTokenSource);
+            cancellationTokenSource.CancelSafe();
+
+            return readTask.WaitAsync();
         }
 
         public IStreamMetadata StreamMetadata
@@ -238,7 +246,9 @@ namespace SM.Media.Hls
             lock (_segmentLock)
             {
                 readTask = _readTask;
+
                 cancellationTokenSource = _abortTokenSource;
+                _abortTokenSource = null;
             }
 
             await CleanupReader(readTask, cancellationTokenSource).ConfigureAwait(false);
@@ -246,7 +256,6 @@ namespace SM.Media.Hls
             lock (_segmentLock)
             {
                 _readTask = null;
-                _abortTokenSource = null;
             }
         }
 

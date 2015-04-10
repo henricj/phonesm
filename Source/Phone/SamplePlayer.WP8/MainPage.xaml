@@ -11,13 +11,20 @@
                             FontFamily="{StaticResource PhoneFontFamilyNormal}"
                             FontSize="{StaticResource PhoneFontSizeNormal}"
                             Foreground="{StaticResource PhoneForegroundBrush}"
-                            SupportedOrientations="Landscape"
-                            Orientation="Landscape"
-                            shell:SystemTray.IsVisible="False">
+                            shell:SystemTray.IsVisible="False" SupportedOrientations="PortraitOrLandscape">
+    <phone:PhoneApplicationPage.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Margin" Value="-6,-5"/>
+        </Style>
+    </phone:PhoneApplicationPage.Resources>
 
     <!--LayoutRoot is the root grid where all page content is placed-->
-    <Grid x:Name="LayoutRoot"
-          Background="Transparent">
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
         <mmppf:MediaPlayer x:Name="player" Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
             <mmppf:MediaPlayer.Plugins>
                 <smmedia:StreamingMediaPlugin />
@@ -28,6 +35,42 @@
                 <smmedia:StreamingMediaPlugin />
             </mmppf:MediaPlayer.Plugins>
         </mmppf:MediaPlayer>-->
+        <StackPanel Grid.Row="1" Orientation="Horizontal">
+            <Button Content="Play"
+                    Height="Auto"
+                    Name="playButton"
+                    Click="play_Click"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"  />
+            <Button Content="Stop"
+                    Height="Auto"
+                    Name="stopButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"
+                    Click="stopButton_Click" />
+            <Button Content="Wake"
+                    Name="wakeButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"
+                    Click="wakeButton_Click" />
+            <Button Content="Previous"
+                    Height="Auto"
+                    Name="previousButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"
+                    Click="prevButton_Click" />
+            <Button Content="Next"
+                    Height="Auto"
+                    Name="nextButton"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    BorderThickness="2"
+                    Click="nextButton_Click" />
+        </StackPanel>
     </Grid>
 
 </phone:PhoneApplicationPage>

@@ -27,12 +27,18 @@
 //#define STREAM_SWITCHING
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Info;
 using Microsoft.PlayerFramework;
+using SM.Media.MediaPlayer;
+using SM.Media.Playlists;
 using SM.Media.Utility;
 
 namespace SamplePlayer.WP8
@@ -40,18 +46,12 @@ namespace SamplePlayer.WP8
     public partial class MainPage : PhoneApplicationPage
     {
 #if STREAM_SWITCHING
-        static readonly string[] Sources =
-        {
-            "http://www.npr.org/streams/mp3/nprlive24.pls",
-            "http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8",
-            "http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8",
-            null,
-            "https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"
-        };
-
         readonly DispatcherTimer _timer;
-        int _count;
 #endif
+
+        static readonly Uri StopUrl = new Uri("stop://stop");
+        readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
+        int _trackIndex;
 
         // Constructor
         public MainPage()
@@ -78,19 +78,18 @@ namespace SamplePlayer.WP8
 
                 var gcMemory = GC.GetTotalMemory(true).BytesToMiB();
 
-                var source = Sources[_count];
+
+                if (++_trackIndex >= _tracks.Count)
+                    _trackIndex = 0;
+
+                var source = UpdateSource();
 
                 Debug.WriteLine("Switching to {0} (GC {1:F3} MiB App {2:F3}/{3:F3}/{4:F3} MiB)", source, gcMemory,
                     DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
                     DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB(),
                     DeviceStatus.ApplicationMemoryUsageLimit.BytesToMiB());
 
-                player.Source = null == source ? null : new Uri(source);
-
-                if (++_count >= Sources.Length)
-                    _count = 0;
-
-                var interval = TimeSpan.FromSeconds(17 + GlobalPlatformServices.Default.GetRandomNumber() * 33);
+                var interval = TimeSpan.FromSeconds(15);
 
                 Debug.WriteLine("MainPage.UpdateState() interval set to " + interval);
 
@@ -108,6 +107,10 @@ namespace SamplePlayer.WP8
 
             _timer.Start();
 #endif
+            var passThroughTracks = new HashSet<Uri>(_tracks.Where(t => null != t && t.UseNativePlayer).Select(t => t.Url));
+
+            StreamingMediaSettings.Parameters.IsPassThrough = passThroughTracks.Contains;
+
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
         }
@@ -127,6 +130,80 @@ namespace SamplePlayer.WP8
         //    ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
+
+        void play_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("Play clicked");
+
+            if (null == player.Source || MediaElementState.Closed == player.CurrentState)
+                UpdateSource();
+
+            player.Play();
+        }
+
+        void stopButton_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("Stop clicked");
+
+            player.Close();
+
+            // Deal with player framework quirks.
+            player.Source = null;
+            player.Source = StopUrl;
+            player.Source = null;
+        }
+
+        void wakeButton_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("Wake clicked");
+
+            if (Debugger.IsAttached)
+                Debugger.Break();
+        }
+
+        void nextButton_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("Next clicked");
+
+            if (++_trackIndex >= _tracks.Count)
+                _trackIndex = 0;
+
+            UpdateSource();
+        }
+
+        void prevButton_Click(object sender, RoutedEventArgs e)
+        {
+            Debug.WriteLine("Prev clicked");
+
+            if (--_trackIndex < 0)
+                _trackIndex = _tracks.Count - 1;
+
+            UpdateSource();
+        }
+
+        Uri UpdateSource()
+        {
+            // Work around quirk.  If Source isn't set to null before
+            // setting another stream, playback will be cancelled.
+            player.Source = null;
+
+            if (_tracks.Count < 1)
+                return null;
+
+            if (_trackIndex < 0)
+                _trackIndex = 0;
+            else if (_trackIndex >= _tracks.Count)
+                _trackIndex = _tracks.Count - 1;
+
+            var track = _tracks[_trackIndex];
+
+            if (null == track)
+                return null;
+
+            player.Source = track.Url;
+
+            return track.Url;
+        }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {

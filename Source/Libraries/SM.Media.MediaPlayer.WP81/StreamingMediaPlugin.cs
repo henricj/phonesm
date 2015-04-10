@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 //  <copyright file="StreamingMediaPlugin.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
@@ -28,25 +28,22 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.UI.Xaml;
 using Microsoft.PlayerFramework;
-using SM.Media.Content;
 using SM.Media.Utility;
 
 namespace SM.Media.MediaPlayer
 {
-    public class StreamingMediaPlugin : IPlugin
+    public sealed partial class StreamingMediaPlugin
     {
         readonly AsyncLock _asyncLock = new AsyncLock();
         CancellationTokenSource _mediaLoadingCancellationTokenSource = new CancellationTokenSource();
         IMediaStreamFacade _mediaStreamFacade;
-        PlayState _playState;
-        Microsoft.PlayerFramework.MediaPlayer _player;
+        PlaybackSession _playbackSession;
         CancellationTokenSource _unloadCancellationTokenSource = new CancellationTokenSource();
 
         #region IPlugin Members
 
-        public virtual void Load()
+        public void Load()
         {
             Debug.WriteLine("StreamingMediaPlugin.Load()");
 
@@ -57,12 +54,12 @@ namespace SM.Media.MediaPlayer
             }
         }
 
-        public virtual void Update(IMediaSource mediaSource)
+        public void Update(IMediaSource mediaSource)
         {
             Debug.WriteLine("StreamingMediaPlugin.Update()");
         }
 
-        public virtual void Unload()
+        public void Unload()
         {
             Debug.WriteLine("StreamingMediaPlugin.Unload()");
 
@@ -71,84 +68,77 @@ namespace SM.Media.MediaPlayer
             CleanupAsync().Wait();
         }
 
-        public Microsoft.PlayerFramework.MediaPlayer MediaPlayer
-        {
-            get { return _player; }
-            set
-            {
-                if (null != _player)
-                {
-                    _player.MediaLoading -= PlayerOnMediaLoading;
-                    _player.MediaOpened -= PlayerOnMediaOpened;
-                    _player.MediaEnding -= PlayerOnMediaEnding;
-                    _player.MediaFailed -= PlayerOnMediaFailed;
-                    _player.MediaEnded -= PlayerOnMediaEnded;
-                    _player.MediaClosed -= PlayerOnMediaClosed;
-                }
-
-                _player = value;
-
-                if (null != _player)
-                {
-                    _player.MediaLoading += PlayerOnMediaLoading;
-                    _player.MediaOpened += PlayerOnMediaOpened;
-                    _player.MediaEnding += PlayerOnMediaEnding;
-                    _player.MediaFailed += PlayerOnMediaFailed;
-                    _player.MediaEnded += PlayerOnMediaEnded;
-                    _player.MediaClosed += PlayerOnMediaClosed;
-                }
-            }
-        }
-
         #endregion
 
-        void PlayerOnMediaOpened(object sender, RoutedEventArgs e)
+        IMediaStreamFacade InitializeMediaStream()
         {
-            Debug.WriteLine("StreamingMediaPlugin MediaOpened " + _playState);
+            if (null != _mediaStreamFacade && _mediaStreamFacade.IsDisposed)
+                _mediaStreamFacade = null;
+
+            if (null == _mediaStreamFacade)
+                _mediaStreamFacade = CreateMediaStreamFacade();
+
+            return _mediaStreamFacade;
         }
 
-        void PlayerOnMediaClosed(object sender, RoutedEventArgs routedEventArgs)
+        IMediaStreamFacade CreateMediaStreamFacade()
         {
-            Debug.WriteLine("StreamingMediaPlugin MediaClosed " + _playState);
+            var mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
+
+            return mediaStreamFacade;
         }
 
-        void PlayerOnMediaEnding(object sender, MediaPlayerDeferrableEventArgs mediaPlayerDeferrableEventArgs)
+        async Task PlayAsync(PlaybackSession playbackSession, Uri source, CancellationToken cancellationToken)
         {
-            Debug.WriteLine("StreamingMediaPlugin MediaEnding " + _playState);
-        }
-
-        void PlayerOnMediaEnded(object sender, MediaPlayerActionEventArgs mediaPlayerActionEventArgs)
-        {
-            Debug.WriteLine("StreamingMediaPlugin MediaEnded " + _playState);
-        }
-
-        void PlayerOnMediaFailed(object sender, ExceptionRoutedEventArgs exceptionRoutedEventArgs)
-        {
-            Debug.WriteLine("StreamingMediaPlugin MediaFailed " + _playState);
-
-            var playState = _playState;
-
-            if (null != playState)
+            try
             {
-                var task = playState.OnMediaFailedAsync();
+                using (playbackSession)
+                {
+                    _playbackSession = playbackSession;
 
-                TaskCollector.Default.Add(task, "StreamingMediaPlugin.PlayerOnMediaFailed() PlayerOnMediaFailedAsync");
+                    await playbackSession.PlayAsync(source, cancellationToken).ConfigureAwait(false);
+
+                    _playbackSession = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("StreamingMediaPlugin.PlayAsync() failed: " + ex.ExtendedMessage());
             }
         }
 
-        async void PlayerOnMediaLoading(object sender, MediaPlayerDeferrableEventArgs mediaPlayerDeferrableEventArgs)
+        async Task CleanupAsync()
         {
-            Debug.WriteLine("StreamingMediaPlugin MediaLoading");
+            Debug.WriteLine("StreamingMediaPlugin.CleanupAsync()");
 
-            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
+            try
+            {
+                var playbackSession = _playbackSession;
+
+                if (null != playbackSession)
+                    await playbackSession.CloseAsync().ConfigureAwait(false);
+
+                using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
+                {
+                    if (_mediaStreamFacade.IsDisposed)
+                        _mediaStreamFacade = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("StreamingMediaPlugin.CleanupAsync() failed: " + ex.Message);
+            }
+        }
+
+        async Task PlaybackLoadingAsync(MediaLoadingEventArgs mediaLoadingEventArgs)
+        {
+// ReSharper disable once PossiblyMistakenUseOfParamsMethod
             var mediaLoadingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_unloadCancellationTokenSource.Token);
 
             var oldTokenSource = Interlocked.Exchange(ref _mediaLoadingCancellationTokenSource, mediaLoadingCancellationTokenSource);
 
             if (null != oldTokenSource)
                 oldTokenSource.CancelDisposeSafe();
-
-            var mediaLoadingEventArgs = (MediaLoadingEventArgs)mediaPlayerDeferrableEventArgs;
 
             var source = mediaLoadingEventArgs.Source;
 
@@ -159,7 +149,7 @@ namespace SM.Media.MediaPlayer
 
             try
             {
-                deferral = mediaPlayerDeferrableEventArgs.DeferrableOperation.GetDeferral();
+                deferral = mediaLoadingEventArgs.DeferrableOperation.GetDeferral();
 
                 if (deferral.CancellationToken.IsCancellationRequested)
                     return;
@@ -168,21 +158,21 @@ namespace SM.Media.MediaPlayer
                 {
                     var cancellationToken = linkedTokenSource.Token;
 
-                    PlayState playState;
+                    PlaybackSession playbackSession;
 
                     using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        playState = _playState;
+                        playbackSession = _playbackSession;
 
-                        if (null != playState)
+                        if (null != playbackSession)
                         {
-                            await playState.StopAsync(cancellationToken);
+                            await playbackSession.StopAsync(cancellationToken);
 
-                            playState = _playState;
+                            playbackSession = _playbackSession;
 
-                            if (null != playState)
+                            if (null != playbackSession)
                             {
-                                Debug.WriteLine("StreamingMediaPlugin MediaLoading non-null _playState");
+                                Debug.WriteLine("StreamingMediaPlugin MediaLoading non-null _playbackSession");
 
                                 return;
                             }
@@ -209,14 +199,14 @@ namespace SM.Media.MediaPlayer
                             }
                         }
 
-                        playState = new PlayState(InitializeMediaStream());
+                        playbackSession = new PlaybackSession(InitializeMediaStream());
 
-                        var playTask = PlayAsync(playState, source, cancellationToken);
+                        var playTask = PlayAsync(playbackSession, source, cancellationToken);
 
                         TaskCollector.Default.Add(playTask, "StreamingMediaPlugin MediaLoading playTask");
                     }
 
-                    mediaLoadingEventArgs.MediaStreamSource = await playState.GetMediaSourceAsync(cancellationToken).ConfigureAwait(false);
+                    mediaLoadingEventArgs.MediaStreamSource = await playbackSession.GetMediaSourceAsync(cancellationToken).ConfigureAwait(false);
                     mediaLoadingEventArgs.Source = null;
 
                     //Debug.WriteLine("StreamingMediaPlugin MediaLoading deferral.Complete()");
@@ -225,7 +215,7 @@ namespace SM.Media.MediaPlayer
                 }
             }
             catch (OperationCanceledException)
-            { }
+            {}
             catch (Exception ex)
             {
                 Debug.WriteLine("StreamingMediaPlugin.PlayerOnMediaLoading() failed: " + ex.Message);
@@ -240,193 +230,16 @@ namespace SM.Media.MediaPlayer
             }
         }
 
-        IMediaStreamFacade InitializeMediaStream()
+        void PlaybackFailed()
         {
-            if (null != _mediaStreamFacade && _mediaStreamFacade.IsDisposed)
-                _mediaStreamFacade = null;
+            var playbackSession = _playbackSession;
 
-            if (null == _mediaStreamFacade)
-                _mediaStreamFacade = CreateMediaStreamFacade();
-
-            return _mediaStreamFacade;
-        }
-
-        protected virtual IMediaStreamFacade CreateMediaStreamFacade()
-        {
-            var mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
-
-            return mediaStreamFacade;
-        }
-
-        async Task PlayAsync(PlayState playState, Uri source, CancellationToken cancellationToken)
-        {
-            try
+            if (null != playbackSession)
             {
-                using (playState)
-                {
-                    _playState = playState;
+                var task = playbackSession.OnMediaFailedAsync();
 
-                    await playState.PlayAsync(source, cancellationToken).ConfigureAwait(false);
-
-                    _playState = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("StreamingMediaPlugin.PlayAsync() failed: " + ex.ExtendedMessage());
+                TaskCollector.Default.Add(task, "StreamingMediaPlugin.PlaybackFailed() PlayerOnMediaFailedAsync");
             }
         }
-
-        async Task CleanupAsync()
-        {
-            Debug.WriteLine("StreamingMediaPlugin.CleanupAsync()");
-
-            try
-            {
-                var playState = _playState;
-
-                if (null != playState)
-                    await playState.CloseAsync().ConfigureAwait(false);
-
-                using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
-                {
-                    if (_mediaStreamFacade.IsDisposed)
-                        _mediaStreamFacade = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("StreamingMediaPlugin.CleanupAsync() failed: " + ex.Message);
-            }
-        }
-
-        #region Nested type: PlayState
-
-        sealed class PlayState : IDisposable
-        {
-            static int _idCount;
-            readonly int _id = Interlocked.Increment(ref _idCount);
-            readonly TaskCompletionSource<Windows.Media.Core.IMediaSource> _mediaSourceTaskCompletionSource = new TaskCompletionSource<Windows.Media.Core.IMediaSource>();
-            readonly IMediaStreamFacade _mediaStreamFacade;
-            readonly CancellationTokenSource _playingCancellationTokenSource = new CancellationTokenSource();
-
-            public PlayState(IMediaStreamFacade mediaStreamFacade)
-            {
-                if (null == mediaStreamFacade)
-                    throw new ArgumentNullException("mediaStreamFacade");
-
-                _mediaStreamFacade = mediaStreamFacade;
-            }
-
-            public ContentType ContentType { get; set; }
-
-            #region IDisposable Members
-
-            public void Dispose()
-            {
-                _mediaSourceTaskCompletionSource.TrySetCanceled();
-
-                _playingCancellationTokenSource.CancelDisposeSafe();
-            }
-
-            #endregion
-
-            public Task PlayAsync(Uri source, CancellationToken cancellationToken)
-            {
-                Debug.WriteLine("PlayState.PlayAsync() " + _id);
-
-                var playingTask = PlayerAsync(source, cancellationToken);
-
-                TaskCollector.Default.Add(playingTask, "StreamingMediaPlugin PlayerAsync");
-
-                return _mediaStreamFacade.PlayingTask;
-            }
-
-            async Task PlayerAsync(Uri source, CancellationToken cancellationToken)
-            {
-                //Debug.WriteLine("PlayState.PlayerAsync() " + _id);
-
-                try
-                {
-                    using (var createMediaCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_playingCancellationTokenSource.Token, cancellationToken))
-                    {
-                        _mediaStreamFacade.ContentType = ContentType;
-
-                        var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(source, createMediaCancellationTokenSource.Token).ConfigureAwait(false);
-
-                        if (!_mediaSourceTaskCompletionSource.TrySetResult(mss))
-                            throw new OperationCanceledException();
-                    }
-
-                    return;
-                }
-                catch (OperationCanceledException)
-                { }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("PlayState.PlayerAsync() failed: " + ex.ExtendedMessage());
-                }
-
-                try
-                {
-                    _mediaSourceTaskCompletionSource.TrySetCanceled();
-
-                    await _mediaStreamFacade.CloseAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("PlayState.PlayerAsync() cleanup failed: " + ex.ExtendedMessage());
-                }
-
-                //Debug.WriteLine("PlayState.PlayerAsync() completed " + _id);
-            }
-
-            public async Task<Windows.Media.Core.IMediaSource> GetMediaSourceAsync(CancellationToken cancellationToken)
-            {
-                //Debug.WriteLine("PlayState.GetMediaSourceAsync() " + _id);
-
-                return await _mediaSourceTaskCompletionSource.Task.WithCancellation(cancellationToken).ConfigureAwait(false);
-            }
-
-            public async Task StopAsync(CancellationToken cancellationToken)
-            {
-                //Debug.WriteLine("PlayState.StopAsync() " + _id);
-
-                await _mediaStreamFacade.StopAsync(cancellationToken).ConfigureAwait(false);
-
-                await _mediaStreamFacade.PlayingTask.ConfigureAwait(false);
-            }
-
-            public async Task CloseAsync()
-            {
-                //Debug.WriteLine("PlayState.CloseAsync() " + _id);
-
-                if (!_playingCancellationTokenSource.IsCancellationRequested)
-                    _playingCancellationTokenSource.Cancel();
-
-                await _mediaStreamFacade.PlayingTask.ConfigureAwait(false);
-            }
-
-            public async Task OnMediaFailedAsync()
-            {
-                Debug.WriteLine("PlayState.OnMediaFailedAsync() " + _id);
-
-                try
-                {
-                    await CloseAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("PlayState.OnMediaFailedAsync() CloseAsync() failed: " + ex.Message);
-                }
-            }
-
-            public override string ToString()
-            {
-                return string.Format("ID {0} IsCompleted {1}", _id, _mediaStreamFacade.PlayingTask.IsCompleted);
-            }
-        }
-
-        #endregion
     }
 }

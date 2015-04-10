@@ -93,6 +93,9 @@
     <Compile Include="..\..\Global\SM.MediaVersion.cs">
       <Link>Properties\SM.MediaVersion.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.MediaPlayer.WP81\StreamingMediaPlugin.cs">
+      <Link>StreamingMediaPlugin.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.MediaPlayer.WP8\MediaElementWrapper.cs">
       <Link>MediaElementWrapper.cs</Link>
     </Compile>
@@ -102,8 +105,8 @@
     <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaParameters.cs">
       <Link>StreamingMediaParameters.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaPlugin.cs">
-      <Link>StreamingMediaPlugin.cs</Link>
+    <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaPlugin.Windows.cs">
+      <Link>StreamingMediaPlugin.Windows.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaSettings.cs">
       <Link>StreamingMediaSettings.cs</Link>

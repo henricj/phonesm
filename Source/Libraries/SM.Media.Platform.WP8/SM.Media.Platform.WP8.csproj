@@ -73,6 +73,9 @@
     <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
       <Link>PlatformServices.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.Platform.WP7\PlaybackSession.cs">
+      <Link>PlaybackSession.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.Platform.WP7\TsMediaStreamSource.cs">
       <Link>TsMediaStreamSource.cs</Link>
     </Compile>

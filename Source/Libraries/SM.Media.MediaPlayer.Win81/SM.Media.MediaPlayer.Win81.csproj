@@ -34,6 +34,9 @@
     <Compile Include="..\SM.Media.MediaPlayer.WP81\StreamingMediaPlugin.cs">
       <Link>StreamingMediaPlugin.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media.MediaPlayer.WP81\StreamingMediaPlugin.Xaml.cs">
+      <Link>StreamingMediaPlugin.Xaml.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media.MediaPlayer.WP8\StreamingMediaParameters.cs">
       <Link>StreamingMediaParameters.cs</Link>
     </Compile>

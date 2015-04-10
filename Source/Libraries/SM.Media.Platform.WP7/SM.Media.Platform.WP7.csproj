@@ -109,6 +109,7 @@
     <Compile Include="MediaStreamConfiguration.cs" />
     <Compile Include="MediaStreamConfigurator.cs" />
     <Compile Include="MediaStreamFacade.cs" />
+    <Compile Include="PlaybackSession.cs" />
     <Compile Include="SingleStreamMediaManagerModule.cs" />
     <Compile Include="SmMediaManagerModule.cs" />
     <Compile Include="SmMediaModule.cs" />

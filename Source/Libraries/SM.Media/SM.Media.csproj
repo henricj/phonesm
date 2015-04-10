@@ -135,6 +135,7 @@
     <Compile Include="Pes\IPesStreamFactoryInstance.cs" />
     <Compile Include="MP3\Mp3MediaParserFactory.cs" />
     <Compile Include="Hls\HlsSegmentsFactory.cs" />
+    <Compile Include="PlaybackSessionBase.cs" />
     <Compile Include="Playlists\IProgramStream.cs" />
     <Compile Include="Playlists\MediaTrack.cs" />
     <Compile Include="Playlists\PlaylistDefaults.cs" />

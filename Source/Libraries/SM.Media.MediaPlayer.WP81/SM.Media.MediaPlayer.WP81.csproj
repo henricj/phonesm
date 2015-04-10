@@ -38,6 +38,7 @@
       <Link>StreamingMediaSettings.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StreamingMediaPlugin.Xaml.cs" />
     <Compile Include="StreamingMediaPlugin.cs" />
   </ItemGroup>
   <Choose>

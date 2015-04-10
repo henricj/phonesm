@@ -49,7 +49,7 @@ namespace SM.Media.Utility
         {
             var tcs = new TaskCompletionSource<object>();
 
-            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            using (cancellationToken.Register(() => TaskEx.Run(() => tcs.TrySetCanceled())))
             {
                 await tcs.Task.ConfigureAwait(false);
             }
@@ -76,6 +76,19 @@ namespace SM.Media.Utility
             if (null == cancellationTokenSource)
                 return;
 
+            CancelSafe(cancellationTokenSource);
+
+            cancellationTokenSource.DisposeSafe();
+        }
+
+        /// <summary>
+        ///     Cancel without throwing any exceptions.
+        /// </summary>
+        public static void CancelSafe(this CancellationTokenSource cancellationTokenSource)
+        {
+            if (null == cancellationTokenSource)
+                return;
+
             try
             {
                 if (!cancellationTokenSource.IsCancellationRequested)
@@ -83,10 +96,41 @@ namespace SM.Media.Utility
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("CancellationTokenExtensions.CancelDisposeSafe() failed: " + ex.Message);
+                Debug.WriteLine("CancellationTokenExtensions.CancelSafe() failed: " + ex.Message);
             }
+        }
 
-            cancellationTokenSource.DisposeSafe();
+        /// <summary>
+        ///     Cancel without throwing any exceptions on the default task scheduler.
+        /// </summary>
+        public static void BackgroundCancelSafe(this CancellationTokenSource cancellationTokenSource)
+        {
+            if (null == cancellationTokenSource)
+                return;
+
+            try
+            {
+                if (!cancellationTokenSource.IsCancellationRequested)
+                {
+                    var t = TaskEx.Run(() =>
+                    {
+                        try
+                        {
+                            cancellationTokenSource.Cancel();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("CancellationTokenExtensions.BackgroundCancelSafe() cancel failed: " + ex.Message);
+                        }
+                    });
+
+                    TaskCollector.Default.Add(t, "CancellationTokenExtensions BackgroundCancelSafe");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("CancellationTokenExtensions.BackgroundCancelSafe() failed: " + ex.Message);
+            }
         }
     }
 }

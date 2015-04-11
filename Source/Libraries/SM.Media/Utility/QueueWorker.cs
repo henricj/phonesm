@@ -148,7 +148,12 @@ namespace SM.Media.Utility
             lock (_processLock)
             {
                 if (_isClosed)
-                    throw _exception ?? new NotSupportedException("The worker is closed");
+                {
+                    if (null != _exception)
+                        throw new AggregateException(_exception);
+
+                    throw new InvalidOperationException("The worker is closed");
+                }
 
                 ThrowIfDisposed();
 

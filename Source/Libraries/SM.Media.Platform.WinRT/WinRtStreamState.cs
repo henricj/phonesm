@@ -25,7 +25,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Windows.Foundation;
 using Windows.Media.Core;
 using SM.Media.Content;
 using SM.Media.Utility;
@@ -37,7 +39,9 @@ namespace SM.Media
     {
         public readonly IMediaStreamDescriptor Descriptor;
         readonly ContentType _contentType;
+        readonly TypedEventHandler<MediaStreamSample, object> _freeBuffer;
         readonly string _name;
+        readonly WinRtBufferPool _pool;
         readonly object _sampleLock = new object();
         readonly IStreamSource _streamSource;
         uint _bufferingProgress;
@@ -61,6 +65,26 @@ namespace SM.Media
             _contentType = contentType;
             _streamSource = streamSource;
             Descriptor = descriptor;
+
+            var pool = _contentType.Kind == ContentKind.Video
+                ? new WinRtBufferPool(1024, 4096, 16 * 1024, 64 * 1024)
+                : new WinRtBufferPool(512, 1024, 2048, 8 * 1024);
+
+            _pool = pool;
+
+            TypedEventHandler<MediaStreamSample, object> freeBuffer = null;
+
+            freeBuffer = (sender, args) =>
+            {
+                var buffer = sender.Buffer;
+
+                if (null != buffer)
+                    pool.Free(buffer);
+
+                sender.Processed -= freeBuffer;
+            };
+
+            _freeBuffer = freeBuffer;
         }
 
         public string Name
@@ -184,9 +208,14 @@ namespace SM.Media
 #if WORKING_PROCESSED_EVENT
                 var packetBuffer = packet.Buffer.AsBuffer(packet.Index, packet.Length);
 #else
-                // Make a copy of the buffer since Sample.Processed doesn't always seem to
-                // get called.
-                var packetBuffer = WindowsRuntimeBuffer.Create(packet.Buffer, packet.Index, packet.Length, packet.Length);
+                // Make a copy of the buffer since Sample.Processed doesn't always
+                // get called.  We use a pool to reduce the number of allocations.
+                // The buffers do leak, but at least there will be some reuse.
+                var packetBuffer = _pool.Allocate((uint)packet.Length);
+
+                packet.Buffer.CopyTo(packet.Index, packetBuffer, 0, packet.Length);
+
+                packetBuffer.Length = (uint)packet.Length;
 #endif
 
                 var mediaStreamSample = MediaStreamSample.CreateFromBuffer(packetBuffer, presentationTimestamp);
@@ -203,16 +232,17 @@ namespace SM.Media
                 //Debug.WriteLine("Sample {0} at {1}. duration {2} length {3}",
                 //    _name, mediaStreamSample.Timestamp, mediaStreamSample.Duration, packet.Length);
 
-                request.Sample = mediaStreamSample;
-
 #if WORKING_PROCESSED_EVENT
                 var localPacket = packet;
 
-                request.Sample.Processed += (sender, args) => _streamSource.FreeSample(localPacket);
+                mediaStreamSample.Processed += (sender, args) => _streamSource.FreeSample(localPacket);
 
                 // Prevent the .FreeSample() below from freeing this packet.
                 packet = null;
+#else
+                mediaStreamSample.Processed += _freeBuffer;
 #endif
+                request.Sample = mediaStreamSample;
 
                 return true;
             }
@@ -280,6 +310,10 @@ namespace SM.Media
                 _isClosed = true;
 
             Cancel();
+
+            Debug.WriteLine("WinRtStreamState.Close() " + this + Environment.NewLine + "   " + _pool);
+
+            _pool.Clear();
         }
 
         public bool DiscardPacketsBefore(TimeSpan value)

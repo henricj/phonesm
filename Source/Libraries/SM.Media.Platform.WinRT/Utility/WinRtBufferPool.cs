@@ -28,12 +28,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using Windows.Storage.Streams;
 using Buffer = Windows.Storage.Streams.Buffer;
 
 namespace SM.Media.Utility
 {
-    class WinRtBufferPool
+    public class WinRtBufferPool
     {
         readonly Bucket[] _buckets;
         readonly object _lock = new object();
@@ -193,5 +194,23 @@ namespace SM.Media.Utility
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+
+#if DEBUG
+            sb.Append("IBuffer new " + _newCount + " largest " + _largest);
+#endif
+
+            foreach (var bucket in _buckets)
+            {
+                sb.AppendLine();
+                sb.Append("   ");
+                sb.Append(bucket);
+            }
+
+            return sb.ToString();
+        }
     }
 }

@@ -230,7 +230,7 @@ namespace BackgroundAudio.Sample
 
         async Task UpdateBackgroundIdAsync(Guid backgroundId, object challenge)
         {
-            Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() " + backgroundId);
+            //Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() " + backgroundId);
 
             var mediaPlayerSession = _mediaPlayerSession;
 
@@ -246,7 +246,9 @@ namespace BackgroundAudio.Sample
                 if (null != mediaPlayerSession)
                 {
                     if (mediaPlayerSession.TrySetBackgroundId(backgroundId, challenge))
-                        Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() matched " + backgroundId);
+                    {
+                        //Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() matched " + backgroundId);
+                    }
                 }
             }
             catch (Exception ex)

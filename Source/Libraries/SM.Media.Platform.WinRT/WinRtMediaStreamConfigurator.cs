@@ -508,9 +508,18 @@ namespace SM.Media
 
             DisposePlayingCancellationRegistration();
 
+            WinRtStreamState[] streamStates;
+
             lock (_streamConfigurationLock)
             {
+                streamStates = _streamStates;
                 _streamStates = NoStreamStates;
+            }
+
+            if (null != streamStates)
+            {
+                foreach (var state in streamStates)
+                    state.Close();
             }
 
             switch (reason)

@@ -24,9 +24,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Diagnostics;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Microsoft.PlayerFramework;
+using SM.Media.MediaManager;
 using SM.Media.Utility;
 
 // We isolate the bits that use Windows.UI.Xaml in this partial class
@@ -106,6 +109,18 @@ namespace SM.Media.MediaPlayer
             Debug.WriteLine("StreamingMediaPlugin MediaFailed " + _playbackSession);
 
             PlaybackFailed();
+        }
+
+        void RequestMetadataUpdate()
+        {
+            var mediaPlayer = MediaPlayer;
+
+            if (null == mediaPlayer)
+                return;
+
+            var task = mediaPlayer.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, UpdateMetadata).AsTask();
+
+            TaskCollector.Default.Add(task, "StreamingMediaPlugin RequestMetadataUpdate");
         }
     }
 }

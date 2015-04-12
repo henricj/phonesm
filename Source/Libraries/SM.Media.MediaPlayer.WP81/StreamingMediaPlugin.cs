@@ -26,20 +26,59 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.PlayerFramework;
+using SM.Media.Configuration;
+using SM.Media.MediaManager;
+using SM.Media.Metadata;
+using SM.Media.TransportStream.TsParser;
 using SM.Media.Utility;
 
 namespace SM.Media.MediaPlayer
 {
     public sealed partial class StreamingMediaPlugin
     {
+        static readonly MediaManagerParameters MediaManagerParameters = new MediaManagerParameters
+        {
+            ProgramStreamsHandler = pss =>
+            {
+                var hasVideo = false;
+
+                foreach (var stream in pss.Streams)
+                {
+                    switch (stream.StreamType.Contents)
+                    {
+                        case TsStreamType.StreamContents.Audio:
+                            break;
+                        case TsStreamType.StreamContents.Video:
+                            if (hasVideo)
+                                stream.BlockStream = true;
+                            else
+                                hasVideo = true;
+                            break;
+                        default:
+                            stream.BlockStream = true;
+                            break;
+                    }
+                }
+            }
+        };
+
         readonly AsyncLock _asyncLock = new AsyncLock();
+        readonly ActionMetadataSink _metadataSink;
+        readonly MetadataState _metadataState = new MetadataState();
+        IConfigurationMetadata _configurationMetadata;
         CancellationTokenSource _mediaLoadingCancellationTokenSource = new CancellationTokenSource();
         IMediaStreamFacade _mediaStreamFacade;
         PlaybackSession _playbackSession;
         CancellationTokenSource _unloadCancellationTokenSource = new CancellationTokenSource();
+
+        public StreamingMediaPlugin()
+        {
+            _metadataSink = new ActionMetadataSink(RequestMetadataUpdate);
+        }
 
         #region IPlugin Members
 
@@ -70,6 +109,61 @@ namespace SM.Media.MediaPlayer
 
         #endregion
 
+        void UpdateMetadata()
+        {
+            try
+            {
+                var mediaPlayer = MediaPlayer;
+
+                if (null == mediaPlayer)
+                    return;
+
+                var position = mediaPlayer.Position;
+
+                var nextEvent = _metadataSink.Update(_metadataState, position);
+
+                var configuration = _metadataState.ConfigurationMetadata;
+
+                if (null == configuration)
+                    return;
+
+                if (ReferenceEquals(configuration, _configurationMetadata))
+                    return;
+
+                _configurationMetadata = configuration;
+
+                var availableAudioStreams = mediaPlayer.AvailableAudioStreams;
+
+                availableAudioStreams.Clear();
+
+                if (null != configuration.Audio)
+                    availableAudioStreams.Add(AudioStreamFactory.CreateAudioStream(configuration.Audio));
+
+                if (null != configuration.AlternateStreams)
+                {
+                    var audioStreams = configuration.AlternateStreams
+                        .OfType<IAudioConfigurationSource>()
+                        .Select(AudioStreamFactory.CreateAudioStream);
+
+                    availableAudioStreams.AddRange(audioStreams);
+                }
+
+                var count = 0;
+
+                foreach (var audioStream in availableAudioStreams)
+                {
+                    ++count;
+
+                    if (string.IsNullOrWhiteSpace(audioStream.Name))
+                        audioStream.Name = count.ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("StreamingMediaPlugin.UpdateMetadata() failed: " + ex.ExtendedMessage());
+            }
+        }
+
         IMediaStreamFacade InitializeMediaStream()
         {
             if (null != _mediaStreamFacade && _mediaStreamFacade.IsDisposed)
@@ -84,6 +178,12 @@ namespace SM.Media.MediaPlayer
         IMediaStreamFacade CreateMediaStreamFacade()
         {
             var mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
+
+#if WINDOWS_APP || WINDOWS_PHONE_APP
+            mediaStreamFacade.SetParameter(MediaManagerParameters);
+#endif
+
+            mediaStreamFacade.SetParameter(_metadataSink);
 
             return mediaStreamFacade;
         }
@@ -132,7 +232,7 @@ namespace SM.Media.MediaPlayer
 
         async Task PlaybackLoadingAsync(MediaLoadingEventArgs mediaLoadingEventArgs)
         {
-// ReSharper disable once PossiblyMistakenUseOfParamsMethod
+            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
             var mediaLoadingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_unloadCancellationTokenSource.Token);
 
             var oldTokenSource = Interlocked.Exchange(ref _mediaLoadingCancellationTokenSource, mediaLoadingCancellationTokenSource);

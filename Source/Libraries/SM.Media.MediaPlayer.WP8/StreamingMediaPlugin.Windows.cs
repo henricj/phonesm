@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Diagnostics;
 using System.Windows;
 using Microsoft.PlayerFramework;
@@ -130,6 +131,18 @@ namespace SM.Media.MediaPlayer
             Debug.WriteLine("StreamingMediaPlugin MediaFailed " + _playbackSession);
 
             PlaybackFailed();
+        }
+
+        void RequestMetadataUpdate()
+        {
+            var mediaPlayer = MediaPlayer;
+
+            if (null == mediaPlayer)
+                return;
+
+            var task = mediaPlayer.Dispatcher.DispatchAsync((Action)UpdateMetadata);
+
+            TaskCollector.Default.Add(task, "StreamingMediaPlugin RequestMetadataUpdate");
         }
     }
 }

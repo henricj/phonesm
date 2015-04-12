@@ -24,6 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+
 namespace SM.TsParser
 {
     public static class TsDescriptorTypes
@@ -97,6 +99,22 @@ namespace SM.TsParser
             new TsDescriptorType(62, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved"),
             new TsDescriptorType(63, "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved")
         };
+
+        static TsDescriptorTypes()
+        {
+            Validate();
+        }
+
+        public static void Validate()
+        {
+            for (var i = 0; i < DescriptorTypes.Length; ++i)
+            {
+                var descriptor = DescriptorTypes[i];
+
+                if (descriptor.Code != i)
+                    throw new InvalidOperationException("Descriptor type mismatch " + (int)descriptor.Code + " != " + i);
+            }
+        }
 
         public static TsDescriptorType GetDescriptorType(byte code)
         {

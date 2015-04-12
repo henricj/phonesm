@@ -636,6 +636,9 @@
     <Compile Include="..\SM.Media\Utility\FullResolutionTimeSpan.cs">
       <Link>Utility\FullResolutionTimeSpan.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\Utility\Iso639_2Normalization.cs">
+      <Link>Utility\Iso639_2Normalization.cs</Link>
+    </Compile>
     <Compile Include="..\SM.Media\Utility\IStopClose.cs">
       <Link>Utility\IStopClose.cs</Link>
     </Compile>

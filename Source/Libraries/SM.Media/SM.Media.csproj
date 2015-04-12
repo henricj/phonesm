@@ -267,6 +267,7 @@
     <Compile Include="Utility\EnumerableExtensions.cs" />
     <Compile Include="Utility\ExceptionExtensions.cs" />
     <Compile Include="Utility\FifoTaskScheduler.cs" />
+    <Compile Include="Utility\Iso639_2Normalization.cs" />
     <Compile Include="Utility\QueueExtensions.cs" />
     <Compile Include="Utility\RandomGenerators\IRandomGenerator.cs" />
     <Compile Include="Utility\RandomGenerators\NormalDistribution.cs" />

@@ -41,9 +41,9 @@ namespace SM.Media.H264
             get { return Types; }
         }
 
-        public PesStreamHandler Create(PesStreamParameters parameter)
+        public PesStreamHandler Create(PesStreamParameters parameters)
         {
-            return new H264StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
+            return new H264StreamHandler(parameters);
         }
 
         #endregion

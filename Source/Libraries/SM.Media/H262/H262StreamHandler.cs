@@ -39,17 +39,19 @@ namespace SM.Media.H262
         readonly ITsPesPacketPool _pesPacketPool;
         bool _foundframe;
 
-        public H262StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+        public H262StreamHandler(PesStreamParameters parameters)
+            : base(parameters)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
-            if (null == nextHandler)
-                throw new ArgumentNullException("nextHandler");
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+            if (null == parameters.PesPacketPool)
+                throw new ArgumentException("PesPacketPool cannot be null", "parameters");
+            if (null == parameters.NextHandler)
+                throw new ArgumentException("NextHandler cannot be null", "parameters");
 
-            _pesPacketPool = pesPacketPool;
-            _nextHandler = nextHandler;
-            _configurator = new H262Configurator(streamType.Description);
+            _pesPacketPool = parameters.PesPacketPool;
+            _nextHandler = parameters.NextHandler;
+            _configurator = new H262Configurator(parameters.MediaStreamMetadata, parameters.StreamType.Description);
         }
 
         public override IConfigurationSource Configurator

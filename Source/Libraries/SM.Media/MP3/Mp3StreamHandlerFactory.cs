@@ -41,9 +41,9 @@ namespace SM.Media.MP3
             get { return Types; }
         }
 
-        public PesStreamHandler Create(PesStreamParameters parameter)
+        public PesStreamHandler Create(PesStreamParameters parameters)
         {
-            return new Mp3StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
+            return new Mp3StreamHandler(parameters);
         }
 
         #endregion

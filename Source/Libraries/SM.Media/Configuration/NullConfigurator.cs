@@ -26,6 +26,7 @@
 
 using System;
 using SM.Media.Content;
+using SM.Media.Metadata;
 
 namespace SM.Media.Configuration
 {
@@ -56,6 +57,11 @@ namespace SM.Media.Configuration
         public ContentType ContentType
         {
             get { return ContentTypes.Binary; }
+        }
+
+        public IMediaStreamMetadata MediaStreamMetadata
+        {
+            get { return null; }
         }
 
         public bool IsConfigured

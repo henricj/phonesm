@@ -30,6 +30,7 @@ using System.Linq;
 using System.Text;
 using SM.Media.Configuration;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 
 namespace SM.Media.H264
@@ -41,8 +42,8 @@ namespace SM.Media.H264
         IEnumerable<byte> _ppsBytes;
         IEnumerable<byte> _spsBytes;
 
-        public H264Configurator(string streamDescription = null)
-            : base("H264", ContentTypes.H264)
+        public H264Configurator(IMediaStreamMetadata mediaStreamMetadata, string streamDescription = null)
+            : base("H264", ContentTypes.H264, mediaStreamMetadata)
         {
             StreamDescription = streamDescription;
         }

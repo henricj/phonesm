@@ -36,10 +36,13 @@ namespace SM.Media.Pes
         protected readonly uint Pid;
         protected readonly TsStreamType StreamType;
 
-        protected PesStreamHandler(uint pid, TsStreamType streamType)
+        protected PesStreamHandler(PesStreamParameters parameters)
         {
-            StreamType = streamType;
-            Pid = pid;
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+
+            StreamType = parameters.StreamType;
+            Pid = parameters.Pid;
         }
 
         public abstract IConfigurationSource Configurator { get; }

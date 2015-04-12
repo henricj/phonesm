@@ -27,6 +27,7 @@
 using SM.Media.Audio;
 using SM.Media.Configuration;
 using SM.Media.Content;
+using SM.Media.Metadata;
 using SM.Media.Mmreg;
 
 namespace SM.Media.MP3
@@ -35,8 +36,8 @@ namespace SM.Media.MP3
     {
         readonly Mp3FrameHeader _frameHeader = new Mp3FrameHeader();
 
-        public Mp3Configurator(string streamDescription = null)
-            : base(ContentTypes.Mp3)
+        public Mp3Configurator(IMediaStreamMetadata mediaStreamMetadata, string streamDescription = null)
+            : base(ContentTypes.Mp3, mediaStreamMetadata)
         {
             StreamDescription = streamDescription;
         }

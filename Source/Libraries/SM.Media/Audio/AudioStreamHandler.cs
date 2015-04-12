@@ -35,38 +35,38 @@ namespace SM.Media.Audio
 {
     public abstract class AudioStreamHandler : PesStreamHandler
     {
-        protected readonly IAudioConfigurator _configurator;
+        protected readonly IAudioConfigurator AudioConfigurator;
+        protected readonly Action<TsPesPacket> NextHandler;
         readonly IAudioFrameHeader _frameHeader;
         readonly int _minimumPacketSize;
-        protected readonly Action<TsPesPacket> _nextHandler;
         readonly ITsPesPacketPool _pesPacketPool;
+        protected AudioParserBase Parser;
         bool _isConfigured;
-        protected AudioParserBase _parser;
 
-        protected AudioStreamHandler(uint pid, TsStreamType streamType, IAudioFrameHeader frameHeader, IAudioConfigurator configurator, int minimumPacketSize, ITsPesPacketPool pesPacketPool, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+        protected AudioStreamHandler(PesStreamParameters parameters, IAudioFrameHeader frameHeader, IAudioConfigurator configurator, int minimumPacketSize)
+            : base(parameters)
         {
-            if (pesPacketPool == null)
-                throw new ArgumentNullException("pesPacketPool");
-            if (nextHandler == null)
-                throw new ArgumentNullException("nextHandler");
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+            if (null == parameters.PesPacketPool)
+                throw new ArgumentException("PesPacketPool cannot be null", "parameters");
+            if (null == parameters.NextHandler)
+                throw new ArgumentException("NextHandler cannot be null", "parameters");
             if (minimumPacketSize < 1)
                 throw new ArgumentOutOfRangeException("minimumPacketSize", "minimumPacketSize must be positive: " + minimumPacketSize);
-
-            _pesPacketPool = pesPacketPool;
-            _nextHandler = nextHandler;
-
             if (null == frameHeader)
                 throw new ArgumentNullException("frameHeader");
 
+            _pesPacketPool = parameters.PesPacketPool;
+            NextHandler = parameters.NextHandler;
             _frameHeader = frameHeader;
-            _configurator = configurator;
+            AudioConfigurator = configurator;
             _minimumPacketSize = minimumPacketSize;
         }
 
         public override IConfigurationSource Configurator
         {
-            get { return _configurator; }
+            get { return AudioConfigurator; }
         }
 
         public override TimeSpan? GetDuration(TsPesPacket packet)
@@ -118,19 +118,19 @@ namespace SM.Media.Audio
 
             if (null == packet)
             {
-                if (null != _parser)
-                    _parser.FlushBuffers();
+                if (null != Parser)
+                    Parser.FlushBuffers();
 
-                if (null != _nextHandler)
-                    _nextHandler(null);
+                if (null != NextHandler)
+                    NextHandler(null);
 
                 return;
             }
 
-            if (null != _parser)
+            if (null != Parser)
             {
-                _parser.Position = packet.PresentationTimestamp;
-                _parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
+                Parser.Position = packet.PresentationTimestamp;
+                Parser.ProcessData(packet.Buffer, packet.Index, packet.Length);
 
                 _pesPacketPool.FreePesPacket(packet);
 
@@ -149,11 +149,11 @@ namespace SM.Media.Audio
                 if (_frameHeader.Parse(packet.Buffer, packet.Index, packet.Length, true))
                 {
                     _isConfigured = true;
-                    _configurator.Configure(_frameHeader);
+                    AudioConfigurator.Configure(_frameHeader);
                 }
             }
 
-            _nextHandler(packet);
+            NextHandler(packet);
         }
     }
 }

@@ -35,12 +35,14 @@ using Windows.Media.MediaProperties;
 using SM.Media.Configuration;
 using SM.Media.MediaManager;
 using SM.Media.MediaParser;
+using SM.Media.Metadata;
 using SM.Media.Utility;
 
 namespace SM.Media
 {
     public sealed class WinRtMediaStreamConfigurator : IMediaStreamConfigurator
     {
+        readonly IMetadataSink _metadataSink;
 #if DEBUG
         MediaStreamFsm _mediaStreamFsm = new MediaStreamFsm();
 #endif
@@ -70,8 +72,12 @@ namespace SM.Media
             get { return _streamStates.Any(s => s.IsBuffering); }
         }
 
-        public WinRtMediaStreamConfigurator()
+        public WinRtMediaStreamConfigurator(IMetadataSink metadataSink)
         {
+            if (null == metadataSink)
+                throw new ArgumentNullException("metadataSink");
+
+            _metadataSink = metadataSink;
 #if DEBUG
             _mediaStreamFsm.Reset();
 #endif
@@ -119,6 +125,8 @@ namespace SM.Media
         {
             ThrowIfDisposed();
 
+            var configurationMetadata = new ConfigurationMetadata();
+
             var streamStates = new List<WinRtStreamState>();
 
             WinRtStreamState videoStreamState = null;
@@ -126,7 +134,11 @@ namespace SM.Media
 
             if (null != configuration.Audio)
             {
-                var descriptor = CreateAudioDescriptor((IAudioConfigurationSource)configuration.Audio.ConfigurationSource);
+                var audioConfigurationSource = (IAudioConfigurationSource)configuration.Audio.ConfigurationSource;
+
+                configurationMetadata.Audio = audioConfigurationSource;
+
+                var descriptor = CreateAudioDescriptor(audioConfigurationSource);
 
                 var contentType = configuration.Audio.ConfigurationSource.ContentType;
 
@@ -139,7 +151,11 @@ namespace SM.Media
 
             if (null != configuration.Video)
             {
-                var descriptor = CreateVideoDescriptor((IVideoConfigurationSource)configuration.Video.ConfigurationSource);
+                var videoConfigurationSource = (IVideoConfigurationSource)configuration.Video.ConfigurationSource;
+
+                configurationMetadata.Video = videoConfigurationSource;
+
+                var descriptor = CreateVideoDescriptor(videoConfigurationSource);
 
                 var contentType = configuration.Video.ConfigurationSource.ContentType;
 
@@ -152,6 +168,8 @@ namespace SM.Media
 
             if (null != configuration.AlternateStreams && configuration.AlternateStreams.Count > 0)
             {
+                configurationMetadata.AlternateStreams = configuration.AlternateStreams.Select(s => s.ConfigurationSource).ToArray();
+
                 var audioCount = 1;
 
                 foreach (var stream in configuration.AlternateStreams)
@@ -172,6 +190,8 @@ namespace SM.Media
                     streamStates.Add(audioStream);
                 }
             }
+
+            _metadataSink.ReportConfigurationMetadata(configurationMetadata);
 
             var allStreams = streamStates.ToArray();
 
@@ -258,7 +278,7 @@ namespace SM.Media
             throw new ObjectDisposedException(GetType().Name);
         }
 
-        VideoEncodingProperties GetVideoEncodingProperties(IVideoConfigurationSource configurationSource)
+        VideoEncodingProperties CreateVideoEncodingProperties(IVideoConfigurationSource configurationSource)
         {
             switch (configurationSource.VideoFourCc)
             {
@@ -273,7 +293,7 @@ namespace SM.Media
 
         IMediaStreamDescriptor CreateVideoDescriptor(IVideoConfigurationSource configurationSource)
         {
-            var encodingProperties = GetVideoEncodingProperties(configurationSource);
+            var encodingProperties = CreateVideoEncodingProperties(configurationSource);
 
             if (null == encodingProperties)
                 throw new ArgumentOutOfRangeException();
@@ -300,6 +320,25 @@ namespace SM.Media
 
         IMediaStreamDescriptor CreateAudioDescriptor(IAudioConfigurationSource configurationSource)
         {
+            var properties = CreateAudioEncodingProperties(configurationSource);
+
+            var descriptor = new AudioStreamDescriptor(properties);
+
+            if (string.IsNullOrEmpty(descriptor.Name))
+                descriptor.Name = configurationSource.Name;
+
+            var language = configurationSource.GetLanguage();
+
+            if (null != language)
+                descriptor.Language = language;
+
+            DumpAudioStreamDescriptor(descriptor);
+
+            return descriptor;
+        }
+
+        static AudioEncodingProperties CreateAudioEncodingProperties(IAudioConfigurationSource configurationSource)
+        {
             Func<uint, uint, uint, AudioEncodingProperties> propertyFactory;
 
             switch (configurationSource.Format)
@@ -323,11 +362,7 @@ namespace SM.Media
                     if (configurationSource.Bitrate.HasValue)
                         encodingProperties.Bitrate = (uint)configurationSource.Bitrate.Value;
 
-                    var ac3Descriptor = new AudioStreamDescriptor(encodingProperties);
-
-                    DumpAudioStreamDescriptor(ac3Descriptor);
-
-                    return ac3Descriptor;
+                    return encodingProperties;
                 case AudioFormat.Unknown:
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -336,18 +371,14 @@ namespace SM.Media
             var audioEncodingProperties = propertyFactory((uint)configurationSource.SamplingFrequency,
                 (uint)configurationSource.Channels, (uint?)configurationSource.Bitrate ?? 128000u);
 
-            var descriptor = new AudioStreamDescriptor(audioEncodingProperties);
-
-            if (string.IsNullOrEmpty(descriptor.Name))
-                descriptor.Name = configurationSource.Name;
-
-            DumpAudioStreamDescriptor(descriptor);
-
-            return descriptor;
+            return audioEncodingProperties;
         }
 
         static void DumpAudioStreamDescriptor(AudioStreamDescriptor descriptor)
         {
+            var name = descriptor.Name;
+            var language = descriptor.Language;
+
             var p = descriptor.EncodingProperties;
 
             Debug.WriteLine("WinRtMediaStreamConfigurator.DumpAudioStreamDescriptor() {0} sample rate {1} channels {2} bitrate {3}",

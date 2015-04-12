@@ -27,29 +27,34 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SM.Media.Metadata;
 using SM.Media.TransportStream.TsParser;
 
 namespace SM.Media.Pes
 {
     public interface IPesHandlers : IDisposable
     {
-        PesStreamHandler GetPesHandler(TsStreamType streamType, uint pid, Action<TsPesPacket> nextHandler);
+        PesStreamHandler GetPesHandler(TsStreamType streamType, uint pid, IMediaStreamMetadata mediaStreamMetadata, Action<TsPesPacket> nextHandler);
     }
 
     public sealed class PesHandlers : IPesHandlers
     {
         readonly IPesHandlerFactory _handlerFactory;
         readonly Dictionary<uint, PesStreamHandler> _handlers = new Dictionary<uint, PesStreamHandler>();
+        readonly Func<PesStreamParameters> _parameterFactory;
 
         readonly Dictionary<byte, Func<uint, TsStreamType, Action<TsPesPacket>>> _pesStreamHandlerFactory =
             new Dictionary<byte, Func<uint, TsStreamType, Action<TsPesPacket>>>();
 
-        public PesHandlers(IPesHandlerFactory handlerFactory)
+        public PesHandlers(IPesHandlerFactory handlerFactory, Func<PesStreamParameters> parameterFactory)
         {
             if (null == handlerFactory)
                 throw new ArgumentNullException("handlerFactory");
+            if (null == parameterFactory)
+                throw new ArgumentNullException("parameterFactory");
 
             _handlerFactory = handlerFactory;
+            _parameterFactory = parameterFactory;
         }
 
         #region IPesHandlers Members
@@ -63,7 +68,7 @@ namespace SM.Media.Pes
             CleanupHandlers();
         }
 
-        public PesStreamHandler GetPesHandler(TsStreamType streamType, uint pid, Action<TsPesPacket> nextHandler)
+        public PesStreamHandler GetPesHandler(TsStreamType streamType, uint pid, IMediaStreamMetadata mediaStreamMetadata, Action<TsPesPacket> nextHandler)
         {
             PesStreamHandler handler;
 
@@ -73,7 +78,14 @@ namespace SM.Media.Pes
             {
                 Debug.WriteLine("Create PES {0} stream ({1}) with PID {2}", streamType.Contents, streamType.Description, pid);
 
-                handler = _handlerFactory.CreateHandler(pid, streamType, nextHandler);
+                var parameters = _parameterFactory();
+
+                parameters.Pid = pid;
+                parameters.StreamType = streamType;
+                parameters.NextHandler = nextHandler;
+                parameters.MediaStreamMetadata = mediaStreamMetadata;
+
+                handler = _handlerFactory.CreateHandler(parameters);
 
                 _handlers[pid] = handler;
             }

@@ -41,9 +41,9 @@ namespace SM.Media.AAC
             get { return Types; }
         }
 
-        public PesStreamHandler Create(PesStreamParameters parameter)
+        public PesStreamHandler Create(PesStreamParameters parameters)
         {
-            return new AacStreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
+            return new AacStreamHandler(parameters);
         }
 
         #endregion

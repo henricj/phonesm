@@ -36,7 +36,7 @@ namespace SM.Media.MP3
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Mp3Iso11172);
 
         public Mp3MediaParser(ITsPesPacketPool pesPacketPool, IMetadataSink metadataSink)
-            : base(StreamType, new Mp3Configurator(), pesPacketPool, metadataSink)
+            : base(StreamType, new Mp3Configurator(null), pesPacketPool, metadataSink)
         {
             Parser = new Mp3Parser(pesPacketPool, Configurator.Configure, SubmitPacket);
         }

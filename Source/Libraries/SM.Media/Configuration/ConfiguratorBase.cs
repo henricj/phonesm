@@ -27,17 +27,23 @@
 using System;
 using System.Threading;
 using SM.Media.Content;
+using SM.Media.Metadata;
 
 namespace SM.Media.Configuration
 {
     public class ConfiguratorBase : IConfigurationSource
     {
         readonly ContentType _contentType;
+        readonly IMediaStreamMetadata _mediaStreamMetadata;
         int _isConfigured;
 
-        protected ConfiguratorBase(ContentType contentType)
+        protected ConfiguratorBase(ContentType contentType, IMediaStreamMetadata mediaStreamMetadata)
         {
+            if (null == contentType)
+                throw new ArgumentNullException("contentType");
+
             _contentType = contentType;
+            _mediaStreamMetadata = mediaStreamMetadata;
         }
 
         #region IConfigurationSource Members
@@ -57,6 +63,11 @@ namespace SM.Media.Configuration
         public ContentType ContentType
         {
             get { return _contentType; }
+        }
+
+        public IMediaStreamMetadata MediaStreamMetadata
+        {
+            get { return _mediaStreamMetadata; }
         }
 
         public event EventHandler ConfigurationComplete;

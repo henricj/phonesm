@@ -27,13 +27,14 @@
 using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.Content;
+using SM.Media.Metadata;
 
 namespace SM.Media.H262
 {
     public sealed class H262Configurator : VideoConfigurator, IFrameParser
     {
-        public H262Configurator(string streamDescription = null)
-            : base("MP2V", ContentTypes.H262)
+        public H262Configurator(IMediaStreamMetadata mediaStreamMetadata, string streamDescription = null)
+            : base("MP2V", ContentTypes.H262, mediaStreamMetadata)
         {
             StreamDescription = streamDescription;
         }

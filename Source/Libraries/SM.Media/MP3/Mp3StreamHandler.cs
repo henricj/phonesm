@@ -24,10 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using SM.Media.Audio;
 using SM.Media.TransportStream.TsParser;
-using SM.Media.TransportStream.TsParser.Utility;
 
 namespace SM.Media.MP3
 {
@@ -37,11 +35,11 @@ namespace SM.Media.MP3
 
         const bool UseParser = true; // Have Mp3Parser parse the stream and submit frames to the OS.
 
-        public Mp3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType, new Mp3FrameHeader(), new Mp3Configurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)
+        public Mp3StreamHandler(PesStreamParameters parameters)
+            : base(parameters, new Mp3FrameHeader(), new Mp3Configurator(parameters.MediaStreamMetadata , parameters.StreamType.Description), MinimumPacketSize)
         {
             if (UseParser)
-                _parser = new Mp3Parser(pesPacketPool, _configurator.Configure, _nextHandler);
+                Parser = new Mp3Parser(parameters.PesPacketPool, AudioConfigurator.Configure, NextHandler);
         }
     }
 }

@@ -24,10 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using SM.Media.Audio;
 using SM.Media.TransportStream.TsParser;
-using SM.Media.TransportStream.TsParser.Utility;
 
 namespace SM.Media.Ac3
 {
@@ -36,11 +34,11 @@ namespace SM.Media.Ac3
         const int MinimumPacketSize = 7;
         const bool UseParser = true;
 
-        public Ac3StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType, new Ac3FrameHeader(), new Ac3Configurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)
+        public Ac3StreamHandler(PesStreamParameters parameters)
+            : base(parameters, new Ac3FrameHeader(), new Ac3Configurator(parameters.MediaStreamMetadata, parameters.StreamType.Description), MinimumPacketSize)
         {
             if (UseParser)
-                _parser = new Ac3Parser(pesPacketPool, _configurator.Configure, _nextHandler);
+                Parser = new Ac3Parser(parameters.PesPacketPool, AudioConfigurator.Configure, NextHandler);
         }
     }
 }

@@ -32,6 +32,6 @@ namespace SM.Media.Pes
     public interface IPesStreamFactoryInstance
     {
         ICollection<byte> SupportedStreamTypes { get; }
-        PesStreamHandler Create(PesStreamParameters parameter);
+        PesStreamHandler Create(PesStreamParameters parameters);
     }
 }

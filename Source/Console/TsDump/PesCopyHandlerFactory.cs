@@ -34,9 +34,9 @@ namespace TsDump
     {
         #region IPesHandlerFactory Members
 
-        public PesStreamHandler CreateHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
+        public PesStreamHandler CreateHandler(PesStreamParameters parameters)
         {
-            return new PesStreamCopyHandler(pid, streamType, nextHandler);
+            return new PesStreamCopyHandler(parameters);
         }
 
         #endregion

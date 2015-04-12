@@ -25,13 +25,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using SM.Media.Content;
+using SM.Media.Metadata;
 
 namespace SM.Media.Configuration
 {
     public abstract class VideoConfigurator : ConfiguratorBase, IVideoConfigurationSource
     {
-        protected VideoConfigurator(string fourCc, ContentType contentType)
-            : base(contentType)
+        protected VideoConfigurator(string fourCc, ContentType contentType, IMediaStreamMetadata mediaStreamMetadata)
+            : base(contentType, mediaStreamMetadata)
         {
             VideoFourCc = fourCc;
         }

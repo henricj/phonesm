@@ -25,7 +25,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.Pes;
 using SM.Media.TransportStream.TsParser;
@@ -43,17 +42,19 @@ namespace SM.Media.H264
         INalParser _currentParser;
         bool _isConfigured;
 
-        public H264StreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+        public H264StreamHandler(PesStreamParameters parameters)
+            : base(parameters)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
-            if (null == nextHandler)
-                throw new ArgumentNullException("nextHandler");
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+            if (null == parameters.PesPacketPool)
+                throw new ArgumentException("PesPacketPool cannot be null", "parameters");
+            if (null == parameters.NextHandler)
+                throw new ArgumentException("NextHandler cannot be null", "parameters");
 
-            _pesPacketPool = pesPacketPool;
-            _nextHandler = nextHandler;
-            _configurator = new H264Configurator(streamType.Description);
+            _pesPacketPool = parameters.PesPacketPool;
+            _nextHandler = parameters.NextHandler;
+            _configurator = new H264Configurator(parameters.MediaStreamMetadata, parameters.StreamType.Description);
 
             _parser = new NalUnitParser(ResolveHandler);
         }

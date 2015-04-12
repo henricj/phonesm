@@ -27,6 +27,7 @@
 using SM.Media.Audio;
 using SM.Media.Configuration;
 using SM.Media.Content;
+using SM.Media.Metadata;
 
 namespace SM.Media.Ac3
 {
@@ -34,8 +35,8 @@ namespace SM.Media.Ac3
     {
         readonly Ac3FrameHeader _frameHeader = new Ac3FrameHeader();
 
-        public Ac3Configurator(string streamDescription = null)
-            : base(ContentTypes.Ac3)
+        public Ac3Configurator(IMediaStreamMetadata mediaStreamMetadata, string streamDescription = null)
+            : base(ContentTypes.Ac3, mediaStreamMetadata)
         {
             StreamDescription = streamDescription;
         }

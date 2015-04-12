@@ -41,9 +41,9 @@ namespace SM.Media.H262
             get { return Types; }
         }
 
-        public PesStreamHandler Create(PesStreamParameters parameter)
+        public PesStreamHandler Create(PesStreamParameters parameters)
         {
-            return new H262StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
+            return new H262StreamHandler(parameters);
         }
 
         #endregion

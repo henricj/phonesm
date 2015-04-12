@@ -24,10 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
 using SM.Media.Audio;
 using SM.Media.TransportStream.TsParser;
-using SM.Media.TransportStream.TsParser.Utility;
 
 namespace SM.Media.AAC
 {
@@ -35,11 +33,11 @@ namespace SM.Media.AAC
     {
         const int MinimumPacketSize = 7; // Well, it needs the ADTS header at least...
 
-        public AacStreamHandler(ITsPesPacketPool pesPacketPool, uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType, new AacFrameHeader(), new AacConfigurator(streamType.Description), MinimumPacketSize, pesPacketPool, nextHandler)
+        public AacStreamHandler(PesStreamParameters parameters)
+            : base(parameters, new AacFrameHeader(), new AacConfigurator(parameters.MediaStreamMetadata, parameters.StreamType.Description), MinimumPacketSize)
         {
             if (AacDecoderSettings.Parameters.UseParser)
-                _parser = new AacParser(pesPacketPool, _configurator.Configure, _nextHandler);
+                Parser = new AacParser(parameters.PesPacketPool, AudioConfigurator.Configure, NextHandler);
         }
     }
 }

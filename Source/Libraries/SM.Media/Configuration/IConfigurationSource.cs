@@ -26,6 +26,7 @@
 
 using System;
 using SM.Media.Content;
+using SM.Media.Metadata;
 
 namespace SM.Media.Configuration
 {
@@ -37,8 +38,25 @@ namespace SM.Media.Configuration
         int? Bitrate { get; }
 
         ContentType ContentType { get; }
+        IMediaStreamMetadata MediaStreamMetadata { get; }
 
         bool IsConfigured { get; }
         event EventHandler ConfigurationComplete;
+    }
+
+    public static class ConfigurationSourceExtensions
+    {
+        public static string GetLanguage(this IConfigurationSource configurationSource)
+        {
+            var mediaStreamMetadata = configurationSource.MediaStreamMetadata;
+
+            if (null == mediaStreamMetadata)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(mediaStreamMetadata.Language))
+                return null;
+
+            return mediaStreamMetadata.Language;
+        }
     }
 }

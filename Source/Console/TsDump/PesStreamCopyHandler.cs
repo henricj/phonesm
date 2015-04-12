@@ -45,17 +45,24 @@ namespace TsDump
         byte[] _streamHash;
         TimeSpan _timestamp;
 
-        public PesStreamCopyHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+        public PesStreamCopyHandler(PesStreamParameters parameters)
+            : base(parameters)
         {
-            _nextHandler = nextHandler;
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+            if (null == parameters.PesPacketPool)
+                throw new ArgumentException("PesPacketPool cannot be null", "parameters");
+            if (null == parameters.NextHandler)
+                throw new ArgumentException("NextHandler cannot be null", "parameters");
 
-            var ext = streamType.FileExtension;
+            _nextHandler = parameters.NextHandler;
+
+            var ext = parameters.StreamType.FileExtension;
 
             if (string.IsNullOrWhiteSpace(ext))
-                ext = "_" + streamType.StreamType.ToString("x2") + ".bin";
+                ext = "_" + parameters.StreamType.StreamType.ToString("x2") + ".bin";
 
-            _stream = File.Create(string.Format("TS_PID{0}{1}", pid, ext), 256 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            _stream = File.Create(string.Format("TS_PID{0}{1}", parameters.Pid, ext), 256 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
         }
 
         public override IConfigurationSource Configurator

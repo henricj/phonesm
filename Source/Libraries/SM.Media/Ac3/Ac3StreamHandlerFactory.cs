@@ -41,9 +41,9 @@ namespace SM.Media.Ac3
             get { return Types; }
         }
 
-        public PesStreamHandler Create(PesStreamParameters parameter)
+        public PesStreamHandler Create(PesStreamParameters parameters)
         {
-            return new Ac3StreamHandler(parameter.PesPacketPool, parameter.Pid, parameter.StreamType, parameter.NextHandler);
+            return new Ac3StreamHandler(parameters);
         }
 
         #endregion

@@ -34,13 +34,15 @@ namespace SM.Media.Pes
     {
         readonly Action<TsPesPacket> _nextHandler;
 
-        public DefaultPesStreamHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
-            : base(pid, streamType)
+        public DefaultPesStreamHandler(PesStreamParameters parameters)
+            : base(parameters)
         {
-            if (null == nextHandler)
-                throw new ArgumentNullException("nextHandler");
+            if (null == parameters)
+                throw new ArgumentNullException("parameters");
+            if (null == parameters.NextHandler)
+                throw new ArgumentException("NextHandler cannot be null", "parameters");
 
-            _nextHandler = nextHandler;
+            _nextHandler = parameters.NextHandler;
         }
 
         public override IConfigurationSource Configurator

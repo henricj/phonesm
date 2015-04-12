@@ -34,7 +34,7 @@ namespace SM.Media.Pes
 {
     public interface IPesHandlerFactory
     {
-        PesStreamHandler CreateHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler);
+        PesStreamHandler CreateHandler(PesStreamParameters parameters);
     }
 
     public sealed class PesHandlerFactory : IPesHandlerFactory
@@ -42,6 +42,7 @@ namespace SM.Media.Pes
         //    Table 2-34 Stream type assignments
         //    ISO/IEC 13818-1:2007/Amd.3:2009 (E)
         //    Rec. ITU-T H.222.0 (2006)/Amd.3 (03/2009)
+        // TODO: TsStreamTypeContentTypes isn't actually used anywhere...
         static readonly IDictionary<byte, ContentType> TsStreamTypeContentTypes =
             new Dictionary<byte, ContentType>
             {
@@ -54,14 +55,11 @@ namespace SM.Media.Pes
             };
 
         readonly Dictionary<byte, IPesStreamFactoryInstance> _factories;
-        readonly Func<PesStreamParameters> _parameterFactory;
 
-        public PesHandlerFactory(IEnumerable<IPesStreamFactoryInstance> factoryInstances, Func<PesStreamParameters> parameterFactory)
+        public PesHandlerFactory(IEnumerable<IPesStreamFactoryInstance> factoryInstances)
         {
             if (factoryInstances == null)
                 throw new ArgumentNullException("factoryInstances");
-            if (null == parameterFactory)
-                throw new ArgumentNullException("parameterFactory");
 
             _factories = factoryInstances
                 .SelectMany(fi => fi.SupportedStreamTypes,
@@ -71,23 +69,15 @@ namespace SM.Media.Pes
                         Instance = fi
                     })
                 .ToDictionary(v => v.ContentType, v => v.Instance);
-
-            _parameterFactory = parameterFactory;
         }
 
         #region IPesHandlerFactory Members
 
-        public PesStreamHandler CreateHandler(uint pid, TsStreamType streamType, Action<TsPesPacket> nextHandler)
+        public PesStreamHandler CreateHandler(PesStreamParameters parameters)
         {
             IPesStreamFactoryInstance factory;
-            if (!_factories.TryGetValue(streamType.StreamType, out factory))
-                return new DefaultPesStreamHandler(pid, streamType, nextHandler);
-
-            var parameters = _parameterFactory();
-
-            parameters.Pid = pid;
-            parameters.StreamType = streamType;
-            parameters.NextHandler = nextHandler;
+            if (!_factories.TryGetValue(parameters.StreamType.StreamType, out factory))
+                return new DefaultPesStreamHandler(parameters);
 
             return factory.Create(parameters);
         }

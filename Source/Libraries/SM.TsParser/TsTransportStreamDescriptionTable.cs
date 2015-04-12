@@ -28,11 +28,37 @@ namespace SM.TsParser
 {
     public class TsTransportStreamDescriptionTable : TsProgramSpecificInformation
     {
+        const int MinimumDescriptionTableLength = 5;
+
         public TsTransportStreamDescriptionTable()
             : base(TsTableId.TS_description_section)
         { }
 
         protected override void ParseSection(TsPacket packet, int offset, int length)
-        { }
+        {
+            if (length < MinimumDescriptionTableLength)
+                return;
+
+            var i = offset;
+            var buffer = packet.Buffer;
+            var sectionEnd = i + length;
+
+            i += 2; // Skip reserved
+
+            var version_number = buffer[i++];
+
+            var current_next_indicator = version_number & 1;
+
+            version_number = (byte)((version_number >> 1) & 0x1f);
+
+            var section_number = buffer[i++];
+
+            var last_section_number = buffer[i++];
+
+            //while (i + 2 < sectionEnd)
+            //{
+
+            //}
+        }
     }
 }

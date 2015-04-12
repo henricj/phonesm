@@ -67,5 +67,12 @@ namespace SM.Media.Metadata
 
             _updateAction();
         }
+
+        public override void ReportConfigurationMetadata(IConfigurationMetadata configurationMetadata)
+        {
+            base.ReportConfigurationMetadata(configurationMetadata);
+
+            _updateAction();
+        }
     }
 }

@@ -91,8 +91,6 @@ namespace SM.Media.Utility
                         return;
                     }
                 }
-
-                Debug.WriteLine("Hello");
             }
         }
 

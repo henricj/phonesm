@@ -152,8 +152,6 @@
     <Compile Include="Content\ContentServiceFactory.cs" />
     <Compile Include="MediaManager\SingleStreamMediaManager.cs" />
     <Compile Include="TransportStream\TsParser\IPesStreamHandler.cs" />
-    <Compile Include="TransportStream\TsParser\IProgramStream.cs" />
-    <Compile Include="TransportStream\TsParser\IProgramStreams.cs" />
     <Compile Include="TransportStream\TsParser\PesStreamParameters.cs" />
     <Compile Include="TransportStream\TsParser\ProgramStreams.cs" />
     <Compile Include="TransportStream\TsParser\TsDecoder.cs" />

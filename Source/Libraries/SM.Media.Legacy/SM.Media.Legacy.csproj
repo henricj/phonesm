@@ -528,14 +528,8 @@
     <Compile Include="..\SM.Media\TransportStream\TsMediaParserFactory.cs">
       <Link>TransportStream\TsMediaParserFactory.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\IPesStreamHandler.cs">
-      <Link>TransportStream\TsParser\IPesStreamHandler.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\IProgramStream.cs">
-      <Link>TransportStream\TsParser\IProgramStream.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\IProgramStreams.cs">
-      <Link>TransportStream\TsParser\IProgramStreams.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\TransportStream\TsParser\PesStreamParameters.cs">
       <Link>TransportStream\TsParser\PesStreamParameters.cs</Link>

@@ -28,9 +28,26 @@ using System.Collections.Generic;
 
 namespace SM.Media.TransportStream.TsParser
 {
+    public interface IProgramStream
+    {
+        uint Pid { get; }
+        TsStreamType StreamType { get; }
+        bool BlockStream { get; set; }
+        string Language { get; }
+    }
+
+    public interface IProgramStreams
+    {
+        int ProgramNumber { get; }
+        string Language { get; }
+        ICollection<IProgramStream> Streams { get; }
+    }
+
     class ProgramStreams : IProgramStreams
     {
         #region IProgramStreams Members
+
+        public string Language { get; set; }
 
         public int ProgramNumber { get; internal set; }
 
@@ -43,6 +60,8 @@ namespace SM.Media.TransportStream.TsParser
         public class ProgramStream : IProgramStream
         {
             #region IProgramStream Members
+
+            public string Language { get; set; }
 
             public uint Pid { get; internal set; }
 

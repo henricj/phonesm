@@ -149,7 +149,33 @@
     <Compile Include="Segments\SimpleSegmentManagerFactory.cs" />
     <Compile Include="Content\ContentServiceFactory.cs" />
     <Compile Include="MediaManager\SingleStreamMediaManager.cs" />
+    <Compile Include="TransportStream\TsParser\IPesStreamHandler.cs" />
+    <Compile Include="TransportStream\TsParser\IProgramStream.cs" />
+    <Compile Include="TransportStream\TsParser\IProgramStreams.cs" />
+    <Compile Include="TransportStream\TsParser\PesStreamParameters.cs" />
+    <Compile Include="TransportStream\TsParser\ProgramStreams.cs" />
+    <Compile Include="TransportStream\TsParser\TsDecoder.cs" />
+    <Compile Include="TransportStream\TsParser\TsDescriptor.cs" />
+    <Compile Include="TransportStream\TsParser\TsDescriptors.cs" />
+    <Compile Include="TransportStream\TsParser\TsDescriptorType.cs" />
+    <Compile Include="TransportStream\TsParser\TsDescriptorTypes.cs" />
     <Compile Include="TransportStream\TsMediaParserFactory.cs" />
+    <Compile Include="TransportStream\TsParser\TsPacket.cs" />
+    <Compile Include="TransportStream\TsParser\TsPacketizedElementaryStream.cs" />
+    <Compile Include="TransportStream\TsParser\TsPesPacket.cs" />
+    <Compile Include="TransportStream\TsParser\TsProgramAssociationTable.cs" />
+    <Compile Include="TransportStream\TsParser\TsProgramMapTable.cs" />
+    <Compile Include="TransportStream\TsParser\TsProgramSpecificInformation.cs" />
+    <Compile Include="TransportStream\TsParser\TsStream.cs" />
+    <Compile Include="TransportStream\TsParser\TsStreamType.cs" />
+    <Compile Include="TransportStream\TsParser\TsTransportStreamDescriptionTable.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\BufferInstance.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\Crc32Msb.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\IBufferPool.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\ITsPesPacketPool.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\ObjectPool.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\RegisterExtender.cs" />
+    <Compile Include="TransportStream\TsParser\Utility\TsPesPacketPool.cs" />
     <Compile Include="Utility\ApplicationInformation.cs" />
     <Compile Include="Audio\AudioParserBase.cs" />
     <Compile Include="Audio\IAudioFrameHeader.cs" />
@@ -361,13 +387,6 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
-      <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-      <Name>SM.TsParser</Name>
-      <Private>False</Private>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Global\phonesm.snk">

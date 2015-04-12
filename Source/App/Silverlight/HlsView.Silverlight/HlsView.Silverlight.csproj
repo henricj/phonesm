@@ -179,23 +179,6 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-  <Choose>
-    <When Condition="Exists('..\..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-          <Project>{ca6f2d9d-5d8b-4e72-bbef-6d61d86aa1a1}</Project>
-          <Name>SM.TsParser.Legacy</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.TsParser.Legacy">
-          <HintPath>..\..\..\bin\$(Configuration)\SM.TsParser.Legacy.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
   <ItemGroup>
     <None Include="Properties\OutOfBrowserSettings.xml" />
   </ItemGroup>

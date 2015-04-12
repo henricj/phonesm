@@ -32,9 +32,9 @@ using System.Threading.Tasks;
 using SM.Media.Buffering;
 using SM.Media.MediaParser;
 using SM.Media.Metadata;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Utility;
 using SM.Media.Utility;
-using SM.TsParser;
-using SM.TsParser.Utility;
 
 namespace TsDump
 {

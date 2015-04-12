@@ -25,7 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.TsParser;
+using SM.Media.TransportStream.TsParser;
 
 namespace SM.Media.MediaManager
 {

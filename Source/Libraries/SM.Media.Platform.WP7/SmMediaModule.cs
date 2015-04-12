@@ -43,12 +43,12 @@ using SM.Media.Pes;
 using SM.Media.Pls;
 using SM.Media.Segments;
 using SM.Media.TransportStream;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Utility;
 using SM.Media.Utility;
 using SM.Media.Utility.RandomGenerators;
 using SM.Media.Utility.TextEncodings;
 using SM.Media.Web;
-using SM.TsParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media
 {

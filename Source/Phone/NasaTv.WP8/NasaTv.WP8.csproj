@@ -177,10 +177,6 @@
       <Project>{50FDC058-B92E-4520-A5D8-FD81B73105CF}</Project>
       <Name>NasaTv.Support</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
-      <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-      <Name>SM.TsParser</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
       <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
       <Name>SM.Media.Builder</Name>

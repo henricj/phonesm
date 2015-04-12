@@ -28,9 +28,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Utility;
 using SM.Media.Utility;
-using SM.TsParser;
-using SM.TsParser.Utility;
 
 namespace SM.Media.Buffering
 {

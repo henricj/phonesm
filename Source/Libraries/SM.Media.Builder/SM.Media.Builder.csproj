@@ -70,11 +70,6 @@
       <Name>SM.Media</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
-      <Project>{d434dff7-9de1-4995-846d-e88dd3595b46}</Project>
-      <Name>SM.TsParser</Name>
-      <Private>False</Private>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Autofac">

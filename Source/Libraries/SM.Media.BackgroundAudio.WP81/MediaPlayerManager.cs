@@ -39,9 +39,9 @@ using SM.Media.MediaManager;
 using SM.Media.Metadata;
 using SM.Media.Playlists;
 using SM.Media.Pls;
+using SM.Media.TransportStream.TsParser;
 using SM.Media.Utility;
 using SM.Media.Web;
-using SM.TsParser;
 
 namespace SM.Media.BackgroundAudio
 {

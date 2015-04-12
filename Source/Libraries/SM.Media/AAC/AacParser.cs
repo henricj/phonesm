@@ -27,8 +27,8 @@
 using System;
 using System.Diagnostics;
 using SM.Media.Audio;
-using SM.TsParser;
-using SM.TsParser.Utility;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Utility;
 
 namespace SM.Media.AAC
 {

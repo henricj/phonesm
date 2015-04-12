@@ -194,23 +194,6 @@
     </Otherwise>
   </Choose>
   <Choose>
-    <When Condition="Exists('..\..\Libraries\SM.TsParser\SM.TsParser.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\Libraries\SM.TsParser\SM.TsParser.csproj">
-          <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-          <Name>SM.TsParser</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.TsParser">
-          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj')">
       <ItemGroup>
         <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">

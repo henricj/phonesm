@@ -28,7 +28,7 @@ using System;
 using SM.Media;
 using SM.Media.Pes;
 using SM.Media.TransportStream;
-using SM.TsParser;
+using SM.Media.TransportStream.TsParser;
 
 namespace TsDump
 {

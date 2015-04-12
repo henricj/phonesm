@@ -138,24 +138,6 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-  <Choose>
-    <When Condition="Exists('..\SM.TsParser\SM.TsParser.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\SM.TsParser\SM.TsParser.csproj">
-          <Project>{D434DFF7-9DE1-4995-846D-E88DD3595B46}</Project>
-          <Name>SM.TsParser</Name>
-          <Private>False</Private>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.TsParser">
-          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />
   <ProjectExtensions />

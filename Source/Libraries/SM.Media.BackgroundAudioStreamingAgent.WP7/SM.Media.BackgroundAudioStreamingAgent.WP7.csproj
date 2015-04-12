@@ -152,23 +152,6 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-  <Choose>
-    <When Condition="Exists('..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-          <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
-          <Name>SM.TsParser.Legacy</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.TsParser.Legacy">
-          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.Legacy.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.$(TargetFrameworkProfile).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.CSharp.targets" />
   <ProjectExtensions />

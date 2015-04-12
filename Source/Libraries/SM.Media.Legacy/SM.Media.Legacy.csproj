@@ -41,13 +41,6 @@
     <AssemblyOriginatorKeyFile>..\..\Global\phonesm.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <!-- A reference to the entire .NET Framework is automatically included -->
-    <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-      <Project>{ca6f2d9d-5d8b-4e72-bbef-6d61d86aa1a1}</Project>
-      <Name>SM.TsParser.Legacy</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
@@ -528,6 +521,84 @@
     </Compile>
     <Compile Include="..\SM.Media\TransportStream\TsMediaParserFactory.cs">
       <Link>TransportStream\TsMediaParserFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\IPesStreamHandler.cs">
+      <Link>TransportStream\TsParser\IPesStreamHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\IProgramStream.cs">
+      <Link>TransportStream\TsParser\IProgramStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\IProgramStreams.cs">
+      <Link>TransportStream\TsParser\IProgramStreams.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\PesStreamParameters.cs">
+      <Link>TransportStream\TsParser\PesStreamParameters.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\ProgramStreams.cs">
+      <Link>TransportStream\TsParser\ProgramStreams.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDecoder.cs">
+      <Link>TransportStream\TsParser\TsDecoder.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptor.cs">
+      <Link>TransportStream\TsParser\TsDescriptor.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptors.cs">
+      <Link>TransportStream\TsParser\TsDescriptors.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptorType.cs">
+      <Link>TransportStream\TsParser\TsDescriptorType.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptorTypes.cs">
+      <Link>TransportStream\TsParser\TsDescriptorTypes.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsPacket.cs">
+      <Link>TransportStream\TsParser\TsPacket.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsPacketizedElementaryStream.cs">
+      <Link>TransportStream\TsParser\TsPacketizedElementaryStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsPesPacket.cs">
+      <Link>TransportStream\TsParser\TsPesPacket.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsProgramAssociationTable.cs">
+      <Link>TransportStream\TsParser\TsProgramAssociationTable.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsProgramMapTable.cs">
+      <Link>TransportStream\TsParser\TsProgramMapTable.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsProgramSpecificInformation.cs">
+      <Link>TransportStream\TsParser\TsProgramSpecificInformation.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsStream.cs">
+      <Link>TransportStream\TsParser\TsStream.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsStreamType.cs">
+      <Link>TransportStream\TsParser\TsStreamType.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\TsTransportStreamDescriptionTable.cs">
+      <Link>TransportStream\TsParser\TsTransportStreamDescriptionTable.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\BufferInstance.cs">
+      <Link>TransportStream\TsParser\Utility\BufferInstance.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\Crc32Msb.cs">
+      <Link>TransportStream\TsParser\Utility\Crc32Msb.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\IBufferPool.cs">
+      <Link>TransportStream\TsParser\Utility\IBufferPool.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\ITsPesPacketPool.cs">
+      <Link>TransportStream\TsParser\Utility\ITsPesPacketPool.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\ObjectPool.cs">
+      <Link>TransportStream\TsParser\Utility\ObjectPool.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\RegisterExtender.cs">
+      <Link>TransportStream\TsParser\Utility\RegisterExtender.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Utility\TsPesPacketPool.cs">
+      <Link>TransportStream\TsParser\Utility\TsPesPacketPool.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Utility\ApplicationInformation.cs">
       <Link>Utility\ApplicationInformation.cs</Link>

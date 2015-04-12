@@ -29,8 +29,8 @@ using System.Diagnostics;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.Media.Metadata;
-using SM.TsParser;
-using SM.TsParser.Utility;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Utility;
 
 namespace SM.Media.Audio
 {

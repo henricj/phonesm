@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using SM.Media.Buffering;
-using SM.TsParser;
+using SM.Media.TransportStream.TsParser;
 
 namespace SM.Media
 {

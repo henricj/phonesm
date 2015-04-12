@@ -30,8 +30,8 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Media.Core;
 using SM.Media.Content;
+using SM.Media.TransportStream.TsParser;
 using SM.Media.Utility;
-using SM.TsParser;
 
 namespace SM.Media
 {

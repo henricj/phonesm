@@ -175,10 +175,6 @@
       <Project>{CB4A4A72-07F8-4FB0-AE57-D754BD79B8A3}</Project>
       <Name>SM.Media.Web.HttpClientReader.Legacy</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-      <Project>{ca6f2d9d-5d8b-4e72-bbef-6d61d86aa1a1}</Project>
-      <Name>SM.TsParser.Legacy</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Global\phonesm.snk">

@@ -33,8 +33,8 @@ using SM.Media.Buffering;
 using SM.Media.Content;
 using SM.Media.MediaParser;
 using SM.Media.Segments;
+using SM.Media.TransportStream.TsParser;
 using SM.Media.Utility;
-using SM.TsParser;
 
 namespace SM.Media.MediaManager
 {

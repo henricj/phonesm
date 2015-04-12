@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using SM.Media.Buffering;
 using SM.Media.Metadata;
-using SM.TsParser;
+using SM.Media.TransportStream.TsParser;
 
 namespace SM.Media.MediaParser
 {

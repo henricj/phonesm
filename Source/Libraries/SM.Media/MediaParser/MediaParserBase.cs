@@ -31,8 +31,8 @@ using System.Threading;
 using SM.Media.Buffering;
 using SM.Media.Configuration;
 using SM.Media.Metadata;
-using SM.TsParser;
-using SM.TsParser.Utility;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Utility;
 
 namespace SM.Media.MediaParser
 {

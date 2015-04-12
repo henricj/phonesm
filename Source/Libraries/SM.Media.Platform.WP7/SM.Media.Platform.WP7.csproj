@@ -134,10 +134,6 @@
       <Project>{CB4A4A72-07F8-4FB0-AE57-D754BD79B8A3}</Project>
       <Name>SM.Media.Web.HttpClientReader.Legacy</Name>
     </ProjectReference>
-    <ProjectReference Include="..\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-      <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
-      <Name>SM.TsParser.Legacy</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

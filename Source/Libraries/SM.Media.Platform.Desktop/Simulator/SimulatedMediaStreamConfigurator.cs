@@ -31,8 +31,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.MediaManager;
 using SM.Media.MediaParser;
+using SM.Media.TransportStream.TsParser;
 using SM.Media.Utility;
-using SM.TsParser;
 
 namespace SM.Media.Simulator
 {

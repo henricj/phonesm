@@ -206,23 +206,6 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-  <Choose>
-    <When Condition="Exists('..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\Libraries\SM.TsParser.Legacy\SM.TsParser.Legacy.csproj">
-          <Project>{CA6F2D9D-5D8B-4E72-BBEF-6D61D86AA1A1}</Project>
-          <Name>SM.TsParser.Legacy</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.TsParser.Legacy">
-          <HintPath>..\..\bin\$(Configuration)\SM.TsParser.Legacy.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.$(TargetFrameworkProfile).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Silverlight for Phone\$(TargetFrameworkVersion)\Microsoft.Silverlight.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

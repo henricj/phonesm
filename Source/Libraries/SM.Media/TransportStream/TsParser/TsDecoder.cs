@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SM.Media.Metadata;
 
 namespace SM.Media.TransportStream.TsParser
 {
@@ -35,8 +36,12 @@ namespace SM.Media.TransportStream.TsParser
         bool EnableProcessing { get; set; }
         void ParseEnd();
         void Parse(byte[] buffer, int offset, int length);
-        void Initialize(Func<TsStreamType, uint, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler);
+        void Initialize(Func<TsStreamType, uint, IMediaStreamMetadata, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler);
         void FlushBuffers();
+
+        void UnregisterHandler(uint pid);
+        void RegisterHandler(uint pid, Action<TsPacket> add);
+        TsPacketizedElementaryStream CreateStream(TsStreamType streamType, uint pid, IMediaStreamMetadata mediaStreamMetadata);
     }
 
     public sealed class TsDecoder : ITsDecoder
@@ -44,16 +49,22 @@ namespace SM.Media.TransportStream.TsParser
         readonly byte[] _destinationArray;
         readonly Dictionary<uint, Action<TsPacket>> _packetHandlers = new Dictionary<uint, Action<TsPacket>>();
         readonly int _packetSize;
+        readonly ITsProgramAssociationTableFactory _programAssociationTableFactory;
         readonly TsPacket _tsPacket = new TsPacket();
         int _destinationLength;
         volatile bool _enableProcessing = true;
-        Func<TsStreamType, uint, TsPacketizedElementaryStream> _pesStreamFactory;
+        Func<TsStreamType, uint, IMediaStreamMetadata, TsPacketizedElementaryStream> _pesStreamFactory;
         TsProgramAssociationTable _programAssociationTable;
         //TsTransportStreamDescriptionTable _transportStreamDescriptionTable;
         int _tsIndex;
 
-        public TsDecoder()
+        public TsDecoder(ITsProgramAssociationTableFactory programAssociationTableFactory)
         {
+            if (null == programAssociationTableFactory)
+                throw new ArgumentNullException("programAssociationTableFactory");
+
+            _programAssociationTableFactory = programAssociationTableFactory;
+
             _packetSize = TsPacket.PacketSize;
 
             _destinationArray = new byte[_packetSize * 174];
@@ -74,7 +85,7 @@ namespace SM.Media.TransportStream.TsParser
             Clear();
         }
 
-        public void Initialize(Func<TsStreamType, uint, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler = null)
+        public void Initialize(Func<TsStreamType, uint, IMediaStreamMetadata, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler = null)
         {
             if (pesStreamFactory == null)
                 throw new ArgumentNullException("pesStreamFactory");
@@ -84,7 +95,7 @@ namespace SM.Media.TransportStream.TsParser
             Clear();
 
             // Bootstrap with the program association handler
-            _programAssociationTable = new TsProgramAssociationTable(this, program => true, programStreamsHandler);
+            _programAssociationTable = _programAssociationTableFactory.Create(this, program => true, programStreamsHandler);
             //_transportStreamDescriptionTable = new TsTransportStreamDescriptionTable();
 
             _packetHandlers[0x0000] = _programAssociationTable.Add;
@@ -159,7 +170,7 @@ namespace SM.Media.TransportStream.TsParser
             }
 
             for (; i < offset + length && TsPacket.SyncByte != buffer[i]; ++i)
-                ;
+            { }
 
             _destinationLength = length - (i - offset);
 
@@ -168,22 +179,22 @@ namespace SM.Media.TransportStream.TsParser
                 Array.Copy(buffer, i, _destinationArray, 0, _destinationLength);
         }
 
-        #endregion
-
-        internal void RegisterHandler(uint pid, Action<TsPacket> handler)
+        public void RegisterHandler(uint pid, Action<TsPacket> handler)
         {
             _packetHandlers[pid] = handler;
         }
 
-        internal void UnregisterHandler(uint pid)
+        public void UnregisterHandler(uint pid)
         {
             _packetHandlers.Remove(pid);
         }
 
-        internal TsPacketizedElementaryStream CreateStream(TsStreamType streamType, uint pid)
+        public TsPacketizedElementaryStream CreateStream(TsStreamType streamType, uint pid, IMediaStreamMetadata mediaStreamMetadata)
         {
-            return _pesStreamFactory(streamType, pid);
+            return _pesStreamFactory(streamType, pid, mediaStreamMetadata);
         }
+
+        #endregion
 
         void Clear()
         {

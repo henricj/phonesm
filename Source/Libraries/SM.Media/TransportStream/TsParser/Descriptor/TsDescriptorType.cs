@@ -26,25 +26,17 @@
 
 using System;
 
-namespace SM.Media.TransportStream.TsParser
+namespace SM.Media.TransportStream.TsParser.Descriptor
 {
     public class TsDescriptorType : IEquatable<TsDescriptorType>
     {
-        #region Delegates
-
-        public delegate TsDescriptor TsDescriptorFactory(TsDescriptorType type, byte[] buffer, int offset, int length);
-
-        #endregion
-
         readonly byte _code;
         readonly string _description;
-        readonly TsDescriptorFactory _factory;
 
-        public TsDescriptorType(byte code, string description, TsDescriptorFactory factory = null)
+        public TsDescriptorType(byte code, string description)
         {
             _code = code;
             _description = description;
-            _factory = factory ?? DefaultFactory;
         }
 
         public byte Code
@@ -70,16 +62,6 @@ namespace SM.Media.TransportStream.TsParser
         }
 
         #endregion
-
-        public TsDescriptor Create(byte[] buffer, int offset, int length)
-        {
-            return _factory(this, buffer, offset, length);
-        }
-
-        TsDescriptor DefaultFactory(TsDescriptorType type, byte[] buffer, int offset, int length)
-        {
-            return new TsDescriptor(type, length);
-        }
 
         public override int GetHashCode()
         {

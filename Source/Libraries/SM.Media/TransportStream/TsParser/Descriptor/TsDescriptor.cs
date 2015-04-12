@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PesStreamParameters.cs" company="Henric Jungheim">
+//  <copyright file="TsDescriptor.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.Media.Metadata;
-using SM.Media.TransportStream.TsParser.Utility;
+using SM.Media.TransportStream.TsParser.Descriptor;
 
 namespace SM.Media.TransportStream.TsParser
 {
-    public class PesStreamParameters
+    public class TsDescriptor
     {
-        readonly ITsPesPacketPool _pesPacketPool;
+        readonly TsDescriptorType _type;
 
-        public PesStreamParameters(ITsPesPacketPool pesPacketPool)
+        public TsDescriptor(TsDescriptorType type)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
-
-            _pesPacketPool = pesPacketPool;
+            _type = type;
         }
 
-        public uint Pid { get; set; }
-        public TsStreamType StreamType { get; set; }
-        public Action<TsPesPacket> NextHandler { get; set; }
-
-        public ITsPesPacketPool PesPacketPool
+        public TsDescriptorType Type
         {
-            get { return _pesPacketPool; }
+            get { return _type; }
         }
-
-        public IMediaStreamMetadata MediaStreamMetadata { get; set; }
     }
 }

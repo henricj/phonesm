@@ -24,13 +24,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
-namespace SM.Media.TransportStream.TsParser
+namespace SM.Media.TransportStream.TsParser.Descriptor
 {
     public static class TsDescriptors
     {
+        public static IEnumerable<TsDescriptor> Parse(this ITsDescriptorFactory factory, byte[] buffer, int offset, int length)
+        {
+            while (length > 0)
+            {
+                if (length < 2)
+                {
+                    Debug.WriteLine("Unused buffer " + length);
+                    break;
+                }
+
+                var code = buffer[offset];
+                var descriptorLength = buffer[offset + 1];
+
+                offset += 2;
+                length -= 2;
+
+                if (length < descriptorLength)
+                {
+                    Debug.WriteLine(" " + descriptorLength + " exceeds buffer (" + length + " remaining)");
+                    break;
+                }
+
+                var descriptor = factory.Create(code, buffer, offset, descriptorLength);
+
+                if (null != descriptor)
+                    yield return descriptor;
+
+                length -= descriptorLength;
+                offset += descriptorLength;
+            }
+        }
+
         public static void WriteDescriptors(TextWriter writer, byte[] buffer, int offset, int length)
         {
             while (length > 0)
@@ -74,6 +108,22 @@ namespace SM.Media.TransportStream.TsParser
 
                 Debug.WriteLine(sw.ToString());
             }
+        }
+
+        public static string GetDefaultLanguage(this IEnumerable<TsDescriptor> descriptors)
+        {
+            if (null == descriptors)
+                return null;
+
+            var languageDescriptor = descriptors.OfType<TsIso639LanguageDescriptor>().FirstOrDefault();
+
+            if (null == languageDescriptor)
+                return null;
+
+            if (languageDescriptor.Languages.Length < 1)
+                return null;
+
+            return languageDescriptor.Languages[0].Iso639_2;
         }
     }
 }

@@ -24,15 +24,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
+using SM.Media.TransportStream.TsParser.Descriptor;
+
 namespace SM.Media.TransportStream.TsParser
 {
     public class TsTransportStreamDescriptionTable : TsProgramSpecificInformation
     {
         const int MinimumDescriptionTableLength = 5;
+        readonly ITsDescriptorFactory _descriptorFactory;
 
-        public TsTransportStreamDescriptionTable()
+        public TsTransportStreamDescriptionTable(ITsDescriptorFactory descriptorFactory)
             : base(TsTableId.TS_description_section)
-        { }
+        {
+            if (null == descriptorFactory)
+                throw new ArgumentNullException("descriptorFactory");
+
+            _descriptorFactory = descriptorFactory;
+        }
 
         protected override void ParseSection(TsPacket packet, int offset, int length)
         {
@@ -55,10 +64,7 @@ namespace SM.Media.TransportStream.TsParser
 
             var last_section_number = buffer[i++];
 
-            //while (i + 2 < sectionEnd)
-            //{
-
-            //}
+            var descriptors = _descriptorFactory.Parse(buffer, i, sectionEnd - i);
         }
     }
 }

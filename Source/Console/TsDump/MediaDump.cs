@@ -29,6 +29,8 @@ using SM.Media;
 using SM.Media.Pes;
 using SM.Media.TransportStream;
 using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Descriptor;
+using SM.Media.Utility.TextEncodings;
 
 namespace TsDump
 {
@@ -39,9 +41,11 @@ namespace TsDump
         public MediaDump(Action<IProgramStreams> programStreamsHandler)
             : base(programStreamsHandler)
         {
-            _pesHandlers = new PesHandlers(new PesCopyHandlerFactory());
+            _pesHandlers = new PesHandlers(new PesCopyHandlerFactory(), () => new PesStreamParameters(PacketPool));
 
-            var tsDecoder = new TsDecoder();
+            var tsDescriptorFactory = new TsDescriptorFactory(new[] { new TsIso639LanguageDescriptorFactory(new SmEncodings()) });
+
+            var tsDecoder = new TsDecoder(new TsProgramAssociationTableFactory(new TsProgramMapTableFactory(tsDescriptorFactory)));
 
             Parser = new TsMediaParser(tsDecoder, PacketPool, BufferPool, new TsTimestamp(), _pesHandlers);
         }
@@ -51,7 +55,7 @@ namespace TsDump
             if (disposing)
             {
                 using (_pesHandlers)
-                { }
+                {}
             }
 
             base.Dispose(disposing);

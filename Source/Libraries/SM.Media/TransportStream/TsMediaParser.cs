@@ -264,22 +264,21 @@ namespace SM.Media.TransportStream
             TaskCollector.Default.Add(task, "TsMediaParser.FireConfigurationComplete()");
         }
 
-        TsPacketizedElementaryStream CreatePacketizedElementaryStream(TsStreamType streamType, uint pid)
+        TsPacketizedElementaryStream CreatePacketizedElementaryStream(TsStreamType streamType, uint pid, IMediaStreamMetadata mediaStreamMetadata)
         {
             var streamBuffer = _bufferingManager.CreateStreamBuffer(streamType);
 
             MediaStream mediaStream = null;
 
-            var pesStreamHandler = _pesHandlers.GetPesHandler(streamType, pid,
-                packet =>
-                {
-                    // ReSharper disable AccessToModifiedClosure
-                    if (null != mediaStream)
-                        mediaStream.EnqueuePacket(packet);
-                    else if (null != packet)
-                        _tsPesPacketPool.FreePesPacket(packet);
-                    // ReSharper restore AccessToModifiedClosure
-                });
+            var pesStreamHandler = _pesHandlers.GetPesHandler(streamType, pid, mediaStreamMetadata, packet =>
+            {
+                // ReSharper disable AccessToModifiedClosure
+                if (null != mediaStream)
+                    mediaStream.EnqueuePacket(packet);
+                else if (null != packet)
+                    _tsPesPacketPool.FreePesPacket(packet);
+                // ReSharper restore AccessToModifiedClosure
+            });
 
             var pes = new TsPacketizedElementaryStream(_bufferPool, _tsPesPacketPool, pesStreamHandler.PacketHandler, streamType, pid);
 

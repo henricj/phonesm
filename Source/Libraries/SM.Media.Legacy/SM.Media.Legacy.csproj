@@ -528,8 +528,32 @@
     <Compile Include="..\SM.Media\TransportStream\TsMediaParserFactory.cs">
       <Link>TransportStream\TsMediaParserFactory.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\ITsDescriptorFactoryInstance.cs">
+      <Link>TransportStream\TsParser\Descriptor\ITsDescriptorFactoryInstance.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsDescriptor.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsDescriptor.cs</Link>
     </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsDescriptorFactory.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsDescriptorFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsDescriptorFactoryInstanceBase.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsDescriptorFactoryInstanceBase.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsDescriptors.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsDescriptors.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsDescriptorType.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsDescriptorType.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsDescriptorTypes.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsDescriptorTypes.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\Descriptor\TsIso639LanguageDescriptor.cs">
+      <Link>TransportStream\TsParser\Descriptor\TsIso639LanguageDescriptor.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\TransportStream\TsParser\IPesStreamHandler.cs">
+      <Link>TransportStream\TsParser\IPesStreamHandler.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\TransportStream\TsParser\PesStreamParameters.cs">
       <Link>TransportStream\TsParser\PesStreamParameters.cs</Link>
@@ -539,18 +563,6 @@
     </Compile>
     <Compile Include="..\SM.Media\TransportStream\TsParser\TsDecoder.cs">
       <Link>TransportStream\TsParser\TsDecoder.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptor.cs">
-      <Link>TransportStream\TsParser\TsDescriptor.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptors.cs">
-      <Link>TransportStream\TsParser\TsDescriptors.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptorType.cs">
-      <Link>TransportStream\TsParser\TsDescriptorType.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media\TransportStream\TsParser\TsDescriptorTypes.cs">
-      <Link>TransportStream\TsParser\TsDescriptorTypes.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\TransportStream\TsParser\TsPacket.cs">
       <Link>TransportStream\TsParser\TsPacket.cs</Link>

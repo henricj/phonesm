@@ -28,13 +28,44 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using SM.Media.Metadata;
+using SM.Media.TransportStream.TsParser.Descriptor;
+using SM.Media.Utility;
 
 namespace SM.Media.TransportStream.TsParser
 {
+    public interface ITsProgramMapTableFactory
+    {
+        TsProgramMapTable Create(ITsDecoder decoder, int programNumber, uint pid, Action<IProgramStreams> streamFilter);
+    }
+
+    public class TsProgramMapTableFactory : ITsProgramMapTableFactory
+    {
+        readonly ITsDescriptorFactory _descriptorFactory;
+
+        public TsProgramMapTableFactory(ITsDescriptorFactory descriptorFactory)
+        {
+            if (null == descriptorFactory)
+                throw new ArgumentNullException("descriptorFactory");
+
+            _descriptorFactory = descriptorFactory;
+        }
+
+        #region ITsProgramMapTableFactory Members
+
+        public TsProgramMapTable Create(ITsDecoder decoder, int programNumber, uint pid, Action<IProgramStreams> streamFilter)
+        {
+            return new TsProgramMapTable(decoder, _descriptorFactory, programNumber, pid, streamFilter);
+        }
+
+        #endregion
+    }
+
     public class TsProgramMapTable : TsProgramSpecificInformation
     {
         const int MinimumProgramMapSize = 9;
-        readonly TsDecoder _decoder;
+        readonly ITsDecoder _decoder;
+        readonly ITsDescriptorFactory _descriptorFactory;
         readonly Dictionary<uint, ProgramMap> _newProgramStreams = new Dictionary<uint, ProgramMap>();
         readonly uint _pid;
         readonly int _programNumber;
@@ -43,14 +74,21 @@ namespace SM.Media.TransportStream.TsParser
         readonly Action<IProgramStreams> _streamFilter;
         readonly List<ProgramMap> _streamList = new List<ProgramMap>();
         bool _foundPcrPid;
+        TsDescriptor[] _newProgramDescriptors;
         ulong? _pcr;
         int? _pcrIndex;
         uint _pcrPid;
 
-        public TsProgramMapTable(TsDecoder decoder, int programNumber, uint pid, Action<IProgramStreams> streamFilter)
+        public TsProgramMapTable(ITsDecoder decoder, ITsDescriptorFactory descriptorFactory, int programNumber, uint pid, Action<IProgramStreams> streamFilter)
             : base(TsTableId.TS_program_map_section)
         {
+            if (null == decoder)
+                throw new ArgumentNullException("decoder");
+            if (null == descriptorFactory)
+                throw new ArgumentNullException("descriptorFactory");
+
             _decoder = decoder;
+            _descriptorFactory = descriptorFactory;
             _programNumber = programNumber;
             _pid = pid;
             _streamFilter = streamFilter;
@@ -93,11 +131,17 @@ namespace SM.Media.TransportStream.TsParser
             if (i - offset + program_info_length >= length)
                 return;
 
-            //if (program_info_length > 0)
-            //{
-            //    Debug.WriteLine("TsProgramMapTable.Add() program descriptor for program " + program_number);
-            //    TsDescriptors.DebugWrite(buffer, i, program_info_length);
-            //}
+            TsDescriptor[] programDescriptors = null;
+
+            if (program_info_length > 0)
+            {
+                //Debug.WriteLine("TsProgramMapTable.Add() program descriptor for program " + program_number);
+                //TsDescriptors.DebugWrite(buffer, i, program_info_length);
+
+                programDescriptors = _descriptorFactory.Parse(buffer, i, program_info_length).ToArray();
+            }
+
+            _newProgramDescriptors = programDescriptors;
 
             i += program_info_length;
 
@@ -120,11 +164,15 @@ namespace SM.Media.TransportStream.TsParser
                 if (i + ES_info_length > mappingEnd)
                     return;
 
-                //if (ES_info_length > 0)
-                //{
-                //    Debug.WriteLine("TsProgramMapTable.Add() ES descriptor for PID " + elementary_PID);
-                //    TsDescriptors.DebugWrite(buffer, i, ES_info_length);
-                //}
+                TsDescriptor[] streamDescriptors = null;
+
+                if (ES_info_length > 0)
+                {
+                    //Debug.WriteLine("TsProgramMapTable.Add() ES descriptor for PID " + elementary_PID);
+                    //TsDescriptors.DebugWrite(buffer, i, ES_info_length);
+
+                    streamDescriptors = _descriptorFactory.Parse(buffer, i, ES_info_length).ToArray();
+                }
 
                 i += ES_info_length;
 
@@ -133,7 +181,8 @@ namespace SM.Media.TransportStream.TsParser
                 var programMap = new ProgramMap
                 {
                     Pid = elementary_PID,
-                    StreamType = streamType
+                    StreamType = streamType,
+                    StreamDescriptors = streamDescriptors
                 };
 
                 _newProgramStreams[elementary_PID] = programMap;
@@ -174,6 +223,8 @@ namespace SM.Media.TransportStream.TsParser
             Debug.Assert(0 == _programStreamMap.Count);
 
             _newProgramStreams.Clear();
+
+            _newProgramDescriptors = null;
 
             _retiredProgramStreams.Clear();
         }
@@ -216,14 +267,20 @@ namespace SM.Media.TransportStream.TsParser
                 _streamList.Clear();
             }
 
+            var descriptors = _newProgramDescriptors;
+
+            var programLanguage = Iso639_2Normalization.Normalize(descriptors.GetDefaultLanguage());
+
             var programStreams = new ProgramStreams
             {
                 ProgramNumber = _programNumber,
+                Language = programLanguage,
                 Streams = _newProgramStreams.Values
                     .Select(s => new ProgramStreams.ProgramStream
                     {
                         Pid = s.Pid,
-                        StreamType = s.StreamType
+                        StreamType = s.StreamType,
+                        Language =  Iso639_2Normalization.Normalize(s.StreamDescriptors.GetDefaultLanguage()) ?? programLanguage
                     })
                     .ToArray()
             };
@@ -236,13 +293,15 @@ namespace SM.Media.TransportStream.TsParser
                                           select new
                                           {
                                               ps.BlockStream,
-                                              ProgramStream = pm
+                                              ProgramStream = pm,
+                                              ps.Language
                                           })
             {
                 var streamRequested = !programStream.BlockStream;
 
                 var pid = programStream.ProgramStream.Pid;
                 var streamType = programStream.ProgramStream.StreamType;
+                var language = programStream.Language;
 
                 ProgramMap mappedProgram;
                 if (_programStreamMap.TryGetValue(pid, out mappedProgram))
@@ -274,7 +333,12 @@ namespace SM.Media.TransportStream.TsParser
                     }
                     else
                     {
-                        pes = _decoder.CreateStream(streamType, pid);
+                        IMediaStreamMetadata mediaStreamMetadata = null;
+
+                        if (null != language)
+                            mediaStreamMetadata = new MediaStreamMetadata { Language = language };
+
+                        pes = _decoder.CreateStream(streamType, pid, mediaStreamMetadata);
 
                         programStream.ProgramStream.Stream = pes;
 
@@ -321,6 +385,7 @@ namespace SM.Media.TransportStream.TsParser
         {
             public uint Pid;
             public TsPacketizedElementaryStream Stream;
+            public TsDescriptor[] StreamDescriptors;
             public TsStreamType StreamType;
 
             public override string ToString()

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="TsDescriptor.cs" company="Henric Jungheim">
+//  <copyright file="TsParserModule.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,27 +24,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-namespace SM.Media.TransportStream.TsParser
+using Autofac;
+using SM.Media.TransportStream.TsParser;
+using SM.Media.TransportStream.TsParser.Descriptor;
+
+namespace SM.Media
 {
-    public class TsDescriptor
+    public class TsParserModule : Module
     {
-        readonly int _length;
-        readonly TsDescriptorType _type;
-
-        public TsDescriptor(TsDescriptorType type, int length)
+        protected override void Load(ContainerBuilder builder)
         {
-            _type = type;
-            _length = length;
-        }
+            builder.RegisterType<TsDecoder>().As<ITsDecoder>().ExternallyOwned();
 
-        public TsDescriptorType Type
-        {
-            get { return _type; }
-        }
+            builder.RegisterType<TsProgramAssociationTableFactory>().As<ITsProgramAssociationTableFactory>().SingleInstance();
 
-        public int Length
-        {
-            get { return _length; }
+            builder.RegisterType<TsProgramMapTableFactory>().As<ITsProgramMapTableFactory>().SingleInstance();
+
+            builder.RegisterType<TsIso639LanguageDescriptorFactory>().As<ITsDescriptorFactoryInstance>().SingleInstance().PreserveExistingDefaults();
+
+            builder.RegisterType<TsDescriptorFactory>().As<ITsDescriptorFactory>().SingleInstance();
         }
     }
 }

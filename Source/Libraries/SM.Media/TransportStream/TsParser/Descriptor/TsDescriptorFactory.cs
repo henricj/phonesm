@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PesStreamParameters.cs" company="Henric Jungheim">
+//  <copyright file="TsDescriptorFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,33 +24,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using System;
-using SM.Media.Metadata;
-using SM.Media.TransportStream.TsParser.Utility;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace SM.Media.TransportStream.TsParser
+namespace SM.Media.TransportStream.TsParser.Descriptor
 {
-    public class PesStreamParameters
+    public interface ITsDescriptorFactory
     {
-        readonly ITsPesPacketPool _pesPacketPool;
+        TsDescriptor Create(byte code, byte[] buffer, int offset, int length);
+    }
 
-        public PesStreamParameters(ITsPesPacketPool pesPacketPool)
+    public class TsDescriptorFactory : ITsDescriptorFactory
+    {
+        readonly ITsDescriptorFactoryInstance[] _factories;
+
+        public TsDescriptorFactory(IEnumerable<ITsDescriptorFactoryInstance> factories)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
+            var allFactories = factories.OrderBy(f => f.Type.Code).ToArray();
 
-            _pesPacketPool = pesPacketPool;
+            var maxIndex = allFactories.Max(f => f.Type.Code);
+
+            _factories = new ITsDescriptorFactoryInstance[maxIndex + 1];
+
+            foreach (var factory in allFactories)
+                _factories[factory.Type.Code] = factory;
         }
 
-        public uint Pid { get; set; }
-        public TsStreamType StreamType { get; set; }
-        public Action<TsPesPacket> NextHandler { get; set; }
+        #region ITsDescriptorFactory Members
 
-        public ITsPesPacketPool PesPacketPool
+        public TsDescriptor Create(byte code, byte[] buffer, int offset, int length)
         {
-            get { return _pesPacketPool; }
+            if (code >= _factories.Length)
+                return null;
+
+            var factory = _factories[code];
+
+            if (null == factory)
+                return null;
+
+            return factory.Create(buffer, offset, length);
         }
 
-        public IMediaStreamMetadata MediaStreamMetadata { get; set; }
+        #endregion
     }
 }

@@ -31,14 +31,42 @@ using System.Linq;
 
 namespace SM.Media.TransportStream.TsParser
 {
+    public interface ITsProgramAssociationTableFactory
+    {
+        TsProgramAssociationTable Create(ITsDecoder decoder, Func<int, bool> programFilter, Action<IProgramStreams> streamFilter);
+    }
+
+    public class TsProgramAssociationTableFactory : ITsProgramAssociationTableFactory
+    {
+        readonly ITsProgramMapTableFactory _programMapTableFactory;
+
+        public TsProgramAssociationTableFactory(ITsProgramMapTableFactory programMapTableFactory)
+        {
+            if (null == programMapTableFactory)
+                throw new ArgumentNullException("programMapTableFactory");
+
+            _programMapTableFactory = programMapTableFactory;
+        }
+
+        #region ITsProgramAssociationTableFactory Members
+
+        public TsProgramAssociationTable Create(ITsDecoder decoder, Func<int, bool> programFilter, Action<IProgramStreams> streamFilter)
+        {
+            return new TsProgramAssociationTable(decoder, _programMapTableFactory, programFilter, streamFilter);
+        }
+
+        #endregion
+    }
+
     public class TsProgramAssociationTable : TsProgramSpecificInformation
     {
         const int MinimumProgramAssociationSize = 5;
 
-        readonly TsDecoder _decoder;
+        readonly ITsDecoder _decoder;
         readonly List<ProgramAssociation> _newPrograms = new List<ProgramAssociation>();
         readonly List<ProgramAssociation> _oldPrograms = new List<ProgramAssociation>();
         readonly Func<int, bool> _programFilter;
+        readonly ITsProgramMapTableFactory _programMapTableFactory;
         readonly List<ProgramAssociation> _programs = new List<ProgramAssociation>();
         readonly Action<IProgramStreams> _streamFilter;
         bool _currentNextIndicator;
@@ -48,10 +76,17 @@ namespace SM.Media.TransportStream.TsParser
         int _transportStreamId;
         uint _versionNumber;
 
-        public TsProgramAssociationTable(TsDecoder decoder, Func<int, bool> programFilter, Action<IProgramStreams> streamFilter)
+        public TsProgramAssociationTable(ITsDecoder decoder, ITsProgramMapTableFactory programMapTableFactory,
+            Func<int, bool> programFilter, Action<IProgramStreams> streamFilter)
             : base(TsTableId.program_association_section)
         {
+            if (null == decoder)
+                throw new ArgumentNullException("decoder");
+            if (null == programMapTableFactory)
+                throw new ArgumentNullException("programMapTableFactory");
+
             _decoder = decoder;
+            _programMapTableFactory = programMapTableFactory;
             _programFilter = programFilter;
             _streamFilter = streamFilter;
         }
@@ -169,7 +204,7 @@ namespace SM.Media.TransportStream.TsParser
 
                 if (!_programs.Contains(program))
                 {
-                    var tsProgramMapTable = new TsProgramMapTable(_decoder, program.ProgramNumber, program.Pid, _streamFilter);
+                    var tsProgramMapTable = _programMapTableFactory.Create(_decoder, program.ProgramNumber, program.Pid, _streamFilter);
 
                     program.MapTable = tsProgramMapTable;
 

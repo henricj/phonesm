@@ -116,6 +116,7 @@
     <Compile Include="DefaultMediaStreamFacadeParameters.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="TsMediaModule.cs" />
+    <Compile Include="TsParserModule.cs" />
     <Compile Include="Utility\ApplicationInformationFactory.cs" />
     <Compile Include="PlatformServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="PesStreamParameters.cs" company="Henric Jungheim">
+//  <copyright file="TsDescriptorFactoryInstanceBase.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -25,32 +25,30 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.Metadata;
-using SM.Media.TransportStream.TsParser.Utility;
 
-namespace SM.Media.TransportStream.TsParser
+namespace SM.Media.TransportStream.TsParser.Descriptor
 {
-    public class PesStreamParameters
+    public abstract class TsDescriptorFactoryInstanceBase : ITsDescriptorFactoryInstance
     {
-        readonly ITsPesPacketPool _pesPacketPool;
+        readonly TsDescriptorType _type;
 
-        public PesStreamParameters(ITsPesPacketPool pesPacketPool)
+        protected TsDescriptorFactoryInstanceBase(TsDescriptorType type)
         {
-            if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
+            if (null == type)
+                throw new ArgumentNullException("type");
 
-            _pesPacketPool = pesPacketPool;
+            _type = type;
         }
 
-        public uint Pid { get; set; }
-        public TsStreamType StreamType { get; set; }
-        public Action<TsPesPacket> NextHandler { get; set; }
+        #region ITsDescriptorFactoryInstance Members
 
-        public ITsPesPacketPool PesPacketPool
+        public TsDescriptorType Type
         {
-            get { return _pesPacketPool; }
+            get { return _type; }
         }
 
-        public IMediaStreamMetadata MediaStreamMetadata { get; set; }
+        public abstract TsDescriptor Create(byte[] buffer, int offset, int length);
+
+        #endregion
     }
 }

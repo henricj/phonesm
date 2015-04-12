@@ -36,6 +36,7 @@ namespace SM.Media
         static readonly IModule[] Modules =
         {
             new SmMediaModule(),
+            new TsParserModule(),
             new HlsModule(),
             new TsMediaModule()
         };

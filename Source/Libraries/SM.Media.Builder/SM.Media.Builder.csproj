@@ -55,6 +55,7 @@
     <Compile Include="SingleStreamMediaManagerModule.cs" />
     <Compile Include="SmMediaModule.cs" />
     <Compile Include="SmMediaManagerModule.cs" />
+    <Compile Include="TsParserModule.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Global\phonesm.snk">

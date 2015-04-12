@@ -35,6 +35,7 @@ namespace SM.Media
         static readonly INinjectModule[] Modules =
         {
             new SmMediaModule(),
+            new TsParserModule(),
             new HlsModule(),
             new TsMediaModule()
         };

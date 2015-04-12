@@ -103,7 +103,6 @@ namespace SM.Media
 
             Bind<Func<PesStreamParameters>>().ToMethod(ctx => () => ctx.Kernel.Get<PesStreamParameters>());
 
-            Bind<ITsDecoder>().To<TsDecoder>();
             Bind<ITsTimestamp>().To<TsTimestamp>();
             Bind<IPesHandlers>().To<PesHandlers>();
 

@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using SM.Media.TransportStream.TsParser.Descriptor;
 
 namespace SM.Media.TransportStream.TsParser
 {
@@ -122,13 +123,6 @@ namespace SM.Media.TransportStream.TsParser
                 return DescriptorTypes[code];
 
             return null;
-        }
-
-        public static TsDescriptor CreateDescriptor(byte code, byte[] buffer, int offset, int length)
-        {
-            var type = GetDescriptorType(code) ?? new TsDescriptorType(code, "Private");
-
-            return type.Create(buffer, offset, length);
         }
     }
 }

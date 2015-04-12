@@ -39,10 +39,12 @@ namespace SM.Media.Metadata
         void ReportStreamMetadata(TimeSpan timestamp, IStreamMetadata streamMetadata);
         void ReportSegmentMetadata(TimeSpan timestamp, ISegmentMetadata segmentMetadata);
         void ReportTrackMetadata(ITrackMetadata trackMetadata);
+        void ReportConfigurationMetadata(IConfigurationMetadata configurationMetadata);
     }
 
     public class MetadataState
     {
+        public IConfigurationMetadata ConfigurationMetadata { get; set; }
         public ISegmentMetadata SegmentMetadata { get; set; }
         public TimeSpan SegmentTimestamp { get; set; }
 
@@ -100,6 +102,16 @@ namespace SM.Media.Metadata
             lock (_lock)
             {
                 _pendingTracks.Enqueue(trackMetadata);
+            }
+        }
+
+        public virtual void ReportConfigurationMetadata(IConfigurationMetadata configurationMetadata)
+        {
+            Debug.WriteLine("MetadataSink.ReportMediaStreamMetadata() " + configurationMetadata);
+
+            lock (_lock)
+            {
+                _metadataState.ConfigurationMetadata = configurationMetadata;
             }
         }
 
@@ -185,6 +197,7 @@ namespace SM.Media.Metadata
                 state.StreamMetadata = streamMetadata;
                 state.StreamTimestamp = _metadataState.StreamTimestamp;
                 state.TrackMetadata = _metadataState.TrackMetadata;
+                state.ConfigurationMetadata = _metadataState.ConfigurationMetadata;
 
                 if (_metadataState.StreamTimestamp > _position && _metadataState.StreamTimestamp < nextEvent)
                     nextEvent = _metadataState.StreamTimestamp;

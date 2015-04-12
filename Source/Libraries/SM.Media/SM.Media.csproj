@@ -122,6 +122,8 @@
     <Compile Include="MediaStreamFacadeBase.cs" />
     <Compile Include="MediaStreamFacadeParameters.cs" />
     <Compile Include="MediaStreamFacadeSetting.cs" />
+    <Compile Include="Metadata\ConfigurationMetadata.cs" />
+    <Compile Include="Metadata\MediaStreamMetadata.cs" />
     <Compile Include="Metadata\MetadataSink.cs" />
     <Compile Include="Metadata\SegmentMetadata.cs" />
     <Compile Include="Metadata\ShoutcastHeaders.cs" />

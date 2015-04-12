@@ -52,6 +52,7 @@
     <Compile Include="..\SM.Media.MediaPlayer.WP81\StreamingMediaPlugin.cs">
       <Link>StreamingMediaPlugin.cs</Link>
     </Compile>
+    <Compile Include="AudioStreamFactory.cs" />
     <Compile Include="MediaElementWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MediaElementWrapperStreamingMediaPlugin.cs" />

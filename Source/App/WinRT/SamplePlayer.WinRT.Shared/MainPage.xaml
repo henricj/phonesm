@@ -14,7 +14,10 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <pf:MediaPlayer Name="player" Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8">
+        <pf:MediaPlayer Name="player"
+                        Source="http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8"
+                        AudioCategory="BackgroundCapableMedia"
+                        IsAudioSelectionVisible="True">
             <pf:MediaPlayer.Plugins>
                 <smmp:StreamingMediaPlugin />
             </pf:MediaPlayer.Plugins>

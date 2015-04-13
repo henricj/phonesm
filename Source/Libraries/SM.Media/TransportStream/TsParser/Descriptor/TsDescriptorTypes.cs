@@ -25,9 +25,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using SM.Media.TransportStream.TsParser.Descriptor;
 
-namespace SM.Media.TransportStream.TsParser
+namespace SM.Media.TransportStream.TsParser.Descriptor
 {
     public static class TsDescriptorTypes
     {
@@ -44,7 +43,7 @@ namespace SM.Media.TransportStream.TsParser
             new TsDescriptorType(7, "Target background grid"),
             new TsDescriptorType(8, "Video window"),
             new TsDescriptorType(9, "CA"),
-            new TsDescriptorType(10, "ISO 639 language"),
+            TsIso639LanguageDescriptor.DescriptorType,
             new TsDescriptorType(11, "System clock"),
             new TsDescriptorType(12, "Multiplex buffer utilization"),
             new TsDescriptorType(13, "Copyright"),

@@ -34,7 +34,7 @@ namespace SM.Media.Audio.Generator
         readonly Func<IAudioStreamSourceParameters, Action<ulong, byte[]>> _generatorFactory;
         readonly IGeneratorStreamSourceFactory<TMediaStreamSource> _generatorStreamSourceFactory;
 
-        public GeneratorStreamSourceFactoryBase(IGeneratorStreamSourceFactory<TMediaStreamSource> generatorStreamSourceFactory,
+        protected GeneratorStreamSourceFactoryBase(IGeneratorStreamSourceFactory<TMediaStreamSource> generatorStreamSourceFactory,
             Func<IAudioStreamSourceParameters, Action<ulong, byte[]>> generatorFactory)
         {
             if (null == generatorStreamSourceFactory)

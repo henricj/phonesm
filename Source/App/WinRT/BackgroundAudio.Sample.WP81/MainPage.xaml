@@ -10,7 +10,7 @@
 
     <Grid>
         <StackPanel Margin="0,20,0,0">
-            <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
+            <StackPanel x:Name="TitlePanel" Margin="12,17,0,28">
                 <TextBlock x:Name="ApplicationTitle" Text="Background MediaPlayer" Style="{StaticResource TitleTextBlockStyle}"/>
             </StackPanel>
 

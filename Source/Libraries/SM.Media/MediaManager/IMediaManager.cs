@@ -39,8 +39,8 @@ namespace SM.Media.MediaManager
         MediaManagerState State { get; }
 
         /// <summary>
-        ///     Force the <see cref="Source" /> to be considered <see cref="SM.Media.Content.ContentType" />.
-        ///     The type will be detected if null.  Set this value before setting <see cref="Source" />.
+        ///     Force the source to be considered <see cref="SM.Media.Content.ContentType" />.
+        ///     The type will be detected if null.
         /// </summary>
         /// <seealso cref="SM.Media.Content.ContentTypes" />
         ContentType ContentType { get; set; }

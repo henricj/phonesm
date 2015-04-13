@@ -93,7 +93,7 @@ namespace SM.Media.Web.HttpConnectionReader
             if (null != _baseAddress && !url.IsAbsoluteUri)
                 url = new Uri(_baseAddress, url);
 
-            using (var response = await _webReaderManager.SendAsync(url, this, cancellationToken, allowBuffering: true).ConfigureAwait(false))
+            using (var response = await _webReaderManager.SendAsync(url, this, cancellationToken).ConfigureAwait(false))
             {
                 response.EnsureSuccessStatusCode();
 

@@ -94,7 +94,7 @@
                     </Grid.RowDefinitions>
                     <Image Source="../GPN-2000-001947.jpg"
                            Stretch="Uniform" />
-                    <StackPanel Grid.Row="2"
+                    <StackPanel Grid.Row="1"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 Margin="12,0">

@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -137,7 +138,7 @@ namespace SM.Media.MediaPlayer
                 availableAudioStreams.Clear();
 
                 if (null != configuration.Audio)
-                    availableAudioStreams.Add(AudioStreamFactory.CreateAudioStream(configuration.Audio));
+                    availableAudioStreams.Add(configuration.Audio.CreateAudioStream());
 
                 if (null != configuration.AlternateStreams)
                 {
@@ -155,7 +156,7 @@ namespace SM.Media.MediaPlayer
                     ++count;
 
                     if (string.IsNullOrWhiteSpace(audioStream.Name))
-                        audioStream.Name = count.ToString();
+                        audioStream.Name = count.ToString(CultureInfo.CurrentCulture);
                 }
             }
             catch (Exception ex)
@@ -315,7 +316,7 @@ namespace SM.Media.MediaPlayer
                 }
             }
             catch (OperationCanceledException)
-            {}
+            { }
             catch (Exception ex)
             {
                 Debug.WriteLine("StreamingMediaPlugin.PlayerOnMediaLoading() failed: " + ex.Message);

@@ -523,13 +523,17 @@ namespace BackgroundAudio.Sample
             _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Stop);
         }
 
-        #endregion Button Click Event Handlers
-
         private void killButton_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("MainPage kill");
 
+            _mediaPlayerHandle.Suspend();
+
             BackgroundMediaPlayer.Shutdown();
+
+            _mediaPlayerHandle.Resume();
         }
+
+        #endregion Button Click Event Handlers
     }
 }

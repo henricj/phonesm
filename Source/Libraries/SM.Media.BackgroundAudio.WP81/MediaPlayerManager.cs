@@ -90,9 +90,9 @@ namespace SM.Media.BackgroundAudio
                 ProgramStreamsHandler =
                     streams =>
                     {
-                        var firstAudio = streams.Streams.First(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
+                        var firstAudio = streams.Streams.FirstOrDefault(x => x.StreamType.Contents == TsStreamType.StreamContents.Audio);
 
-                        var others = streams.Streams.Where(x => x.Pid != firstAudio.Pid);
+                        var others = null == firstAudio ? streams.Streams : streams.Streams.Where(x => x.Pid != firstAudio.Pid);
                         foreach (
                             var programStream in others)
                             programStream.BlockStream = true;

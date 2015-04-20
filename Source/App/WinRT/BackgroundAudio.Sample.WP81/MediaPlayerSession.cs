@@ -168,7 +168,7 @@ namespace BackgroundAudio.Sample
 
             var timeout = Task.Delay(250);
 
-            await Task.WhenAny(_backgroundRunningCompletionSource.Task, timeout);
+            await Task.WhenAny(_backgroundRunningCompletionSource.Task, timeout).ConfigureAwait(false);
 
             return _backgroundRunningCompletionSource.Task.IsCompleted;
         }

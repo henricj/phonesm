@@ -44,7 +44,7 @@ namespace SM.Media.BackgroundAudio
         readonly ForegroundNotifier _foregroundNotifier;
         readonly Guid _id;
         readonly Timer _timer;
-        Guid _appId;
+        Guid? _appId;
         MediaPlayerManager _mediaPlayerManager;
         MetadataHandler _metadataHandler;
         TimeSpan _nextEvent;
@@ -135,7 +135,7 @@ namespace SM.Media.BackgroundAudio
 
                         Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() sending start to foreground");
 
-                        _foregroundNotifier.Notify("start");
+                        _foregroundNotifier.Notify(BackgroundNotificationType.Start);
 
                         await _completionSource.Task.ConfigureAwait(false);
                     }
@@ -171,7 +171,7 @@ namespace SM.Media.BackgroundAudio
                     mediaPlayerManager.Dispose();
                 }
 
-                _foregroundNotifier.Notify("stop");
+                _foregroundNotifier.Notify(BackgroundNotificationType.Stop);
 
                 mediaPlayer.CurrentStateChanged -= CurrentOnCurrentStateChanged;
                 mediaPlayer.PlaybackMediaMarkerReached -= OnPlaybackMediaMarkerReached;
@@ -290,10 +290,10 @@ namespace SM.Media.BackgroundAudio
                 var valueSet = new ValueSet();
 
                 if (null != _mediaPlayerManager)
-                    valueSet.Add("track", _mediaPlayerManager.TrackName);
+                    valueSet.Add(BackgroundNotificationType.Track, _mediaPlayerManager.TrackName);
 
                 if (!string.IsNullOrEmpty(message))
-                    valueSet["fail"] = message;
+                    valueSet.Add(BackgroundNotificationType.Fail);
 
                 _foregroundNotifier.Notify(valueSet);
             }
@@ -315,7 +315,7 @@ namespace SM.Media.BackgroundAudio
 
                 _metadataHandler.Refresh();
 
-                _foregroundNotifier.Notify("track", trackName);
+                _foregroundNotifier.Notify(BackgroundNotificationType.Track, trackName);
             }
             catch (Exception ex)
             {
@@ -327,58 +327,75 @@ namespace SM.Media.BackgroundAudio
         {
             //Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id);
 
-            object idValue;
-            if (mediaPlayerDataReceivedEventArgs.Data.TryGetValue("id", out idValue))
+            try
             {
-                var id = idValue as Guid?;
-
-                if (id.HasValue && id.Value != _id)
+                object idValue;
+                if (mediaPlayerDataReceivedEventArgs.Data.TryGetValue(BackgroundNotificationType.Id, out idValue))
                 {
-                    Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id);
+                    var id = idValue as Guid?;
+
+                    if (id.HasValue && _appId.HasValue && id.Value != _appId.Value)
+                    {
+                        Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " != " + id.Value);
+                        return;
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() no id " + _id);
                     return;
                 }
-            }
 
-            foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
-            {
-                //Debug.WriteLine(" f->b {0}: {1}", kv.Key, kv.Value);
+                Guid? appId = null;
+                var isStart = false;
+                var isStop = false;
 
-                if (null == kv.Key)
+                foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
                 {
-                    Debug.WriteLine("*** BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() null key");
+                    //Debug.WriteLine(" f->b {0}: {1}", kv.Key, kv.Value);
 
-                    continue; // This does happen.  It shouldn't, but it does.
-                }
-
-                try
-                {
-                    switch (kv.Key.ToLowerInvariant())
+                    if (null == kv.Key)
                     {
-                        case "resume":
-                            var appId = kv.Value as Guid?;
-                            if (appId.HasValue)
-                                _appId = appId.Value;
-                            break;
-                        case "suspend":
-                            break;
-                        case "ping":
-                            _foregroundNotifier.Notify("pong", kv.Value);
-                            break;
-                        case "smtc":
-                            SystemMediaTransportControlsButton button;
+                        Debug.WriteLine("*** BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() null key");
 
-                            if (Enum.TryParse((string)kv.Value, true, out button))
+                        continue; // This does happen.  It shouldn't, but it does.
+                    }
+
+                    BackgroundNotificationType type;
+                    if (!Enum.TryParse(kv.Key, true, out type))
+                        continue;
+
+                    switch (type)
+                    {
+                        case BackgroundNotificationType.Start:
+                        case BackgroundNotificationType.Resume:
+                            isStart = true;
+                            break;
+                        case BackgroundNotificationType.Stop:
+                        case BackgroundNotificationType.Suspend:
+                            isStop = false;
+                            break;
+                        case BackgroundNotificationType.Ping:
+                            if (_appId.HasValue)
+                                _foregroundNotifier.Notify(BackgroundNotificationType.Pong, kv.Value);
+                            break;
+                        case BackgroundNotificationType.Smtc:
+                            if (_appId.HasValue)
                             {
-                                var mediaPlayerManager = _mediaPlayerManager;
+                                SystemMediaTransportControlsButton button;
+                                if (Enum.TryParse((string)kv.Value, true, out button))
+                                {
+                                    var mediaPlayerManager = _mediaPlayerManager;
 
-                                if (null != mediaPlayerManager)
-                                    HandleSmtcButton(mediaPlayerManager, button);
+                                    if (null != mediaPlayerManager)
+                                        HandleSmtcButton(mediaPlayerManager, button);
+                                }
                             }
                             break;
-                        case "memory":
+                        case BackgroundNotificationType.Memory:
                             NotifyForegroundMemory();
                             break;
-                        case "gc":
+                        case BackgroundNotificationType.Gc:
                             var task = Task.Run(() =>
                             {
                                 MemoryDiagnostics.DumpMemory();
@@ -397,12 +414,30 @@ namespace SM.Media.BackgroundAudio
                             TaskCollector.Default.Add(task, "Forced GC");
 
                             break;
+                        case BackgroundNotificationType.Id:
+                            var id = kv.Value as Guid?;
+
+                            if (id.HasValue)
+                                appId = id;
+
+                            break;
                     }
                 }
-                catch (Exception ex)
+
+                if (_appId.HasValue)
                 {
-                    Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " failed: " + ex.Message);
+                    if (isStop)
+                        _appId = null;
                 }
+                else
+                {
+                    if (isStart && appId.HasValue)
+                        _appId = appId.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " failed: " + ex.Message);
             }
         }
 
@@ -410,9 +445,9 @@ namespace SM.Media.BackgroundAudio
         {
             _foregroundNotifier.Notify(new ValueSet
             {
-                { "memory", GC.GetTotalMemory(false) },
-                { "appMemory", MemoryManager.AppMemoryUsage },
-                { "appMemoryLimit", MemoryManager.AppMemoryUsageLimit },
+                { BackgroundNotificationType.Memory.ToString(), GC.GetTotalMemory(false) },
+                { BackgroundNotificationType.AppMemory.ToString(), MemoryManager.AppMemoryUsage },
+                { BackgroundNotificationType.AppMemoryLimit.ToString(), MemoryManager.AppMemoryUsageLimit },
             });
         }
 

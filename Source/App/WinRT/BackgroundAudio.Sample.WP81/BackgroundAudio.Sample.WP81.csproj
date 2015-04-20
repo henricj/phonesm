@@ -106,6 +106,9 @@
     <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\BackgroundMediaNotifier.cs">
       <Link>BackgroundMediaNotifier.cs</Link>
     </Compile>
+    <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\BackgroundNotificationType.cs">
+      <Link>BackgroundNotificationType.cs</Link>
+    </Compile>
     <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\BackgroundNotifier.cs">
       <Link>BackgroundNotifier.cs</Link>
     </Compile>

@@ -36,7 +36,6 @@ namespace BackgroundAudio.Sample
 {
     sealed class MediaPlayerSession : IDisposable
     {
-        static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(Debugger.IsAttached ? 30 : 3);
         public readonly MediaPlayer MediaPlayer;
         readonly TaskCompletionSource<Guid> _backgroundRunningCompletionSource = new TaskCompletionSource<Guid>();
         readonly IBackgroundMediaNotifier _notifier;
@@ -107,11 +106,6 @@ namespace BackgroundAudio.Sample
             _onCurrentStateChanged(sender, args);
         }
 
-        void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs e)
-        {
-            _onMessage(sender, e);
-        }
-
         void SubscribeMediaPlayer()
         {
             Debug.WriteLine("MediaPlayerSession.SubscribeMediaPlayer()");
@@ -164,7 +158,9 @@ namespace BackgroundAudio.Sample
 
             _challenge = Guid.NewGuid();
 
-            _notifier.Notify("ping", _challenge);
+            _notifier.Notify(BackgroundNotificationType.Start);
+
+            _notifier.Notify(BackgroundNotificationType.Ping, _challenge);
 
             var timeout = Task.Delay(250);
 

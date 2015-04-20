@@ -179,21 +179,25 @@ namespace BackgroundAudio.Sample
                         continue; // This does happen.  It shouldn't, but it does.
                     }
 
-                    switch (kv.Key.ToLowerInvariant())
+                    BackgroundNotificationType type;
+                    if (!Enum.TryParse(kv.Key, true, out type))
+                        continue;
+
+                    switch (type)
                     {
-                        case "ping":
-                            _notifier.Notify("pong", kv.Value);
+                        case BackgroundNotificationType.Ping:
+                            _notifier.Notify(BackgroundNotificationType.Pong, kv.Value);
                             break;
-                        case "pong":
+                        case BackgroundNotificationType.Pong:
                             challenge = kv.Value;
                             break;
-                        case "start":
+                        case BackgroundNotificationType.Start:
                             break;
-                        case "fail":
-                        case "stop":
+                        case BackgroundNotificationType.Fail:
+                        case BackgroundNotificationType.Stop:
                             stop = true;
                             break;
-                        case "id":
+                        case BackgroundNotificationType.Id:
                             var backgroundIdValue = kv.Value as Guid?;
 
                             if (backgroundIdValue.HasValue)
@@ -301,9 +305,11 @@ namespace BackgroundAudio.Sample
                 handler(sender, args);
         }
 
-        public void NotifyBackground(string key = null, object value = null, bool ping = false)
+        public void NotifyBackground(BackgroundNotificationType type, object value = null, bool ping = false)
         {
             //Debug.WriteLine("MediaPlayerHandle.NotifyBackground() " + _id + ": " + key);
+
+            var key = type.ToString();
 
             try
             {
@@ -328,7 +334,7 @@ namespace BackgroundAudio.Sample
         {
             try
             {
-                _notifier.Notify("suspend");
+                _notifier.Notify(BackgroundNotificationType.Suspend);
 
                 Close();
 
@@ -351,7 +357,7 @@ namespace BackgroundAudio.Sample
 
                         await OpenAsync();
 
-                        _notifier.Notify("resume");
+                        _notifier.Notify(BackgroundNotificationType.Resume);
                     }
                     catch (Exception ex)
                     {
@@ -372,7 +378,7 @@ namespace BackgroundAudio.Sample
     {
         public static void NotifyBackground(this MediaPlayerHandle handle, SystemMediaTransportControlsButton button)
         {
-            handle.NotifyBackground("smtc", button.ToString());
+            handle.NotifyBackground(BackgroundNotificationType.Smtc, button.ToString());
         }
     }
 }

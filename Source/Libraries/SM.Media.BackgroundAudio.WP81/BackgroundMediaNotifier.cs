@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="BackgroundAudioNotifier.cs" company="Henric Jungheim">
+//  <copyright file="BackgroundMediaNotifier.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -48,7 +48,7 @@ namespace SM.Media.BackgroundAudio
 
         public void Notify(ValueSet valueSet)
         {
-            valueSet["Id"] = _id;
+            valueSet.Add(BackgroundNotificationType.Id, _id);
 
             try
             {
@@ -67,13 +67,23 @@ namespace SM.Media.BackgroundAudio
 
     static class BackgroundAudioNotifierExtensions
     {
-        public static void Notify(this IBackgroundMediaNotifier notifier, string key = null, object value = null)
+        public static void Notify(this IBackgroundMediaNotifier notifier, BackgroundNotificationType type, object value = null)
         {
             //Debug.WriteLine("NotifierExtensions.Notify() " + _id);
 
-            var valueSet = new ValueSet { { key, value } };
+            var valueSet = new ValueSet { { type.ToString(), value } };
 
             notifier.Notify(valueSet);
+        }
+
+        public static void Add(this ValueSet valueSet, BackgroundNotificationType type, object value = null)
+        {
+            valueSet.Add(type.ToString(), value);
+        }
+
+        public static bool TryGetValue(this ValueSet valueSet, BackgroundNotificationType type, out object value)
+        {
+            return valueSet.TryGetValue(type.ToString(), out value);
         }
     }
 }

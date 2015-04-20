@@ -45,6 +45,7 @@
     <Compile Include="BackgroundMediaNotifier.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="BackgroundNotificationType.cs" />
     <Compile Include="ForegroundNotifier.cs" />
     <Compile Include="MediaPlayerManager.cs" />
     <Compile Include="MemoryDiagnostics.cs" />

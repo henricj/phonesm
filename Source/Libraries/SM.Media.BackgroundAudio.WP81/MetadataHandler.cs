@@ -139,7 +139,7 @@ namespace SM.Media.BackgroundAudio
 
                     smtc.DisplayUpdater.Update();
 
-                    _notifier.Notify("track", title);
+                    _notifier.Notify(BackgroundNotificationType.Track, title);
                 }
 
                 if (nextEvent.HasValue && nextEvent > position)

@@ -35,6 +35,7 @@ using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
+using SM.Media.BackgroundAudio;
 using SM.Media.Utility;
 
 namespace BackgroundAudio.Sample
@@ -93,7 +94,7 @@ namespace BackgroundAudio.Sample
 
                 count = 0;
 
-                _mediaPlayerHandle.NotifyBackground("memory");
+                _mediaPlayerHandle.NotifyBackground(BackgroundNotificationType.Memory);
             };
         }
 
@@ -252,33 +253,37 @@ namespace BackgroundAudio.Sample
                         continue; // This does happen.  It shouldn't, but it does.
                     }
 
-                    switch (kv.Key.ToLowerInvariant())
+                    BackgroundNotificationType type;
+                    if (!Enum.TryParse(kv.Key, true, out type))
+                        continue;
+
+                    switch (type)
                     {
-                        case "track":
+                        case BackgroundNotificationType.Track:
                             trackName = kv.Value as string ?? string.Empty;
 
                             break;
-                        case "fail":
+                        case BackgroundNotificationType.Fail:
                             callShutdown = true;
                             failMessage = kv.Value as string;
 
                             Debug.WriteLine("MainPage.OnMessageReceivedFromBackground() fail " + failMessage);
 
                             break;
-                        case "memory":
+                        case BackgroundNotificationType.Memory:
                             memoryValue = kv.Value as long?;
                             if (memoryValue.HasValue)
                                 updateMemory = true;
 
                             break;
-                        case "appmemory":
+                        case BackgroundNotificationType.AppMemory:
                             appMemoryValue = kv.Value as ulong?;
                             if (appMemoryValue.HasValue)
                                 updateMemory = true;
 
                             break;
 
-                        case "appmemorylimit":
+                        case BackgroundNotificationType.AppMemoryLimit:
                             appMemoryLimitValue = kv.Value as ulong?;
                             if (appMemoryLimitValue.HasValue)
                                 updateMemory = true;
@@ -412,7 +417,7 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MainPage gc");
 
-            _mediaPlayerHandle.NotifyBackground("gc");
+            _mediaPlayerHandle.NotifyBackground(BackgroundNotificationType.Gc);
         }
 
         void wakeButton_Click(object sender, RoutedEventArgs e)

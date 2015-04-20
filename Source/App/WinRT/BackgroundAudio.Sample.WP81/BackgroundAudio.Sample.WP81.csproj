@@ -118,6 +118,7 @@
     <Compile Include="MediaPlayerHandle.cs" />
     <Compile Include="MediaPlayerSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="BackgroundSubscriptionHandle.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

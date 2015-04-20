@@ -43,6 +43,7 @@ namespace BackgroundAudio.Sample
         readonly CoreDispatcher _dispatcher;
         readonly Guid _id = Guid.NewGuid();
         readonly IBackgroundMediaNotifier _notifier;
+        readonly BackgroundSubscriptionHandle _subscriptionHandle;
         MediaPlayerSession _mediaPlayerSession;
 
         public MediaPlayerHandle(CoreDispatcher dispatcher)
@@ -51,7 +52,9 @@ namespace BackgroundAudio.Sample
 
             _notifier = new BackgroundNotifier(_id);
 
-            BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
+            _subscriptionHandle = new BackgroundSubscriptionHandle(OnMessageReceivedFromBackground);
+
+            _subscriptionHandle.Subscribe();
         }
 
         public Guid Id
@@ -87,11 +90,13 @@ namespace BackgroundAudio.Sample
 
         public void Dispose()
         {
-            BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
+            _subscriptionHandle.Unsubscribe();
 
             Close();
 
             _asyncLock.Dispose();
+
+            _subscriptionHandle.Dispose();
         }
 
         #endregion
@@ -137,9 +142,21 @@ namespace BackgroundAudio.Sample
             if (null != mediaPlayerSession)
                 mediaPlayerSession.Dispose();
 
-            BackgroundMediaPlayer.Shutdown();
+            Shutdown();
 
             return null;
+        }
+
+        public void Shutdown()
+        {
+            Debug.WriteLine("MediaPlayerHandle.Shutdown()");
+
+            var wasSubscribed = _subscriptionHandle.Unsubscribe();
+
+            BackgroundMediaPlayer.Shutdown();
+
+            if (wasSubscribed)
+                _subscriptionHandle.Subscribe();
         }
 
         async void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
@@ -315,7 +332,7 @@ namespace BackgroundAudio.Sample
 
                 Close();
 
-                BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
+                _subscriptionHandle.Unsubscribe();
             }
             catch (Exception ex)
             {
@@ -330,7 +347,7 @@ namespace BackgroundAudio.Sample
                 {
                     try
                     {
-                        BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
+                        _subscriptionHandle.Subscribe();
 
                         await OpenAsync();
 
@@ -343,12 +360,11 @@ namespace BackgroundAudio.Sample
                 });
         }
 
-        public void ResetNotificationSubscription()
+        void ResetNotificationSubscription()
         {
             Debug.WriteLine("MediaPlayerHandle.ResetNotificationSubscription()");
 
-            BackgroundMediaPlayer.MessageReceivedFromBackground -= OnMessageReceivedFromBackground;
-            BackgroundMediaPlayer.MessageReceivedFromBackground += OnMessageReceivedFromBackground;
+            _subscriptionHandle.ResetSubscription();
         }
     }
 

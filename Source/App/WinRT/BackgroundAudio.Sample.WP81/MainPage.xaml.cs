@@ -164,7 +164,7 @@ namespace BackgroundAudio.Sample
             {
                 CloseMediaPlayerAndUpdate();
 
-                BackgroundMediaPlayer.Shutdown();
+                _mediaPlayerHandle.Shutdown();
             }
             catch (Exception ex)
             {
@@ -237,7 +237,7 @@ namespace BackgroundAudio.Sample
             var updateMemory = false;
             string failMessage = null;
             string trackName = null;
-            bool callShutdown = false;
+            var callShutdown = false;
 
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
@@ -523,15 +523,11 @@ namespace BackgroundAudio.Sample
             _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Stop);
         }
 
-        private void killButton_Click(object sender, RoutedEventArgs e)
+        void killButton_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("MainPage kill");
 
-            _mediaPlayerHandle.Suspend();
-
-            BackgroundMediaPlayer.Shutdown();
-
-            _mediaPlayerHandle.Resume();
+            _mediaPlayerHandle.Shutdown();
         }
 
         #endregion Button Click Event Handlers

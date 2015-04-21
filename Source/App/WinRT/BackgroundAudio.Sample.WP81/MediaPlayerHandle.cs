@@ -137,6 +137,8 @@ namespace BackgroundAudio.Sample
 
                     ResetNotificationSubscription();
                 }
+
+                await Task.Delay(250 * (1 + retry)).ConfigureAwait(false);
             }
 
             if (null != mediaPlayerSession)

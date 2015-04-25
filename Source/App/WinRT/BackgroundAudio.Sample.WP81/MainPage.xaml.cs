@@ -75,11 +75,13 @@ namespace BackgroundAudio.Sample
                 if (null == mediaPlayer)
                     return;
 
+                var positionText = string.Empty;
+
                 try
                 {
                     var position = mediaPlayer.Position;
 
-                    txtPosition.Text = position.ToString();
+                    positionText = position.ToString("G");
                 }
                 catch (Exception ex)
                 {
@@ -88,6 +90,8 @@ namespace BackgroundAudio.Sample
                     // The COM object is probably dead...
                     CleanupFailedPlayer();
                 }
+
+                txtPosition.Text = positionText;
 
                 if (++count < 5)
                     return;

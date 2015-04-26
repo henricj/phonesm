@@ -141,7 +141,7 @@ namespace BackgroundAudio.Sample
                         {
                             await Task.Delay(100 * (1 + loadRetry)).ConfigureAwait(false);
 
-                            backgroundId = BackgroundSettings.GetBackgroundId();
+                            backgroundId = BackgroundSettings.BackgroundId;
 
                             if (backgroundId.HasValue)
                                 break;
@@ -414,7 +414,7 @@ namespace BackgroundAudio.Sample
             {
                 BackgroundSettings.SetForegroundId(_id);
 
-                var backgroundId = BackgroundSettings.GetBackgroundId();
+                var backgroundId = BackgroundSettings.BackgroundId;
 
                 if (!backgroundId.HasValue)
                     return;
@@ -438,7 +438,7 @@ namespace BackgroundAudio.Sample
             {
                 BackgroundSettings.RemoveForegroundId(_id);
 
-                var backgroundId = BackgroundSettings.GetBackgroundId();
+                var backgroundId = BackgroundSettings.BackgroundId;
 
                 if (backgroundId.HasValue)
                     _notifier.Notify(BackgroundNotificationType.Fail);

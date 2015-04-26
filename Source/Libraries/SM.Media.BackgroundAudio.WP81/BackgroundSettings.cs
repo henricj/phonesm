@@ -34,47 +34,86 @@ namespace SM.Media.BackgroundAudio
 {
     static class BackgroundSettings
     {
-        const string ForegroundId = "ForegroundId";
-        const string BackgroundId = "BackgroundId";
+        const string ForegroundIdKey = "ForegroundId";
+        const string BackgroundIdKey = "BackgroundId";
+        const string TrackKey = "Track";
+        const string PositionKey = "Position";
 
-        public static Guid? GetBackgroundId()
+        public static Uri Track
         {
-            return ApplicationData.Current.LocalSettings.Values[BackgroundId] as Guid?;
+            get
+            {
+                var value = ApplicationData.Current.LocalSettings.Values[TrackKey] as string;
+
+                if (string.IsNullOrEmpty(value))
+                    return null;
+
+                Uri url;
+                if (!Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out url))
+                    return null;
+
+                return url;
+            }
+            set
+            {
+                if (null == value)
+                    RemoveSafe(TrackKey);
+                else
+                    ApplicationData.Current.LocalSettings.Values[TrackKey] = value.ToString();
+            }
         }
 
-        public static Guid? GetForegroundId()
+
+        public static TimeSpan? Position
         {
-            return ApplicationData.Current.LocalSettings.Values[ForegroundId] as Guid?;
+            get { return ApplicationData.Current.LocalSettings.Values[PositionKey] as TimeSpan?; }
+            set
+            {
+                if (value.HasValue)
+                    ApplicationData.Current.LocalSettings.Values[PositionKey] = value;
+                else
+                    RemoveSafe(PositionKey);
+            }
+        }
+
+        public static Guid? BackgroundId
+        {
+            get { return ApplicationData.Current.LocalSettings.Values[BackgroundIdKey] as Guid?; }
+        }
+
+        public static Guid? ForegroundId
+        {
+            get { return ApplicationData.Current.LocalSettings.Values[ForegroundIdKey] as Guid?; }
         }
 
         public static void SetBackgroundId(Guid id)
         {
-            ApplicationData.Current.LocalSettings.Values[BackgroundId] = id;
+            ApplicationData.Current.LocalSettings.Values[BackgroundIdKey] = id;
         }
 
         public static void SetForegroundId(Guid id)
         {
-            ApplicationData.Current.LocalSettings.Values[ForegroundId] = id;
+            ApplicationData.Current.LocalSettings.Values[ForegroundIdKey] = id;
         }
 
         public static void RemoveForegroundId()
         {
-            RemoveSafe(ForegroundId);
+            RemoveSafe(ForegroundIdKey);
         }
 
         public static void RemoveForegroundId(Guid id)
         {
-            RemoveSafe(ForegroundId, id);
+            RemoveSafe(ForegroundIdKey, id);
         }
 
         public static void RemoveBackgroundId()
         {
-            RemoveSafe(BackgroundId);
+            RemoveSafe(BackgroundIdKey);
         }
 
         public static void RemoveBackgroundId(Guid id)
         {
-            RemoveSafe(BackgroundId, id);
+            RemoveSafe(BackgroundIdKey, id);
         }
 
         static void RemoveSafe(string key)

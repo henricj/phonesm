@@ -191,6 +191,8 @@ namespace BackgroundAudio.Sample
 
             _subscriptionHandle.Unsubscribe();
 
+            Close();
+
             BackgroundMediaPlayer.Shutdown();
         }
 

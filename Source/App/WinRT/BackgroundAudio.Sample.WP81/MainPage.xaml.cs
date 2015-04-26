@@ -123,7 +123,7 @@ namespace BackgroundAudio.Sample
 
             CloseMediaPlayer();
 
-            RefreshUi(MediaPlayerState.Closed, null);
+            RequestRefresh();
         }
 
         void CloseMediaPlayer()
@@ -140,6 +140,8 @@ namespace BackgroundAudio.Sample
         async Task OpenMediaPlayerAsync()
         {
             Debug.WriteLine("MainPage.OpenMediaPlayer()");
+
+            Debug.Assert(Dispatcher.HasThreadAccess, "OpenMediaPlayerAsync() requires the dispatcher thread");
 
             _timer.Start();
 
@@ -198,6 +200,7 @@ namespace BackgroundAudio.Sample
 
             Application.Current.Suspending += OnSuspending;
             Application.Current.Resuming += OnResuming;
+            Application.Current.UnhandledException += OnUnhandledException;
 
             CloseMediaPlayerAndUpdate();
         }
@@ -208,17 +211,36 @@ namespace BackgroundAudio.Sample
 
             Application.Current.Suspending -= OnSuspending;
             Application.Current.Resuming -= OnResuming;
+            Application.Current.UnhandledException -= OnUnhandledException;
 
-            _mediaPlayerHandle.Suspend();
-
-            _timer.Stop();
+            OnSuspending(null, null);
         }
 
         void OnResuming(object sender, object o)
         {
             Debug.WriteLine("MainPage.OnResuming()");
 
-            _mediaPlayerHandle.Resume();
+            var task = ResumeAsync();
+
+            TaskCollector.Default.Add(task, "MainPage ResumeAsync");
+        }
+
+        async Task ResumeAsync()
+        {
+            Debug.WriteLine("MainPage.ResumeAsync()");
+
+            Debug.Assert(Dispatcher.HasThreadAccess, "ResumeAsync requires the dispatcher thread");
+
+            try
+            {
+                await _mediaPlayerHandle.ResumeAsync().ConfigureAwait(false);
+
+                RequestRefresh();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage.ResumeAsync() failed: " + ex.ExtendedMessage());
+            }
         }
 
         void OnSuspending(object sender, SuspendingEventArgs suspendingEventArgs)
@@ -229,7 +251,16 @@ namespace BackgroundAudio.Sample
 
             _mediaPlayerHandle.Suspend();
 
+            _timer.Stop();
+
             //deferral.Complete();
+        }
+
+        void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Debug.WriteLine("MainPage.OnUnhandledException()");
+
+            _mediaPlayerHandle.Fail();
         }
 
         void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
@@ -395,6 +426,16 @@ namespace BackgroundAudio.Sample
                 playButton.IsEnabled = true;
                 nextButton.IsEnabled = true;
             }
+
+            var needTimer = MediaPlayerState.Closed != currentState;
+
+            if (needTimer == _timer.IsEnabled)
+                return;
+
+            if (needTimer)
+                _timer.Start();
+            else
+                _timer.Stop();
         }
 
         void RequestRefresh()
@@ -405,6 +446,8 @@ namespace BackgroundAudio.Sample
                 return;
 
             var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Low, RefreshUi);
+
+            TaskCollector.Default.Add(awaiter.AsTask(), "MainPage RefreshUi");
         }
 
         Task StartAudioAsync()

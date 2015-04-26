@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 using Windows.Media.Playback;
 
 namespace BackgroundAudio.Sample
@@ -56,6 +57,8 @@ namespace BackgroundAudio.Sample
 
         public bool Subscribe()
         {
+            Debug.WriteLine("BackgroundSubscriptionHandle.Subscribe()");
+
             lock (_lock)
             {
                 if (_isSubscribed)
@@ -71,6 +74,8 @@ namespace BackgroundAudio.Sample
 
         public bool Unsubscribe()
         {
+            Debug.WriteLine("BackgroundSubscriptionHandle.Unsubscribe()");
+
             lock (_lock)
             {
                 var wasSubscribed = _isSubscribed;
@@ -80,20 +85,6 @@ namespace BackgroundAudio.Sample
                 BackgroundMediaPlayer.MessageReceivedFromBackground -= _eventHandler;
 
                 return wasSubscribed;
-            }
-        }
-
-        public bool ResetSubscription()
-        {
-            lock (_lock)
-            {
-                if (!_isSubscribed)
-                    return false;
-
-                BackgroundMediaPlayer.MessageReceivedFromBackground -= _eventHandler;
-                BackgroundMediaPlayer.MessageReceivedFromBackground += _eventHandler;
-
-                return true;
             }
         }
     }

@@ -48,13 +48,15 @@ namespace BackgroundAudio.Sample
 
         public MediaPlayerHandle(CoreDispatcher dispatcher)
         {
+            BackgroundSettings.RemoveForegroundId();
+
             _dispatcher = dispatcher;
 
             _notifier = new BackgroundNotifier(_id);
 
             _subscriptionHandle = new BackgroundSubscriptionHandle(OnMessageReceivedFromBackground);
 
-            _subscriptionHandle.Subscribe();
+            BackgroundSettings.SetForegroundId(_id);
         }
 
         public Guid Id
@@ -68,6 +70,9 @@ namespace BackgroundAudio.Sample
             {
                 Debug.Assert(_dispatcher.HasThreadAccess, "MediaPlayer requires the dispatcher thread");
 
+                if (!_subscriptionHandle.IsSubscribed)
+                    return null;
+
                 var mediaPlayerSession = _mediaPlayerSession;
 
                 return null == mediaPlayerSession ? null : mediaPlayerSession.MediaPlayer;
@@ -80,6 +85,9 @@ namespace BackgroundAudio.Sample
             {
                 Debug.Assert(_dispatcher.HasThreadAccess, "IsRunning requires the dispatcher thread");
 
+                if (!_subscriptionHandle.IsSubscribed)
+                    return false;
+
                 var mediaPlayerSession = _mediaPlayerSession;
 
                 return null != mediaPlayerSession && mediaPlayerSession.IsRunning;
@@ -91,6 +99,8 @@ namespace BackgroundAudio.Sample
         public void Dispose()
         {
             _subscriptionHandle.Unsubscribe();
+
+            BackgroundSettings.RemoveForegroundId(_id);
 
             Close();
 
@@ -121,12 +131,31 @@ namespace BackgroundAudio.Sample
 
                     try
                     {
-                        mediaPlayerSession = new MediaPlayerSession(BackgroundMediaPlayer.Current, _notifier, OnCurrentStateChanged, OnMessageReceivedFromBackground);
+                        _subscriptionHandle.Subscribe();
 
-                        _mediaPlayerSession = mediaPlayerSession;
+                        var player = BackgroundMediaPlayer.Current;
 
-                        if (await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false))
-                            return mediaPlayerSession;
+                        Guid? backgroundId = null;
+
+                        for (var loadRetry = 0; loadRetry < 4; ++loadRetry)
+                        {
+                            await Task.Delay(100 * (1 + loadRetry)).ConfigureAwait(false);
+
+                            backgroundId = BackgroundSettings.GetBackgroundId();
+
+                            if (backgroundId.HasValue)
+                                break;
+                        }
+
+                        if (backgroundId.HasValue)
+                        {
+                            mediaPlayerSession = new MediaPlayerSession(player, backgroundId.Value, _notifier, OnCurrentStateChanged);
+
+                            _mediaPlayerSession = mediaPlayerSession;
+
+                            if (await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false))
+                                return mediaPlayerSession;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -135,7 +164,7 @@ namespace BackgroundAudio.Sample
 
                     _mediaPlayerSession = null;
 
-                    ResetNotificationSubscription();
+                    _subscriptionHandle.Unsubscribe();
                 }
 
                 await Task.Delay(250 * (1 + retry)).ConfigureAwait(false);
@@ -153,20 +182,24 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MediaPlayerHandle.Shutdown()");
 
-            var wasSubscribed = _subscriptionHandle.Unsubscribe();
+            BackgroundSettings.RemoveBackgroundId();
+
+            _subscriptionHandle.Unsubscribe();
 
             BackgroundMediaPlayer.Shutdown();
-
-            if (wasSubscribed)
-                _subscriptionHandle.Subscribe();
         }
 
         async void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
         {
             //Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground()");
+
+            if (!_subscriptionHandle.IsSubscribed)
+                return;
+
             Guid? backgroundId = null;
             object challenge = null;
             var stop = false;
+            var start = false;
 
             foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
             {
@@ -194,6 +227,7 @@ namespace BackgroundAudio.Sample
                             challenge = kv.Value;
                             break;
                         case BackgroundNotificationType.Start:
+                            start = true;
                             break;
                         case BackgroundNotificationType.Fail:
                         case BackgroundNotificationType.Stop:
@@ -214,18 +248,25 @@ namespace BackgroundAudio.Sample
                 }
             }
 
-            if (backgroundId.HasValue)
+            var mediaPlayerSession = _mediaPlayerSession;
+
+            if (null != mediaPlayerSession && mediaPlayerSession.IsRunning)
             {
-                if (stop)
-                    await CloseSessionAsync(backgroundId.Value).ConfigureAwait(false);
-                else
-                    await UpdateBackgroundIdAsync(backgroundId.Value, challenge).ConfigureAwait(false);
+                var handler = MessageReceivedFromBackground;
+
+                if (null != handler)
+                    handler(sender, mediaPlayerDataReceivedEventArgs);
             }
 
-            var handler = MessageReceivedFromBackground;
+            if (!backgroundId.HasValue)
+                return;
 
-            if (null != handler)
-                handler(sender, mediaPlayerDataReceivedEventArgs);
+            if (start)
+                await StartBackgroundIdAsync(backgroundId.Value, challenge).ConfigureAwait(false);
+            else if (stop)
+                await CloseSessionAsync(backgroundId.Value).ConfigureAwait(false);
+            else
+                UpdateBackgroundId(backgroundId.Value, challenge);
         }
 
         async Task CloseSessionAsync(Guid backgroundId)
@@ -247,36 +288,43 @@ namespace BackgroundAudio.Sample
 
                 mediaPlayerSession.Dispose();
 
-                ResetNotificationSubscription();
+                _subscriptionHandle.Unsubscribe();
             }
         }
 
-        async Task UpdateBackgroundIdAsync(Guid backgroundId, object challenge)
+        async Task StartBackgroundIdAsync(Guid backgroundId, object challenge)
         {
-            //Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() " + backgroundId);
-
-            var mediaPlayerSession = _mediaPlayerSession;
+            //Debug.WriteLine("MediaPlayerHandle.StartBackgroundIdAsync() " + backgroundId);
 
             try
             {
-                if (null == mediaPlayerSession)
+                if (null == _mediaPlayerSession)
                 {
-                    ResetNotificationSubscription();
+                    _subscriptionHandle.Subscribe();
 
-                    mediaPlayerSession = await OpenAsync().ConfigureAwait(false);
+                    await OpenAsync().ConfigureAwait(false);
                 }
-
-                if (null != mediaPlayerSession)
-                {
-                    if (mediaPlayerSession.TrySetBackgroundId(backgroundId, challenge))
-                    {
-                        //Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() matched " + backgroundId);
-                    }
-                }
+                else
+                    UpdateBackgroundId(backgroundId, challenge);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundIdAsync() failed: " + ex.ExtendedMessage());
+            }
+        }
+
+        void UpdateBackgroundId(Guid backgroundId, object challenge)
+        {
+            //Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundId() " + backgroundId);
+
+            var mediaPlayerSession = _mediaPlayerSession;
+
+            if (null != mediaPlayerSession)
+            {
+                if (mediaPlayerSession.TrySetBackgroundId(backgroundId, challenge))
+                {
+                    //Debug.WriteLine("MediaPlayerHandle.UpdateBackgroundId() matched " + backgroundId);
+                }
             }
         }
 
@@ -309,7 +357,10 @@ namespace BackgroundAudio.Sample
 
         public void NotifyBackground(BackgroundNotificationType type, object value = null, bool ping = false)
         {
-            //Debug.WriteLine("MediaPlayerHandle.NotifyBackground() " + _id + ": " + key);
+            //Debug.WriteLine("MediaPlayerHandle.NotifyBackground() " + _id + ": " + type);
+
+            if (!_subscriptionHandle.IsSubscribed)
+                return;
 
             var key = type.ToString();
 
@@ -334,9 +385,14 @@ namespace BackgroundAudio.Sample
 
         public void Suspend()
         {
+            Debug.WriteLine("MediaPlayerHandle.Suspend()");
+
             try
             {
-                _notifier.Notify(BackgroundNotificationType.Suspend);
+                BackgroundSettings.RemoveForegroundId(_id);
+
+                if (_subscriptionHandle.IsSubscribed)
+                    _notifier.Notify(BackgroundNotificationType.Suspend);
 
                 Close();
 
@@ -348,31 +404,53 @@ namespace BackgroundAudio.Sample
             }
         }
 
-        public void Resume()
+        public async Task ResumeAsync()
         {
-            var awaiter = _dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                async () =>
-                {
-                    try
-                    {
-                        _subscriptionHandle.Subscribe();
+            Debug.WriteLine("MediaPlayerHandle.ResumeAsync()");
 
-                        await OpenAsync();
+            Debug.Assert(_dispatcher.HasThreadAccess, "ResumeAsync requires the dispatcher thread");
 
-                        _notifier.Notify(BackgroundNotificationType.Resume);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("MediaPlayerHandle.Suspend() failed: " + ex.ExtendedMessage());
-                    }
-                });
+            try
+            {
+                BackgroundSettings.SetForegroundId(_id);
+
+                var backgroundId = BackgroundSettings.GetBackgroundId();
+
+                if (!backgroundId.HasValue)
+                    return;
+
+                await OpenAsync().ConfigureAwait(false);
+
+                if (_subscriptionHandle.IsSubscribed)
+                    _notifier.Notify(BackgroundNotificationType.Resume);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerHandle.ResumeAsync() failed: " + ex.ExtendedMessage());
+            }
         }
 
-        void ResetNotificationSubscription()
+        public void Fail()
         {
-            Debug.WriteLine("MediaPlayerHandle.ResetNotificationSubscription()");
+            Debug.WriteLine("MediaPlayerHandle.Fail()");
 
-            _subscriptionHandle.ResetSubscription();
+            try
+            {
+                BackgroundSettings.RemoveForegroundId(_id);
+
+                var backgroundId = BackgroundSettings.GetBackgroundId();
+
+                if (backgroundId.HasValue)
+                    _notifier.Notify(BackgroundNotificationType.Fail);
+
+                Close();
+
+                _subscriptionHandle.Unsubscribe();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerHandle.Fail() failed: " + ex.ExtendedMessage());
+            }
         }
     }
 

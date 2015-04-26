@@ -37,16 +37,15 @@ namespace BackgroundAudio.Sample
     sealed class MediaPlayerSession : IDisposable
     {
         public readonly MediaPlayer MediaPlayer;
+        readonly Guid _backgroundId;
         readonly TaskCompletionSource<Guid> _backgroundRunningCompletionSource = new TaskCompletionSource<Guid>();
         readonly IBackgroundMediaNotifier _notifier;
         readonly Action<MediaPlayer, object> _onCurrentStateChanged;
-        readonly Action<object, MediaPlayerDataReceivedEventArgs> _onMessage;
         Guid _challenge;
         int _disposed;
 
-        public MediaPlayerSession(MediaPlayer mediaPlayer, IBackgroundMediaNotifier notifier,
-            Action<MediaPlayer, object> onCurrentStateChanged,
-            Action<object, MediaPlayerDataReceivedEventArgs> onMessage)
+        public MediaPlayerSession(MediaPlayer mediaPlayer, Guid backgroundId, IBackgroundMediaNotifier notifier,
+            Action<MediaPlayer, object> onCurrentStateChanged)
         {
             if (null == mediaPlayer)
                 throw new ArgumentNullException("mediaPlayer");
@@ -54,13 +53,11 @@ namespace BackgroundAudio.Sample
                 throw new ArgumentNullException("notifier");
             if (null == onCurrentStateChanged)
                 throw new ArgumentNullException("onCurrentStateChanged");
-            if (null == onMessage)
-                throw new ArgumentNullException("onMessage");
 
             MediaPlayer = mediaPlayer;
+            _backgroundId = backgroundId;
             _notifier = notifier;
             _onCurrentStateChanged = onCurrentStateChanged;
-            _onMessage = onMessage;
 
             SubscribeMediaPlayer();
         }
@@ -147,6 +144,9 @@ namespace BackgroundAudio.Sample
 
         public bool TrySetBackgroundId(Guid backgroundId, object challenge)
         {
+            if (_backgroundId != backgroundId)
+                return false;
+
             var guid = challenge as Guid?;
 
             if (guid.HasValue && guid != _challenge)

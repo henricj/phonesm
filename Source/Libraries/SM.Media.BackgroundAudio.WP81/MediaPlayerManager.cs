@@ -65,7 +65,7 @@ namespace SM.Media.BackgroundAudio
         IMediaStreamFacade _mediaStreamFacade;
         MediaTrack _track;
         int _trackIndex;
-
+        TimeSpan? _position;
 
         public MediaPlayerManager(MediaPlayer mediaPlayer, MetadataHandler metadataHandler, CancellationToken cancellationToken)
         {
@@ -109,6 +109,41 @@ namespace SM.Media.BackgroundAudio
             _mediaPlayer.MediaEnded += MediaPlayerOnMediaEnded;
             _mediaPlayer.CurrentStateChanged += MediaPlayerOnCurrentStateChanged;
             _mediaPlayer.MediaFailed += MediaPlayerOnMediaFailed;
+
+            _position = BackgroundSettings.Position;
+
+            var currentTrackUrl = BackgroundSettings.Track;
+
+            if (null == currentTrackUrl)
+            {
+                if (_position.HasValue)
+                {
+                    _position = null;
+                    BackgroundSettings.Track = null;
+                }
+
+                return;
+            }
+
+            for (var i = 0; i < _tracks.Count; ++i)
+            {
+                var track = _tracks[i];
+
+                if (null == track)
+                    continue;
+
+                if (track.Url == currentTrackUrl)
+                {
+                    _trackIndex = i;
+                    return;
+                }
+            }
+
+            if (_position.HasValue)
+            {
+                _position = null;
+                BackgroundSettings.Track = null;
+            }
         }
 
         public MediaPlayer MediaPlayer
@@ -295,6 +330,13 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaOpened()");
 
+            if (_position.HasValue)
+            {
+                if (sender.CanSeek)
+                    sender.Position = _position.Value;
+
+                _position = null;
+            }
             sender.Play();
 
             FireTrackChanged();
@@ -317,6 +359,12 @@ namespace SM.Media.BackgroundAudio
             if (++_trackIndex >= _tracks.Count)
                 _trackIndex = 0;
 
+            if (_position.HasValue)
+            {
+                _position = null;
+                BackgroundSettings.Position = null;
+            }
+
             Play();
         }
 
@@ -326,6 +374,12 @@ namespace SM.Media.BackgroundAudio
 
             if (--_trackIndex < 0)
                 _trackIndex = _tracks.Count - 1;
+
+            if (_position.HasValue)
+            {
+                _position = null;
+                BackgroundSettings.Position = null;
+            }
 
             Play();
         }
@@ -369,6 +423,8 @@ namespace SM.Media.BackgroundAudio
                 }
 
                 var url = track.Url;
+
+                BackgroundSettings.Track = url;
 
                 if (url.HasExtension(".pls"))
                 {
@@ -466,6 +522,9 @@ namespace SM.Media.BackgroundAudio
 
             try
             {
+                BackgroundSettings.Track = null;
+                BackgroundSettings.Position = null;
+
                 StopMediaPlayer();
 
                 var mediaStreamFacade = _mediaStreamFacade;

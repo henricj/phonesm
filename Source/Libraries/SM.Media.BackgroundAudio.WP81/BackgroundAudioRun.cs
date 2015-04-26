@@ -249,6 +249,24 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("BackgroundAudioRun.OnCanceled() " + _id + " reason " + reason);
 
+            try
+            {
+                var mediaPlayer = _mediaPlayerManager.MediaPlayer;
+
+                if (null != mediaPlayer && mediaPlayer.CanSeek)
+                {
+                    var position = mediaPlayer.Position;
+
+                    BackgroundSettings.Position = position;
+                }
+                else
+                    BackgroundSettings.Position = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("BackgroundAudioRun.OnCanceled() failed: " + ex.ExtendedMessage());
+            }
+
             _completionSource.TrySetResult(null);
 
             try

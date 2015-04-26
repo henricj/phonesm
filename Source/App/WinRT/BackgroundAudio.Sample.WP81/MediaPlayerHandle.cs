@@ -118,62 +118,67 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MediaPlayerHandle.OpenAsync()");
 
-            MediaPlayerSession mediaPlayerSession = null;
-
-            for (var retry = 0; retry < 3; ++retry)
+            for (var shutdownRetry = 0; shutdownRetry < 2; ++shutdownRetry)
             {
-                using (await _asyncLock.LockAsync(CancellationToken.None))
+                MediaPlayerSession mediaPlayerSession = null;
+
+                for (var retry = 0; retry < 3; ++retry)
                 {
-                    mediaPlayerSession = _mediaPlayerSession;
-
-                    if (null != mediaPlayerSession)
-                        return mediaPlayerSession;
-
-                    try
+                    using (await _asyncLock.LockAsync(CancellationToken.None))
                     {
-                        _subscriptionHandle.Subscribe();
+                        mediaPlayerSession = _mediaPlayerSession;
 
-                        var player = BackgroundMediaPlayer.Current;
+                        if (null != mediaPlayerSession)
+                            return mediaPlayerSession;
 
-                        Guid? backgroundId = null;
-
-                        for (var loadRetry = 0; loadRetry < 4; ++loadRetry)
+                        try
                         {
-                            await Task.Delay(100 * (1 + loadRetry)).ConfigureAwait(false);
+                            _subscriptionHandle.Subscribe();
 
-                            backgroundId = BackgroundSettings.BackgroundId;
+                            var player = BackgroundMediaPlayer.Current;
+
+                            Guid? backgroundId = null;
+
+                            for (var loadRetry = 0; loadRetry < 4; ++loadRetry)
+                            {
+                                await Task.Delay(100 * (1 + loadRetry)).ConfigureAwait(false);
+
+                                backgroundId = BackgroundSettings.BackgroundId;
+
+                                if (backgroundId.HasValue)
+                                    break;
+                            }
 
                             if (backgroundId.HasValue)
-                                break;
-                        }
+                            {
+                                mediaPlayerSession = new MediaPlayerSession(player, backgroundId.Value, _notifier, OnCurrentStateChanged);
 
-                        if (backgroundId.HasValue)
+                                _mediaPlayerSession = mediaPlayerSession;
+
+                                if (await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false))
+                                    return mediaPlayerSession;
+                            }
+                        }
+                        catch (Exception ex)
                         {
-                            mediaPlayerSession = new MediaPlayerSession(player, backgroundId.Value, _notifier, OnCurrentStateChanged);
-
-                            _mediaPlayerSession = mediaPlayerSession;
-
-                            if (await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false))
-                                return mediaPlayerSession;
+                            Debug.WriteLine("MediaPlayerHandle.OpenAsync() failed: " + ex.ExtendedMessage());
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine("MediaPlayerHandle.OpenAsync() failed: " + ex.ExtendedMessage());
+
+                        _mediaPlayerSession = null;
+
+                        _subscriptionHandle.Unsubscribe();
                     }
 
-                    _mediaPlayerSession = null;
-
-                    _subscriptionHandle.Unsubscribe();
+                    await Task.Delay(150 * (1 + retry)).ConfigureAwait(false);
                 }
 
-                await Task.Delay(250 * (1 + retry)).ConfigureAwait(false);
+                if (null != mediaPlayerSession)
+                    mediaPlayerSession.Dispose();
+
+                Shutdown();
+
+                await Task.Delay(450 * (1 + shutdownRetry)).ConfigureAwait(false);
             }
-
-            if (null != mediaPlayerSession)
-                mediaPlayerSession.Dispose();
-
-            Shutdown();
 
             return null;
         }

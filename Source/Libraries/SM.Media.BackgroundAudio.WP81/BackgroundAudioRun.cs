@@ -250,8 +250,6 @@ namespace SM.Media.BackgroundAudio
             try
             {
                 Cancel();
-
-                BackgroundMediaPlayer.Shutdown();
             }
             catch (Exception ex)
             {

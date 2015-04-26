@@ -264,7 +264,7 @@ namespace SM.Media.BackgroundAudio
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("BackgroundAudioRun.OnCanceled() failed: " + ex.ExtendedMessage());
+                Debug.WriteLine("BackgroundAudioRun.OnCanceled() position store failed: " + ex.ExtendedMessage());
             }
 
             _completionSource.TrySetResult(null);
@@ -275,7 +275,7 @@ namespace SM.Media.BackgroundAudio
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("BackgroundAudioRun.OnCanceled() failed: " + ex.ExtendedMessage());
+                Debug.WriteLine("BackgroundAudioRun.OnCanceled() cancel failed: " + ex.ExtendedMessage());
             }
         }
 

@@ -104,6 +104,8 @@ namespace SM.Media.BackgroundAudio
                     mediaPlayer.CurrentStateChanged += CurrentOnCurrentStateChanged;
                     mediaPlayer.PlaybackMediaMarkerReached += OnPlaybackMediaMarkerReached;
 
+                    BackgroundSettings.SetBackgroundId(_id);
+
                     isOk = true;
                 }
                 catch (Exception ex)
@@ -146,6 +148,8 @@ namespace SM.Media.BackgroundAudio
                 }
 
                 Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() done waiting");
+
+                BackgroundSettings.RemoveBackgroundId(_id);
 
                 try
                 {

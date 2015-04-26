@@ -148,7 +148,18 @@ namespace SM.Media.BackgroundAudio
 
         public MediaPlayer MediaPlayer
         {
-            get { return _mediaPlayer; }
+            get
+            {
+                // Sometimes the MediaPlayer likes to throw COM exceptions.
+                // The NaturalDuration property does not throw, but returns
+                // TimeSpan.MinValue instead.
+                var duration = _mediaPlayer.NaturalDuration;
+
+                if (duration == TimeSpan.MinValue)
+                    return null;
+
+                return _mediaPlayer;
+            }
         }
 
         public string TrackName

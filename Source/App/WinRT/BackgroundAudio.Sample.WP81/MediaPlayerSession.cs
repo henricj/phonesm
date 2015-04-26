@@ -69,8 +69,17 @@ namespace BackgroundAudio.Sample
         {
             get
             {
-                return TaskStatus.RanToCompletion == _backgroundRunningCompletionSource.Task.Status
-                       && MediaPlayerState.Closed != MediaPlayer.CurrentState;
+                if (TaskStatus.RanToCompletion != _backgroundRunningCompletionSource.Task.Status)
+                    return false;
+
+                try
+                {
+                    return MediaPlayerState.Closed != MediaPlayer.CurrentState;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
             }
         }
 

@@ -29,6 +29,9 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Background;
+using Windows.Media.Playback;
+using Windows.System;
+using Windows.UI.Xaml;
 using SM.Media.Utility;
 
 namespace SM.Media.BackgroundAudio
@@ -36,6 +39,7 @@ namespace SM.Media.BackgroundAudio
     public sealed class SmMediaBackgroundAudioTask : IBackgroundTask
     {
         BackgroundAudioRun _run;
+        const uint RequiredMemory = 2 * 1024 * 1024;
 
 #if DEBUG
         readonly MemoryDiagnostics _memoryDiagnostics = new MemoryDiagnostics();
@@ -58,6 +62,36 @@ namespace SM.Media.BackgroundAudio
         {
             BackgroundTaskDeferral deferral = null;
             BackgroundAudioRun run = null;
+
+            MemoryDiagnostics.DumpMemory();
+
+            var usage = MemoryManager.AppMemoryUsage;
+            var limit = MemoryManager.AppMemoryUsageLimit;
+
+            if (usage + RequiredMemory > limit)
+            {
+                Debug.WriteLine("*** SmMediaBackgroundAudioTask.RunAsync() low memory");
+
+                // We can't play anything because there isn't enough memory.  Force
+                // the process to restart.
+
+                try
+                {
+                    Application.Current.Exit();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("SmMediaBackgroundAudioTask.RunAsync() exit failed " + ex.ExtendedMessage());
+                }
+
+                // Exit() didn't help, so we hog as much as we can of the remaining memory.
+
+                MemoryHog.ConsumeAllMemory();
+
+                BackgroundMediaPlayer.Shutdown();
+
+                return;
+            }
 
             var deferralId = Guid.NewGuid();
 

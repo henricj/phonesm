@@ -33,6 +33,7 @@
       <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>
     <Compile Include="HttpConnectionModule.cs" />
+    <Compile Include="NullMediaSource.cs" />
     <Compile Include="PlaybackSession.cs" />
     <Compile Include="Utility\WinRtBufferPool.cs" />
     <Compile Include="Web\HttpConnection\StreamSocketWrapper.cs" />

@@ -39,16 +39,21 @@ namespace SM.Media.BackgroundAudio
 {
     sealed class BackgroundAudioRun : IDisposable
     {
+        static readonly TimeSpan WatchdogTimeout = TimeSpan.FromSeconds(30);
         readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         readonly TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>();
         readonly ForegroundNotifier _foregroundNotifier;
         readonly Guid _id;
         readonly Timer _timer;
+        readonly Timer _watchdogTimer;
         Guid? _appId;
+        TaskCompletionSource<Guid> _challengeCompletionSource;
+        Guid? _challengeToken;
         MediaPlayerManager _mediaPlayerManager;
         MetadataHandler _metadataHandler;
         TimeSpan _nextEvent;
         SystemMediaTransportControls _systemMediaTransportControls;
+        int _watchdogBarks;
 
         public BackgroundAudioRun(Guid id)
         {
@@ -63,6 +68,67 @@ namespace SM.Media.BackgroundAudio
 
                 metadataHandler.Refresh();
             }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+
+            _watchdogTimer = new Timer(
+                _ =>
+                {
+                    Debug.WriteLine("BackgroundAudioRun watchdog");
+
+                    var barks = 1;
+
+                    try
+                    {
+                        var foregroundId = BackgroundSettings.ForegroundId;
+
+                        if (!foregroundId.HasValue || _completionSource.Task.IsCompleted)
+                        {
+                            Interlocked.Exchange(ref _watchdogBarks, 0);
+
+                            StopWatchdog();
+
+                            return;
+                        }
+
+                        barks = Interlocked.Increment(ref _watchdogBarks);
+
+                        if (barks > 5)
+                        {
+                            Debug.WriteLine("BackgroundAudioRun watchdog exiting");
+
+                            _completionSource.TrySetCanceled();
+
+                            Cancel();
+
+                            return;
+                        }
+
+                        if (barks > 4)
+                        {
+                            Debug.WriteLine("BackgroundAudioRun watchdog shutdown");
+
+                            BackgroundMediaPlayer.Shutdown();
+
+                            return;
+                        }
+
+                        if (barks > 2)
+                        {
+                            Debug.WriteLine("BackgroundAudioRun watchdog resubscribing");
+
+                            BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
+                            BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
+                        }
+
+                        _foregroundNotifier.Notify(BackgroundNotificationType.Ping);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("BackgroundAudioRun watchdog failed: " + ex.ExtendedMessage());
+                    }
+
+                    RequestWatchdog(TimeSpan.FromTicks(WatchdogTimeout.Ticks / barks));
+                },
+                null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         #region IDisposable Members
@@ -75,6 +141,8 @@ namespace SM.Media.BackgroundAudio
                 Debug.WriteLine("BackgroundAudioRun.Dispose() " + _id + ": _mediaPlayerManager is not null");
 
             _timer.Dispose();
+
+            _watchdogTimer.Dispose();
         }
 
         #endregion
@@ -136,9 +204,7 @@ namespace SM.Media.BackgroundAudio
                         smtc.IsNextEnabled = true;
                         smtc.IsPreviousEnabled = true;
 
-                        Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() sending start to foreground");
-
-                        _foregroundNotifier.Notify(BackgroundNotificationType.Start);
+                        SyncNotification();
 
                         await _completionSource.Task.ConfigureAwait(false);
                     }
@@ -177,7 +243,8 @@ namespace SM.Media.BackgroundAudio
                     mediaPlayerManager.Dispose();
                 }
 
-                _foregroundNotifier.Notify(BackgroundNotificationType.Stop);
+                if (_appId.HasValue)
+                    _foregroundNotifier.Notify(BackgroundNotificationType.Stop);
 
                 mediaPlayer.CurrentStateChanged -= OnCurrentStateChanged;
                 mediaPlayer.PlaybackMediaMarkerReached -= OnPlaybackMediaMarkerReached;
@@ -191,6 +258,27 @@ namespace SM.Media.BackgroundAudio
             {
                 Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() completed");
             }
+        }
+
+        void SyncNotification()
+        {
+            Debug.WriteLine("BackgroundAudioRun.SyncNotification()");
+
+            var foregroundId = BackgroundSettings.ForegroundId;
+
+            if (!foregroundId.HasValue)
+                return;
+
+            _challengeCompletionSource = new TaskCompletionSource<Guid>();
+            _challengeToken = Guid.NewGuid();
+
+            Debug.WriteLine("BackgroundAudioRun.SyncNotification() sending start to foreground");
+
+            _foregroundNotifier.Notify(BackgroundNotificationType.Start);
+
+            _foregroundNotifier.Notify(BackgroundNotificationType.Ping, _challengeToken);
+
+            _watchdogTimer.Change(WatchdogTimeout, Timeout.InfiniteTimeSpan);
         }
 
         void OnPlaybackMediaMarkerReached(MediaPlayer sender, PlaybackMediaMarkerReachedEventArgs args)
@@ -324,7 +412,8 @@ namespace SM.Media.BackgroundAudio
                 if (!string.IsNullOrEmpty(message))
                     valueSet.Add(BackgroundNotificationType.Fail);
 
-                _foregroundNotifier.Notify(valueSet);
+                if (_appId.HasValue)
+                    _foregroundNotifier.Notify(valueSet);
             }
             catch (Exception ex2)
             {
@@ -349,7 +438,8 @@ namespace SM.Media.BackgroundAudio
 
                 _metadataHandler.Refresh();
 
-                _foregroundNotifier.Notify(BackgroundNotificationType.Track, trackName);
+                if (_appId.HasValue)
+                    _foregroundNotifier.Notify(BackgroundNotificationType.Track, trackName);
             }
             catch (Exception ex)
             {
@@ -360,6 +450,9 @@ namespace SM.Media.BackgroundAudio
         void BackgroundMediaPlayerOnMessageReceivedFromForeground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
         {
             //Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id);
+
+            if (_completionSource.Task.IsCompleted)
+                return;
 
             try
             {
@@ -413,6 +506,14 @@ namespace SM.Media.BackgroundAudio
                             if (_appId.HasValue)
                                 _foregroundNotifier.Notify(BackgroundNotificationType.Pong, kv.Value);
                             break;
+                        case BackgroundNotificationType.Pong:
+                        {
+                            var challenge = kv.Value as Guid?;
+
+                            if (challenge.HasValue && challenge.Value == _challengeToken.Value)
+                                _challengeCompletionSource.TrySetResult(challenge.Value);
+                        }
+                            break;
                         case BackgroundNotificationType.Smtc:
                             if (_appId.HasValue)
                             {
@@ -457,6 +558,14 @@ namespace SM.Media.BackgroundAudio
                             break;
                     }
                 }
+
+                if (isStop)
+                    StopWatchdog();
+                else
+                    ResetWatchdog();
+
+                if (isStart)
+                    SyncNotification();
 
                 if (_appId.HasValue)
                 {
@@ -561,6 +670,31 @@ namespace SM.Media.BackgroundAudio
         void SystemMediaTransportControlsOnPropertyChanged(SystemMediaTransportControls sender, SystemMediaTransportControlsPropertyChangedEventArgs args)
         {
             Debug.WriteLine("BackgroundAudioRun.SystemMediaTransportControlsOnPropertyChanged() " + _id);
+        }
+
+        void StopWatchdog()
+        {
+            Debug.WriteLine("BackgroundAudioRun.StopWatchdog() " + _id);
+
+            Interlocked.Exchange(ref _watchdogBarks, 0);
+
+            _watchdogTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        }
+
+        void ResetWatchdog()
+        {
+            //Debug.WriteLine("BackgroundAudioRun.ResetWatchdog() for " + timeout + " " + _id);
+
+            Interlocked.Exchange(ref _watchdogBarks, 0);
+
+            RequestWatchdog(WatchdogTimeout);
+        }
+
+        void RequestWatchdog(TimeSpan timeout)
+        {
+            //Debug.WriteLine("BackgroundAudioRun.RequestWatchdog() for " + timeout + " " + _id);
+
+            _watchdogTimer.Change(timeout, Timeout.InfiniteTimeSpan);
         }
     }
 }

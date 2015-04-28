@@ -500,6 +500,8 @@ namespace BackgroundAudio.Sample
             {
                 prevButton.IsEnabled = true;
             }
+
+            RequestRefresh();
         }
 
         async void playButton_Click(object sender, RoutedEventArgs e)
@@ -548,6 +550,8 @@ namespace BackgroundAudio.Sample
 
         async void nextButton_Click(object sender, RoutedEventArgs e)
         {
+            Debug.WriteLine("MainPage next");
+
             nextButton.IsEnabled = false;
 
             try
@@ -565,7 +569,7 @@ namespace BackgroundAudio.Sample
                 nextButton.IsEnabled = true;
             }
 
-            Debug.WriteLine("MainPage click");
+            RequestRefresh();
         }
 
         void stopButton_Click(object sender, RoutedEventArgs e)
@@ -573,6 +577,8 @@ namespace BackgroundAudio.Sample
             Debug.WriteLine("MainPage stop");
 
             _mediaPlayerHandle.NotifyBackground(SystemMediaTransportControlsButton.Stop);
+
+            RequestRefresh();
         }
 
         void killButton_Click(object sender, RoutedEventArgs e)
@@ -580,6 +586,8 @@ namespace BackgroundAudio.Sample
             Debug.WriteLine("MainPage kill");
 
             _mediaPlayerHandle.Shutdown();
+
+            RequestRefresh();
         }
 
         #endregion Button Click Event Handlers

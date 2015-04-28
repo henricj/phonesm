@@ -47,8 +47,6 @@ namespace SM.Media.BackgroundAudio
 {
     sealed class MediaPlayerManager : IDisposable
     {
-        //static readonly IRandomAccessStream EmptyStream = new InMemoryRandomAccessStream();
-
         static readonly IWebReaderManagerParameters WebReaderManagerParameters
             = new WebReaderManagerParameters
             {
@@ -559,8 +557,6 @@ namespace SM.Media.BackgroundAudio
             {
                 // TODO: How do we stop????
 
-                //_mediaPlayer.SetUriSource(new Uri("ms-appx:///Assets/There is no such file"));
-                //_mediaPlayer.SetStreamSource(EmptyStream);
                 _mediaPlayer.SetUriSource(null);
             }
             catch (Exception ex)

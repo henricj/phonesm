@@ -298,9 +298,6 @@ namespace SM.Media
                 _request = null;
             }
 
-            if (null == deferral)
-                return;
-
             deferral.Complete();
         }
 

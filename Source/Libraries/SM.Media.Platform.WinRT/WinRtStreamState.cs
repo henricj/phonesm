@@ -306,14 +306,21 @@ namespace SM.Media
 
         public void Close()
         {
-            lock (_sampleLock)
-                _isClosed = true;
-
-            Cancel();
+            Stop();
 
             Debug.WriteLine("WinRtStreamState.Close() " + this + Environment.NewLine + "   " + _pool);
 
             _pool.Clear();
+        }
+
+        public void Stop()
+        {
+            Debug.WriteLine("WinRtStreamState.Stop()");
+
+            lock (_sampleLock)
+                _isClosed = true;
+
+            Cancel();
         }
 
         public bool DiscardPacketsBefore(TimeSpan value)

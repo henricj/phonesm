@@ -277,12 +277,19 @@ namespace BackgroundAudio.Sample
             if (!backgroundId.HasValue)
                 return;
 
-            if (start)
-                await StartBackgroundIdAsync(backgroundId.Value, challenge).ConfigureAwait(false);
-            else if (stop)
-                await CloseSessionAsync(backgroundId.Value).ConfigureAwait(false);
-            else
-                UpdateBackgroundId(backgroundId.Value, challenge);
+            try
+            {
+                if (start)
+                    await StartBackgroundIdAsync(backgroundId.Value, challenge).ConfigureAwait(false);
+                else if (stop)
+                    await CloseSessionAsync(backgroundId.Value).ConfigureAwait(false);
+                else
+                    UpdateBackgroundId(backgroundId.Value, challenge);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground() backgroundId management failed: " + ex.ExtendedMessage());
+            }
         }
 
         async Task CloseSessionAsync(Guid backgroundId)

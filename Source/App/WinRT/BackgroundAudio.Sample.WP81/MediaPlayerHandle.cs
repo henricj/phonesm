@@ -124,7 +124,7 @@ namespace BackgroundAudio.Sample
 
                 for (var retry = 0; retry < 3; ++retry)
                 {
-                    using (await _asyncLock.LockAsync(CancellationToken.None))
+                    using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
                     {
                         mediaPlayerSession = _mediaPlayerSession;
 

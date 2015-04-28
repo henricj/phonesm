@@ -253,16 +253,23 @@ namespace SM.Media.BackgroundAudio
 
             try
             {
-                var mediaPlayer = _mediaPlayerManager.MediaPlayer;
+                var mediaPlayerManager = _mediaPlayerManager;
 
-                if (null != mediaPlayer && mediaPlayer.CanSeek)
-                {
-                    var position = mediaPlayer.Position;
-
-                    BackgroundSettings.Position = position;
-                }
-                else
+                if (null == mediaPlayerManager)
                     BackgroundSettings.Position = null;
+                else
+                {
+                    var mediaPlayer = _mediaPlayerManager.MediaPlayer;
+
+                    if (null != mediaPlayer && mediaPlayer.CanSeek)
+                    {
+                        var position = mediaPlayer.Position;
+
+                        BackgroundSettings.Position = position;
+                    }
+                    else
+                        BackgroundSettings.Position = null;
+                }
             }
             catch (Exception ex)
             {

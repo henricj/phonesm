@@ -255,14 +255,23 @@ namespace BackgroundAudio.Sample
                 }
             }
 
-            var mediaPlayerSession = _mediaPlayerSession;
+            var handler = MessageReceivedFromBackground;
 
-            if (null != mediaPlayerSession && mediaPlayerSession.IsRunning)
+            if (null != handler)
             {
-                var handler = MessageReceivedFromBackground;
+                var mediaPlayerSession = _mediaPlayerSession;
 
-                if (null != handler)
-                    handler(sender, mediaPlayerDataReceivedEventArgs);
+                if (null != mediaPlayerSession && mediaPlayerSession.IsRunning)
+                {
+                    try
+                    {
+                        handler(sender, mediaPlayerDataReceivedEventArgs);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground() handler failed: " + ex.ExtendedMessage());
+                    }
+                }
             }
 
             if (!backgroundId.HasValue)

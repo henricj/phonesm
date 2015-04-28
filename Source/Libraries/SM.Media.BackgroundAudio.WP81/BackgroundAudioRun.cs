@@ -101,7 +101,7 @@ namespace SM.Media.BackgroundAudio
 
                 try
                 {
-                    mediaPlayer.CurrentStateChanged += CurrentOnCurrentStateChanged;
+                    mediaPlayer.CurrentStateChanged += OnCurrentStateChanged;
                     mediaPlayer.PlaybackMediaMarkerReached += OnPlaybackMediaMarkerReached;
 
                     BackgroundSettings.SetBackgroundId(_id);
@@ -179,7 +179,7 @@ namespace SM.Media.BackgroundAudio
 
                 _foregroundNotifier.Notify(BackgroundNotificationType.Stop);
 
-                mediaPlayer.CurrentStateChanged -= CurrentOnCurrentStateChanged;
+                mediaPlayer.CurrentStateChanged -= OnCurrentStateChanged;
                 mediaPlayer.PlaybackMediaMarkerReached -= OnPlaybackMediaMarkerReached;
                 BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
             }
@@ -485,9 +485,9 @@ namespace SM.Media.BackgroundAudio
             });
         }
 
-        void CurrentOnCurrentStateChanged(MediaPlayer sender, object args)
+        void OnCurrentStateChanged(MediaPlayer sender, object args)
         {
-            Debug.WriteLine("BackgroundAudioRun.CurrentOnCurrentStateChanged() " + _id + " state " + sender.CurrentState);
+            Debug.WriteLine("BackgroundAudioRun.OnCurrentStateChanged() " + _id + " state " + sender.CurrentState);
 
             switch (sender.CurrentState)
             {

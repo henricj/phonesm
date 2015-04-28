@@ -572,8 +572,10 @@ namespace SM.Media
 
         void CancelMediaStreamCompletion()
         {
-            if (null != _mediaStreamCompletionSource && _mediaStreamCompletionSource.Task.IsCompleted)
-                _mediaStreamCompletionSource.TrySetCanceled();
+            var mscs = _mediaStreamCompletionSource;
+
+            if (null != mscs && !mscs.Task.IsCompleted)
+                mscs.TrySetCanceled();
         }
 
         void DisposePlayingCancellationRegistration()

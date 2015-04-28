@@ -500,7 +500,7 @@ namespace SM.Media.BackgroundAudio
                             break;
                         case BackgroundNotificationType.Stop:
                         case BackgroundNotificationType.Suspend:
-                            isStop = false;
+                            isStop = true;
                             break;
                         case BackgroundNotificationType.Ping:
                             if (_appId.HasValue)

@@ -61,9 +61,9 @@ namespace SM.Media.BackgroundAudio
         readonly MetadataHandler _metadataHandler;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
         IMediaStreamFacade _mediaStreamFacade;
+        TimeSpan? _position;
         MediaTrack _track;
         int _trackIndex;
-        TimeSpan? _position;
 
         public MediaPlayerManager(MediaPlayer mediaPlayer, MetadataHandler metadataHandler, CancellationToken cancellationToken)
         {
@@ -197,6 +197,7 @@ namespace SM.Media.BackgroundAudio
 
         public event EventHandler<string> TrackChanged;
         public event EventHandler<string> Failed;
+        public event EventHandler<object> Ended;
 
         async Task InitializeMediaStreamAsync()
         {
@@ -332,7 +333,17 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaEnded()");
 
-            Next();
+            try
+            {
+                var handler = Ended;
+
+                if (null != handler)
+                    handler(this, args);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaEnded() invoke failed: " + ex.ExtendedMessage());
+            }
         }
 
         void MediaPlayerOnMediaOpened(MediaPlayer sender, object args)
@@ -346,6 +357,7 @@ namespace SM.Media.BackgroundAudio
 
                 _position = null;
             }
+
             sender.Play();
 
             FireTrackChanged();

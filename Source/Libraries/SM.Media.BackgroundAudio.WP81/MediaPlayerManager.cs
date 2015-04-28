@@ -308,16 +308,16 @@ namespace SM.Media.BackgroundAudio
 
             var msf = _mediaStreamFacade;
 
-            if (null != msf)
-            {
-                _mediaStreamFacade = null;
+            if (null == msf)
+                return;
 
-                msf.StateChange -= MediaStreamFacadeOnStateChange;
+            _mediaStreamFacade = null;
 
-                await msf.CloseAsync().ConfigureAwait(false);
+            msf.StateChange -= MediaStreamFacadeOnStateChange;
 
-                msf.DisposeBackground("MediaPlayerManager CleanupMediaStreamFacadeAsync");
-            }
+            await msf.CloseAsync().ConfigureAwait(false);
+
+            msf.DisposeBackground("MediaPlayerManager CleanupMediaStreamFacadeAsync");
         }
 
         void MediaPlayerOnCurrentStateChanged(MediaPlayer sender, object args)

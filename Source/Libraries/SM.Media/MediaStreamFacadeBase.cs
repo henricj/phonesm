@@ -479,28 +479,38 @@ namespace SM.Media
     {
         public static void RequestStop(this IMediaStreamFacadeBase mediaStreamFacade)
         {
-            var timeout = new CancellationTokenSource();
-
-            timeout.CancelAfter(TimeSpan.FromSeconds(5));
-
-            var stopTask = mediaStreamFacade.StopAsync(timeout.Token)
-                .ContinueWith(t =>
-                {
-                    var ex = t.Exception;
-
-                    if (null != ex)
-                        Debug.WriteLine("RequestStop failed: " + ex.ExtendedMessage());
-
-                    if (t.IsCanceled)
-                        Debug.WriteLine("RequestStop canceled");
-
-                    if (timeout.IsCancellationRequested)
-                        Debug.WriteLine("RequestStop timeout");
-
-                    timeout.Dispose();
-                }, TaskContinuationOptions.ExecuteSynchronously);
+            var stopTask = RequestStopAsync(mediaStreamFacade, TimeSpan.FromSeconds(5), CancellationToken.None);
 
             TaskCollector.Default.Add(stopTask, "MediaStreamFacade RequestStop");
+        }
+
+        public static async Task<bool> RequestStopAsync(this IMediaStreamFacadeBase mediaStreamFacade,
+            TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            // ReSharper disable once PossiblyMistakenUseOfParamsMethod
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                cts.CancelAfter(timeout);
+
+                {
+                    try
+                    {
+                        await mediaStreamFacade.StopAsync(cts.Token).ConfigureAwait(false);
+
+                        return true;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Debug.WriteLine(!cancellationToken.IsCancellationRequested ? "RequestStop timeout" : "RequestStop canceled");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("RequestStop failed: " + ex.ExtendedMessage());
+                    }
+                }
+
+                return false;
+            }
         }
 
         public static void SetParameter(this IMediaStreamFacadeBase mediaStreamFacade, IMediaManagerParameters parameters)

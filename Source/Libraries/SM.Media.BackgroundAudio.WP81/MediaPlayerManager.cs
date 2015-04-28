@@ -562,8 +562,17 @@ namespace SM.Media.BackgroundAudio
             {
                 BackgroundSettings.Track = null;
                 BackgroundSettings.Position = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerManager.Stop() update settings failed: " + ex.Message);
+            }
 
-                StopAsync().Wait();
+            try
+            {
+                var task = StopAsync();
+
+                TaskCollector.Default.Add(task, "MediaPlayerManager Stop");
             }
             catch (Exception ex)
             {
@@ -632,26 +641,47 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("MediaPlayerManager.StopAsync()");
 
+            var fireTrackChanged = false;
+
             using (await _asyncLock.LockAsync(_cancellationToken).ConfigureAwait(false))
             {
-                if (null == _mediaStreamFacade)
+                if (null != _mediaStreamFacade)
                 {
-                    await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
+                    var stopped = false;
 
-                    return;
+                    try
+                    {
+                        stopped = await _mediaStreamFacade.RequestStopAsync(TimeSpan.FromSeconds(5), _cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("MediaPlayerManager.StopAsync() RequestStopAsync() failed: " + ex.ExtendedMessage());
+                    }
+
+                    if (!stopped)
+                    {
+                        try
+                        {
+                            await CleanupMediaStreamFacadeAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("MediaPlayerManager.StopAsync() CleanupMediaStreamFacadeAsync() failed: " + ex.ExtendedMessage());
+                        }
+                    }
                 }
 
-                try
+                if (null != _track)
                 {
-                    var stopped = await _mediaStreamFacade.RequestStopAsync(TimeSpan.FromSeconds(5), _cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("MediaPlayerManager.StopAsync() failed: " + ex.ExtendedMessage());
+                    _track = null;
+                    fireTrackChanged = true;
                 }
 
                 await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
             }
+
+            if (fireTrackChanged)
+                FireTrackChanged();
         }
 
         public async Task CloseAsync()

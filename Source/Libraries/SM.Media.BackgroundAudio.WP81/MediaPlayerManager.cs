@@ -204,7 +204,7 @@ namespace SM.Media.BackgroundAudio
 
             if (null != _mediaStreamFacade)
             {
-                StopMediaPlayer();
+                CloseMediaSource();
 
                 try
                 {
@@ -262,7 +262,7 @@ namespace SM.Media.BackgroundAudio
 
             var task = Task.Run(async () =>
             {
-                StopMediaPlayer();
+                CloseMediaSource();
 
                 var isOk = false;
 
@@ -424,7 +424,7 @@ namespace SM.Media.BackgroundAudio
 
                 if (null == track || null == track.Url)
                 {
-                    StopMediaPlayer();
+                    CloseMediaSource();
 
                     FireTrackChanged();
 
@@ -474,7 +474,7 @@ namespace SM.Media.BackgroundAudio
                     Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() failed: " + ex.Message);
                 }
 
-                StopMediaPlayer();
+                CloseMediaSource();
             }
         }
 
@@ -534,14 +534,7 @@ namespace SM.Media.BackgroundAudio
                 BackgroundSettings.Track = null;
                 BackgroundSettings.Position = null;
 
-                StopMediaPlayer();
-
-                var mediaStreamFacade = _mediaStreamFacade;
-
-                if (null == mediaStreamFacade)
-                    return;
-
-                mediaStreamFacade.RequestStop();
+                StopAsync().Wait();
             }
             catch (Exception ex)
             {
@@ -549,19 +542,62 @@ namespace SM.Media.BackgroundAudio
             }
         }
 
-        void StopMediaPlayer()
+        void CloseMediaSource()
         {
-            Debug.WriteLine("MediaPlayerManager.StopMediaPlayer()");
+            Debug.WriteLine("MediaPlayerManager.CloseMediaSource()");
 
             try
             {
                 // TODO: How do we stop????
 
+                if (_mediaPlayer.CurrentState == MediaPlayerState.Closed)
+                    return;
+
+                // If we don't call SetUriSource(null), the next SetMediaSource() call
+                // can cause the mediaPlayer to get into a state where both foreground and
+                // background property reads hang (reads from mediaPlayer.Position or
+                // mediaPlayer.CanSeek block indefinitely).
                 _mediaPlayer.SetUriSource(null);
+
+                if (_mediaPlayer.CurrentState == MediaPlayerState.Closed)
+                    return;
+
+                // At this point, the mediaPlayer may be in the "Playing" state.  We play
+                // a zero-length stream to get it into the "Closed" state.
+                _mediaPlayer.AutoPlay = true;
+                _mediaPlayer.SetMediaSource(NullMediaSource.MediaSource);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaPlayerManager.StopMediaPlayer() failed: " + ex.ExtendedMessage());
+                Debug.WriteLine("MediaPlayerManager.CloseMediaSource() failed: " + ex.ExtendedMessage());
+            }
+        }
+
+        public async Task StopAsync()
+        {
+            Debug.WriteLine("MediaPlayerManager.StopAsync()");
+
+            using (await _asyncLock.LockAsync(_cancellationToken).ConfigureAwait(false))
+            {
+                if (null == _mediaStreamFacade)
+                {
+                    CloseMediaSource();
+                    return;
+                }
+
+                try
+                {
+                    var stopped = await _mediaStreamFacade.RequestStopAsync(TimeSpan.FromSeconds(5), _cancellationToken).ConfigureAwait(false);
+
+                    if (stopped)
+                        return;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MediaPlayerManager.StopAsync() failed: " + ex.ExtendedMessage());
+                }
+
+                CloseMediaSource();
             }
         }
 

@@ -364,7 +364,7 @@ namespace BackgroundAudio.Sample
 
         void RefreshUi()
         {
-            Debug.WriteLine("MainPage.RefreshUi()");
+            //Debug.WriteLine("MainPage.RefreshUi()");
 
             Debug.Assert(Dispatcher.HasThreadAccess, "RefreshUi requires the dispatcher thread");
 

@@ -378,7 +378,16 @@ namespace SM.Media.BackgroundAudio
             var trackChanged = TrackChanged;
 
             if (null != trackChanged)
-                trackChanged(this, null == track ? null : track.Title);
+            {
+                try
+                {
+                    trackChanged(this, null == track ? null : track.Title);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("MediaPlayerManager.FireTrackChanged() failed " + ex.ExtendedMessage());
+                }
+            }
         }
 
         public void Next()

@@ -60,6 +60,7 @@ namespace SM.Media.BackgroundAudio
         readonly MediaPlayer _mediaPlayer;
         readonly MetadataHandler _metadataHandler;
         readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
+        TaskCompletionSource<object> _closePlaybackCompleted;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan? _position;
         MediaTrack _track;
@@ -205,7 +206,7 @@ namespace SM.Media.BackgroundAudio
 
             if (null != _mediaStreamFacade)
             {
-                CloseMediaSource();
+                await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
 
                 try
                 {
@@ -256,6 +257,9 @@ namespace SM.Media.BackgroundAudio
 
             Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaFailed(): " + message);
 
+            if (CheckClosePlayback())
+                return;
+
             var ex = args.ExtendedErrorCode;
 
             if (null != ex)
@@ -263,7 +267,7 @@ namespace SM.Media.BackgroundAudio
 
             var task = Task.Run(async () =>
             {
-                CloseMediaSource();
+                await CloseMediaSourceAsync().ConfigureAwait(false);
 
                 var isOk = false;
 
@@ -333,6 +337,9 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("MediaPlayerManager.MediaPlayerOnMediaEnded()");
 
+            if (CheckClosePlayback())
+                return;
+
             try
             {
                 var handler = Ended;
@@ -360,7 +367,8 @@ namespace SM.Media.BackgroundAudio
 
             sender.Play();
 
-            FireTrackChanged();
+            if (null == _closePlaybackCompleted)
+                FireTrackChanged();
         }
 
         void FireTrackChanged()
@@ -436,7 +444,7 @@ namespace SM.Media.BackgroundAudio
 
                 if (null == track || null == track.Url)
                 {
-                    CloseMediaSource();
+                    await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
 
                     FireTrackChanged();
 
@@ -486,7 +494,7 @@ namespace SM.Media.BackgroundAudio
                     Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() failed: " + ex.Message);
                 }
 
-                CloseMediaSource();
+                await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -554,7 +562,7 @@ namespace SM.Media.BackgroundAudio
             }
         }
 
-        void CloseMediaSource()
+        Task CloseMediaSourceAsync()
         {
             Debug.WriteLine("MediaPlayerManager.CloseMediaSource()");
 
@@ -563,7 +571,7 @@ namespace SM.Media.BackgroundAudio
                 // TODO: How do we stop????
 
                 if (_mediaPlayer.CurrentState == MediaPlayerState.Closed)
-                    return;
+                    return TplTaskExtensions.CompletedTask;
 
                 // If we don't call SetUriSource(null), the next SetMediaSource() call
                 // can cause the mediaPlayer to get into a state where both foreground and
@@ -572,17 +580,43 @@ namespace SM.Media.BackgroundAudio
                 _mediaPlayer.SetUriSource(null);
 
                 if (_mediaPlayer.CurrentState == MediaPlayerState.Closed)
-                    return;
+                    return TplTaskExtensions.CompletedTask;
 
                 // At this point, the mediaPlayer may be in the "Playing" state.  We play
                 // a zero-length stream to get it into the "Closed" state.
+
+                var tcs = new TaskCompletionSource<object>();
+
+                var oldTcs = Interlocked.Exchange(ref _closePlaybackCompleted, tcs);
+
+                if (null != oldTcs)
+                    tcs.Task.ContinueWith(t => oldTcs.TrySetResult(null));
+
                 _mediaPlayer.AutoPlay = true;
                 _mediaPlayer.SetMediaSource(NullMediaSource.MediaSource);
+
+                return tcs.Task;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("MediaPlayerManager.CloseMediaSource() failed: " + ex.ExtendedMessage());
             }
+
+            return TplTaskExtensions.CompletedTask;
+        }
+
+        bool CheckClosePlayback()
+        {
+            var tcs = Interlocked.Exchange(ref _closePlaybackCompleted, null);
+
+            if (null == tcs)
+                return false;
+
+            Debug.WriteLine("MediaPlayerManager.CheckClosePlayback() completed");
+
+            tcs.TrySetResult(null);
+
+            return true;
         }
 
         public async Task StopAsync()
@@ -593,23 +627,21 @@ namespace SM.Media.BackgroundAudio
             {
                 if (null == _mediaStreamFacade)
                 {
-                    CloseMediaSource();
+                    await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
+
                     return;
                 }
 
                 try
                 {
                     var stopped = await _mediaStreamFacade.RequestStopAsync(TimeSpan.FromSeconds(5), _cancellationToken).ConfigureAwait(false);
-
-                    if (stopped)
-                        return;
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine("MediaPlayerManager.StopAsync() failed: " + ex.ExtendedMessage());
                 }
 
-                CloseMediaSource();
+                await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
             }
         }
 

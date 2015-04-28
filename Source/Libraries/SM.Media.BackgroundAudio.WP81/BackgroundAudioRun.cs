@@ -123,6 +123,7 @@ namespace SM.Media.BackgroundAudio
 
                         mediaPlayerManager.TrackChanged += MediaPlayerManagerOnTrackChanged;
                         mediaPlayerManager.Failed += MediaPlayerManagerOnFailed;
+                        mediaPlayerManager.Ended += MediaPlayerManagerOnEnded;
 
                         _mediaPlayerManager = mediaPlayerManager;
 
@@ -169,6 +170,7 @@ namespace SM.Media.BackgroundAudio
                 {
                     mediaPlayerManager.TrackChanged -= MediaPlayerManagerOnTrackChanged;
                     mediaPlayerManager.Failed -= MediaPlayerManagerOnFailed;
+                    mediaPlayerManager.Ended -= MediaPlayerManagerOnEnded;
 
                     await mediaPlayerManager.CloseAsync().ConfigureAwait(false);
 
@@ -323,6 +325,11 @@ namespace SM.Media.BackgroundAudio
             }
 
             _completionSource.TrySetResult(null);
+        }
+
+        void MediaPlayerManagerOnEnded(object o, object args)
+        {
+            Debug.WriteLine("BackgroundAudioRun.MediaPlayerManagerOnEnded() " + _id);
         }
 
         void MediaPlayerManagerOnTrackChanged(object obj, string trackName)

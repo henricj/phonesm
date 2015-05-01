@@ -332,11 +332,7 @@ namespace BackgroundAudio.Sample
             try
             {
                 if (null == _mediaPlayerSession)
-                {
-                    _subscriptionHandle.Subscribe();
-
                     await OpenAsync().ConfigureAwait(false);
-                }
                 else
                     UpdateBackgroundId(backgroundId, challenge);
             }

@@ -111,7 +111,7 @@ namespace SM.Media.Utility
 
                 if (null != ex)
                 {
-                    Debug.WriteLine("TaskCollector.Cleanup() task {0} failed: {1}", description, ex.ExtendedMessage());
+                    Debug.WriteLine("TaskCollector.Cleanup() task {0} failed: {1}{2}{3}", description, ex.ExtendedMessage(), Environment.NewLine, ex.StackTrace);
 
                     if (Debugger.IsAttached)
                         Debugger.Break();

@@ -445,65 +445,72 @@ namespace SM.Media.BackgroundAudio
         {
             Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() " + (null == track ? "<null>" : track.ToString()));
 
-            _mediaPlayer.AutoPlay = false;
-
-            using (await _asyncLock.LockAsync(_cancellationToken).ConfigureAwait(false))
+            try
             {
-                _track = null;
-
-                if (null == track || null == track.Url)
+                using (await _asyncLock.LockAsync(_cancellationToken).ConfigureAwait(false))
                 {
-                    await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
+                    _track = null;
+
+                    if (null == track || null == track.Url)
+                    {
+                        await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
+
+                        FireTrackChanged();
+
+                        return;
+                    }
+
+                    var url = track.Url;
+
+                    BackgroundSettings.Track = url;
+
+                    if (url.HasExtension(".pls"))
+                    {
+                        url = await GetUrlFromPlsPlaylistAsync(url).ConfigureAwait(false);
+                    }
+
+                    _track = track;
 
                     FireTrackChanged();
 
-                    return;
-                }
-
-                var url = track.Url;
-
-                BackgroundSettings.Track = url;
-
-                if (url.HasExtension(".pls"))
-                {
-                    url = await GetUrlFromPlsPlaylistAsync(url).ConfigureAwait(false);
-                }
-
-                _track = track;
-
-                FireTrackChanged();
-
-                try
-                {
-                    if (track.UseNativePlayer)
+                    try
                     {
-                        _mediaPlayer.SetUriSource(url);
-                    }
-                    else
-                    {
-                        await InitializeMediaStreamAsync().ConfigureAwait(false);
+                        _mediaPlayer.AutoPlay = false;
 
-                        var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationToken).ConfigureAwait(false);
-
-                        if (null == mss)
+                        if (track.UseNativePlayer)
                         {
-                            Debug.WriteLine("AudioTrackStreamer.StartPlaybackAsync() unable to create media stream source");
-                            return;
+                            _mediaPlayer.SetUriSource(url);
+                        }
+                        else
+                        {
+                            await InitializeMediaStreamAsync().ConfigureAwait(false);
+
+                            var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationToken).ConfigureAwait(false);
+
+                            if (null == mss)
+                            {
+                                Debug.WriteLine("AudioTrackStreamer.StartPlaybackAsync() unable to create media stream source");
+                                return;
+                            }
+
+                            _mediaPlayer.SetMediaSource(mss);
                         }
 
-                        _mediaPlayer.SetMediaSource(mss);
+                        return;
+                    }
+                    catch (OperationCanceledException)
+                    { }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() source setup failed: " + ex.Message);
                     }
 
-                    return;
+                    await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
-                { }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() failed: " + ex.Message);
-                }
-
-                await CloseMediaSourceAsync().WithCancellation(_cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() failed: " + ex.Message);
             }
         }
 

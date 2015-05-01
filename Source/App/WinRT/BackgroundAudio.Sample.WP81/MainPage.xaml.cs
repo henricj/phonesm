@@ -221,9 +221,14 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MainPage.OnResuming()");
 
-            var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => ResumeAsync());
+            var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                var task = ResumeAsync();
 
-            TaskCollector.Default.Add(awaiter.AsTask(), "MainPage ResumeAsync");
+                TaskCollector.Default.Add(task, "MainPage ResumeAsync");
+            });
+
+            TaskCollector.Default.Add(awaiter.AsTask(), "MainPage ResumeAsync dispatch");
         }
 
         async Task ResumeAsync()

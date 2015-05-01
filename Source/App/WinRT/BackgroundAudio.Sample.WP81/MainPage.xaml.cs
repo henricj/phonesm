@@ -221,9 +221,9 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MainPage.OnResuming()");
 
-            var task = ResumeAsync();
+            var awaiter = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () => ResumeAsync());
 
-            TaskCollector.Default.Add(task, "MainPage ResumeAsync");
+            TaskCollector.Default.Add(awaiter.AsTask(), "MainPage ResumeAsync");
         }
 
         async Task ResumeAsync()
@@ -234,13 +234,31 @@ namespace BackgroundAudio.Sample
 
             try
             {
-                await _mediaPlayerHandle.ResumeAsync().ConfigureAwait(false);
+                await _mediaPlayerHandle.ResumeAsync().ConfigureAwait(true);
 
                 RequestRefresh();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("MainPage.ResumeAsync() failed: " + ex.ExtendedMessage());
+            }
+
+            try
+            {
+                var mediaPlayer = _mediaPlayerHandle.MediaPlayer;
+
+                if (null != mediaPlayer)
+                {
+                    if (MediaPlayerState.Closed != mediaPlayer.CurrentState)
+                    {
+                        _timer.Stop();
+                        _timer.Start();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("MainPage.ResumeAsync() timer restart failed: " + ex.ExtendedMessage());
             }
         }
 

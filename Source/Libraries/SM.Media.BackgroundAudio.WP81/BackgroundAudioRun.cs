@@ -150,6 +150,8 @@ namespace SM.Media.BackgroundAudio
 
         public async Task ExecuteAsync()
         {
+            Debug.WriteLine("BackgroundAudioRun.ExecuteAsync()");
+
             try
             {
                 _systemMediaTransportControls = SystemMediaTransportControls.GetForCurrentView();
@@ -179,7 +181,7 @@ namespace SM.Media.BackgroundAudio
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("BackgroundAudioRun.Run initialization failed: " + ex.ExtendedMessage());
+                    Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() initialization failed: " + ex.ExtendedMessage());
                 }
 
                 MediaPlayerManager mediaPlayerManager = null;
@@ -207,6 +209,8 @@ namespace SM.Media.BackgroundAudio
 
                         SyncNotification();
 
+                        Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() running");
+
                         await _completionSource.Task.ConfigureAwait(false);
                     }
                     catch (Exception ex)
@@ -215,7 +219,7 @@ namespace SM.Media.BackgroundAudio
                     }
                 }
 
-                Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() done waiting");
+                Debug.WriteLine("BackgroundAudioRun.ExecuteAsync() done running");
 
                 BackgroundSettings.RemoveBackgroundId(_id);
 

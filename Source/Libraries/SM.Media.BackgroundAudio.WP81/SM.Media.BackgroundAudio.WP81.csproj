@@ -51,6 +51,7 @@
     <Compile Include="MediaPlayerManager.cs" />
     <Compile Include="MemoryDiagnostics.cs" />
     <Compile Include="MemoryHog.cs" />
+    <Compile Include="ValueSetWorkerQueue.cs" />
     <Compile Include="SmMediaBackgroundAudioTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MetadataHandler.cs" />

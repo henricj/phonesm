@@ -115,6 +115,9 @@
     <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\BackgroundSettings.cs">
       <Link>BackgroundSettings.cs</Link>
     </Compile>
+    <Compile Include="..\..\..\Libraries\SM.Media.BackgroundAudio.WP81\ValueSetWorkerQueue.cs">
+      <Link>ValueSetWorkerQueue.cs</Link>
+    </Compile>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>

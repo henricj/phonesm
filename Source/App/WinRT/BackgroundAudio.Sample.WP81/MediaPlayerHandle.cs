@@ -154,13 +154,20 @@ namespace BackgroundAudio.Sample
 
                             if (backgroundId.HasValue)
                             {
-                                mediaPlayerSession = new MediaPlayerSession(player, backgroundId.Value, _notifier, OnCurrentStateChanged);
+                                for (var sessionRetry = 0; sessionRetry < 4; ++sessionRetry)
+                                {
+                                    mediaPlayerSession = new MediaPlayerSession(player, backgroundId.Value, _notifier, OnCurrentStateChanged);
 
-                                _mediaPlayerSession = mediaPlayerSession;
+                                    _mediaPlayerSession = mediaPlayerSession;
 
-                                if (await mediaPlayerSession.OpenAsync(OnCurrentStateChanged).ConfigureAwait(false))
-                                    return mediaPlayerSession;
+                                    if (await mediaPlayerSession.OpenAsync().ConfigureAwait(false))
+                                        return mediaPlayerSession;
+
+                                    await Task.Delay(150 + 250 * sessionRetry).ConfigureAwait(false);
+                                }
                             }
+                            else
+                                Debug.WriteLine("MediaPlayerHandle.OpenAsync() no BackgroundId");
                         }
                         catch (Exception ex)
                         {
@@ -172,7 +179,7 @@ namespace BackgroundAudio.Sample
                         _subscriptionHandle.Unsubscribe();
                     }
 
-                    await Task.Delay(150 * (1 + retry)).ConfigureAwait(false);
+                    await Task.Delay(150 + 250 * retry).ConfigureAwait(false);
                 }
 
                 if (null != mediaPlayerSession)

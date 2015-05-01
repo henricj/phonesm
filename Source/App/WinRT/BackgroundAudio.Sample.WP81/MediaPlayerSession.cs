@@ -160,10 +160,9 @@ namespace BackgroundAudio.Sample
             return _backgroundRunningCompletionSource.TrySetResult(backgroundId);
         }
 
-        public async Task<bool> OpenAsync(Action<MediaPlayer, object> onCurrentStateChanged)
+        public async Task<bool> OpenAsync()
         {
-            if (null == onCurrentStateChanged)
-                throw new ArgumentNullException("onCurrentStateChanged");
+            Debug.WriteLine("MediaPlayerSession.OpenAsync()");
 
             _challenge = Guid.NewGuid();
 
@@ -171,7 +170,7 @@ namespace BackgroundAudio.Sample
 
             _notifier.Notify(BackgroundNotificationType.Ping, _challenge);
 
-            var timeout = Task.Delay(250);
+            var timeout = Task.Delay(500);
 
             await Task.WhenAny(_backgroundRunningCompletionSource.Task, timeout).ConfigureAwait(false);
 

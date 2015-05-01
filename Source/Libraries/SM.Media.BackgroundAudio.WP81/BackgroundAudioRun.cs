@@ -91,22 +91,15 @@ namespace SM.Media.BackgroundAudio
 
                         barks = Interlocked.Increment(ref _watchdogBarks);
 
-                        if (barks > 5)
+                        if (barks > 4)
                         {
                             Debug.WriteLine("BackgroundAudioRun watchdog exiting");
+
+                            BackgroundMediaPlayer.Shutdown();
 
                             _completionSource.TrySetCanceled();
 
                             Cancel();
-
-                            return;
-                        }
-
-                        if (barks > 4)
-                        {
-                            Debug.WriteLine("BackgroundAudioRun watchdog shutdown");
-
-                            BackgroundMediaPlayer.Shutdown();
 
                             return;
                         }
@@ -126,7 +119,7 @@ namespace SM.Media.BackgroundAudio
                         Debug.WriteLine("BackgroundAudioRun watchdog failed: " + ex.ExtendedMessage());
                     }
 
-                    RequestWatchdog(TimeSpan.FromTicks(WatchdogTimeout.Ticks / barks));
+                    RequestWatchdog(TimeSpan.FromTicks(WatchdogTimeout.Ticks >> barks));
                 },
                 null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }

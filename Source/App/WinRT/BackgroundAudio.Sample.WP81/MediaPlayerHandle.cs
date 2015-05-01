@@ -448,10 +448,7 @@ namespace BackgroundAudio.Sample
             {
                 BackgroundSettings.SetForegroundId(_id);
 
-                var backgroundId = BackgroundSettings.BackgroundId;
-
-                if (!backgroundId.HasValue)
-                    return;
+                Close();
 
                 await OpenAsync().ConfigureAwait(false);
 

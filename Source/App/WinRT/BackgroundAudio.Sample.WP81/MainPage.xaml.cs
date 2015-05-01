@@ -29,6 +29,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using Windows.Foundation.Collections;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.UI.Core;
@@ -263,7 +264,7 @@ namespace BackgroundAudio.Sample
             _mediaPlayerHandle.Fail();
         }
 
-        void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
+        void OnMessageReceivedFromBackground(object sender, ValueSet notification)
         {
             //Debug.WriteLine("MainPage.OnMessageReceivedFromBackground()");
 
@@ -275,7 +276,7 @@ namespace BackgroundAudio.Sample
             string trackName = null;
             var callShutdown = false;
 
-            foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
+            foreach (var kv in notification)
             {
                 //Debug.WriteLine(" b->f {0}: {1}", kv.Key, kv.Value);
 

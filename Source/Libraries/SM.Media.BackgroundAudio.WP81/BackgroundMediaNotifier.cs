@@ -25,8 +25,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Windows.Foundation.Collections;
+using SM.Media.Utility;
 
 namespace SM.Media.BackgroundAudio
 {
@@ -38,10 +40,36 @@ namespace SM.Media.BackgroundAudio
     abstract class BackgroundMediaNotifier : IBackgroundMediaNotifier
     {
         readonly Guid _id;
+        readonly Queue<ValueSet> _queue = new Queue<ValueSet>();
+        readonly SignalTask _sendTask;
 
         protected BackgroundMediaNotifier(Guid id)
         {
             _id = id;
+            _sendTask = new SignalTask(() =>
+            {
+                for (; ; )
+                {
+                    ValueSet valueSet;
+
+                    lock (_queue)
+                    {
+                        if (_queue.Count < 1)
+                            return TplTaskExtensions.CompletedTask;
+
+                        valueSet = _queue.Dequeue();
+                    }
+
+                    try
+                    {
+                        SendMessage(valueSet);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("BackgroundAudioNotifier notifier failed: " + ex.Message);
+                    }
+                }
+            });
         }
 
         #region IBackgroundMediaNotifier Members
@@ -50,14 +78,16 @@ namespace SM.Media.BackgroundAudio
         {
             valueSet.Add(BackgroundNotificationType.Id, _id);
 
-            try
+            int count;
+
+            lock (_queue)
             {
-                SendMessage(valueSet);
+                count = _queue.Count;
+                _queue.Enqueue(valueSet);
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("BackgroundAudioNotifier.Notify() failed: " + ex.Message);
-            }
+
+            if (0 == count)
+                _sendTask.Fire();
         }
 
         #endregion

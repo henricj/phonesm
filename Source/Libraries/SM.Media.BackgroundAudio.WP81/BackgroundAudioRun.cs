@@ -44,6 +44,7 @@ namespace SM.Media.BackgroundAudio
         readonly TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>();
         readonly ForegroundNotifier _foregroundNotifier;
         readonly Guid _id;
+        readonly ValueSetWorkerQueue _notificationQueue;
         readonly Timer _timer;
         readonly Timer _watchdogTimer;
         Guid? _appId;
@@ -68,6 +69,13 @@ namespace SM.Media.BackgroundAudio
 
                 metadataHandler.Refresh();
             }, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+
+            _notificationQueue = new ValueSetWorkerQueue(vs =>
+            {
+                HandleNotification(vs);
+
+                return TplTaskExtensions.CompletedTask;
+            });
 
             _watchdogTimer = new Timer(
                 _ =>
@@ -447,22 +455,33 @@ namespace SM.Media.BackgroundAudio
             if (_completionSource.Task.IsCompleted)
                 return;
 
+            _notificationQueue.Submit(mediaPlayerDataReceivedEventArgs.Data);
+        }
+
+        void HandleNotification(ValueSet valueSet)
+        {
+            //Debug.WriteLine("BackgroundAudioRun.HandleNotification() " + _id);
+
+            if (_completionSource.Task.IsCompleted)
+                return;
+
             try
             {
                 object idValue;
-                if (mediaPlayerDataReceivedEventArgs.Data.TryGetValue(BackgroundNotificationType.Id, out idValue))
+
+                if (valueSet.TryGetValue(BackgroundNotificationType.Id, out idValue))
                 {
                     var id = idValue as Guid?;
 
                     if (id.HasValue && _appId.HasValue && id.Value != _appId.Value)
                     {
-                        Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " != " + id.Value);
+                        Debug.WriteLine("BackgroundAudioRun.HandleNotification() " + _id + " != " + id.Value);
                         return;
                     }
                 }
                 else
                 {
-                    Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() no id " + _id);
+                    Debug.WriteLine("BackgroundAudioRun.HandleNotification() no id " + _id);
                     return;
                 }
 
@@ -470,13 +489,13 @@ namespace SM.Media.BackgroundAudio
                 var isStart = false;
                 var isStop = false;
 
-                foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
+                foreach (var kv in valueSet)
                 {
                     //Debug.WriteLine(" f->b {0}: {1}", kv.Key, kv.Value);
 
                     if (null == kv.Key)
                     {
-                        Debug.WriteLine("*** BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() null key");
+                        Debug.WriteLine("*** BackgroundAudioRun.HandleNotification() null key");
 
                         continue; // This does happen.  It shouldn't, but it does.
                     }
@@ -500,12 +519,12 @@ namespace SM.Media.BackgroundAudio
                                 _foregroundNotifier.Notify(BackgroundNotificationType.Pong, kv.Value);
                             break;
                         case BackgroundNotificationType.Pong:
-                        {
-                            var challenge = kv.Value as Guid?;
+                            {
+                                var challenge = kv.Value as Guid?;
 
-                            if (challenge.HasValue && challenge.Value == _challengeToken.Value)
-                                _challengeCompletionSource.TrySetResult(challenge.Value);
-                        }
+                                if (challenge.HasValue && challenge.Value == _challengeToken.Value)
+                                    _challengeCompletionSource.TrySetResult(challenge.Value);
+                            }
                             break;
                         case BackgroundNotificationType.Smtc:
                             if (_appId.HasValue)
@@ -573,7 +592,7 @@ namespace SM.Media.BackgroundAudio
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("BackgroundAudioRun.BackgroundMediaPlayerOnMessageReceivedFromForeground() " + _id + " failed: " + ex.Message);
+                Debug.WriteLine("BackgroundAudioRun.HandleNotification() " + _id + " failed: " + ex.Message);
             }
         }
 

@@ -42,6 +42,7 @@ namespace BackgroundAudio.Sample
         readonly AsyncLock _asyncLock = new AsyncLock();
         readonly CoreDispatcher _dispatcher;
         readonly Guid _id = Guid.NewGuid();
+        readonly ValueSetWorkerQueue _notificationQueue;
         readonly IBackgroundMediaNotifier _notifier;
         readonly BackgroundSubscriptionHandle _subscriptionHandle;
         MediaPlayerSession _mediaPlayerSession;
@@ -55,6 +56,8 @@ namespace BackgroundAudio.Sample
             _notifier = new BackgroundNotifier(_id);
 
             _subscriptionHandle = new BackgroundSubscriptionHandle(OnMessageReceivedFromBackground);
+
+            _notificationQueue = new ValueSetWorkerQueue(HandleNotification);
 
             BackgroundSettings.SetForegroundId(_id);
         }
@@ -112,7 +115,7 @@ namespace BackgroundAudio.Sample
         #endregion
 
         public event EventHandler<object> CurrentStateChanged;
-        public event EventHandler<MediaPlayerDataReceivedEventArgs> MessageReceivedFromBackground;
+        public event EventHandler<ValueSet> MessageReceivedFromBackground;
 
         public async Task<MediaPlayerSession> OpenAsync()
         {
@@ -196,19 +199,26 @@ namespace BackgroundAudio.Sample
             BackgroundMediaPlayer.Shutdown();
         }
 
-        async void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
+        void OnMessageReceivedFromBackground(object sender, MediaPlayerDataReceivedEventArgs mediaPlayerDataReceivedEventArgs)
         {
             //Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground()");
 
             if (!_subscriptionHandle.IsSubscribed)
                 return;
 
+            _notificationQueue.Submit(mediaPlayerDataReceivedEventArgs.Data);
+        }
+
+        async Task HandleNotification(ValueSet valueSet)
+        {
+            //Debug.WriteLine("MediaPlayerHandle.HandleNotification()");
+
             Guid? backgroundId = null;
             object challenge = null;
             var stop = false;
             var start = false;
 
-            foreach (var kv in mediaPlayerDataReceivedEventArgs.Data)
+            foreach (var kv in valueSet)
             {
                 //Debug.WriteLine(" b->f {0}: {1}", kv.Key, kv.Value);
 
@@ -216,7 +226,7 @@ namespace BackgroundAudio.Sample
                 {
                     if (null == kv.Key)
                     {
-                        Debug.WriteLine("*** MediaPlayerHandle.OnMessageReceivedFromBackground() null key");
+                        Debug.WriteLine("*** MediaPlayerHandle.HandleNotification() null key");
 
                         continue; // This does happen.  It shouldn't, but it does.
                     }
@@ -251,7 +261,7 @@ namespace BackgroundAudio.Sample
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground() failed: " + ex.Message);
+                    Debug.WriteLine("MediaPlayerHandle.HandleNotification() failed: " + ex.Message);
                 }
             }
 
@@ -265,11 +275,11 @@ namespace BackgroundAudio.Sample
                 {
                     try
                     {
-                        handler(sender, mediaPlayerDataReceivedEventArgs);
+                        handler(this, valueSet);
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground() handler failed: " + ex.ExtendedMessage());
+                        Debug.WriteLine("MediaPlayerHandle.HandleNotification() handler failed: " + ex.ExtendedMessage());
                     }
                 }
             }
@@ -288,7 +298,7 @@ namespace BackgroundAudio.Sample
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("MediaPlayerHandle.OnMessageReceivedFromBackground() backgroundId management failed: " + ex.ExtendedMessage());
+                Debug.WriteLine("MediaPlayerHandle.HandleNotification() backgroundId management failed: " + ex.ExtendedMessage());
             }
         }
 

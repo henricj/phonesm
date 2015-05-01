@@ -190,8 +190,6 @@ namespace BackgroundAudio.Sample
         {
             Debug.WriteLine("MediaPlayerHandle.Shutdown()");
 
-            BackgroundSettings.RemoveBackgroundId();
-
             _subscriptionHandle.Unsubscribe();
 
             Close();

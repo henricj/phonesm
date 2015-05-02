@@ -85,7 +85,11 @@
     <Compile Include="Audio\AudioStreamHandler.cs" />
     <Compile Include="Audio\IAudioConfigurator.cs" />
     <Compile Include="Audio\IAudioParser.cs" />
-    <Compile Include="Audio\ShoutcastMetadataFilter.cs" />
+    <Compile Include="Audio\Shoutcast\IShoutcastEncodingSelector.cs" />
+    <Compile Include="Audio\Shoutcast\Latin1ShoutcastEncodingSelector.cs" />
+    <Compile Include="Audio\Shoutcast\ShoutcastMetadataFilter.cs" />
+    <Compile Include="Audio\Shoutcast\ShoutcastMetadataFilterFactory.cs" />
+    <Compile Include="Audio\Shoutcast\Utf8ShoutcastEncodingSelector.cs" />
     <Compile Include="Builder\IBuilder.cs" />
     <Compile Include="Builder\IBuilderHandle.cs" />
     <Compile Include="MediaManager\CallbackReader.cs" />

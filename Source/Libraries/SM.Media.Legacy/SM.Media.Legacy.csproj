@@ -104,8 +104,20 @@
     <Compile Include="..\SM.Media\Audio\IAudioParser.cs">
       <Link>Audio\IAudioParser.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media\Audio\ShoutcastMetadataFilter.cs">
-      <Link>Audio\ShoutcastMetadataFilter.cs</Link>
+    <Compile Include="..\SM.Media\Audio\Shoutcast\IShoutcastEncodingSelector.cs">
+      <Link>Audio\Shoutcast\IShoutcastEncodingSelector.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\Shoutcast\Latin1ShoutcastEncodingSelector.cs">
+      <Link>Audio\Shoutcast\Latin1ShoutcastEncodingSelector.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\Shoutcast\ShoutcastMetadataFilter.cs">
+      <Link>Audio\Shoutcast\ShoutcastMetadataFilter.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\Shoutcast\ShoutcastMetadataFilterFactory.cs">
+      <Link>Audio\Shoutcast\ShoutcastMetadataFilterFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\SM.Media\Audio\Shoutcast\Utf8ShoutcastEncodingSelector.cs">
+      <Link>Audio\Shoutcast\Utf8ShoutcastEncodingSelector.cs</Link>
     </Compile>
     <Compile Include="..\SM.Media\Buffering\BufferingManager.cs">
       <Link>Buffering\BufferingManager.cs</Link>

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AacMediaParser.cs" company="Henric Jungheim">
+//  <copyright file="ShoutcastMetadataFilterFactory.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,22 +24,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.Audio;
-using SM.Media.Audio.Shoutcast;
+using System;
 using SM.Media.Metadata;
-using SM.Media.TransportStream.TsParser;
-using SM.Media.TransportStream.TsParser.Utility;
 
-namespace SM.Media.AAC
+namespace SM.Media.Audio.Shoutcast
 {
-    public sealed class AacMediaParser : AudioMediaParser<AacParser, AacConfigurator>
+    public interface IShoutcastMetadataFilterFactory
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.AacStreamType);
+        IAudioParser Create(ISegmentMetadata segmentMetadata, IAudioParser audioParser, Action<ITrackMetadata> reportMetadata, int interval);
+    }
 
-        public AacMediaParser(ITsPesPacketPool pesPacketPool, IShoutcastMetadataFilterFactory shoutcastMetadataFilterFactory, IMetadataSink metadataSink)
-            : base(StreamType, new AacConfigurator(null), pesPacketPool, shoutcastMetadataFilterFactory, metadataSink)
+    public class ShoutcastMetadataFilterFactory : IShoutcastMetadataFilterFactory
+    {
+        readonly IShoutcastEncodingSelector _shoutcastEncodingSelector;
+
+        public ShoutcastMetadataFilterFactory(IShoutcastEncodingSelector shoutcastEncodingSelector)
         {
-            Parser = new AacParser(pesPacketPool, Configurator.Configure, SubmitPacket);
+            if (null == shoutcastEncodingSelector)
+                throw new ArgumentNullException("shoutcastEncodingSelector");
+
+            _shoutcastEncodingSelector = shoutcastEncodingSelector;
         }
+
+        #region IShoutcastMetadataFilterFactory Members
+
+        public IAudioParser Create(ISegmentMetadata segmentMetadata, IAudioParser audioParser, Action<ITrackMetadata> reportMetadata, int interval)
+        {
+            var encoding = _shoutcastEncodingSelector.GetEncoding(segmentMetadata.Url);
+
+            return new ShoutcastMetadataFilter(audioParser, reportMetadata, interval, encoding);
+        }
+
+        #endregion
     }
 }

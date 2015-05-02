@@ -25,16 +25,19 @@
 // DEALINGS IN THE SOFTWARE.
 
 using SM.Media.AAC;
+using SM.Media.Audio.Shoutcast;
 using TsDump;
 
 namespace AacDump
 {
     sealed class MediaDump : MediaDumpBase
     {
+        readonly IShoutcastMetadataFilterFactory _shoutcastMetadataFilterFactory = new ShoutcastMetadataFilterFactory(new Utf8ShoutcastEncodingSelector());
+
         public MediaDump()
             : base(null)
         {
-            Parser = new AacMediaParser(PacketPool, MetadataSink);
+            Parser = new AacMediaParser(PacketPool, _shoutcastMetadataFilterFactory, MetadataSink);
         }
     }
 }

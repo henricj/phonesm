@@ -25,6 +25,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 using SM.Media.Audio;
+using SM.Media.Audio.Shoutcast;
 using SM.Media.Metadata;
 using SM.Media.TransportStream.TsParser;
 using SM.Media.TransportStream.TsParser.Utility;
@@ -35,8 +36,8 @@ namespace SM.Media.Ac3
     {
         static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.Ac3StreamType);
 
-        public Ac3MediaParser(ITsPesPacketPool pesPacketPool, IMetadataSink metadataSink)
-            : base(StreamType, new Ac3Configurator(null), pesPacketPool, metadataSink)
+        public Ac3MediaParser(ITsPesPacketPool pesPacketPool, IShoutcastMetadataFilterFactory shoutcastMetadataFilterFactory, IMetadataSink metadataSink)
+            : base(StreamType, new Ac3Configurator(null), pesPacketPool, shoutcastMetadataFilterFactory, metadataSink)
         {
             Parser = new Ac3Parser(pesPacketPool, Configurator.Configure, SubmitPacket);
         }

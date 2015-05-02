@@ -30,6 +30,7 @@ using Ninject.Activation;
 using Ninject.Modules;
 using SM.Media.AAC;
 using SM.Media.Ac3;
+using SM.Media.Audio.Shoutcast;
 using SM.Media.Buffering;
 using SM.Media.Builder;
 using SM.Media.Content;
@@ -82,6 +83,9 @@ namespace SM.Media
             Bind<IMediaParserFactory>().To<MediaParserFactory>().InSingletonScope();
             Bind<IWebMetadataFactory>().To<WebMetadataFactory>().InSingletonScope();
             Bind<IMetadataSink>().To<MetadataSink>().InScope(scope);
+
+            Bind<IShoutcastEncodingSelector>().To<Utf8ShoutcastEncodingSelector>().InSingletonScope();
+            Bind<IShoutcastMetadataFilterFactory>().To<ShoutcastMetadataFilterFactory>().InSingletonScope();
 
             Bind<IMediaParserFactoryInstance>().To<AacMediaParserFactory>().InSingletonScope();
             Bind<IMediaParserFactoryInstance>().To<Ac3MediaParserFactory>().InSingletonScope();

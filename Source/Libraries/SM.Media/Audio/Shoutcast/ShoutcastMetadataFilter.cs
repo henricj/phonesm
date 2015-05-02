@@ -27,23 +27,25 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using SM.Media.Metadata;
 using SM.Media.Utility;
 
-namespace SM.Media.Audio
+namespace SM.Media.Audio.Shoutcast
 {
     public class ShoutcastMetadataFilter : IAudioParser
     {
         public static bool UseParseByPairs = true;
         readonly IAudioParser _audioParser;
         readonly MemoryStream _buffer = new MemoryStream();
+        readonly Encoding _encoding;
         readonly int _interval;
         readonly Action<ITrackMetadata> _reportMetadata;
         int _metadataLength;
         int _remainingData;
         State _state = State.Data;
 
-        public ShoutcastMetadataFilter(IAudioParser audioParser, Action<ITrackMetadata> reportMetadata, int interval)
+        public ShoutcastMetadataFilter(IAudioParser audioParser, Action<ITrackMetadata> reportMetadata, int interval, Encoding encoding)
         {
             if (null == audioParser)
                 throw new ArgumentNullException("audioParser");
@@ -52,6 +54,7 @@ namespace SM.Media.Audio
             if (interval < 1)
                 throw new ArgumentOutOfRangeException("interval", "must be positive");
 
+            _encoding = encoding;
             _audioParser = audioParser;
             _reportMetadata = reportMetadata;
             _interval = interval;
@@ -172,7 +175,7 @@ namespace SM.Media.Audio
             {
                 stream.Seek(0, SeekOrigin.Begin);
 
-                var reader = new StreamReader(stream);
+                var reader = new StreamReader(stream, _encoding);
 
                 var value = reader.ReadToEnd();
 

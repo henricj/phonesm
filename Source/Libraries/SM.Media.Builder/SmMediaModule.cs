@@ -27,6 +27,7 @@
 using Autofac;
 using SM.Media.AAC;
 using SM.Media.Ac3;
+using SM.Media.Audio.Shoutcast;
 using SM.Media.Buffering;
 using SM.Media.Content;
 using SM.Media.H262;
@@ -69,6 +70,9 @@ namespace SM.Media
             builder.RegisterType<MediaParserFactory>().As<IMediaParserFactory>().SingleInstance();
             builder.RegisterType<WebMetadataFactory>().As<IWebMetadataFactory>().SingleInstance();
             builder.RegisterType<MetadataSink>().As<IMetadataSink>();
+
+            builder.RegisterType<Utf8ShoutcastEncodingSelector>().As<IShoutcastEncodingSelector>().SingleInstance();
+            builder.RegisterType<ShoutcastMetadataFilterFactory>().As<IShoutcastMetadataFilterFactory>().SingleInstance();
 
             builder.RegisterType<AacMediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();
             builder.RegisterType<Ac3MediaParserFactory>().As<IMediaParserFactoryInstance>().SingleInstance().PreserveExistingDefaults();

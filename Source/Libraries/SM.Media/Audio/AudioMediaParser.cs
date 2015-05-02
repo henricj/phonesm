@@ -26,6 +26,7 @@
 
 using System;
 using System.Diagnostics;
+using SM.Media.Audio.Shoutcast;
 using SM.Media.Configuration;
 using SM.Media.MediaParser;
 using SM.Media.Metadata;
@@ -39,15 +40,20 @@ namespace SM.Media.Audio
         where TConfigurator : IConfigurationSource
     {
         readonly IMetadataSink _metadataSink;
+        readonly IShoutcastMetadataFilterFactory _shoutcastMetadataFilterFactory;
         protected TParser Parser;
         IAudioParser _audioParser;
 
-        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool pesPacketPool, IMetadataSink metadataSink)
+        protected AudioMediaParser(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool pesPacketPool,
+            IShoutcastMetadataFilterFactory shoutcastMetadataFilterFactory, IMetadataSink metadataSink)
             : base(streamType, configurator, pesPacketPool)
         {
+            if (null == shoutcastMetadataFilterFactory)
+                throw new ArgumentNullException("shoutcastMetadataFilterFactory");
             if (null == metadataSink)
                 throw new ArgumentNullException("metadataSink");
 
+            _shoutcastMetadataFilterFactory = shoutcastMetadataFilterFactory;
             _metadataSink = metadataSink;
         }
 
@@ -73,7 +79,7 @@ namespace SM.Media.Audio
                 var icyMetaInt = shoutcastMetadata.IcyMetaInt;
 
                 if (icyMetaInt.HasValue && icyMetaInt > 0)
-                    _audioParser = new ShoutcastMetadataFilter(Parser, SetTrackMetadata, icyMetaInt.Value);
+                    _audioParser = _shoutcastMetadataFilterFactory.Create(segmentMetadata, Parser, SetTrackMetadata, icyMetaInt.Value);
             }
 
             _metadataSink.ReportSegmentMetadata(Parser.Position ?? TimeSpan.Zero, segmentMetadata);

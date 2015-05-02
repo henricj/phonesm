@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AacMediaParser.cs" company="Henric Jungheim">
+//  <copyright file="Latin1ShoutcastEncodingSelector.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,22 +24,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.Audio;
-using SM.Media.Audio.Shoutcast;
-using SM.Media.Metadata;
-using SM.Media.TransportStream.TsParser;
-using SM.Media.TransportStream.TsParser.Utility;
+using System;
+using System.Text;
+using SM.Media.Utility.TextEncodings;
 
-namespace SM.Media.AAC
+namespace SM.Media.Audio.Shoutcast
 {
-    public sealed class AacMediaParser : AudioMediaParser<AacParser, AacConfigurator>
+    public class Latin1ShoutcastEncodingSelector : IShoutcastEncodingSelector
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.AacStreamType);
+        readonly Encoding _latin1;
 
-        public AacMediaParser(ITsPesPacketPool pesPacketPool, IShoutcastMetadataFilterFactory shoutcastMetadataFilterFactory, IMetadataSink metadataSink)
-            : base(StreamType, new AacConfigurator(null), pesPacketPool, shoutcastMetadataFilterFactory, metadataSink)
+        public Latin1ShoutcastEncodingSelector(ISmEncodings encodings)
         {
-            Parser = new AacParser(pesPacketPool, Configurator.Configure, SubmitPacket);
+            if (null == encodings)
+                throw new ArgumentNullException("encodings");
+
+            _latin1 = encodings.Latin1Encoding;
         }
+
+        #region IShoutcastEncodingSelector Members
+
+        public Encoding GetEncoding(Uri url)
+        {
+            return _latin1;
+        }
+
+        #endregion
     }
 }

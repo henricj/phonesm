@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------
-//  <copyright file="AacMediaParser.cs" company="Henric Jungheim">
+//  <copyright file="IShoutcastEncodingSelector.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2015.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,22 +24,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using SM.Media.Audio;
-using SM.Media.Audio.Shoutcast;
-using SM.Media.Metadata;
-using SM.Media.TransportStream.TsParser;
-using SM.Media.TransportStream.TsParser.Utility;
+using System;
+using System.Text;
 
-namespace SM.Media.AAC
+namespace SM.Media.Audio.Shoutcast
 {
-    public sealed class AacMediaParser : AudioMediaParser<AacParser, AacConfigurator>
+    public interface IShoutcastEncodingSelector
     {
-        static readonly TsStreamType StreamType = TsStreamType.FindStreamType(TsStreamType.AacStreamType);
-
-        public AacMediaParser(ITsPesPacketPool pesPacketPool, IShoutcastMetadataFilterFactory shoutcastMetadataFilterFactory, IMetadataSink metadataSink)
-            : base(StreamType, new AacConfigurator(null), pesPacketPool, shoutcastMetadataFilterFactory, metadataSink)
-        {
-            Parser = new AacParser(pesPacketPool, Configurator.Configure, SubmitPacket);
-        }
+        Encoding GetEncoding(Uri url);
     }
 }

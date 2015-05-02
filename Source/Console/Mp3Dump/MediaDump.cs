@@ -24,6 +24,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using SM.Media.Audio.Shoutcast;
 using SM.Media.MP3;
 using TsDump;
 
@@ -31,10 +32,12 @@ namespace Mp3Dump
 {
     sealed class MediaDump : MediaDumpBase
     {
+        readonly IShoutcastMetadataFilterFactory _shoutcastMetadataFilterFactory = new ShoutcastMetadataFilterFactory(new Utf8ShoutcastEncodingSelector());
+
         public MediaDump()
             : base(null)
         {
-            Parser = new Mp3MediaParser(PacketPool, MetadataSink);
+            Parser = new Mp3MediaParser(PacketPool, _shoutcastMetadataFilterFactory, MetadataSink);
         }
     }
 }

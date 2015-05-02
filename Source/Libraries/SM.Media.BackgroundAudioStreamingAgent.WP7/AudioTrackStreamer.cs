@@ -171,7 +171,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 var defaultTitle = "Unknown";
 
-                var mediaTrack = TrackManager.Tracks.FirstOrDefault(t => t.Url == url);
+                var mediaTrack = TrackManager.Tracks.Where(t => null != t).FirstOrDefault(t => t.Url == url);
 
                 if (null != mediaTrack)
                     defaultTitle = mediaTrack.Title;

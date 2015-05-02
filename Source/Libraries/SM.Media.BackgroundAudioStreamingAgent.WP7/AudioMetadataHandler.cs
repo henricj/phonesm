@@ -100,7 +100,13 @@ namespace SM.Media.BackgroundAudioStreamingAgent
                 var track = player.Track;
 
                 if (null == track)
+                {
+                    Debug.WriteLine("AudioMetadataHandler.Update() no track: " + player.PlayerState);
+
+                    _timer.Change(333, Timeout.Infinite);
+
                     return TplTaskExtensions.CompletedTask;
+                }
 
                 var position = player.Position;
 
@@ -116,7 +122,7 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 if (title != _title || artist != _artist)
                 {
-                    Debug.WriteLine("AudioMetadataHandler.Update() set " + title);
+                    Debug.WriteLine("AudioMetadataHandler.Update() set \"" + title + '"');
 
                     _title = title;
                     _artist = artist;

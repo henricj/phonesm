@@ -489,7 +489,7 @@ namespace SM.Media.BackgroundAudio
 
                             if (null == mss)
                             {
-                                Debug.WriteLine("AudioTrackStreamer.StartPlaybackAsync() unable to create media stream source");
+                                Debug.WriteLine("MediaPlayerManager.StartPlaybackAsync() unable to create media stream source");
                                 return;
                             }
 

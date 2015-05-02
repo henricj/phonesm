@@ -26,6 +26,7 @@
 
 using System;
 using System.Text;
+using SM.Media.Content;
 
 namespace SM.Media.Playlists
 {
@@ -34,6 +35,7 @@ namespace SM.Media.Playlists
         public Uri Url { get; set; }
         public string Title { get; set; }
         public bool UseNativePlayer { get; set; }
+        public ContentType ContentType { get; set; }
 
         public override string ToString()
         {

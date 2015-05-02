@@ -189,6 +189,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 Debug.Assert(null != mediaStreamFacade);
 
+                mediaStreamFacade.ContentType = null == mediaTrack ? null : mediaTrack.ContentType;
+
                 var mss = await mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationTokenSource.Token).ConfigureAwait(false);
 
                 if (null == mss)

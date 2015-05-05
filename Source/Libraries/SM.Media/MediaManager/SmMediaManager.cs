@@ -568,8 +568,7 @@ namespace SM.Media.MediaManager
                 _playbackCancellationTokenSource.Token, _programStreamsHandler)
                 .ConfigureAwait(false);
 
-            return
-                reader;
+            return reader;
         }
 
         void CheckConfigurationCompleted()
@@ -617,7 +616,10 @@ namespace SM.Media.MediaManager
             Debug.WriteLine("SmMediaManager.CloseReadersAsync() closing readers");
 
             if (null == _readers || _readers.Length < 1)
+            {
+                Debug.WriteLine("SmMediaManager.CloseReadersAsync() no readers");
                 return;
+            }
 
             try
             {

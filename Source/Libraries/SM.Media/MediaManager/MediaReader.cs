@@ -217,7 +217,7 @@ namespace SM.Media.MediaManager
 
             var localReader = this;
 
-            _queueWorker = new QueueWorker<WorkBuffer>(
+            var queueWorker = new QueueWorker<WorkBuffer>(
                 wi =>
                 {
                     //Debug.WriteLine("MediaReader dequeued " + wi);
@@ -239,39 +239,50 @@ namespace SM.Media.MediaManager
                 },
                 buffer => _blockingPool.Free(buffer));
 
-            _callbackReader = new CallbackReader(segmentManagerReaders.Readers, _queueWorker.Enqueue, _blockingPool);
+            _queueWorker = queueWorker;
 
-            _bufferingManager.Initialize(_queueWorker, checkForSamples);
+            _callbackReader = new CallbackReader(segmentManagerReaders.Readers, queueWorker.Enqueue, _blockingPool);
 
-            await startReaderTask.ConfigureAwait(false);
+            _bufferingManager.Initialize(queueWorker, checkForSamples);
 
-            var contentType = _segmentReaders.Manager.ContentType;
-
-            if (null == contentType)
+            try
             {
-                Debug.WriteLine("MediaReader.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
+                await startReaderTask.ConfigureAwait(false);
 
-                contentType = ContentTypes.TransportStream;
+                var contentType = _segmentReaders.Manager.ContentType;
+
+                if (null == contentType)
+                {
+                    Debug.WriteLine("MediaReader.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
+
+                    contentType = ContentTypes.TransportStream;
+                }
+                else if (ContentTypes.Binary == contentType)
+                {
+                    Debug.WriteLine("MediaReader.CreateReaderPipeline() detected binary content, defaulting to transport stream");
+
+                    contentType = ContentTypes.TransportStream;
+                }
+
+                var mediaParserParameters = new MediaParserParameters();
+
+                _mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, cancellationToken).ConfigureAwait(false);
+
+                if (null == _mediaParser)
+                    throw new NotSupportedException("Unsupported content type: " + contentType);
+
+                _mediaParser.ConfigurationComplete += ConfigurationComplete;
+
+                _mediaParser.Initialize(_bufferingManager, programStreamsHandler);
+
+                _mediaParser.InitializeStream(_segmentReaders.Manager.StreamMetadata);
             }
-            else if (ContentTypes.Binary == contentType)
+            catch (Exception)
             {
-                Debug.WriteLine("MediaReader.CreateReaderPipeline() detected binary content, defaulting to transport stream");
+                _bufferingManager.Shutdown(queueWorker);
 
-                contentType = ContentTypes.TransportStream;
+                throw;
             }
-
-            var mediaParserParameters = new MediaParserParameters();
-
-            _mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, cancellationToken).ConfigureAwait(false);
-
-            if (null == _mediaParser)
-                throw new NotSupportedException("Unsupported content type: " + contentType);
-
-            _mediaParser.ConfigurationComplete += ConfigurationComplete;
-
-            _mediaParser.Initialize(_bufferingManager, programStreamsHandler);
-
-            _mediaParser.InitializeStream(_segmentReaders.Manager.StreamMetadata);
         }
 
         void ConfigurationComplete(object sender, EventArgs eventArgs)

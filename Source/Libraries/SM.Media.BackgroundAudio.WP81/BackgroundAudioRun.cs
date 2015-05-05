@@ -99,25 +99,15 @@ namespace SM.Media.BackgroundAudio
 
                         barks = Interlocked.Increment(ref _watchdogBarks);
 
-                        if (barks > 4)
+                        if (barks > 3)
                         {
                             Debug.WriteLine("BackgroundAudioRun watchdog exiting");
-
-                            BackgroundMediaPlayer.Shutdown();
 
                             _completionSource.TrySetCanceled();
 
                             Cancel();
 
                             return;
-                        }
-
-                        if (barks > 2)
-                        {
-                            Debug.WriteLine("BackgroundAudioRun watchdog resubscribing");
-
-                            BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
-                            BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
                         }
 
                         _foregroundNotifier.Notify(BackgroundNotificationType.Ping);
@@ -160,7 +150,6 @@ namespace SM.Media.BackgroundAudio
 
                 var isOk = false;
 
-                BackgroundMediaPlayer.MessageReceivedFromForeground -= BackgroundMediaPlayerOnMessageReceivedFromForeground;
                 BackgroundMediaPlayer.MessageReceivedFromForeground += BackgroundMediaPlayerOnMessageReceivedFromForeground;
 
                 var mediaPlayer = BackgroundMediaPlayer.Current;
@@ -523,12 +512,12 @@ namespace SM.Media.BackgroundAudio
                                 _foregroundNotifier.Notify(BackgroundNotificationType.Pong, kv.Value);
                             break;
                         case BackgroundNotificationType.Pong:
-                            {
-                                var challenge = kv.Value as Guid?;
+                        {
+                            var challenge = kv.Value as Guid?;
 
-                                if (challenge.HasValue && challenge.Value == _challengeToken.Value)
-                                    _challengeCompletionSource.TrySetResult(challenge.Value);
-                            }
+                            if (challenge.HasValue && challenge.Value == _challengeToken.Value)
+                                _challengeCompletionSource.TrySetResult(challenge.Value);
+                        }
                             break;
                         case BackgroundNotificationType.Smtc:
                             if (_appId.HasValue)
@@ -575,24 +564,32 @@ namespace SM.Media.BackgroundAudio
                     }
                 }
 
-                if (isStop)
-                    StopWatchdog();
-                else
-                    ResetWatchdog();
-
-                if (isStart)
-                    SyncNotification();
+                if (!appId.HasValue)
+                    return;
 
                 if (_appId.HasValue)
                 {
+                    if (appId.Value != _appId.Value)
+                        return;
+
                     if (isStop)
                         _appId = null;
                 }
                 else
                 {
-                    if (isStart && appId.HasValue)
+                    if (isStart)
                         _appId = appId.Value;
+                    else
+                        return;
                 }
+
+                if (isStop)
+                    StopWatchdog();
+                else if (!isStart)
+                    ResetWatchdog();
+
+                if (isStart)
+                    SyncNotification();
             }
             catch (Exception ex)
             {

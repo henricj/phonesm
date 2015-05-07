@@ -337,6 +337,10 @@ namespace SM.Media
 
                 if (duration.HasValue)
                     mediaSourceAttributes[MediaSourceAttributesKeys.Duration] = duration.Value.Ticks.ToString(CultureInfo.InvariantCulture);
+#if SILVERLIGHT
+                else
+                    mediaSourceAttributes[MediaSourceAttributesKeys.Duration] = string.Empty;
+#endif
 
                 var canSeek = duration.HasValue;
 

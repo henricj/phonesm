@@ -275,6 +275,8 @@ namespace HlsView
                 {
                     InitializeMediaStream();
 
+                    _mediaStreamFacade.ContentType = track.ContentType;
+
                     var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
 
                     if (null == mss)

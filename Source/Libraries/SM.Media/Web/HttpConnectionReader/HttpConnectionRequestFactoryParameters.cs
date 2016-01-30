@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpConnectionRequestFactoryParameters.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,12 +25,14 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Net;
 
 namespace SM.Media.Web.HttpConnectionReader
 {
     public interface IHttpConnectionRequestFactoryParameters
     {
         Uri Proxy { get; }
+        CookieContainer Cookies { get; }
     }
 
     public class HttpConnectionRequestFactoryParameters : IHttpConnectionRequestFactoryParameters
@@ -38,6 +40,7 @@ namespace SM.Media.Web.HttpConnectionReader
         #region IHttpConnectionRequestFactoryParameters Members
 
         public Uri Proxy { get; set; }
+        public CookieContainer Cookies { get; set; }
 
         #endregion
     }

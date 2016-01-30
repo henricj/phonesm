@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpConnection.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -103,7 +103,7 @@ namespace SM.Media.Web.HttpConnection
 
                 ParseStatusLine(statusLine);
 
-                await ReadHeadersAsync(httpReader, cancellationToken).ConfigureAwait(false);
+                await ReadHeadersAsync(httpReader, request.Url, request.Cookies, cancellationToken).ConfigureAwait(false);
 
                 await writeHeaderTask.ConfigureAwait(false);
                 writeHeaderTask = null;
@@ -170,7 +170,7 @@ namespace SM.Media.Web.HttpConnection
             _headers.Clear();
         }
 
-        async Task ReadHeadersAsync(HttpReader httpReader, CancellationToken cancellationToken)
+        async Task ReadHeadersAsync(HttpReader httpReader, Uri url, CookieContainer cookies, CancellationToken cancellationToken)
         {
             for (; ; )
             {
@@ -202,6 +202,11 @@ namespace SM.Media.Web.HttpConnection
 
                     if (string.Equals(token, "chunked", StringComparison.OrdinalIgnoreCase))
                         _httpStatus.ChunkedEncoding = true;
+                }
+                else if (null != cookies && (string.Equals(name, "Set-Cookie", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(name, "Set-Cookie2", StringComparison.OrdinalIgnoreCase)))
+                {
+                    cookies.SetCookies(url, value);
                 }
             }
         }

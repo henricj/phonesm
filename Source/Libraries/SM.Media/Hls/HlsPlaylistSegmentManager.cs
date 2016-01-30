@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsPlaylistSegmentManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -642,7 +642,7 @@ namespace SM.Media.Hls
             if (!duration.HasValue)
                 return null;
 
-            if (duration.Value <= TimeSpan.Zero || duration.Value >= _excessiveDuration)
+            if (duration.Value < TimeSpan.Zero || duration.Value >= _excessiveDuration)
                 return null;
 
             return duration;
@@ -661,7 +661,7 @@ namespace SM.Media.Hls
                 if (!segment.Duration.HasValue)
                     return null;
 
-                if (segment.Duration <= TimeSpan.Zero || segment.Duration > _excessiveDuration)
+                if (segment.Duration < TimeSpan.Zero || segment.Duration > _excessiveDuration)
                     return null;
 
                 var segmentDuration = segment.Duration.Value;

@@ -74,14 +74,9 @@ namespace SM.Media.Utility
             {
                 TaskEx.WhenAll(tasks.Select(t => t.Key)).Wait();
             }
-            catch (AggregateException ex)
-            {
-                foreach (var e in ex.InnerExceptions)
-                    Debug.WriteLine("TaskCollector.Wait() Task wait failed: " + ex.Message);
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine("TaskCollector.Wait() Task wait failed: " + ex.Message);
+                Debug.WriteLine("TaskCollector.Wait() Task wait failed: " + ex.ExtendedMessage());
             }
         }
 

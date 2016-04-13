@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="WinRtHttpClientWebReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,11 +45,11 @@ namespace SM.Media.WinRtHttpClientReader
         public WinRtHttpClientWebReaderManager(IWinRtHttpClientFactory httpClientFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpClientFactory)
-                throw new ArgumentNullException("httpClientFactory");
+                throw new ArgumentNullException(nameof(httpClientFactory));
             if (null == contentTypeDetector)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _httpClientFactory = httpClientFactory;
             _contentTypeDetector = contentTypeDetector;
@@ -66,108 +66,6 @@ namespace SM.Media.WinRtHttpClientReader
             Dispose(true);
 
             GC.SuppressFinalize(this);
-        }
-
-        #endregion
-
-        #region IWebReaderManager Members
-
-        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
-        {
-            return CreateHttpClientWebReader(url, parent, contentType);
-        }
-
-        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
-        {
-            var webReader = CreateHttpClientWebReader(url, parent, contentType);
-
-            return new WinRtHttpClientWebCache(webReader, _retryManager);
-        }
-
-        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
-        {
-            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
-
-            if (null != contentType)
-            {
-                Debug.WriteLine("HttpClientWebReaderManager.DetectContentTypeAsync() url ext \"{0}\" type {1}", url, contentType);
-                return contentType;
-            }
-
-            var referrer = GetReferrer(parent);
-
-            using (var httpClient = _httpClientFactory.CreateClient(url, referrer))
-            {
-                try
-                {
-                    using (var request = new HttpRequestMessage(HttpMethod.Head, url))
-                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken, referrer, null, null).ConfigureAwait(false))
-                    {
-                        if (response.IsSuccessStatusCode)
-                        {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
-
-                            if (null != contentType)
-                            {
-                                Debug.WriteLine("HttpClientWebReaderManager.DetectContentTypeAsync() url HEAD \"{0}\" type {1}", url, contentType);
-                                return contentType;
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // Well, HEAD didn't work...
-                }
-
-                try
-                {
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
-                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken, referrer, 0, 0).ConfigureAwait(false))
-                    {
-                        if (response.IsSuccessStatusCode)
-                        {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
-
-                            if (null != contentType)
-                            {
-                                Debug.WriteLine("HttpClientWebReaderManager.DetectContentTypeAsync() url range GET \"{0}\" type {1}", url, contentType);
-                                return contentType;
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // Well, a ranged GET didn't work either.
-                }
-
-                try
-                {
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
-                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken, referrer, null, null).ConfigureAwait(false))
-                    {
-                        if (response.IsSuccessStatusCode)
-                        {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
-
-                            if (null != contentType)
-                            {
-                                Debug.WriteLine("HttpClientWebReaderManager.DetectContentTypeAsync() url GET \"{0}\" type {1}", url, contentType);
-                                return contentType;
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // This just isn't going to work.
-                }
-            }
-
-            Debug.WriteLine("HttpClientWebReaderManager.DetectContentTypeAsync() url header \"{0}\" unknown type", url);
-
-            return null;
         }
 
         #endregion
@@ -216,5 +114,107 @@ namespace SM.Media.WinRtHttpClientReader
             if (!disposing)
                 return;
         }
+
+        #region IWebReaderManager Members
+
+        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        {
+            return CreateHttpClientWebReader(url, parent, contentType);
+        }
+
+        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        {
+            var webReader = CreateHttpClientWebReader(url, parent, contentType);
+
+            return new WinRtHttpClientWebCache(webReader, _retryManager);
+        }
+
+        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
+        {
+            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+
+            if (null != contentType)
+            {
+                Debug.WriteLine("WinRtHttpClientWebReaderManager.DetectContentTypeAsync() url ext \"{0}\" type {1}", url, contentType);
+                return contentType;
+            }
+
+            var referrer = GetReferrer(parent);
+
+            using (var httpClient = _httpClientFactory.CreateClient(url, referrer))
+            {
+                try
+                {
+                    using (var request = new HttpRequestMessage(HttpMethod.Head, url))
+                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken, referrer, null, null).ConfigureAwait(false))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+
+                            if (null != contentType)
+                            {
+                                Debug.WriteLine("WinRtHttpClientWebReaderManager.DetectContentTypeAsync() url HEAD \"{0}\" type {1}", url, contentType);
+                                return contentType;
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Well, HEAD didn't work...
+                }
+
+                try
+                {
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken, referrer, 0, 0).ConfigureAwait(false))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+
+                            if (null != contentType)
+                            {
+                                Debug.WriteLine("WinRtHttpClientWebReaderManager.DetectContentTypeAsync() url range GET \"{0}\" type {1}", url, contentType);
+                                return contentType;
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Well, a ranged GET didn't work either.
+                }
+
+                try
+                {
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken, referrer, null, null).ConfigureAwait(false))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+
+                            if (null != contentType)
+                            {
+                                Debug.WriteLine("WinRtHttpClientWebReaderManager.DetectContentTypeAsync() url GET \"{0}\" type {1}", url, contentType);
+                                return contentType;
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // This just isn't going to work.
+                }
+            }
+
+            Debug.WriteLine("WinRtHttpClientWebReaderManager.DetectContentTypeAsync() url header \"{0}\" unknown type", url);
+
+            return null;
+        }
+
+        #endregion
     }
 }

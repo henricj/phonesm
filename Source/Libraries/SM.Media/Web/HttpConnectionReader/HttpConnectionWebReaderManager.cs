@@ -48,15 +48,15 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionWebReaderManager(IHttpConnectionFactory httpConnectionFactory, IHttpConnectionRequestFactory httpConnectionRequestFactory, IWebReaderManagerParameters webReaderManagerParameters, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpConnectionFactory)
-                throw new ArgumentNullException("httpConnectionFactory");
+                throw new ArgumentNullException(nameof(httpConnectionFactory));
             if (null == httpConnectionRequestFactory)
-                throw new ArgumentNullException("httpConnectionRequestFactory");
+                throw new ArgumentNullException(nameof(httpConnectionRequestFactory));
             if (null == webReaderManagerParameters)
-                throw new ArgumentNullException("webReaderManagerParameters");
+                throw new ArgumentNullException(nameof(webReaderManagerParameters));
             if (null == contentTypeDetector)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _httpConnectionFactory = httpConnectionFactory;
             _httpConnectionRequestFactory = httpConnectionRequestFactory;
@@ -91,7 +91,7 @@ namespace SM.Media.Web.HttpConnectionReader
             if (null == contentType && null != url)
                 contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
 
-            return new HttpConnectionWebReader(this, url, null == parent ? null : parent.BaseAddress, contentType, _contentTypeDetector);
+            return new HttpConnectionWebReader(this, url, parent?.BaseAddress, contentType, _contentTypeDetector);
         }
 
         internal virtual async Task<IHttpConnectionResponse> GetAsync(HttpConnectionRequest request, CancellationToken cancellationToken)
@@ -189,7 +189,8 @@ namespace SM.Media.Web.HttpConnectionReader
             {
                 using (var response = await SendAsync(url, parent, cancellationToken, "HEAD", allowBuffering: false).ConfigureAwait(false))
                 {
-                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+                    if (response.IsSuccessStatusCode)
+                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -207,7 +208,8 @@ namespace SM.Media.Web.HttpConnectionReader
             {
                 using (var response = await SendAsync(url, parent, cancellationToken, allowBuffering: false, fromBytes: 0, toBytes: 0).ConfigureAwait(false))
                 {
-                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+                    if (response.IsSuccessStatusCode)
+                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -225,7 +227,8 @@ namespace SM.Media.Web.HttpConnectionReader
             {
                 using (var response = await SendAsync(url, parent, cancellationToken, allowBuffering: false).ConfigureAwait(false))
                 {
-                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+                    if (response.IsSuccessStatusCode)
+                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {

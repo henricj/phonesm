@@ -77,8 +77,8 @@ namespace SM.Media.Web.HttpConnection
                 tw.WriteLine("Host: " + host);
                 tw.WriteLine(request.KeepAlive ? "Connection: Keep-Alive" : "Connection: Close");
 
-                if (null != request.Referrer)
-                    tw.WriteLine("Referer:" + request.Referrer);
+                if (null != request.Referrer && request.Referrer.IsAbsoluteUri)
+                    tw.WriteLine("Referer:" + request.Referrer.AbsoluteUri);
 
                 if (request.RangeFrom.HasValue || request.RangeTo.HasValue)
                     tw.WriteLine("Range: bytes={0}-{1}", request.RangeFrom, request.RangeTo);
@@ -123,7 +123,7 @@ namespace SM.Media.Web.HttpConnection
 #if SM_MEDIA_LEGACY
             return url.Host + ':' + url.Port;
 #else
-            return url.IsDefaultPort ? url.Host : url.Host + ':' + url.Port;
+            return url.IsDefaultPort ? url.DnsSafeHost : url.DnsSafeHost + ':' + url.Port;
 #endif
         }
 
@@ -136,7 +136,7 @@ namespace SM.Media.Web.HttpConnection
             {
                 var ub = new UriBuilder(url) { Fragment = null };
 
-                return ub.Uri.ToString();
+                return ub.Uri.AbsoluteUri;
             }
 
 #if SM_MEDIA_LEGACY

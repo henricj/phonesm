@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="TsMediaParser.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -259,7 +259,7 @@ namespace SM.Media.TransportStream
 
             ConfigurationComplete = null;
 
-            var task = TaskEx.Run(() => cc(this, EventArgs.Empty));
+            var task = Task.Run(() => cc(this, EventArgs.Empty));
 
             TaskCollector.Default.Add(task, "TsMediaParser.FireConfigurationComplete()");
         }

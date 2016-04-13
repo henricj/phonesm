@@ -72,8 +72,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\BackgroundAudio.Sample.WP7\MainPage.xaml.cs">
-      <Link>MainPage.xaml.cs</Link>
+    <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="App.xaml.cs">
@@ -103,18 +102,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\BackgroundAudio.Sample.WP7\Images\appbar.transport.ff.rest.png">
-      <Link>Images\appbar.transport.ff.rest.png</Link>
-    </Content>
-    <Content Include="..\BackgroundAudio.Sample.WP7\Images\appbar.transport.pause.rest.png">
-      <Link>Images\appbar.transport.pause.rest.png</Link>
-    </Content>
-    <Content Include="..\BackgroundAudio.Sample.WP7\Images\appbar.transport.play.rest.png">
-      <Link>Images\appbar.transport.play.rest.png</Link>
-    </Content>
-    <Content Include="..\BackgroundAudio.Sample.WP7\Images\appbar.transport.rew.rest.png">
-      <Link>Images\appbar.transport.rew.rest.png</Link>
-    </Content>
+    <Content Include="Images\appbar.transport.ff.rest.png" />
+    <Content Include="Images\appbar.transport.pause.rest.png" />
+    <Content Include="Images\appbar.transport.play.rest.png" />
+    <Content Include="Images\appbar.transport.rew.rest.png" />
     <Content Include="Assets\AlignmentGrid.png" />
     <Content Include="Assets\ApplicationIcon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -142,8 +133,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="..\BackgroundAudio.Sample.WP7\MainPage.xaml">
-      <Link>MainPage.xaml</Link>
+    <Page Include="MainPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

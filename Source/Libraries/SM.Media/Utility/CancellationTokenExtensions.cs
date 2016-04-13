@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="CancellationTokenExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,7 +49,7 @@ namespace SM.Media.Utility
         {
             var tcs = new TaskCompletionSource<object>();
 
-            using (cancellationToken.Register(() => TaskEx.Run(() => tcs.TrySetCanceled())))
+            using (cancellationToken.Register(() => Task.Run(() => tcs.TrySetCanceled())))
             {
                 await tcs.Task.ConfigureAwait(false);
             }
@@ -112,7 +112,7 @@ namespace SM.Media.Utility
             {
                 if (!cancellationTokenSource.IsCancellationRequested)
                 {
-                    var t = TaskEx.Run(() =>
+                    var t = Task.Run(() =>
                     {
                         try
                         {

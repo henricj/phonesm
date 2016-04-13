@@ -1,5 +1,5 @@
-// -----------------------------------------------------------------------
-//  <copyright file="ContentServiceFactoryBase.cs" company="Henric Jungheim">
+﻿// -----------------------------------------------------------------------
+//  <copyright file="TrackManager.cs" company="Henric Jungheim">
 //  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
@@ -24,29 +24,43 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using SM.Media.Playlists;
 
-namespace SM.Media.Content
+namespace SM.Media.BackgroundAudioStreamingAgent
 {
-    public abstract class ContentServiceFactoryBase<TServiceImplementation, TService, TParameter>
-        : IContentServiceFactoryInstance<TService, TParameter>
-        where TServiceImplementation : TService
+    static class TrackManager
     {
-        #region IContentServiceFactoryInstance<TService,TParameter> Members
-
-        public abstract ICollection<ContentType> KnownContentTypes { get; }
-
-        public virtual Task<TService> CreateAsync(TParameter parameter, ContentType contentType, CancellationToken cancellationToken)
+        static readonly MediaTrack[] Sources =
         {
-            var instance = Create(parameter, contentType);
+            new MediaTrack
+            {
+                Title = "NASA TV",
+                Url = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+            },
+            new MediaTrack
+            {
+                Title = "NPR",
+                Url = new Uri("http://www.npr.org/streams/mp3/nprlive24.pls")
+            },
+            new MediaTrack
+            {
+                Title = "Bjarne Stroustrup - The Essence of C++",
+                Url = new Uri("http://media.ch9.ms/ch9/ca9a/66ac2da7-efca-4e13-a494-62843281ca9a/GN13BjarneStroustrup.mp3"),
+                UseNativePlayer = true
+            },
+            null,
+            new MediaTrack
+            {
+                Title = "Apple",
+                Url = new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
+            }
+        };
 
-            return Task.FromResult<TService>(instance);
+        public static IList<MediaTrack> Tracks
+        {
+            get { return Sources; }
         }
-
-        #endregion
-
-        protected abstract TServiceImplementation Create(TParameter parameter, ContentType contentType);
     }
 }

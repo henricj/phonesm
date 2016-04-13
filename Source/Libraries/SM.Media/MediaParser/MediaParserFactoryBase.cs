@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaParserFactoryBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,7 +53,7 @@ namespace SM.Media.MediaParser
         {
             var mediaParser = _parserFactory();
 
-            return TaskEx.FromResult<IMediaParser>(mediaParser);
+            return Task.FromResult<IMediaParser>(mediaParser);
         }
 
         #endregion

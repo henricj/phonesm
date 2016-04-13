@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SmMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -280,7 +280,7 @@ namespace SM.Media.MediaManager
 
             Interlocked.CompareExchange(ref _closeTaskCompletionSource, null, closeTaskCompletionSource);
 
-            var task = TaskEx.Run(() =>
+            var task = Task.Run(() =>
             {
                 closeTaskCompletionSource.TrySetResult(null);
                 playbackTaskCompletionSource.TrySetResult(null);
@@ -322,10 +322,10 @@ namespace SM.Media.MediaManager
                 while (tasks.Any(t => !t.IsCompleted))
                     try
                     {
-                        var t = TaskEx.Delay(2500);
+                        var t = Task.Delay(2500);
 
                         Debug.WriteLine("SmMediaManager.CloseCleanupAsync() waiting for tasks");
-                        await TaskEx.WhenAny(t, TaskEx.WhenAll(tasks)).ConfigureAwait(false);
+                        await Task.WhenAny(t, Task.WhenAll(tasks)).ConfigureAwait(false);
                         Debug.WriteLine("SmMediaManager.CloseCleanupAsync() finished tasks");
                     }
                     catch (Exception ex)
@@ -417,7 +417,7 @@ namespace SM.Media.MediaManager
 
             var tasks = _readers.Select(r => r.ReadAsync(token) as Task);
 
-            var cleanupTask = TaskEx.WhenAll(tasks)
+            var cleanupTask = Task.WhenAll(tasks)
                 .ContinueWith(
                     async t =>
                     {
@@ -485,7 +485,7 @@ namespace SM.Media.MediaManager
                     .Select(CreateReaderPipeline)
                     .ToArray();
 
-                _readers = await TaskEx.WhenAll<IMediaReader>(readerTasks)
+                _readers = await Task.WhenAll<IMediaReader>(readerTasks)
                     .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
@@ -640,7 +640,7 @@ namespace SM.Media.MediaManager
                     })
                     .Where(t => null != t);
 
-                await TaskEx.WhenAll(tasks).ConfigureAwait(false);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -689,7 +689,7 @@ namespace SM.Media.MediaManager
                 if (null == readers || readers.Length < 1)
                     return TimeSpan.MinValue;
 
-                await TaskEx.WhenAll(readers.Select(reader => reader.StopAsync())).ConfigureAwait(false);
+                await Task.WhenAll(readers.Select(reader => reader.StopAsync())).ConfigureAwait(false);
 
                 if (_playbackCancellationTokenSource.IsCancellationRequested)
                     return TimeSpan.MinValue;

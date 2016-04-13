@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SimpleSegmentManagerBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -38,7 +38,7 @@ namespace SM.Media.Segments
 {
     public class SimpleSegmentManagerBase : ISegmentManager, IAsyncEnumerable<ISegment>
     {
-        static readonly Task<TimeSpan> TimeSpanZeroTask = TaskEx.FromResult(TimeSpan.Zero);
+        static readonly Task<TimeSpan> TimeSpanZeroTask = Task.FromResult(TimeSpan.Zero);
         readonly ContentType _contentType;
         readonly ICollection<ISegment> _segments;
         readonly IWebReader _webReader;

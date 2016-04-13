@@ -55,41 +55,21 @@
     <Compile Include="..\SM.Media.Platform.WinRT\Web\HttpConnection\StreamSocketWrapper.cs">
       <Link>Web\HttpConnection\StreamSocketWrapper.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFacadeParameters.cs">
-      <Link>DefaultMediaStreamFacadeParameters.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\IMediaStreamControl.cs">
-      <Link>IMediaStreamControl.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamConfiguration.cs">
-      <Link>MediaStreamConfiguration.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamConfigurator.cs">
-      <Link>MediaStreamConfigurator.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\MediaStreamFacade.cs">
-      <Link>MediaStreamFacade.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\PlatformServices.cs">
-      <Link>PlatformServices.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\PlaybackSession.cs">
-      <Link>PlaybackSession.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\TsMediaStreamSource.cs">
-      <Link>TsMediaStreamSource.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\Utility\ApplicationInformationFactory.cs">
-      <Link>Utility\ApplicationInformationFactory.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.Platform.WP7\Utility\SingleThreadSignalTaskScheduler.cs">
-      <Link>Utility\SingleThreadSignalTaskScheduler.cs</Link>
-    </Compile>
+    <Compile Include="DefaultMediaStreamFacadeParameters.cs" />
+    <Compile Include="IMediaStreamControl.cs" />
+    <Compile Include="MediaStreamConfiguration.cs" />
+    <Compile Include="MediaStreamConfigurator.cs" />
+    <Compile Include="MediaStreamFacade.cs" />
+    <Compile Include="PlaybackSession.cs" />
+    <Compile Include="TsMediaStreamSource.cs" />
     <Compile Include="HttpClientModule.cs" />
+    <Compile Include="PlatformServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TsMediaManagerBuilder.cs" />
     <Compile Include="TsMediaModule.cs" />
+    <Compile Include="Utility\ApplicationInformationFactory.cs" />
     <Compile Include="Utility\DispatcherExtensions.cs" />
+    <Compile Include="Utility\SingleThreadSignalTaskScheduler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SM.Media.Builder\SM.Media.Builder.csproj">

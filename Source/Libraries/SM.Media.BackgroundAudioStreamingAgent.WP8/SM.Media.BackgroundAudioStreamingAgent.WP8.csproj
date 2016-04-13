@@ -46,21 +46,11 @@
     <Compile Include="..\..\Global\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\AudioMetadataHandler.cs">
-      <Link>AudioMetadataHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\AudioPlayer.cs">
-      <Link>AudioPlayer.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\AudioTrackExtensions.cs">
-      <Link>AudioTrackExtensions.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\AudioTrackStreamer.cs">
-      <Link>AudioTrackStreamer.cs</Link>
-    </Compile>
-    <Compile Include="..\SM.Media.BackgroundAudioStreamingAgent.WP7\TrackManager.cs">
-      <Link>TrackManager.cs</Link>
-    </Compile>
+    <Compile Include="AudioMetadataHandler.cs" />
+    <Compile Include="AudioPlayer.cs" />
+    <Compile Include="AudioTrackExtensions.cs" />
+    <Compile Include="AudioTrackStreamer.cs" />
+    <Compile Include="TrackManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

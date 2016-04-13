@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SingleStreamMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -164,7 +164,7 @@ namespace SM.Media.MediaManager
                         var localWebStream = webStream;
                         var playCancellationToken = playCancellationTokenSource.Token;
 
-                        playTask = TaskEx.Run(() => SimplePlayAsync(contentType, localWebReader, localWebStream, response, configurationTaskCompletionSource, playCancellationToken), playCancellationToken);
+                        playTask = Task.Run(() => SimplePlayAsync(contentType, localWebReader, localWebStream, response, configurationTaskCompletionSource, playCancellationToken), playCancellationToken);
 
                         lock (_lock)
                         {
@@ -229,7 +229,7 @@ namespace SM.Media.MediaManager
 
         public Task<TimeSpan> SeekMediaAsync(TimeSpan position)
         {
-            return TaskEx.FromResult(position);
+            return Task.FromResult(position);
         }
 
         public event EventHandler<MediaManagerStateEventArgs> OnStateChange;
@@ -385,7 +385,7 @@ namespace SM.Media.MediaManager
 
                                 reader = ReadResponseAsync(mediaParser, webStreamResponse, webResponse, throttle, cancellationToken);
 
-                                await TaskEx.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
+                                await Task.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
 
                                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -480,7 +480,7 @@ namespace SM.Media.MediaManager
 
                         if (!waitTask.IsCompleted)
                         {
-                            await TaskEx.WhenAny(waitTask, cancellationTask).ConfigureAwait(false);
+                            await Task.WhenAny(waitTask, cancellationTask).ConfigureAwait(false);
 
                             cancellationToken.ThrowIfCancellationRequested();
                         }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -88,14 +88,14 @@ namespace SM.Media.Segments
         {
             var tasks = _segmentManagers.Select(sm => sm.StartAsync());
 
-            return TaskEx.WhenAll(tasks);
+            return Task.WhenAll(tasks);
         }
 
         public Task StopAsync()
         {
             var tasks = _segmentManagers.Select(sm => sm.StopAsync());
 
-            return TaskEx.WhenAll(tasks);
+            return Task.WhenAll(tasks);
         }
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp, CancellationToken cancellationToken)
@@ -103,7 +103,7 @@ namespace SM.Media.Segments
             var tasks = _segmentManagers
                 .Select(sm => sm.SeekAsync(timestamp));
 
-            var results = await TaskEx.WhenAll(tasks).ConfigureAwait(false);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
             return results.Min();
         }

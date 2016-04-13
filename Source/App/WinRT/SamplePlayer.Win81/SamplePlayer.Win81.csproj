@@ -18,7 +18,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <NuGetPackageImportStamp>e5de9ddb</NuGetPackageImportStamp>
-    <PackageCertificateThumbprint>8C5D7B488A7FDD3E812704DB4E490E282848CA3D</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>E6D64F163D83AFB2B7A15F1E7FC964ABFFCD89C8</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>

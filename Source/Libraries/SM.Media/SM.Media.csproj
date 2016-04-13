@@ -293,7 +293,6 @@
     </Compile>
     <Compile Include="Utility\IStopClose.cs" />
     <Compile Include="Utility\TaskCollector.cs" />
-    <Compile Include="Utility\TaskEx.cs" />
     <Compile Include="TransportStream\TsMediaParser.cs" />
     <Compile Include="H264\NalUnitParser.cs" />
     <Compile Include="H264\H264Bitstream.cs" />

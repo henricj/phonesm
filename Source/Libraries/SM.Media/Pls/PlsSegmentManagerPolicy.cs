@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="PlsSegmentManagerPolicy.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -52,7 +52,7 @@ namespace SM.Media.Pls
             var track = SelectTrack(tracks);
 
             if (null == track)
-                return TaskEx.FromResult<Uri>(null);
+                return Task.FromResult<Uri>(null);
 
             if (tracks.Count > 1)
                 Debug.WriteLine("PlsSegmentManagerPolicy.GetTrackAsync() multiple tracks are not supported");
@@ -65,10 +65,10 @@ namespace SM.Media.Pls
             {
                 Debug.WriteLine("PlsSegmentManagerPolicy.GetTrackAsync() invalid track file: " + track.File);
 
-                return TaskEx.FromResult<Uri>(null);
+                return Task.FromResult<Uri>(null);
             }
 
-            return TaskEx.FromResult(trackUrl);
+            return Task.FromResult(trackUrl);
         }
 
         #endregion

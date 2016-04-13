@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="CallbackReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -235,7 +235,7 @@ namespace SM.Media.MediaManager
                 Debug.Assert(null == _readerTask || _readerTask.IsCompleted);
 
                 if (_isClosed)
-                    return TaskEx.FromResult(0L);
+                    return Task.FromResult(0L);
 
                 if (null == _readCancellationSource || _readCancellationSource.IsCancellationRequested)
                 {
@@ -255,7 +255,7 @@ namespace SM.Media.MediaManager
 
                 var token = _readCancellationSource.Token;
 
-                _readerTask = TaskEx.Run(() => ReadSegmentsAsync(token), token);
+                _readerTask = Task.Run(() => ReadSegmentsAsync(token), token);
             }
 
             if (null != oldReadResultTask)

@@ -780,7 +780,7 @@ namespace SM.Media.Hls
                             delay = (int)(lastSegment.Duration.Value.TotalMilliseconds / 2);
                     }
 
-                    await TaskEx.Delay(delay, _segmentManager.CancellationToken).ConfigureAwait(false);
+                    await Task.Delay(delay, _segmentManager.CancellationToken).ConfigureAwait(false);
                 }
             }
 

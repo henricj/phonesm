@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="Retry.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -128,7 +128,7 @@ namespace SM.Media.Utility
 
             _delay += _delay;
 
-            await TaskEx.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(actualDelay, cancellationToken).ConfigureAwait(false);
         }
     }
 

@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HttpConnectionWebReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -214,7 +214,7 @@ namespace SM.Media.Web.HttpConnectionReader
 
         internal virtual HttpConnectionRequest CreateRequest(Uri url, Uri referrer, IWebReader parent, ContentType contentType, string method = null, bool allowBuffering = false, long? fromBytes = null, long? toBytes = null)
         {
-            referrer = referrer ?? GetReferrer(parent);
+            referrer = referrer ?? GetReferrer(url, parent);
 
             if (null == url && null != parent)
                 url = parent.RequestUri ?? parent.BaseAddress;
@@ -227,9 +227,17 @@ namespace SM.Media.Web.HttpConnectionReader
             return request;
         }
 
-        protected static Uri GetReferrer(IWebReader parent)
+        protected static Uri GetReferrer(Uri url, IWebReader parent)
         {
-            return null == parent ? null : parent.RequestUri ?? parent.BaseAddress;
+            if (null == parent || null == url)
+                return null;
+
+            var parentUrl = parent.RequestUri ?? parent.BaseAddress;
+
+            if (parentUrl == url)
+                return null;
+
+            return parentUrl;
         }
 
         protected virtual void Dispose(bool disposing)

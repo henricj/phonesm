@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="StreamingMediaPlugin.Windows.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -55,10 +55,6 @@ namespace SM.Media.MediaPlayer
                     _player.MediaFailed -= PlayerOnMediaFailed;
                     _player.MediaEnded -= PlayerOnMediaEnded;
                     _player.MediaClosed -= PlayerOnMediaClosed;
-#if WINDOWS_PHONE7
-                    _player.Seeked -= PlayerOnSeeked;
-                    _player.Scrubbing -= PlayerOnScrubbing;
-#endif // WINDOWS_PHONE7
                 }
 
                 _player = value;
@@ -71,31 +67,11 @@ namespace SM.Media.MediaPlayer
                     _player.MediaFailed += PlayerOnMediaFailed;
                     _player.MediaEnded += PlayerOnMediaEnded;
                     _player.MediaClosed += PlayerOnMediaClosed;
-#if WINDOWS_PHONE7
-                    _player.Seeked += PlayerOnSeeked;
-                    _player.Scrubbing += PlayerOnScrubbing;
-#endif // WINDOWS_PHONE7
                 }
             }
         }
 
         #endregion
-
-#if WINDOWS_PHONE7
-        void PlayerOnScrubbing(object sender, ScrubProgressRoutedEventArgs scrubProgressRoutedEventArgs)
-        {
-            Debug.WriteLine("StreamingMediaPlugin Scrubbing to " + scrubProgressRoutedEventArgs.Position);
-
-            _mediaStreamFacade.SeekTarget = scrubProgressRoutedEventArgs.Position;
-        }
-
-        void PlayerOnSeeked(object sender, SeekRoutedEventArgs seekRoutedEventArgs)
-        {
-            Debug.WriteLine("StreamingMediaPlugin Seeked to " + seekRoutedEventArgs.Position);
-
-            _mediaStreamFacade.SeekTarget = seekRoutedEventArgs.Position;
-        }
-#endif // WINDOWS_PHONE7
 
         void PlayerOnMediaLoading(object sender, MediaPlayerDeferrableEventArgs mediaPlayerDeferrableEventArgs)
         {

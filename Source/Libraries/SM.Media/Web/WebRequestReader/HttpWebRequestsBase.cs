@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpWebRequestsBase.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,9 +36,7 @@ namespace SM.Media.Web.WebRequestReader
     {
         // TODO: We need to encode all these headers properly.
 
-#if !SM_MEDIA_LEGACY
         static bool _canSetAllowReadStreamBuffering = true;
-#endif
         readonly CookieContainer _cookieContainer;
         readonly ICredentials _credentials;
 
@@ -82,7 +80,6 @@ namespace SM.Media.Web.WebRequestReader
 
         protected virtual void SetBuffering(HttpWebRequest request, bool allowBuffering)
         {
-#if !SM_MEDIA_LEGACY
             if (_canSetAllowReadStreamBuffering && request.AllowReadStreamBuffering != allowBuffering)
             {
                 try
@@ -95,7 +92,6 @@ namespace SM.Media.Web.WebRequestReader
                     _canSetAllowReadStreamBuffering = false;
                 }
             }
-#endif // !SM_MEDIA_LEGACY
         }
 
         protected virtual void SetContentType(HttpWebRequest request, ContentType contentType)

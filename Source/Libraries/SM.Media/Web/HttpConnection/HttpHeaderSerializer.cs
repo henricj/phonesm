@@ -62,11 +62,7 @@ namespace SM.Media.Web.HttpConnection
         {
             var url = request.Url;
 
-#if SM_MEDIA_LEGACY
-            using (var tw = new StreamWriter(stream, _headerEncoding, 1024))
-#else
             using (var tw = new StreamWriter(stream, _headerEncoding, 1024, true))
-#endif
             {
                 tw.NewLine = HttpEol;
 
@@ -120,11 +116,7 @@ namespace SM.Media.Web.HttpConnection
 
         static string GetHost(Uri url)
         {
-#if SM_MEDIA_LEGACY
-            return url.Host + ':' + url.Port;
-#else
             return url.IsDefaultPort ? url.DnsSafeHost : url.DnsSafeHost + ':' + url.Port;
-#endif
         }
 
         static string GetRequestTarget(HttpConnectionRequest request)
@@ -139,14 +131,7 @@ namespace SM.Media.Web.HttpConnection
                 return ub.Uri.AbsoluteUri;
             }
 
-#if SM_MEDIA_LEGACY
-            var target = url.AbsolutePath;
-
-            if (!string.IsNullOrWhiteSpace(url.Query))
-                target += "?" + url.Query;
-#else
             var target = url.PathAndQuery;
-#endif
 
             return target;
         }

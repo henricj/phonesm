@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="AsyncReaderStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -78,42 +78,6 @@ namespace SM.Media.Web.HttpConnection
         {
             return ReadAsync(buffer, offset, count, CancellationToken.None).Result;
         }
-
-#if SM_MEDIA_LEGACY
-        public abstract Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken);
-
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
-        {
-            var task = ReadAsync(buffer, offset, count, CancellationToken.None);
-
-            if (null != callback)
-                task.ContinueWith(t => callback(task));
-
-            if (null == state)
-                return task;
-
-            var tcs = new TaskCompletionSource<int>(state);
-
-            task.ContinueWith(t =>
-            {
-                if (t.IsCanceled)
-                    tcs.TrySetCanceled();
-                else if (t.IsFaulted)
-                    tcs.TrySetException(t.Exception);
-                else
-                    tcs.TrySetResult(t.Result);
-            });
-
-            return tcs.Task;
-        }
-
-        public override int EndRead(IAsyncResult asyncResult)
-        {
-            var task = (Task<int>) asyncResult;
-
-            return task.Result;
-        }
-#endif
 
         public override void Write(byte[] buffer, int offset, int count)
         {

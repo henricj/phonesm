@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="UriExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -82,21 +82,7 @@ namespace SM.Media.Web
             if (string.IsNullOrEmpty(path))
                 return null;
 
-#if SM_MEDIA_LEGACY
-            var lastPeriod = path.LastIndexOf('.');
-
-            if (lastPeriod <= 0 || lastPeriod + 1 == path.Length)
-                return null;
-
-            var lastSlash = path.LastIndexOfAny(Slashes);
-
-            if (lastSlash >= lastPeriod)
-                return null;
-
-            return path.Substring(lastPeriod);
-#else
             return Path.GetExtension(path);
-#endif
         }
     }
 }

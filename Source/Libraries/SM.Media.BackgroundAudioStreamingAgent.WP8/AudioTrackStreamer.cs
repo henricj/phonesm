@@ -223,11 +223,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
         async Task<IMediaStreamFacade> InitializeMediaStreamAsync()
         {
-#if SM_MEDIA_LEGACY
-            var mediaStreamFacade = _mediaStreamFacade;
-#else
             var mediaStreamFacade = Volatile.Read(ref _mediaStreamFacade);
-#endif
+
             if (null != mediaStreamFacade)
             {
                 try
@@ -393,11 +390,8 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             {
                 TryCancel();
 
-#if SM_MEDIA_LEGACY
-                var mediaStreamFacade = _mediaStreamFacade;
-#else
                 var mediaStreamFacade = Volatile.Read(ref _mediaStreamFacade);
-#endif
+
                 if (null != mediaStreamFacade)
                 {
                     var allOk = false;

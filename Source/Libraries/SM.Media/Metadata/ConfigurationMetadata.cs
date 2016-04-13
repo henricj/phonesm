@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ConfigurationMetadata.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,11 +34,7 @@ namespace SM.Media.Metadata
         IAudioConfigurationSource Audio { get; }
         IVideoConfigurationSource Video { get; }
 
-#if SM_MEDIA_LEGACY
-        ICollection<IConfigurationSource> AlternateStreams { get; }
-#else
         IReadOnlyCollection<IConfigurationSource> AlternateStreams { get; }
-#endif
     }
 
     public class ConfigurationMetadata : IConfigurationMetadata
@@ -46,10 +42,6 @@ namespace SM.Media.Metadata
         public IAudioConfigurationSource Audio { get; set; }
         public IVideoConfigurationSource Video { get; set; }
 
-#if SM_MEDIA_LEGACY
-        public ICollection<IConfigurationSource> AlternateStreams { get; set; }
-#else
         public IReadOnlyCollection<IConfigurationSource> AlternateStreams { get; set; }
-#endif
     }
 }

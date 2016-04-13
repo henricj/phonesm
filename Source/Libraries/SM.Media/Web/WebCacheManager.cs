@@ -153,19 +153,6 @@ namespace SM.Media.Web
 
         class CacheEntry
         {
-#if SM_MEDIA_LEGACY
-            DateTime _lastUpdate;
-
-            public TimeSpan Age
-            {
-                get { return _lastUpdate - DateTime.UtcNow; }
-            }
-
-            public void ResetTime()
-            {
-                _lastUpdate = DateTime.UtcNow;
-            }
-#else
             Stopwatch _lastUpdate;
 
             public TimeSpan Age
@@ -177,7 +164,7 @@ namespace SM.Media.Web
             {
                 _lastUpdate = Stopwatch.StartNew();
             }
-#endif
+
             public Task ReadTask;
             public IWebCache WebCache;
         }

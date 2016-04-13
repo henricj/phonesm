@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="MainPage.xaml.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,25 +49,14 @@ namespace HlsView
     {
         static readonly TimeSpan StepSize = TimeSpan.FromMinutes(2);
         readonly DispatcherTimer _positionSampler;
+#if STREAM_SWITCHING
+        readonly DispatcherTimer _timer;
+#endif
+        readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
         IMediaStreamFacade _mediaStreamFacade;
         TimeSpan _previousPosition;
         int _track;
         bool _wasFull;
-        readonly IList<MediaTrack> _tracks = TrackManager.Tracks;
-#if STREAM_SWITCHING
-        readonly DispatcherTimer _timer;
-#endif
-
-        MediaTrack CurrentTrack
-        {
-            get
-            {
-                if (_track < 0 || _track >= _tracks.Count)
-                    return null;
-
-                return _tracks[_track];
-            }
-        }
 
         // Constructor
         public MainPage()
@@ -111,6 +100,17 @@ namespace HlsView
 
             _timer.Start();
 #endif // STREAM_SWITCHING
+        }
+
+        MediaTrack CurrentTrack
+        {
+            get
+            {
+                if (_track < 0 || _track >= _tracks.Count)
+                    return null;
+
+                return _tracks[_track];
+            }
         }
 
         void UpdateTrack(SystemMediaTransportControls systemMediaTransportControls)
@@ -362,9 +362,7 @@ namespace HlsView
                 {
                     InitializeMediaStream();
 
-                    _mediaStreamFacade.ContentType = track.ContentType;
-
-                    var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track.Url, CancellationToken.None);
+                    var mss = await _mediaStreamFacade.CreateMediaStreamSourceAsync(track, CancellationToken.None);
 
                     if (null == mss)
                     {
@@ -418,6 +416,12 @@ namespace HlsView
         {
             if (null != _mediaStreamFacade)
                 return;
+
+            // Enable UseHttpConnection to use sockets directly instead of going through
+            // the system's default HTTP client.  HttpConnection is not as picky about
+            // headers and it will not pollute the sytem's HTTP cache, but it will always
+            // open a new connection for each request.
+            //MediaStreamFacadeSettings.Parameters.UseHttpConnection = true;
 
             _mediaStreamFacade = MediaStreamFacadeSettings.Parameters.Create();
 

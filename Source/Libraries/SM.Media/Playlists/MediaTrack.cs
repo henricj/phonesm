@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaTrack.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,8 @@
 
 using System;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using SM.Media.Content;
 
 namespace SM.Media.Playlists
@@ -36,6 +38,7 @@ namespace SM.Media.Playlists
         public string Title { get; set; }
         public bool UseNativePlayer { get; set; }
         public ContentType ContentType { get; set; }
+        public ContentType StreamContentType { get; set; }
 
         public override string ToString()
         {
@@ -65,6 +68,24 @@ namespace SM.Media.Playlists
             }
 
             return sb.ToString();
+        }
+    }
+
+    public static class MediaTrackExtensions
+    {
+        public static Task<TMediaStreamSource> CreateMediaStreamSourceAsync<TMediaStreamSource>(
+            this IMediaStreamFacadeBase<TMediaStreamSource> mediaStreamFacade,
+            MediaTrack mediaTrack,
+            CancellationToken cancellationToken)
+            where TMediaStreamSource : class
+        {
+            if (null != mediaTrack.ContentType)
+                mediaStreamFacade.ContentType = mediaTrack.ContentType;
+
+            if (null != mediaTrack.StreamContentType)
+                mediaStreamFacade.StreamContentType = mediaTrack.StreamContentType;
+
+            return mediaStreamFacade.CreateMediaStreamSourceAsync(mediaTrack.Url, cancellationToken);
         }
     }
 }

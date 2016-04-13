@@ -56,9 +56,9 @@ namespace SM.Media.MediaManager
         MediaManagerState _mediaState;
         string _mediaStateMessage;
         int _openCount;
-        Task _playTask;
         CancellationTokenSource _playbackCancellationTokenSource = new CancellationTokenSource();
         TaskCompletionSource<object> _playbackTaskCompletionSource = new TaskCompletionSource<object>();
+        Task _playTask;
         ISegmentReaderManager _readerManager;
         IMediaReader[] _readers;
 
@@ -67,11 +67,11 @@ namespace SM.Media.MediaManager
             IMediaManagerParameters mediaManagerParameters, IMediaParserFactory mediaParserFactory)
         {
             if (null == segmentReaderManagerFactory)
-                throw new ArgumentNullException("segmentReaderManagerFactory");
+                throw new ArgumentNullException(nameof(segmentReaderManagerFactory));
             if (null == mediaStreamConfigurator)
-                throw new ArgumentNullException("mediaStreamConfigurator");
+                throw new ArgumentNullException(nameof(mediaStreamConfigurator));
             if (null == bufferingManagerFactory)
-                throw new ArgumentNullException("bufferingManagerFactory");
+                throw new ArgumentNullException(nameof(bufferingManagerFactory));
 
             _segmentReaderManagerFactory = segmentReaderManagerFactory;
             _mediaStreamConfigurator = mediaStreamConfigurator;
@@ -106,146 +106,6 @@ namespace SM.Media.MediaManager
                        || MediaManagerState.Playing == state || MediaManagerState.Seeking == state;
             }
         }
-
-        #region IMediaManager Members
-
-        public void Dispose()
-        {
-            Debug.WriteLine("SmMediaManager.Dispose()");
-
-            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
-                return;
-
-            if (null != OnStateChange)
-            {
-                Debug.WriteLine("SmMediaManager.Dispose(): OnStateChange is not null");
-
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-
-                OnStateChange = null;
-            }
-
-            _mediaStreamConfigurator.MediaManager = null;
-
-            CloseAsync()
-                .Wait();
-
-            using (_reportStateTask)
-            using (_asyncLock)
-            { }
-
-            using (_playbackCancellationTokenSource)
-            { }
-
-            using (_closeCancellationTokenSource)
-            { }
-        }
-
-        public MediaManagerState State
-        {
-            get { lock (_lock) return _mediaState; }
-            private set { SetMediaState(value, null); }
-        }
-
-        public TimeSpan? SeekTarget
-        {
-            get { return _mediaStreamConfigurator.SeekTarget; }
-            set { _mediaStreamConfigurator.SeekTarget = value; }
-        }
-
-        /// <inheritdoc />
-        public ContentType ContentType { get; set; }
-
-        public Task PlayingTask
-        {
-            get { return _playbackTaskCompletionSource.Task; }
-        }
-
-        public async Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken)
-        {
-            Debug.WriteLine("SmMediaManager.OpenMediaAsync()");
-
-            if (null == source)
-                throw new ArgumentNullException("source");
-
-            if (0 == source.Count || source.Any(s => null == s))
-                throw new ArgumentException("No valid URLs", "source");
-
-            source = source.ToArray();
-
-            using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
-            {
-                if (!IsClosed)
-                    await CloseAsync().ConfigureAwait(false);
-
-                _playbackTaskCompletionSource = new TaskCompletionSource<object>();
-
-                State = MediaManagerState.OpenMedia;
-
-                await OpenAsync(source).ConfigureAwait(false);
-
-                return _mediaStreamConfigurator;
-            }
-        }
-
-        public async Task StopMediaAsync(CancellationToken cancellationToken)
-        {
-            Debug.WriteLine("SmMediaManager.StopMediaAsync()");
-
-            if (!IsRunning)
-                return;
-
-            using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
-            {
-                await CloseAsync().ConfigureAwait(false);
-            }
-        }
-
-        public async Task CloseMediaAsync()
-        {
-            Debug.WriteLine("SmMediaManager.CloseMediaAsync()");
-
-            if (IsClosed)
-                return;
-
-            // Is this an unavoidable race or yet another
-            // symptom of the unsystematic way the pipeline
-            // lifetime is managed?  We catch them for "CloseAsync()"
-            // since closing something that is (hopefully) already
-            // closed should probably return rather than causing the
-            // app to exit.  At any rate, the state of the object
-            // at return is what the caller asked for (closed).
-            try
-            {
-                using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
-                {
-                    await CloseAsync().ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException ex)
-            {
-                Debug.WriteLine("SmMediaManager.CloseMediaAsync() operation canceled exception: " + ex.Message);
-            }
-            catch (ObjectDisposedException ex)
-            {
-                Debug.WriteLine("SmMediaManager.CloseMediaAsync() object disposed exception: " + ex.Message);
-            }
-        }
-
-        public async Task<TimeSpan> SeekMediaAsync(TimeSpan position)
-        {
-            Debug.WriteLine("SmMediaManager.SeekMediaAsync({0})", position);
-
-            using (await _asyncLock.LockAsync(_closeCancellationTokenSource.Token).ConfigureAwait(false))
-            {
-                return await SeekAsync(position).ConfigureAwait(false);
-            }
-        }
-
-        public event EventHandler<MediaManagerStateEventArgs> OnStateChange;
-
-        #endregion
 
         async Task CloseAsync()
         {
@@ -339,8 +199,7 @@ namespace SM.Media.MediaManager
 
             DisposeReaders();
 
-            if (null != readerManager)
-                readerManager.DisposeSafe();
+            readerManager?.DisposeSafe();
         }
 
         Task ReportState()
@@ -469,8 +328,10 @@ namespace SM.Media.MediaManager
                 _readerManager = await _segmentReaderManagerFactory.CreateAsync(
                     new SegmentManagerParameters
                     {
-                        Source = source
-                    }, ContentType, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
+                        Source = source,
+                        ContentType = ContentType,
+                        StreamContentType = StreamContentType
+                    }, _playbackCancellationTokenSource.Token).ConfigureAwait(false);
 
                 if (null == _readerManager)
                 {
@@ -485,7 +346,7 @@ namespace SM.Media.MediaManager
                     .Select(CreateReaderPipeline)
                     .ToArray();
 
-                _readers = await Task.WhenAll<IMediaReader>(readerTasks)
+                _readers = await Task.WhenAll(readerTasks)
                     .ConfigureAwait(false);
 
                 foreach (var reader in _readers)
@@ -712,5 +573,137 @@ namespace SM.Media.MediaManager
 
             return TimeSpan.MinValue;
         }
+
+        #region IMediaManager Members
+
+        public void Dispose()
+        {
+            Debug.WriteLine("SmMediaManager.Dispose()");
+
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            if (null != OnStateChange)
+            {
+                Debug.WriteLine("SmMediaManager.Dispose(): OnStateChange is not null");
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+
+                OnStateChange = null;
+            }
+
+            _mediaStreamConfigurator.MediaManager = null;
+
+            CloseAsync()
+                .Wait();
+
+            using (_reportStateTask)
+            using (_asyncLock)
+            { }
+
+            using (_playbackCancellationTokenSource)
+            { }
+
+            using (_closeCancellationTokenSource)
+            { }
+        }
+
+        public MediaManagerState State { get { lock (_lock) return _mediaState; } private set { SetMediaState(value, null); } }
+
+        public TimeSpan? SeekTarget { get { return _mediaStreamConfigurator.SeekTarget; } set { _mediaStreamConfigurator.SeekTarget = value; } }
+
+        /// <inheritdoc />
+        public ContentType ContentType { get; set; }
+
+        /// <inheritdoc />
+        public ContentType StreamContentType { get; set; }
+
+        public Task PlayingTask => _playbackTaskCompletionSource.Task;
+
+        public async Task<IMediaStreamConfigurator> OpenMediaAsync(ICollection<Uri> source, CancellationToken cancellationToken)
+        {
+            Debug.WriteLine("SmMediaManager.OpenMediaAsync()");
+
+            if (null == source)
+                throw new ArgumentNullException(nameof(source));
+
+            if (0 == source.Count || source.Any(s => null == s))
+                throw new ArgumentException("No valid URLs", nameof(source));
+
+            source = source.ToArray();
+
+            using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!IsClosed)
+                    await CloseAsync().ConfigureAwait(false);
+
+                _playbackTaskCompletionSource = new TaskCompletionSource<object>();
+
+                State = MediaManagerState.OpenMedia;
+
+                await OpenAsync(source).ConfigureAwait(false);
+
+                return _mediaStreamConfigurator;
+            }
+        }
+
+        public async Task StopMediaAsync(CancellationToken cancellationToken)
+        {
+            Debug.WriteLine("SmMediaManager.StopMediaAsync()");
+
+            if (!IsRunning)
+                return;
+
+            using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await CloseAsync().ConfigureAwait(false);
+            }
+        }
+
+        public async Task CloseMediaAsync()
+        {
+            Debug.WriteLine("SmMediaManager.CloseMediaAsync()");
+
+            if (IsClosed)
+                return;
+
+            // Is this an unavoidable race or yet another
+            // symptom of the unsystematic way the pipeline
+            // lifetime is managed?  We catch them for "CloseAsync()"
+            // since closing something that is (hopefully) already
+            // closed should probably return rather than causing the
+            // app to exit.  At any rate, the state of the object
+            // at return is what the caller asked for (closed).
+            try
+            {
+                using (await _asyncLock.LockAsync(CancellationToken.None).ConfigureAwait(false))
+                {
+                    await CloseAsync().ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException ex)
+            {
+                Debug.WriteLine("SmMediaManager.CloseMediaAsync() operation canceled exception: " + ex.Message);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Debug.WriteLine("SmMediaManager.CloseMediaAsync() object disposed exception: " + ex.Message);
+            }
+        }
+
+        public async Task<TimeSpan> SeekMediaAsync(TimeSpan position)
+        {
+            Debug.WriteLine("SmMediaManager.SeekMediaAsync({0})", position);
+
+            using (await _asyncLock.LockAsync(_closeCancellationTokenSource.Token).ConfigureAwait(false))
+            {
+                return await SeekAsync(position).ConfigureAwait(false);
+            }
+        }
+
+        public event EventHandler<MediaManagerStateEventArgs> OnStateChange;
+
+        #endregion
     }
 }

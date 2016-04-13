@@ -31,11 +31,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using Microsoft.Phone.BackgroundAudio;
 using Microsoft.Phone.Info;
 using SM.Media.Buffering;
 using SM.Media.MediaManager;
 using SM.Media.Metadata;
+using SM.Media.Playlists;
 using SM.Media.TransportStream.TsParser;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -90,16 +92,22 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             _metadataHandler = new AudioMetadataHandler(_cancellationTokenSource.Token);
         }
 
-#if DEBUG
-        readonly Timer _memoryPoll = new Timer(_ => DumpMemory());
-
-        static void DumpMemory()
+        public void Dispose()
         {
-            Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
-                DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
-                DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB());
-        }
+            Debug.WriteLine("AudioTrackStreamer.Dispose()");
+
+            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
+                return;
+
+            TryCancel();
+
+            CleanupMediaStreamFacadeAsync().Wait();
+#if DEBUG
+            _memoryPoll.Dispose();
 #endif
+
+            _cancellationTokenSource.Dispose();
+        }
 
         [Conditional("DEBUG")]
         void StartPoll()
@@ -189,9 +197,11 @@ namespace SM.Media.BackgroundAudioStreamingAgent
 
                 Debug.Assert(null != mediaStreamFacade);
 
-                mediaStreamFacade.ContentType = null == mediaTrack ? null : mediaTrack.ContentType;
-
-                var mss = await mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationTokenSource.Token).ConfigureAwait(false);
+                MediaStreamSource mss;
+                if (null != mediaTrack)
+                    mss = await mediaStreamFacade.CreateMediaStreamSourceAsync(mediaTrack, _cancellationTokenSource.Token).ConfigureAwait(false);
+                else
+                    mss = await mediaStreamFacade.CreateMediaStreamSourceAsync(url, _cancellationTokenSource.Token).ConfigureAwait(false);
 
                 if (null == mss)
                 {
@@ -452,21 +462,15 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             }
         }
 
-        public void Dispose()
-        {
-            Debug.WriteLine("AudioTrackStreamer.Dispose()");
-
-            if (0 != Interlocked.Exchange(ref _isDisposed, 1))
-                return;
-
-            TryCancel();
-
-            CleanupMediaStreamFacadeAsync().Wait();
 #if DEBUG
-            _memoryPoll.Dispose();
-#endif
+        readonly Timer _memoryPoll = new Timer(_ => DumpMemory());
 
-            _cancellationTokenSource.Dispose();
+        static void DumpMemory()
+        {
+            Debug.WriteLine("<{0:F}MiB/{1:F}MiB>",
+                DeviceStatus.ApplicationCurrentMemoryUsage.BytesToMiB(),
+                DeviceStatus.ApplicationPeakMemoryUsage.BytesToMiB());
         }
+#endif
     }
 }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -44,6 +44,13 @@ namespace SM.Media.MediaManager
         /// </summary>
         /// <seealso cref="SM.Media.Content.ContentTypes" />
         ContentType ContentType { get; set; }
+
+        /// <summary>
+        ///     Force the source's stream to be considered <see cref="SM.Media.Content.ContentType" />.
+        ///     The type will be detected if null.
+        /// </summary>
+        /// <seealso cref="SM.Media.Content.ContentTypes" />
+        ContentType StreamContentType { get; set; }
 
         Task PlayingTask { get; }
 

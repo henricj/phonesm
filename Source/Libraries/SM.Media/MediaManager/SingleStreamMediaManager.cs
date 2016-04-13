@@ -58,15 +58,15 @@ namespace SM.Media.MediaManager
             IMediaStreamConfigurator mediaStreamConfigurator, IWebMetadataFactory webMetadataFactory, IWebReaderManager webReaderManager)
         {
             if (null == bufferingManagerFactory)
-                throw new ArgumentNullException("bufferingManagerFactory");
+                throw new ArgumentNullException(nameof(bufferingManagerFactory));
             if (null == mediaParserFactory)
-                throw new ArgumentNullException("mediaParserFactory");
+                throw new ArgumentNullException(nameof(mediaParserFactory));
             if (null == mediaStreamConfigurator)
-                throw new ArgumentNullException("mediaStreamConfigurator");
+                throw new ArgumentNullException(nameof(mediaStreamConfigurator));
             if (null == webMetadataFactory)
-                throw new ArgumentNullException("webMetadataFactory");
+                throw new ArgumentNullException(nameof(webMetadataFactory));
             if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
+                throw new ArgumentNullException(nameof(webReaderManager));
 
             _bufferingManagerFactory = bufferingManagerFactory;
             _mediaParserFactory = mediaParserFactory;
@@ -91,6 +91,7 @@ namespace SM.Media.MediaManager
 
         public TimeSpan? SeekTarget { get; set; }
         public ContentType ContentType { get; set; }
+        public ContentType StreamContentType { get; set; }
 
         public MediaManagerState State
         {
@@ -130,7 +131,7 @@ namespace SM.Media.MediaManager
 
                     try
                     {
-                        webReader = rootWebReader.CreateChild(url, ContentKind.Unknown, ContentType);
+                        webReader = rootWebReader.CreateChild(url, ContentKind.Unknown, ContentType ?? StreamContentType);
 
                         webStream = await webReader.GetWebStreamAsync(null, false, cancellationToken, response: response).ConfigureAwait(false);
 
@@ -142,7 +143,7 @@ namespace SM.Media.MediaManager
                         if (null == contentType)
                             continue;
 
-                        if (null == contentType || ContentKind.Playlist == contentType.Kind)
+                        if (ContentKind.Playlist == contentType.Kind)
                             throw new FileNotFoundException("Content not supported with this media manager");
 
                         var configurationTaskCompletionSource = new TaskCompletionSource<bool>();

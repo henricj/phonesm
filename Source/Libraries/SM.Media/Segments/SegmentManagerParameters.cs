@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SegmentManagerParameters.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,14 +26,17 @@
 
 using System;
 using System.Collections.Generic;
+using SM.Media.Content;
 using SM.Media.Web;
 
 namespace SM.Media.Segments
 {
     public interface ISegmentManagerParameters
     {
-        ICollection<Uri> Source { get; set; }
-        IWebReader WebReader { get; set; }
+        ICollection<Uri> Source { get; }
+        IWebReader WebReader { get; }
+        ContentType ContentType { get; }
+        ContentType StreamContentType { get; }
     }
 
     public class SegmentManagerParameters : ISegmentManagerParameters
@@ -42,6 +45,8 @@ namespace SM.Media.Segments
 
         public ICollection<Uri> Source { get; set; }
         public IWebReader WebReader { get; set; }
+        public ContentType ContentType { get; set; }
+        public ContentType StreamContentType { get; set; }
 
         #endregion
     }

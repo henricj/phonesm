@@ -32,6 +32,10 @@
     <Compile Include="..\SM.Media.Platform.WP7\DefaultMediaStreamFacadeParameters.cs">
       <Link>DefaultMediaStreamFacadeParameters.cs</Link>
     </Compile>
+    <Compile Include="Audio\Generator\GeneratorStreamSource.cs" />
+    <Compile Include="Audio\Generator\NoiseStreamSource.cs" />
+    <Compile Include="Audio\Generator\SilentSource.cs" />
+    <Compile Include="Audio\Generator\StreamSourceBase.cs" />
     <Compile Include="HttpConnectionModule.cs" />
     <Compile Include="NullMediaSource.cs" />
     <Compile Include="PlaybackSession.cs" />

@@ -79,6 +79,88 @@ namespace SM.Media.Web.HttpConnectionReader
 
         #endregion
 
+        internal Task<IHttpConnectionResponse> SendAsync(Uri url, IWebReader parent, CancellationToken cancellationToken, string method = null, ContentType contentType = null, bool allowBuffering = true, Uri referrer = null, long? fromBytes = null, long? toBytes = null)
+        {
+            var request = CreateRequest(url, referrer, parent, contentType, method, allowBuffering, fromBytes, toBytes);
+
+            return GetAsync(request, cancellationToken);
+        }
+
+        protected virtual HttpConnectionWebReader CreateHttpConnectionWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
+        {
+            if (null == contentType && null != url)
+                contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+
+            return new HttpConnectionWebReader(this, url, null == parent ? null : parent.BaseAddress, contentType, _contentTypeDetector);
+        }
+
+        internal virtual async Task<IHttpConnectionResponse> GetAsync(HttpConnectionRequest request, CancellationToken cancellationToken)
+        {
+            var connection = _httpConnectionFactory.CreateHttpConnection();
+
+            var requestUrl = request.Url;
+            var url = requestUrl;
+
+            var retry = 0;
+
+            for (;;)
+            {
+                await connection.ConnectAsync(request.Proxy ?? url, cancellationToken).ConfigureAwait(false);
+
+                request.Url = url; // TODO: Unhack this...
+                var response = await connection.GetAsync(request, true, cancellationToken).ConfigureAwait(false);
+                request.Url = requestUrl;
+
+                var status = response.Status;
+                if (HttpStatusCode.Moved != status.StatusCode && HttpStatusCode.Redirect != status.StatusCode)
+                    return response;
+
+                if (++retry >= 8)
+                    return response;
+
+                connection.Close();
+
+                var location = response.Headers["Location"].FirstOrDefault();
+
+                if (!Uri.TryCreate(request.Url, location, out url))
+                    return response;
+            }
+        }
+
+        internal virtual HttpConnectionRequest CreateRequest(Uri url, Uri referrer, IWebReader parent, ContentType contentType, string method = null, bool allowBuffering = false, long? fromBytes = null, long? toBytes = null)
+        {
+            referrer = referrer ?? GetReferrer(url, parent);
+
+            if (null == url && null != parent)
+                url = parent.RequestUri ?? parent.BaseAddress;
+
+            if (null != referrer && (null == url || !url.IsAbsoluteUri))
+                url = new Uri(referrer, url);
+
+            var request = _httpConnectionRequestFactory.CreateRequest(url, referrer, contentType, fromBytes, toBytes, _webReaderManagerParameters.DefaultHeaders);
+
+            return request;
+        }
+
+        protected static Uri GetReferrer(Uri url, IWebReader parent)
+        {
+            if (null == parent || null == url)
+                return null;
+
+            var parentUrl = parent.RequestUri ?? parent.BaseAddress;
+
+            if (parentUrl == url)
+                return null;
+
+            return parentUrl;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing)
+                return;
+        }
+
         #region IWebReaderManager Members
 
         public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
@@ -163,87 +245,5 @@ namespace SM.Media.Web.HttpConnectionReader
         }
 
         #endregion
-
-        internal Task<IHttpConnectionResponse> SendAsync(Uri url, IWebReader parent, CancellationToken cancellationToken, string method = null, ContentType contentType = null, bool allowBuffering = true, Uri referrer = null, long? fromBytes = null, long? toBytes = null)
-        {
-            var request = CreateRequest(url, referrer, parent, contentType, method, allowBuffering, fromBytes, toBytes);
-
-            return GetAsync(request, cancellationToken);
-        }
-
-        protected virtual HttpConnectionWebReader CreateHttpConnectionWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
-        {
-            if (null == contentType && null != url)
-                contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
-
-            return new HttpConnectionWebReader(this, url, null == parent ? null : parent.BaseAddress, contentType, _contentTypeDetector);
-        }
-
-        internal virtual async Task<IHttpConnectionResponse> GetAsync(HttpConnectionRequest request, CancellationToken cancellationToken)
-        {
-            var connection = _httpConnectionFactory.CreateHttpConnection();
-
-            var requestUrl = request.Url;
-            var url = requestUrl;
-
-            var retry = 0;
-
-            for (; ; )
-            {
-                await connection.ConnectAsync(request.Proxy ?? url, cancellationToken).ConfigureAwait(false);
-
-                request.Url = url; // TODO: Unhack this...
-                var response = await connection.GetAsync(request, true, cancellationToken).ConfigureAwait(false);
-                request.Url = requestUrl;
-
-                var status = response.Status;
-                if (HttpStatusCode.Moved != status.StatusCode && HttpStatusCode.Redirect != status.StatusCode)
-                    return response;
-
-                if (++retry >= 8)
-                    return response;
-
-                connection.Close();
-
-                var location = response.Headers["Location"].FirstOrDefault();
-
-                if (!Uri.TryCreate(request.Url, location, out url))
-                    return response;
-            }
-        }
-
-        internal virtual HttpConnectionRequest CreateRequest(Uri url, Uri referrer, IWebReader parent, ContentType contentType, string method = null, bool allowBuffering = false, long? fromBytes = null, long? toBytes = null)
-        {
-            referrer = referrer ?? GetReferrer(url, parent);
-
-            if (null == url && null != parent)
-                url = parent.RequestUri ?? parent.BaseAddress;
-
-            if (null != referrer && (null == url || !url.IsAbsoluteUri))
-                url = new Uri(referrer, url);
-
-            var request = _httpConnectionRequestFactory.CreateRequest(url, referrer, contentType, fromBytes, toBytes, _webReaderManagerParameters.DefaultHeaders);
-
-            return request;
-        }
-
-        protected static Uri GetReferrer(Uri url, IWebReader parent)
-        {
-            if (null == parent || null == url)
-                return null;
-
-            var parentUrl = parent.RequestUri ?? parent.BaseAddress;
-
-            if (parentUrl == url)
-                return null;
-
-            return parentUrl;
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposing)
-                return;
-        }
     }
 }

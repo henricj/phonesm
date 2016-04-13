@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="PersistentSettings.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ namespace NasaTv
     public sealed class PersistentSettings
     {
         const string UrlKey = "Url";
-        static readonly Uri DefaultUrl = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8");
+        static readonly Uri DefaultUrl = new Uri("http://iphone-streaming.ustream.tv/uhls/6540154/streams/live/iphone/playlist.m3u8");
         readonly IsolatedStorageSettings _settings = IsolatedStorageSettings.ApplicationSettings;
 
         public Uri DefaultPlaylistUrl

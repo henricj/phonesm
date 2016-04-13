@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="TrackManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -42,7 +42,7 @@ namespace SamplePlayer.WP8
             new MediaTrack
             {
                 Title = "NASA TV",
-                Url = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+                Url = new Uri("http://iphone-streaming.ustream.tv/uhls/6540154/streams/live/iphone/playlist.m3u8")
             },
             new MediaTrack
             {
@@ -63,9 +63,6 @@ namespace SamplePlayer.WP8
             }
         };
 
-        public static IList<MediaTrack> Tracks
-        {
-            get { return Sources; }
-        }
+        public static IList<MediaTrack> Tracks => Sources;
     }
 }

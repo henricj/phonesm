@@ -36,8 +36,13 @@ namespace SM.Media.BackgroundAudioStreamingAgent
         {
             new MediaTrack
             {
+                Title = "Apple",
+                Url = new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
+            },
+            new MediaTrack
+            {
                 Title = "NASA TV",
-                Url = new Uri("http://www.nasa.gov/multimedia/nasatv/NTV-Public-IPS.m3u8")
+                Url = new Uri("http://iphone-streaming.ustream.tv/uhls/6540154/streams/live/iphone/playlist.m3u8")
             },
             new MediaTrack
             {
@@ -53,14 +58,11 @@ namespace SM.Media.BackgroundAudioStreamingAgent
             null,
             new MediaTrack
             {
-                Title = "Apple",
-                Url = new Uri("http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8")
+                Title = "Apple 16x9",
+                Url = new Uri("https://devimages.apple.com.edgekey.net/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8")
             }
         };
 
-        public static IList<MediaTrack> Tracks
-        {
-            get { return Sources; }
-        }
+        public static IList<MediaTrack> Tracks => Sources;
     }
 }

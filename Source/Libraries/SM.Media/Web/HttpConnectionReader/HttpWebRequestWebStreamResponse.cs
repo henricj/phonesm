@@ -40,9 +40,9 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionWebStreamResponse(IHttpConnectionResponse response)
         {
             if (null == response)
-                throw new ArgumentNullException("response");
+                throw new ArgumentNullException(nameof(response));
             if (null == response.Status)
-                throw new ArgumentException("Not status in response", "response");
+                throw new ArgumentException("Not status in response", nameof(response));
 
             _response = response;
             _httpStatus = _response.Status;
@@ -51,7 +51,7 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionWebStreamResponse(IHttpStatus httpStatus)
         {
             if (null == httpStatus)
-                throw new ArgumentNullException("httpStatus");
+                throw new ArgumentNullException(nameof(httpStatus));
 
             _httpStatus = httpStatus;
         }

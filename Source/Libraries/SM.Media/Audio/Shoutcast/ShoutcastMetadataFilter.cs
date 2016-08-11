@@ -48,11 +48,11 @@ namespace SM.Media.Audio.Shoutcast
         public ShoutcastMetadataFilter(IAudioParser audioParser, Action<ITrackMetadata> reportMetadata, int interval, Encoding encoding)
         {
             if (null == audioParser)
-                throw new ArgumentNullException("audioParser");
+                throw new ArgumentNullException(nameof(audioParser));
             if (null == reportMetadata)
-                throw new ArgumentNullException("reportMetadata");
+                throw new ArgumentNullException(nameof(reportMetadata));
             if (interval < 1)
-                throw new ArgumentOutOfRangeException("interval", "must be positive");
+                throw new ArgumentOutOfRangeException(nameof(interval), "must be positive");
 
             _encoding = encoding;
             _audioParser = audioParser;

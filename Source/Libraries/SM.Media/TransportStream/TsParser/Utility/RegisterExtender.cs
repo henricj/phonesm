@@ -41,7 +41,7 @@ namespace SM.Media.TransportStream.TsParser.Utility
         public RegisterExtender(ulong initialValue, int actualWidth)
         {
             if (actualWidth < 2 || actualWidth > 63)
-                throw new ArgumentOutOfRangeException("actualWidth", "actualWidth must be between 2 and 63, inclusive.");
+                throw new ArgumentOutOfRangeException(nameof(actualWidth), "actualWidth must be between 2 and 63, inclusive.");
 
             _value = initialValue;
             _width = actualWidth;

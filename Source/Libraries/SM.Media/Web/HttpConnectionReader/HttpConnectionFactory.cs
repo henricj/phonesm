@@ -41,7 +41,7 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionFactory(Func<IHttpConnection> httpConnectionFactory)
         {
             if (null == httpConnectionFactory)
-                throw new ArgumentNullException("httpConnectionFactory");
+                throw new ArgumentNullException(nameof(httpConnectionFactory));
 
             _httpConnectionFactory = httpConnectionFactory;
         }

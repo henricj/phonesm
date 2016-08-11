@@ -48,7 +48,7 @@ namespace SM.Media.Utility
         public SignalTask(Func<Task> handler)
         {
             if (handler == null)
-                throw new ArgumentNullException("handler");
+                throw new ArgumentNullException(nameof(handler));
 
             _handler = handler;
             _cancellationTokenSource = new CancellationTokenSource();
@@ -57,7 +57,7 @@ namespace SM.Media.Utility
         public SignalTask(Func<Task> handler, CancellationToken token)
         {
             if (handler == null)
-                throw new ArgumentNullException("handler");
+                throw new ArgumentNullException(nameof(handler));
 
             _handler = handler;
             // ReSharper disable once PossiblyMistakenUseOfParamsMethod

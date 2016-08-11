@@ -49,11 +49,11 @@ namespace SM.Media.Web.WebRequestReader
         public HttpWebRequestWebCache(HttpWebRequestWebReader webReader, IHttpWebRequests httpWebRequests, IRetryManager retryManager)
         {
             if (webReader == null)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
             if (null == httpWebRequests)
-                throw new ArgumentNullException("httpWebRequests");
+                throw new ArgumentNullException(nameof(httpWebRequests));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _webReader = webReader;
             _httpWebRequests = httpWebRequests;

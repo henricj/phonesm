@@ -64,13 +64,13 @@ namespace SM.Media.Hls
         public HlsStreamSegments(M3U8Parser parser, IWebReader webReader, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == parser)
-                throw new ArgumentNullException("parser");
+                throw new ArgumentNullException(nameof(parser));
             if (null == webReader)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _parser = parser;
             _webReader = webReader;

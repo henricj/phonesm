@@ -62,9 +62,9 @@ namespace SM.Media.Utility
         public static void GetSecureRandom(this IPlatformServices platformServices, ulong[] output)
         {
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
             if (null == output)
-                throw new ArgumentNullException("output");
+                throw new ArgumentNullException(nameof(output));
 
             var bytes = new byte[output.Length * sizeof (ulong)];
 
@@ -76,9 +76,9 @@ namespace SM.Media.Utility
         public static void GetSecureRandom(this IPlatformServices platformServices, uint[] output)
         {
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
             if (null == output)
-                throw new ArgumentNullException("output");
+                throw new ArgumentNullException(nameof(output));
 
             var bytes = new byte[output.Length * sizeof (uint)];
 

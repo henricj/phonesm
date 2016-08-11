@@ -40,7 +40,7 @@ namespace SM.Media.MediaParser
         protected MediaParserFactoryBase(Func<TMediaParser> parserFactory)
         {
             if (null == parserFactory)
-                throw new ArgumentNullException("parserFactory");
+                throw new ArgumentNullException(nameof(parserFactory));
 
             _parserFactory = parserFactory;
         }

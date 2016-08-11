@@ -69,9 +69,9 @@ namespace SM.Media.Hls
         public HlsPlaylistSegmentManager(IProgramStream programStream, IPlatformServices platformServices, CancellationToken cancellationToken)
         {
             if (null == programStream)
-                throw new ArgumentNullException("programStream");
+                throw new ArgumentNullException(nameof(programStream));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _programStream = programStream;
             _platformServices = platformServices;
@@ -687,7 +687,7 @@ namespace SM.Media.Hls
             public PlaylistEnumerable(HlsPlaylistSegmentManager segmentManager)
             {
                 if (null == segmentManager)
-                    throw new ArgumentNullException("segmentManager");
+                    throw new ArgumentNullException(nameof(segmentManager));
 
                 _segmentManager = segmentManager;
             }
@@ -715,7 +715,7 @@ namespace SM.Media.Hls
             public PlaylistEnumerator(HlsPlaylistSegmentManager segmentManager)
             {
                 if (null == segmentManager)
-                    throw new ArgumentNullException("segmentManager");
+                    throw new ArgumentNullException(nameof(segmentManager));
 
                 _segmentManager = segmentManager;
             }

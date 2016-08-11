@@ -41,7 +41,7 @@ namespace SM.Media.Audio.Shoutcast
         public ShoutcastMetadataFilterFactory(IShoutcastEncodingSelector shoutcastEncodingSelector)
         {
             if (null == shoutcastEncodingSelector)
-                throw new ArgumentNullException("shoutcastEncodingSelector");
+                throw new ArgumentNullException(nameof(shoutcastEncodingSelector));
 
             _shoutcastEncodingSelector = shoutcastEncodingSelector;
         }

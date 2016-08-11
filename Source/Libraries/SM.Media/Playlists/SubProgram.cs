@@ -55,7 +55,7 @@ namespace SM.Media.Playlists
         protected SubProgram(IProgram program)
         {
             if (null == program)
-                throw new ArgumentNullException("program");
+                throw new ArgumentNullException(nameof(program));
 
             _program = program;
         }

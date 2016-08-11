@@ -46,11 +46,11 @@ namespace SM.Media.H264
             : base(parameters)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
             if (null == parameters.PesPacketPool)
-                throw new ArgumentException("PesPacketPool cannot be null", "parameters");
+                throw new ArgumentException("PesPacketPool cannot be null", nameof(parameters));
             if (null == parameters.NextHandler)
-                throw new ArgumentException("NextHandler cannot be null", "parameters");
+                throw new ArgumentException("NextHandler cannot be null", nameof(parameters));
 
             _pesPacketPool = parameters.PesPacketPool;
             _nextHandler = parameters.NextHandler;

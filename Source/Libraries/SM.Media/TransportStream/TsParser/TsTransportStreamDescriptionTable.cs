@@ -38,7 +38,7 @@ namespace SM.Media.TransportStream.TsParser
             : base(TsTableId.TS_description_section)
         {
             if (null == descriptorFactory)
-                throw new ArgumentNullException("descriptorFactory");
+                throw new ArgumentNullException(nameof(descriptorFactory));
 
             _descriptorFactory = descriptorFactory;
         }

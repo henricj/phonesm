@@ -87,7 +87,7 @@ namespace SM.Media.Web.HttpConnection
         protected void IncrementPosition(long length)
         {
             if (length < 0)
-                throw new ArgumentException("length cannot be negative", "length");
+                throw new ArgumentException("length cannot be negative", nameof(length));
 
             _position += length;
         }

@@ -44,9 +44,9 @@ namespace SM.Media.Web.HttpConnection
         public HttpHeaderSerializer(IUserAgentEncoder userAgentEncoder, IHttpEncoding httpEncoding)
         {
             if (null == userAgentEncoder)
-                throw new ArgumentNullException("userAgentEncoder");
+                throw new ArgumentNullException(nameof(userAgentEncoder));
             if (null == httpEncoding)
-                throw new ArgumentNullException("httpEncoding");
+                throw new ArgumentNullException(nameof(httpEncoding));
 
             var userAgent = userAgentEncoder.UsAsciiUserAgent;
 

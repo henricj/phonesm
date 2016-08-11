@@ -90,14 +90,14 @@ namespace SM.Media.Metadata
         public virtual void ReportTrackMetadata(ITrackMetadata trackMetadata)
         {
             if (trackMetadata == null)
-                throw new ArgumentNullException("trackMetadata");
+                throw new ArgumentNullException(nameof(trackMetadata));
 
             Debug.WriteLine("MetadataSink.ReportTrackMetadata() " + trackMetadata);
 
             if (!trackMetadata.TimeStamp.HasValue)
-                throw new ArgumentException("A timestamp is required", "trackMetadata");
+                throw new ArgumentException("A timestamp is required", nameof(trackMetadata));
             if (trackMetadata.TimeStamp.Value < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException("trackMetadata", "The timestamp cannot be negative");
+                throw new ArgumentOutOfRangeException(nameof(trackMetadata), "The timestamp cannot be negative");
 
             lock (_lock)
             {

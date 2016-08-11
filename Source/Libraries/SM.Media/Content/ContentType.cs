@@ -45,11 +45,11 @@ namespace SM.Media.Content
         public ContentType(string name, ContentKind kind, string mimeType, IEnumerable<string> fileExts, IEnumerable<string> alternateMimeTypes = null)
         {
             if (null == name)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             if (mimeType == null)
-                throw new ArgumentNullException("mimeType");
+                throw new ArgumentNullException(nameof(mimeType));
             if (null == fileExts)
-                throw new ArgumentNullException("fileExts");
+                throw new ArgumentNullException(nameof(fileExts));
 
             _name = name;
             _kind = kind;

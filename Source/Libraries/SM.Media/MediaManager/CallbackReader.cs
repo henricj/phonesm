@@ -52,13 +52,13 @@ namespace SM.Media.MediaManager
         public CallbackReader(IAsyncEnumerable<ISegmentReader> segmentReaders, Action<WorkBuffer> enqueue, IBlockingPool<WorkBuffer> bufferPool)
         {
             if (null == segmentReaders)
-                throw new ArgumentNullException("segmentReaders");
+                throw new ArgumentNullException(nameof(segmentReaders));
 
             if (null == enqueue)
-                throw new ArgumentNullException("enqueue");
+                throw new ArgumentNullException(nameof(enqueue));
 
             if (null == bufferPool)
-                throw new ArgumentNullException("bufferPool");
+                throw new ArgumentNullException(nameof(bufferPool));
 
             _segmentReaders = segmentReaders;
             _enqueue = enqueue;

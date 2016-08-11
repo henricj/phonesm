@@ -51,11 +51,11 @@ namespace SM.Media.MediaParser
         protected MediaParserBase(TsStreamType streamType, TConfigurator configurator, ITsPesPacketPool tsPesPacketPool)
         {
             if (null == streamType)
-                throw new ArgumentNullException("streamType");
+                throw new ArgumentNullException(nameof(streamType));
             if (ReferenceEquals(default(TConfigurator), configurator))
-                throw new ArgumentNullException("configurator");
+                throw new ArgumentNullException(nameof(configurator));
             if (null == tsPesPacketPool)
-                throw new ArgumentNullException("tsPesPacketPool");
+                throw new ArgumentNullException(nameof(tsPesPacketPool));
 
             _streamType = streamType;
             _configurator = configurator;
@@ -111,7 +111,7 @@ namespace SM.Media.MediaParser
         public void Initialize(IBufferingManager bufferingManager, Action<IProgramStreams> programStreamsHandler = null)
         {
             if (null == bufferingManager)
-                throw new ArgumentNullException("bufferingManager");
+                throw new ArgumentNullException(nameof(bufferingManager));
 
             _bufferingManager = bufferingManager;
 

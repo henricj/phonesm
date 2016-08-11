@@ -49,7 +49,7 @@ namespace SM.Media
         protected PlaybackSessionBase(IMediaStreamFacadeBase<TMediaSource> mediaStreamFacade)
         {
             if (null == mediaStreamFacade)
-                throw new ArgumentNullException("mediaStreamFacade");
+                throw new ArgumentNullException(nameof(mediaStreamFacade));
 
             _mediaStreamFacade = mediaStreamFacade;
         }

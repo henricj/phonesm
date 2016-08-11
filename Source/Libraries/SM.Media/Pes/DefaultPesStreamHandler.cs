@@ -38,9 +38,9 @@ namespace SM.Media.Pes
             : base(parameters)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
             if (null == parameters.NextHandler)
-                throw new ArgumentException("NextHandler cannot be null", "parameters");
+                throw new ArgumentException("NextHandler cannot be null", nameof(parameters));
 
             _nextHandler = parameters.NextHandler;
         }

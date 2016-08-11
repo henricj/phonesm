@@ -54,15 +54,15 @@ namespace SM.Media.TransportStream
         public TsMediaParser(ITsDecoder tsDecoder, ITsPesPacketPool tsPesPacketPool, IBufferPool bufferPool, ITsTimestamp tsTimemestamp, IPesHandlers pesHandlers)
         {
             if (null == tsDecoder)
-                throw new ArgumentNullException("tsDecoder");
+                throw new ArgumentNullException(nameof(tsDecoder));
             if (null == tsPesPacketPool)
-                throw new ArgumentNullException("tsPesPacketPool");
+                throw new ArgumentNullException(nameof(tsPesPacketPool));
             if (null == bufferPool)
-                throw new ArgumentNullException("bufferPool");
+                throw new ArgumentNullException(nameof(bufferPool));
             if (null == tsTimemestamp)
-                throw new ArgumentNullException("tsTimemestamp");
+                throw new ArgumentNullException(nameof(tsTimemestamp));
             if (null == pesHandlers)
-                throw new ArgumentNullException("pesHandlers");
+                throw new ArgumentNullException(nameof(pesHandlers));
 
             _tsPesPacketPool = tsPesPacketPool;
             _bufferPool = bufferPool;
@@ -104,7 +104,7 @@ namespace SM.Media.TransportStream
         public void Initialize(IBufferingManager bufferingManager, Action<IProgramStreams> programStreamsHandler = null)
         {
             if (null == bufferingManager)
-                throw new ArgumentNullException("bufferingManager");
+                throw new ArgumentNullException(nameof(bufferingManager));
 
             _bufferingManager = bufferingManager;
 

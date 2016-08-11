@@ -57,15 +57,15 @@ namespace SM.Media.Segments
         public SegmentReader(ISegment segment, IWebReader webReader, IWebMetadataFactory webMetadataFactory, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == segment)
-                throw new ArgumentNullException("segment");
+                throw new ArgumentNullException(nameof(segment));
             if (null == webReader)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
             if (null == webMetadataFactory)
-                throw new ArgumentNullException("webMetadataFactory");
+                throw new ArgumentNullException(nameof(webMetadataFactory));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _segment = segment;
             _webReader = webReader;

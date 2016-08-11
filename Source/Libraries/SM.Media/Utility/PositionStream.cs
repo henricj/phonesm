@@ -39,7 +39,7 @@ namespace SM.Media.Utility
         public PositionStream(Stream parent)
         {
             if (parent == null)
-                throw new ArgumentNullException("parent");
+                throw new ArgumentNullException(nameof(parent));
 
             _parent = parent;
         }

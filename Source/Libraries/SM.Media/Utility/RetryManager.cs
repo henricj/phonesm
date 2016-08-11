@@ -40,7 +40,7 @@ namespace SM.Media.Utility
         public RetryManager(IPlatformServices platformServices)
         {
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _platformServices = platformServices;
         }

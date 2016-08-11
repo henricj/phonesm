@@ -46,7 +46,7 @@ namespace SM.Media.Content
         public ContentTypeDetector(IEnumerable<ContentType> contentTypes)
         {
             if (null == contentTypes)
-                throw new ArgumentNullException("contentTypes");
+                throw new ArgumentNullException(nameof(contentTypes));
 
             ContentTypes = contentTypes.ToArray();
 
@@ -83,9 +83,9 @@ namespace SM.Media.Content
         public virtual ICollection<ContentType> GetContentType(Uri url, string mimeType = null, string fileName = null)
         {
             if (null == url)
-                throw new ArgumentNullException("url");
+                throw new ArgumentNullException(nameof(url));
 
-            var contentTypes = GetContentTypeByUrl(url);
+            var contentTypes = GetContentTypeByUrl(url, kind);
 
             if (null != contentTypes && contentTypes.Any())
                 return contentTypes;

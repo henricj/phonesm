@@ -41,7 +41,7 @@ namespace SM.Media.Utility.RandomGenerators
         public XorShift1024Star(IPlatformServices platformServices)
         {
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _platformServices = platformServices;
 

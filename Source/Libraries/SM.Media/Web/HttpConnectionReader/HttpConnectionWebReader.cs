@@ -46,9 +46,9 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionWebReader(HttpConnectionWebReaderManager webReaderManager, Uri baseAddress, Uri referrer, ContentType contentType, IContentTypeDetector contentTypeDetector)
         {
             if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
+                throw new ArgumentNullException(nameof(webReaderManager));
             if (contentTypeDetector == null)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
 
             _webReaderManager = webReaderManager;
             _baseAddress = baseAddress;

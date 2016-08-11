@@ -96,14 +96,14 @@ namespace SM.Media.Pes
             {
                 case SeekOrigin.Begin:
                     if (offset > Packet.Length || offset < 0)
-                        throw new ArgumentOutOfRangeException("offset");
+                        throw new ArgumentOutOfRangeException(nameof(offset));
 
                     _location = (int)offset;
 
                     break;
                 case SeekOrigin.End:
                     if (offset > Packet.Length || offset < 0)
-                        throw new ArgumentOutOfRangeException("offset");
+                        throw new ArgumentOutOfRangeException(nameof(offset));
 
                     _location = Packet.Length - (int)offset;
 
@@ -113,7 +113,7 @@ namespace SM.Media.Pes
                     var newOffset = _location + offset;
 
                     if (newOffset < 0 || newOffset > Packet.Length)
-                        throw new ArgumentOutOfRangeException("offset");
+                        throw new ArgumentOutOfRangeException(nameof(offset));
 
                     _location = (int)newOffset;
 

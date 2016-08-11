@@ -39,7 +39,7 @@ namespace SM.Media.Segments
         public SimpleSegment(Uri url, Uri parentUrl)
         {
             if (null == url)
-                throw new ArgumentNullException("url");
+                throw new ArgumentNullException(nameof(url));
 
             _url = url;
             _parentUrl = parentUrl;

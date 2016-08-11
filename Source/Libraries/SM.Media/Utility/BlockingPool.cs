@@ -107,7 +107,7 @@ namespace SM.Media.Utility
             //Debug.WriteLine("BlockingPool.Free() item: " + item);
 
             if (EqualityComparer<TItem>.Default.Equals(default(TItem), item))
-                throw new ArgumentNullException("item");
+                throw new ArgumentNullException(nameof(item));
 
             lock (_pool)
             {

@@ -222,7 +222,7 @@ namespace SM.Media.Ac3
             public int GetFrameSize(int fscod)
             {
                 if (fscod < 0 || fscod >= _frame.Length)
-                    throw new ArgumentOutOfRangeException("fscod");
+                    throw new ArgumentOutOfRangeException(nameof(fscod));
 
                 return 2 * _frame[fscod];
             }

@@ -152,9 +152,9 @@ namespace SM.Media.Buffering
         public static DefaultBufferingPolicy SetBandwidth(this DefaultBufferingPolicy policy, double bitsPerSecond)
         {
             if (null == policy)
-                throw new ArgumentNullException("policy");
+                throw new ArgumentNullException(nameof(policy));
             if (bitsPerSecond < 100 || bitsPerSecond > 500 * 1024 * 1024)
-                throw new ArgumentOutOfRangeException("bitsPerSecond");
+                throw new ArgumentOutOfRangeException(nameof(bitsPerSecond));
 
             var bytesPerSecond = bitsPerSecond * (1.0 / 8);
 

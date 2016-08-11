@@ -47,15 +47,15 @@ namespace SM.Media.Audio
             : base(parameters)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
             if (null == parameters.PesPacketPool)
-                throw new ArgumentException("PesPacketPool cannot be null", "parameters");
+                throw new ArgumentException("PesPacketPool cannot be null", nameof(parameters));
             if (null == parameters.NextHandler)
-                throw new ArgumentException("NextHandler cannot be null", "parameters");
+                throw new ArgumentException("NextHandler cannot be null", nameof(parameters));
             if (minimumPacketSize < 1)
-                throw new ArgumentOutOfRangeException("minimumPacketSize", "minimumPacketSize must be positive: " + minimumPacketSize);
+                throw new ArgumentOutOfRangeException(nameof(minimumPacketSize), "minimumPacketSize must be positive: " + minimumPacketSize);
             if (null == frameHeader)
-                throw new ArgumentNullException("frameHeader");
+                throw new ArgumentNullException(nameof(frameHeader));
 
             _pesPacketPool = parameters.PesPacketPool;
             NextHandler = parameters.NextHandler;

@@ -43,7 +43,7 @@ namespace SM.Media.TransportStream.TsParser
         public TsProgramAssociationTableFactory(ITsProgramMapTableFactory programMapTableFactory)
         {
             if (null == programMapTableFactory)
-                throw new ArgumentNullException("programMapTableFactory");
+                throw new ArgumentNullException(nameof(programMapTableFactory));
 
             _programMapTableFactory = programMapTableFactory;
         }
@@ -81,9 +81,9 @@ namespace SM.Media.TransportStream.TsParser
             : base(TsTableId.program_association_section)
         {
             if (null == decoder)
-                throw new ArgumentNullException("decoder");
+                throw new ArgumentNullException(nameof(decoder));
             if (null == programMapTableFactory)
-                throw new ArgumentNullException("programMapTableFactory");
+                throw new ArgumentNullException(nameof(programMapTableFactory));
 
             _decoder = decoder;
             _programMapTableFactory = programMapTableFactory;

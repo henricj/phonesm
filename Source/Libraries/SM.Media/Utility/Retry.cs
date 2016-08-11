@@ -52,13 +52,13 @@ namespace SM.Media.Utility
         public Retry(int maxRetries, int delayMilliseconds, Func<Exception, bool> retryableException, IPlatformServices platformServices)
         {
             if (maxRetries < 1)
-                throw new ArgumentOutOfRangeException("maxRetries", "The number of retries must be positive.");
+                throw new ArgumentOutOfRangeException(nameof(maxRetries), "The number of retries must be positive.");
             if (delayMilliseconds < 0)
-                throw new ArgumentOutOfRangeException("delayMilliseconds", "The delay cannot be negative");
+                throw new ArgumentOutOfRangeException(nameof(delayMilliseconds), "The delay cannot be negative");
             if (null == retryableException)
-                throw new ArgumentNullException("retryableException");
+                throw new ArgumentNullException(nameof(retryableException));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _maxRetries = maxRetries;
             _delayMilliseconds = delayMilliseconds;

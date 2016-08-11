@@ -43,11 +43,11 @@ namespace SM.Media.Web.HttpClientReader
         public HttpClientWebReader(IWebReaderManager webReaderManager, HttpClient httpClient, ContentType contentType, IContentTypeDetector contentTypeDetector)
         {
             if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
+                throw new ArgumentNullException(nameof(webReaderManager));
             if (null == httpClient)
-                throw new ArgumentNullException("httpClient");
+                throw new ArgumentNullException(nameof(httpClient));
             if (contentTypeDetector == null)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
 
             _webReaderManager = webReaderManager;
             _httpClient = httpClient;

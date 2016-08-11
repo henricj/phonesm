@@ -39,7 +39,7 @@ namespace SM.Media.Pes
         protected PesStreamHandler(PesStreamParameters parameters)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
 
             StreamType = parameters.StreamType;
             Pid = parameters.Pid;

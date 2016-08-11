@@ -37,7 +37,7 @@ namespace SM.Media.TransportStream.TsParser
         public PesStreamParameters(ITsPesPacketPool pesPacketPool)
         {
             if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
+                throw new ArgumentNullException(nameof(pesPacketPool));
 
             _pesPacketPool = pesPacketPool;
         }

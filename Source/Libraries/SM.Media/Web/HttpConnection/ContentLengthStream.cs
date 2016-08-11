@@ -38,7 +38,7 @@ namespace SM.Media.Web.HttpConnection
         public ContentLengthStream(IHttpReader reader, long? contentLength)
         {
             if (null == reader)
-                throw new ArgumentNullException("reader");
+                throw new ArgumentNullException(nameof(reader));
 
             _reader = reader;
             _contentLength = contentLength;
@@ -47,11 +47,11 @@ namespace SM.Media.Web.HttpConnection
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (null == buffer)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             if (offset < 0 || offset > buffer.Length)
-                throw new ArgumentOutOfRangeException("offset");
+                throw new ArgumentOutOfRangeException(nameof(offset));
             if (count < 1 || count + offset > buffer.Length)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             if (_contentLength.HasValue)
             {

@@ -74,7 +74,7 @@ namespace SM.Media.Web.HttpConnection
         public static void EnsureSuccessStatusCode(this IHttpStatus httpStatus)
         {
             if (null == httpStatus)
-                throw new ArgumentNullException("httpStatus");
+                throw new ArgumentNullException(nameof(httpStatus));
 
             if (!httpStatus.IsSuccessStatusCode)
                 throw new StatusCodeWebException(httpStatus.StatusCode, httpStatus.ResponsePhrase);

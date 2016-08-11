@@ -66,11 +66,11 @@ namespace SM.Media
         public StreamBuffer(TsStreamType streamType, Action<TsPesPacket> freePesPacket, IBufferingManager bufferingManager)
         {
             if (null == streamType)
-                throw new ArgumentNullException("streamType");
+                throw new ArgumentNullException(nameof(streamType));
             if (null == freePesPacket)
-                throw new ArgumentNullException("freePesPacket");
+                throw new ArgumentNullException(nameof(freePesPacket));
             if (null == bufferingManager)
-                throw new ArgumentNullException("bufferingManager");
+                throw new ArgumentNullException(nameof(bufferingManager));
 
             _streamType = streamType;
             _freePesPacket = freePesPacket;

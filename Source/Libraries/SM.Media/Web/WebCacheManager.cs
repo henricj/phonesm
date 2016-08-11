@@ -52,7 +52,7 @@ namespace SM.Media.Web
         public WebCacheManager(IWebReader webReader)
         {
             if (null == webReader)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
 
             _webReader = webReader;
         }

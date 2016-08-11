@@ -43,7 +43,7 @@ namespace SM.Media.Content
         protected ContentServiceFactory(IContentServiceFactoryFinder<TService, TParameter> factoryFinder)
         {
             if (null == factoryFinder)
-                throw new ArgumentNullException("factoryFinder");
+                throw new ArgumentNullException(nameof(factoryFinder));
 
             _factoryFinder = factoryFinder;
         }
@@ -53,7 +53,7 @@ namespace SM.Media.Content
         public virtual Task<TService> CreateAsync(TParameter parameter, ContentType contentType, CancellationToken cancellationToken)
         {
             if (null == contentType)
-                throw new ArgumentNullException("contentType");
+                throw new ArgumentNullException(nameof(contentType));
 
             var factory = _factoryFinder.GetFactory(contentType);
 

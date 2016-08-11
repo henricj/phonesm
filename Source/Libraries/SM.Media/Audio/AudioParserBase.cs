@@ -50,13 +50,13 @@ namespace SM.Media.Audio
         protected AudioParserBase(IAudioFrameHeader frameHeader, ITsPesPacketPool pesPacketPool, Action<IAudioFrameHeader> configurationHandler, Action<TsPesPacket> submitPacket)
         {
             if (frameHeader == null)
-                throw new ArgumentNullException("frameHeader");
+                throw new ArgumentNullException(nameof(frameHeader));
             if (pesPacketPool == null)
-                throw new ArgumentNullException("pesPacketPool");
+                throw new ArgumentNullException(nameof(pesPacketPool));
             if (configurationHandler == null)
-                throw new ArgumentNullException("configurationHandler");
+                throw new ArgumentNullException(nameof(configurationHandler));
             if (submitPacket == null)
-                throw new ArgumentNullException("submitPacket");
+                throw new ArgumentNullException(nameof(submitPacket));
 
             _frameHeader = frameHeader;
             _pesPacketPool = pesPacketPool;

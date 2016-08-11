@@ -37,7 +37,7 @@ namespace SM.Media.Content
         protected ContentServiceFactoryInstance(Func<TServiceImplementation> factory)
         {
             if (null == factory)
-                throw new ArgumentNullException("factory");
+                throw new ArgumentNullException(nameof(factory));
 
             _factory = factory;
         }

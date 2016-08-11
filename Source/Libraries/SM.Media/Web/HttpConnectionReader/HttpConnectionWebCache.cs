@@ -52,9 +52,9 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionWebCache(HttpConnectionWebReader webReader, IRetryManager retryManager)
         {
             if (webReader == null)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _webReader = webReader;
             _retryManager = retryManager;

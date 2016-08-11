@@ -43,13 +43,13 @@ namespace SM.Media.Segments
         public SegmentReaderManager(IEnumerable<ISegmentManager> segmentManagers, IWebMetadataFactory webMetadataFactory, IRetryManager retryManager, IPlatformServices platformServices)
         {
             if (null == segmentManagers)
-                throw new ArgumentNullException("segmentManagers");
+                throw new ArgumentNullException(nameof(segmentManagers));
             if (null == webMetadataFactory)
-                throw new ArgumentNullException("webMetadataFactory");
+                throw new ArgumentNullException(nameof(webMetadataFactory));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _segmentManagers = segmentManagers.ToArray();
 
@@ -141,13 +141,13 @@ namespace SM.Media.Segments
             public SegmentReaderEnumerable(ISegmentManager segmentManager, IWebMetadataFactory webMetadataFactory, IRetryManager retryManager, IPlatformServices platformServices)
             {
                 if (null == segmentManager)
-                    throw new ArgumentNullException("segmentManager");
+                    throw new ArgumentNullException(nameof(segmentManager));
                 if (null == webMetadataFactory)
-                    throw new ArgumentNullException("webMetadataFactory");
+                    throw new ArgumentNullException(nameof(webMetadataFactory));
                 if (null == platformServices)
-                    throw new ArgumentNullException("platformServices");
+                    throw new ArgumentNullException(nameof(platformServices));
                 if (null == retryManager)
-                    throw new ArgumentNullException("retryManager");
+                    throw new ArgumentNullException(nameof(retryManager));
 
                 _segmentManager = segmentManager;
                 _webMetadataFactory = webMetadataFactory;
@@ -181,13 +181,13 @@ namespace SM.Media.Segments
             public SegmentReaderEnumerator(ISegmentManager segmentManager, IWebMetadataFactory webMetadataFactory, IRetryManager retryManager, IPlatformServices platformServices)
             {
                 if (null == segmentManager)
-                    throw new ArgumentNullException("segmentManager");
+                    throw new ArgumentNullException(nameof(segmentManager));
                 if (null == webMetadataFactory)
-                    throw new ArgumentNullException("webMetadataFactory");
+                    throw new ArgumentNullException(nameof(webMetadataFactory));
                 if (null == retryManager)
-                    throw new ArgumentNullException("retryManager");
+                    throw new ArgumentNullException(nameof(retryManager));
                 if (null == platformServices)
-                    throw new ArgumentNullException("platformServices");
+                    throw new ArgumentNullException(nameof(platformServices));
 
                 _segmentEnumerator = segmentManager.Playlist.GetEnumerator();
                 _webReader = segmentManager.WebReader;

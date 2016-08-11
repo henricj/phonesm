@@ -47,13 +47,13 @@ namespace SM.Media.Hls
         public HlsProgramStreamFactory(IHlsSegmentsFactory segmentsFactory, IWebMetadataFactory webMetadataFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
             if (null == segmentsFactory)
-                throw new ArgumentNullException("segmentsFactory");
+                throw new ArgumentNullException(nameof(segmentsFactory));
             if (null == webMetadataFactory)
-                throw new ArgumentNullException("webMetadataFactory");
+                throw new ArgumentNullException(nameof(webMetadataFactory));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _segmentsFactory = segmentsFactory;
             _webMetadataFactory = webMetadataFactory;

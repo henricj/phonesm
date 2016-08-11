@@ -35,7 +35,7 @@ namespace SM.Media.Metadata
         public ActionMetadataSink(Action updateAction)
         {
             if (null == updateAction)
-                throw new ArgumentNullException("updateAction");
+                throw new ArgumentNullException(nameof(updateAction));
 
             _updateAction = updateAction;
         }

@@ -59,7 +59,7 @@ namespace SM.Media.Pes
         public PesHandlerFactory(IEnumerable<IPesStreamFactoryInstance> factoryInstances)
         {
             if (factoryInstances == null)
-                throw new ArgumentNullException("factoryInstances");
+                throw new ArgumentNullException(nameof(factoryInstances));
 
             _factories = factoryInstances
                 .SelectMany(fi => fi.SupportedStreamTypes,

@@ -60,9 +60,9 @@ namespace SM.Media.Buffering
         public BufferingManager(IBufferingPolicy bufferingPolicy, ITsPesPacketPool packetPool)
         {
             if (null == bufferingPolicy)
-                throw new ArgumentNullException("bufferingPolicy");
+                throw new ArgumentNullException(nameof(bufferingPolicy));
             if (null == packetPool)
-                throw new ArgumentNullException("packetPool");
+                throw new ArgumentNullException(nameof(packetPool));
 
             _bufferingPolicy = bufferingPolicy;
             _packetPool = packetPool;
@@ -82,9 +82,9 @@ namespace SM.Media.Buffering
             Debug.WriteLine("BufferingManager.Initialize()");
 
             if (null == queueThrottling)
-                throw new ArgumentNullException("queueThrottling");
+                throw new ArgumentNullException(nameof(queueThrottling));
             if (reportBufferingChange == null)
-                throw new ArgumentNullException("reportBufferingChange");
+                throw new ArgumentNullException(nameof(reportBufferingChange));
 
             ThrowIfDisposed();
 
@@ -106,7 +106,7 @@ namespace SM.Media.Buffering
             Debug.WriteLine("BufferingManager.Shutdown()");
 
             if (null == queueThrottling)
-                throw new ArgumentNullException("queueThrottling");
+                throw new ArgumentNullException(nameof(queueThrottling));
 
             ThrowIfDisposed();
 

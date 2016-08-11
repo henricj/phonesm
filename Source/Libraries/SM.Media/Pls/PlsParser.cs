@@ -46,7 +46,7 @@ namespace SM.Media.Pls
         public PlsParser(Uri url)
         {
             if (null == url)
-                throw new ArgumentNullException("url");
+                throw new ArgumentNullException(nameof(url));
 
             _url = url;
         }

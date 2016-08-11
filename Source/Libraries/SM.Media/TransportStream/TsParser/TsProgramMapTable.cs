@@ -46,7 +46,7 @@ namespace SM.Media.TransportStream.TsParser
         public TsProgramMapTableFactory(ITsDescriptorFactory descriptorFactory)
         {
             if (null == descriptorFactory)
-                throw new ArgumentNullException("descriptorFactory");
+                throw new ArgumentNullException(nameof(descriptorFactory));
 
             _descriptorFactory = descriptorFactory;
         }
@@ -83,9 +83,9 @@ namespace SM.Media.TransportStream.TsParser
             : base(TsTableId.TS_program_map_section)
         {
             if (null == decoder)
-                throw new ArgumentNullException("decoder");
+                throw new ArgumentNullException(nameof(decoder));
             if (null == descriptorFactory)
-                throw new ArgumentNullException("descriptorFactory");
+                throw new ArgumentNullException(nameof(descriptorFactory));
 
             _decoder = decoder;
             _descriptorFactory = descriptorFactory;

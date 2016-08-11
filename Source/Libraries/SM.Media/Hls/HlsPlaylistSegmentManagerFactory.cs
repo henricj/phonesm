@@ -43,9 +43,9 @@ namespace SM.Media.Hls
         public HlsPlaylistSegmentManagerFactory(IHlsPlaylistSegmentManagerPolicy hlsPlaylistSegmentManagerPolicy, IPlatformServices platformServices)
         {
             if (null == hlsPlaylistSegmentManagerPolicy)
-                throw new ArgumentNullException("hlsPlaylistSegmentManagerPolicy");
+                throw new ArgumentNullException(nameof(hlsPlaylistSegmentManagerPolicy));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _hlsPlaylistSegmentManagerPolicy = hlsPlaylistSegmentManagerPolicy;
             _platformServices = platformServices;

@@ -139,7 +139,7 @@ namespace SM.Media.Utility
         WorkHandle PostWork(Func<Task> workFunc, bool createTcs, string description, CancellationToken cancellationToken)
         {
             if (workFunc == null)
-                throw new ArgumentNullException("workFunc");
+                throw new ArgumentNullException(nameof(workFunc));
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -217,7 +217,7 @@ namespace SM.Media.Utility
             public WorkHandle(Func<Task> work, TaskCompletionSource<object> taskCompletionSource)
             {
                 if (null == work)
-                    throw new ArgumentNullException("work");
+                    throw new ArgumentNullException(nameof(work));
 
                 _work = work;
                 _taskCompletionSource = taskCompletionSource;

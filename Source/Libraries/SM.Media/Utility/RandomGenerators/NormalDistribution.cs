@@ -41,9 +41,9 @@ namespace SM.Media.Utility.RandomGenerators
         public NormalDistribution(IRandomGenerator randomGenerator, float mean, float standardDeviation)
         {
             if (randomGenerator == null)
-                throw new ArgumentNullException("randomGenerator");
+                throw new ArgumentNullException(nameof(randomGenerator));
             if (standardDeviation <= 0)
-                throw new ArgumentOutOfRangeException("standardDeviation");
+                throw new ArgumentOutOfRangeException(nameof(standardDeviation));
 
             _randomGenerator = randomGenerator;
             _mean = mean;

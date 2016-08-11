@@ -44,7 +44,7 @@ namespace SM.Media.Web.HttpConnection
         public ChunkedStream(IHttpReader reader)
         {
             if (null == reader)
-                throw new ArgumentNullException("reader");
+                throw new ArgumentNullException(nameof(reader));
 
             _reader = reader;
         }
@@ -52,11 +52,11 @@ namespace SM.Media.Web.HttpConnection
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (null == buffer)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             if (offset < 0 || offset > buffer.Length)
-                throw new ArgumentOutOfRangeException("offset");
+                throw new ArgumentOutOfRangeException(nameof(offset));
             if (count < 1 || count + offset > buffer.Length)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             var totalLength = 0;
             var count0 = count;

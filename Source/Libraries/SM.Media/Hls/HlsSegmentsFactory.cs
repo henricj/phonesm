@@ -46,7 +46,7 @@ namespace SM.Media.Hls
         public HlsSegmentsFactory(IHlsStreamSegmentsFactory streamSegmentsFactory)
         {
             if (null == streamSegmentsFactory)
-                throw new ArgumentNullException("streamSegmentsFactory");
+                throw new ArgumentNullException(nameof(streamSegmentsFactory));
 
             _streamSegmentsFactory = streamSegmentsFactory;
         }

@@ -60,15 +60,15 @@ namespace SM.Media.Hls
         public HlsProgramStream(IWebReader webReader, ICollection<Uri> urls, IHlsSegmentsFactory segmentsFactory, IWebMetadataFactory webMetadataFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
             if (null == segmentsFactory)
-                throw new ArgumentNullException("segmentsFactory");
+                throw new ArgumentNullException(nameof(segmentsFactory));
             if (null == webMetadataFactory)
-                throw new ArgumentNullException("webMetadataFactory");
+                throw new ArgumentNullException(nameof(webMetadataFactory));
             if (null == webReader)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _webReader = webReader;
             _segmentsFactory = segmentsFactory;

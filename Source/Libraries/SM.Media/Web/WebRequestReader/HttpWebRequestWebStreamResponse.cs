@@ -42,7 +42,7 @@ namespace SM.Media.Web.WebRequestReader
         public HttpWebRequestWebStreamResponse(HttpWebRequest request, HttpWebResponse response)
         {
             if (null == response)
-                throw new ArgumentNullException("response");
+                throw new ArgumentNullException(nameof(response));
 
             _request = request;
             _response = response;

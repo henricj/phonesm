@@ -61,7 +61,7 @@ namespace SM.Media.TransportStream.TsParser
         public TsDecoder(ITsProgramAssociationTableFactory programAssociationTableFactory)
         {
             if (null == programAssociationTableFactory)
-                throw new ArgumentNullException("programAssociationTableFactory");
+                throw new ArgumentNullException(nameof(programAssociationTableFactory));
 
             _programAssociationTableFactory = programAssociationTableFactory;
 
@@ -88,7 +88,7 @@ namespace SM.Media.TransportStream.TsParser
         public void Initialize(Func<TsStreamType, uint, IMediaStreamMetadata, TsPacketizedElementaryStream> pesStreamFactory, Action<IProgramStreams> programStreamsHandler = null)
         {
             if (pesStreamFactory == null)
-                throw new ArgumentNullException("pesStreamFactory");
+                throw new ArgumentNullException(nameof(pesStreamFactory));
 
             _pesStreamFactory = pesStreamFactory;
 

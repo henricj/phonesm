@@ -39,7 +39,7 @@ namespace SM.Media.Utility
         public CancellationTaskCompletionSource(Action<CancellationTaskCompletionSource<TItem>> cancellationAction, CancellationToken cancellationToken)
         {
             if (null == cancellationAction)
-                throw new ArgumentNullException("cancellationAction");
+                throw new ArgumentNullException(nameof(cancellationAction));
 
             _cancellationAction = cancellationAction;
             _cancellationTokenRegistration = cancellationToken.Register(obj => ((CancellationTaskCompletionSource<TItem>)obj).Cancel(), this);

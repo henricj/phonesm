@@ -40,9 +40,9 @@ namespace SM.Media.Playlists
         public SubStreamSegment(Uri url, Uri parentUrl)
         {
             if (null == url)
-                throw new ArgumentNullException("url");
+                throw new ArgumentNullException(nameof(url));
             if (null == parentUrl)
-                throw new ArgumentNullException("parentUrl");
+                throw new ArgumentNullException(nameof(parentUrl));
 
             _url = url;
             _parentUrl = parentUrl;

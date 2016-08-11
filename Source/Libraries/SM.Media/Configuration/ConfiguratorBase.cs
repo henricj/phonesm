@@ -40,7 +40,7 @@ namespace SM.Media.Configuration
         protected ConfiguratorBase(ContentType contentType, IMediaStreamMetadata mediaStreamMetadata)
         {
             if (null == contentType)
-                throw new ArgumentNullException("contentType");
+                throw new ArgumentNullException(nameof(contentType));
 
             _contentType = contentType;
             _mediaStreamMetadata = mediaStreamMetadata;

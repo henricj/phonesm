@@ -37,7 +37,7 @@ namespace SM.Media.Audio.Shoutcast
         public Latin1ShoutcastEncodingSelector(ISmEncodings encodings)
         {
             if (null == encodings)
-                throw new ArgumentNullException("encodings");
+                throw new ArgumentNullException(nameof(encodings));
 
             _latin1 = encodings.Latin1Encoding;
         }

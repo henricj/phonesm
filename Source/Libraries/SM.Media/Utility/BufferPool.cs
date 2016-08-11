@@ -71,7 +71,7 @@ namespace SM.Media.Utility
         public BufferPool(IBufferPoolParameters bufferPoolParameters)
         {
             if (null == bufferPoolParameters)
-                throw new ArgumentNullException("bufferPoolParameters");
+                throw new ArgumentNullException(nameof(bufferPoolParameters));
 
             _pools = new BufferSubPool[bufferPoolParameters.Pools];
 
@@ -166,7 +166,7 @@ namespace SM.Media.Utility
                 return; // Oversize buffer relegated to the GC.
 
             if (pool.Size != bufferInstance.Buffer.Length)
-                throw new ArgumentException("Invalid buffer size", "bufferInstance");
+                throw new ArgumentException("Invalid buffer size", nameof(bufferInstance));
 
             pool.Free((PoolBufferInstance)bufferInstance);
         }
@@ -247,7 +247,7 @@ namespace SM.Media.Utility
 #endif
 
                 if (Size != buffer.Buffer.Length)
-                    throw new ArgumentException("Invalid buffer size", "buffer");
+                    throw new ArgumentException("Invalid buffer size", nameof(buffer));
 
                 lock (_pool)
                 {

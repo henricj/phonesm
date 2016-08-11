@@ -52,7 +52,7 @@ namespace SM.Media.Utility
         public WorkBuffer(int bufferSize)
         {
             if (bufferSize < 1)
-                throw new ArgumentException("The buffer size must be positive", "bufferSize");
+                throw new ArgumentException("The buffer size must be positive", nameof(bufferSize));
 
             Buffer = new byte[bufferSize];
         }

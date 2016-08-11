@@ -54,13 +54,13 @@ namespace SM.Media.Web.HttpConnection
         public HttpConnectionResponse(Uri url, IHttpConnection connection, IHttpReader reader, Stream stream, ILookup<string, string> headers, IHttpStatus status)
         {
             if (null == url)
-                throw new ArgumentNullException("url");
+                throw new ArgumentNullException(nameof(url));
             if (null == stream)
-                throw new ArgumentNullException("stream");
+                throw new ArgumentNullException(nameof(stream));
             if (null == headers)
-                throw new ArgumentNullException("headers");
+                throw new ArgumentNullException(nameof(headers));
             if (null == status)
-                throw new ArgumentNullException("status");
+                throw new ArgumentNullException(nameof(status));
 
             _url = url;
             _reader = reader;

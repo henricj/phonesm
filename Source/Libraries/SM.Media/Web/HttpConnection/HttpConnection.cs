@@ -57,9 +57,9 @@ namespace SM.Media.Web.HttpConnection
         public HttpConnection(IHttpHeaderSerializer httpHeaderSerializer, IHttpEncoding httpEncoding, ISocket socket)
         {
             if (null == httpHeaderSerializer)
-                throw new ArgumentNullException("httpHeaderSerializer");
+                throw new ArgumentNullException(nameof(httpHeaderSerializer));
             if (null == socket)
-                throw new ArgumentNullException("socket");
+                throw new ArgumentNullException(nameof(socket));
 
             _httpHeaderSerializer = httpHeaderSerializer;
             _headerDecoding = httpEncoding.HeaderDecoding;

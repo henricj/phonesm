@@ -50,11 +50,11 @@ namespace SM.Media.WinRtHttpClientReader
         public WinRtHttpClientWebReader(IWebReaderManager webReaderManager, Uri baseAddress, HttpClient httpClient, ContentType contentType, IContentTypeDetector contentTypeDetector)
         {
             if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
+                throw new ArgumentNullException(nameof(webReaderManager));
             if (null == httpClient)
-                throw new ArgumentNullException("httpClient");
+                throw new ArgumentNullException(nameof(httpClient));
             if (contentTypeDetector == null)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
 
             _webReaderManager = webReaderManager;
             _baseAddress = baseAddress;

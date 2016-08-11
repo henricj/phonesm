@@ -49,9 +49,9 @@ namespace SM.Media.Audio
             : base(streamType, configurator, pesPacketPool)
         {
             if (null == shoutcastMetadataFilterFactory)
-                throw new ArgumentNullException("shoutcastMetadataFilterFactory");
+                throw new ArgumentNullException(nameof(shoutcastMetadataFilterFactory));
             if (null == metadataSink)
-                throw new ArgumentNullException("metadataSink");
+                throw new ArgumentNullException(nameof(metadataSink));
 
             _shoutcastMetadataFilterFactory = shoutcastMetadataFilterFactory;
             _metadataSink = metadataSink;

@@ -49,7 +49,7 @@ namespace SM.Media.Hls
         public HlsPlaylistSegmentManagerPolicy(Func<HlsProgramManager> programManagerFactory)
         {
             if (null == programManagerFactory)
-                throw new ArgumentNullException("programManagerFactory");
+                throw new ArgumentNullException(nameof(programManagerFactory));
 
             _programManagerFactory = programManagerFactory;
         }

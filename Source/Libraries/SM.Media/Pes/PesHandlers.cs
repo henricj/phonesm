@@ -49,9 +49,9 @@ namespace SM.Media.Pes
         public PesHandlers(IPesHandlerFactory handlerFactory, Func<PesStreamParameters> parameterFactory)
         {
             if (null == handlerFactory)
-                throw new ArgumentNullException("handlerFactory");
+                throw new ArgumentNullException(nameof(handlerFactory));
             if (null == parameterFactory)
-                throw new ArgumentNullException("parameterFactory");
+                throw new ArgumentNullException(nameof(parameterFactory));
 
             _handlerFactory = handlerFactory;
             _parameterFactory = parameterFactory;

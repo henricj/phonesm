@@ -35,7 +35,7 @@ namespace SM.Media.TransportStream.TsParser.Descriptor
         protected TsDescriptorFactoryInstanceBase(TsDescriptorType type)
         {
             if (null == type)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
 
             _type = type;
         }

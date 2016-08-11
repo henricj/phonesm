@@ -37,7 +37,7 @@ namespace SM.Media.Buffering
         public NullBufferingManager(ITsPesPacketPool packetPool)
         {
             if (null == packetPool)
-                throw new ArgumentNullException("packetPool");
+                throw new ArgumentNullException(nameof(packetPool));
 
             _packetPool = packetPool;
         }

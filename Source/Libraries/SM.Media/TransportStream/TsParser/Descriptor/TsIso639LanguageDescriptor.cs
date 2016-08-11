@@ -39,7 +39,7 @@ namespace SM.Media.TransportStream.TsParser.Descriptor
             : base(DescriptorType)
         {
             if (null == languages)
-                throw new ArgumentNullException("languages");
+                throw new ArgumentNullException(nameof(languages));
 
             _languages = languages;
         }
@@ -72,7 +72,7 @@ namespace SM.Media.TransportStream.TsParser.Descriptor
             public Language(string iso639, byte audioType)
             {
                 if (iso639 == null)
-                    throw new ArgumentNullException("iso639");
+                    throw new ArgumentNullException(nameof(iso639));
 
                 _iso639 = iso639;
                 _audioType = audioType;
@@ -101,7 +101,7 @@ namespace SM.Media.TransportStream.TsParser.Descriptor
             : base(TsIso639LanguageDescriptor.DescriptorType)
         {
             if (null == smEncodings)
-                throw new ArgumentNullException("smEncodings");
+                throw new ArgumentNullException(nameof(smEncodings));
 
             _latin1 = smEncodings.Latin1Encoding;
         }

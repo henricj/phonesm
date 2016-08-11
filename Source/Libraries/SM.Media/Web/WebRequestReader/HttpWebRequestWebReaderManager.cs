@@ -45,13 +45,13 @@ namespace SM.Media.Web.WebRequestReader
         public HttpWebRequestWebReaderManager(IHttpWebRequests httpWebRequests, IWebReaderManagerParameters webReaderManagerParameters, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpWebRequests)
-                throw new ArgumentNullException("httpWebRequests");
+                throw new ArgumentNullException(nameof(httpWebRequests));
             if (null == webReaderManagerParameters)
-                throw new ArgumentNullException("webReaderManagerParameters");
+                throw new ArgumentNullException(nameof(webReaderManagerParameters));
             if (null == contentTypeDetector)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _httpWebRequests = httpWebRequests;
             _webReaderManagerParameters = webReaderManagerParameters;

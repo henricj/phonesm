@@ -37,7 +37,7 @@ namespace SM.Media.TransportStream.TsParser.Utility
         public TsPesPacketPool(IBufferPool bufferPool)
         {
             if (null == bufferPool)
-                throw new ArgumentNullException("bufferPool");
+                throw new ArgumentNullException(nameof(bufferPool));
 
             _bufferPool = bufferPool;
         }
@@ -53,7 +53,7 @@ namespace SM.Media.TransportStream.TsParser.Utility
         public TsPesPacket AllocatePesPacket(int minSize)
         {
             if (minSize < 1)
-                throw new ArgumentOutOfRangeException("minSize", "minSize must be positive: " + minSize);
+                throw new ArgumentOutOfRangeException(nameof(minSize), "minSize must be positive: " + minSize);
 
             var bufferEntry = _bufferPool.Allocate(minSize);
 
@@ -69,7 +69,7 @@ namespace SM.Media.TransportStream.TsParser.Utility
         public TsPesPacket AllocatePesPacket(BufferInstance bufferEntry)
         {
             if (null == bufferEntry)
-                throw new ArgumentNullException("bufferEntry");
+                throw new ArgumentNullException(nameof(bufferEntry));
 
             bufferEntry.Reference();
 
@@ -85,13 +85,13 @@ namespace SM.Media.TransportStream.TsParser.Utility
         public TsPesPacket CopyPesPacket(TsPesPacket packet, int index, int length)
         {
             if (packet == null)
-                throw new ArgumentNullException("packet");
+                throw new ArgumentNullException(nameof(packet));
 
             if (index < 0 || index < packet.Index)
-                throw new ArgumentOutOfRangeException("index");
+                throw new ArgumentOutOfRangeException(nameof(index));
 
             if (length < 0 || index + length > packet.Index + packet.Length)
-                throw new ArgumentOutOfRangeException("length");
+                throw new ArgumentOutOfRangeException(nameof(length));
 
 #if DEBUG
             //Debug.WriteLine("Copy from PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, packet.BufferEntry);
@@ -115,7 +115,7 @@ namespace SM.Media.TransportStream.TsParser.Utility
         public void FreePesPacket(TsPesPacket packet)
         {
             if (null == packet)
-                throw new ArgumentNullException("packet");
+                throw new ArgumentNullException(nameof(packet));
 #if DEBUG
             //Debug.WriteLine("Free PES Packet({0}) Index {1} Length {2} Time {3} {4}", packet.PacketId, packet.Index, packet.Length, packet.PresentationTimestamp, packet.BufferEntry);
 #endif

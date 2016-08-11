@@ -36,7 +36,7 @@ namespace SM.Media.Utility.RandomGenerators
         public SystemRandomGenerator(IPlatformServices platformServices)
         {
             if (null == platformServices)
-                throw new ArgumentNullException("platformServices");
+                throw new ArgumentNullException(nameof(platformServices));
 
             _platformServices = platformServices;
 
@@ -48,11 +48,11 @@ namespace SM.Media.Utility.RandomGenerators
         public void GetBytes(byte[] buffer, int offset, int count)
         {
             if (null == buffer)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             if (offset < 0 || offset >= buffer.Length)
-                throw new ArgumentOutOfRangeException("offset");
+                throw new ArgumentOutOfRangeException(nameof(offset));
             if (count < 1 || count + offset > buffer.Length)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             if (0 == offset && buffer.Length == offset)
             {

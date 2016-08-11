@@ -66,7 +66,7 @@ namespace SM.Media.Web.HttpConnection
         public HttpReader(ReadAsyncDelegate readAsync, Encoding encoding)
         {
             if (null == readAsync)
-                throw new ArgumentNullException("readAsync");
+                throw new ArgumentNullException(nameof(readAsync));
 
             _readAsync = readAsync;
             _encoding = encoding;
@@ -146,7 +146,7 @@ namespace SM.Media.Web.HttpConnection
             ThrowIfDisposed();
 
             if (length < 1)
-                throw new ArgumentException("argument must be positive", "length");
+                throw new ArgumentException("argument must be positive", nameof(length));
 
             var size = _end - _begin;
 

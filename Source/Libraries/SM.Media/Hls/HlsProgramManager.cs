@@ -50,11 +50,11 @@ namespace SM.Media.Hls
         public HlsProgramManager(IHlsProgramStreamFactory programStreamFactory, IWebReaderManager webReaderManager, IRetryManager retryManager)
         {
             if (null == programStreamFactory)
-                throw new ArgumentNullException("programStreamFactory");
+                throw new ArgumentNullException(nameof(programStreamFactory));
             if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
+                throw new ArgumentNullException(nameof(webReaderManager));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _programStreamFactory = programStreamFactory;
             _webReaderManager = webReaderManager;

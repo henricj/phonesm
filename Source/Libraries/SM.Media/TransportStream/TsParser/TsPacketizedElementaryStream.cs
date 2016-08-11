@@ -50,9 +50,9 @@ namespace SM.Media.TransportStream.TsParser
         public TsPacketizedElementaryStream(IBufferPool bufferPool, ITsPesPacketPool pesPacketPool, Action<TsPesPacket> packetHandler, TsStreamType streamType, uint pid)
         {
             if (null == bufferPool)
-                throw new ArgumentNullException("bufferPool");
+                throw new ArgumentNullException(nameof(bufferPool));
             if (null == pesPacketPool)
-                throw new ArgumentNullException("pesPacketPool");
+                throw new ArgumentNullException(nameof(pesPacketPool));
 
             _bufferPool = bufferPool;
             _pesPacketPool = pesPacketPool;

@@ -66,9 +66,9 @@ namespace SM.Media.MediaManager
         public MediaReader(IBufferingManager bufferingManager, IMediaParserFactory mediaParserFactory, ISegmentManagerReaders segmentReaders, IBlockingPool<WorkBuffer> blockingPool)
         {
             if (null == bufferingManager)
-                throw new ArgumentNullException("bufferingManager");
+                throw new ArgumentNullException(nameof(bufferingManager));
             if (null == mediaParserFactory)
-                throw new ArgumentNullException("mediaParserFactory");
+                throw new ArgumentNullException(nameof(mediaParserFactory));
 
             _bufferingManager = bufferingManager;
             _mediaParserFactory = mediaParserFactory;

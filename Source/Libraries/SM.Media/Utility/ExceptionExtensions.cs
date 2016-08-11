@@ -34,7 +34,7 @@ namespace SM.Media.Utility
         public static string ExtendedMessage(this Exception ex)
         {
             if (null == ex)
-                throw new ArgumentNullException("ex");
+                throw new ArgumentNullException(nameof(ex));
 
             if (null == ex.InnerException)
             {

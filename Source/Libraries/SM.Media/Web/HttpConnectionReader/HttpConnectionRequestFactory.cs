@@ -44,7 +44,7 @@ namespace SM.Media.Web.HttpConnectionReader
         public HttpConnectionRequestFactory(IHttpConnectionRequestFactoryParameters parameters)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
 
             _parameters = parameters;
         }

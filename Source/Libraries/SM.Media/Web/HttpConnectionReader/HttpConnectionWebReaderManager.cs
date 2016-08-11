@@ -86,10 +86,10 @@ namespace SM.Media.Web.HttpConnectionReader
             return GetAsync(request, cancellationToken);
         }
 
-        protected virtual HttpConnectionWebReader CreateHttpConnectionWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
+        protected virtual HttpConnectionWebReader CreateHttpConnectionWebReader(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
             if (null == contentType && null != url)
-                contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+                contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
             return new HttpConnectionWebReader(this, url, parent?.BaseAddress, contentType, _contentTypeDetector);
         }
@@ -163,21 +163,21 @@ namespace SM.Media.Web.HttpConnectionReader
 
         #region IWebReaderManager Members
 
-        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebReader CreateReader(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
-            return CreateHttpConnectionWebReader(url, parent, contentType);
+            return CreateHttpConnectionWebReader(url, requiredKind, parent, contentType);
         }
 
-        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebCache CreateWebCache(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
-            var webReader = CreateHttpConnectionWebReader(url, parent, contentType);
+            var webReader = CreateHttpConnectionWebReader(url, requiredKind, parent, contentType);
 
             return new HttpConnectionWebCache(webReader, _retryManager);
         }
 
-        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
+        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind requiredKind, CancellationToken cancellationToken, IWebReader parent = null)
         {
-            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+            var contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
             if (null != contentType)
             {
@@ -190,7 +190,7 @@ namespace SM.Media.Web.HttpConnectionReader
                 using (var response = await SendAsync(url, parent, cancellationToken, "HEAD", allowBuffering: false).ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
-                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, requiredKind, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -209,7 +209,7 @@ namespace SM.Media.Web.HttpConnectionReader
                 using (var response = await SendAsync(url, parent, cancellationToken, allowBuffering: false, fromBytes: 0, toBytes: 0).ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
-                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, requiredKind, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -228,7 +228,7 @@ namespace SM.Media.Web.HttpConnectionReader
                 using (var response = await SendAsync(url, parent, cancellationToken, allowBuffering: false).ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)
-                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
+                        contentType = _contentTypeDetector.GetContentType(response.ResponseUri, requiredKind, response.Headers["Content-Type"].FirstOrDefault()).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {

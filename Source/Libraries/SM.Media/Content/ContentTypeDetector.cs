@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ContentTypeDetector.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ namespace SM.Media.Content
 {
     public interface IContentTypeDetector
     {
-        ICollection<ContentType> GetContentType(Uri url, string mimeType = null, string fileName = null);
+        ICollection<ContentType> GetContentType(Uri url, ContentKind kind, string mimeType = null, string fileName = null);
     }
 
     public class ContentTypeDetector : IContentTypeDetector
@@ -80,60 +80,67 @@ namespace SM.Media.Content
 
         #region IContentTypeDetector Members
 
-        public virtual ICollection<ContentType> GetContentType(Uri url, string mimeType = null, string fileName = null)
+        public virtual ICollection<ContentType> GetContentType(Uri url, ContentKind kind, string mimeType = null, string fileName = null)
         {
             if (null == url)
                 throw new ArgumentNullException(nameof(url));
 
-            var contentTypes = GetContentTypeByUrl(url, kind);
-
-            if (null != contentTypes && contentTypes.Any())
-                return contentTypes;
+            ICollection<ContentType> contentTypes;
 
             if (null != mimeType)
             {
-                contentTypes = GetContentTypeByContentHeaders(mimeType);
+                contentTypes = GetContentTypeByContentHeaders(mimeType, kind);
 
                 if (null != contentTypes)
                     return contentTypes;
             }
 
+            contentTypes = GetContentTypeByUrl(url, kind);
+
+            if (null != contentTypes && contentTypes.Any())
+                return contentTypes;
+
             if (string.IsNullOrWhiteSpace(fileName))
                 return NoContent;
 
-            contentTypes = GetContentTypeByFileName(fileName);
+            contentTypes = GetContentTypeByFileName(fileName, kind);
 
             return contentTypes ?? NoContent;
         }
 
         #endregion
 
-        protected virtual ICollection<ContentType> GetContentTypeByUrl(Uri url)
+        protected virtual IEnumerable<ContentType> FilterByKind(IEnumerable<ContentType> types, ContentKind requiredKind)
+        {
+            return types.Where(type => requiredKind.IsCompatible(type.Kind));
+        }
+
+        protected virtual ICollection<ContentType> GetContentTypeByUrl(Uri url, ContentKind requiredKind)
         {
             var ext = url.GetExtension();
 
             if (null == ext)
                 return null;
 
-            return ExtensionLookup[ext].ToArray();
+            return FilterByKind(ExtensionLookup[ext], requiredKind).ToArray();
         }
 
-        protected virtual ICollection<ContentType> GetContentTypeByContentHeaders(string mimeType)
+        protected virtual ICollection<ContentType> GetContentTypeByContentHeaders(string mimeType, ContentKind requiredKind)
         {
             if (null == mimeType)
                 return null;
 
-            return MimeLookup[mimeType].ToArray();
+            return FilterByKind(MimeLookup[mimeType], requiredKind).ToArray();
         }
 
-        protected virtual ICollection<ContentType> GetContentTypeByFileName(string filename)
+        protected virtual ICollection<ContentType> GetContentTypeByFileName(string filename, ContentKind requiredKind)
         {
             if (string.IsNullOrWhiteSpace(filename))
                 return null;
 
             var ext = UriExtensions.GetExtension(filename);
 
-            return ExtensionLookup[ext].ToArray();
+            return FilterByKind(ExtensionLookup[ext], requiredKind).ToArray();
         }
     }
 }

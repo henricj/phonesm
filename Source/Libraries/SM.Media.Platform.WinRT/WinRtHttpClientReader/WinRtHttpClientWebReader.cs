@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="WinRtHttpClientWebReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,11 +40,9 @@ namespace SM.Media.WinRtHttpClientReader
 {
     public sealed class WinRtHttpClientWebReader : IWebReader
     {
-        readonly Uri _baseAddress;
         readonly IContentTypeDetector _contentTypeDetector;
         readonly CancellationTokenSource _disposedCancellationTokenSource = new CancellationTokenSource();
         readonly HttpClient _httpClient;
-        readonly IWebReaderManager _webReaderManager;
         int _isDisposed;
 
         public WinRtHttpClientWebReader(IWebReaderManager webReaderManager, Uri baseAddress, HttpClient httpClient, ContentType contentType, IContentTypeDetector contentTypeDetector)
@@ -56,8 +54,8 @@ namespace SM.Media.WinRtHttpClientReader
             if (contentTypeDetector == null)
                 throw new ArgumentNullException(nameof(contentTypeDetector));
 
-            _webReaderManager = webReaderManager;
-            _baseAddress = baseAddress;
+            Manager = webReaderManager;
+            BaseAddress = baseAddress;
             _httpClient = httpClient;
             ContentType = contentType;
             _contentTypeDetector = contentTypeDetector;
@@ -82,19 +80,13 @@ namespace SM.Media.WinRtHttpClientReader
             _httpClient.Dispose();
         }
 
-        public Uri BaseAddress
-        {
-            get { return _baseAddress; }
-        }
+        public Uri BaseAddress { get; }
 
         public Uri RequestUri { get; private set; }
 
         public ContentType ContentType { get; private set; }
 
-        public IWebReaderManager Manager
-        {
-            get { return _webReaderManager; }
-        }
+        public IWebReaderManager Manager { get; }
 
         public async Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse webResponse = null)
@@ -109,7 +101,7 @@ namespace SM.Media.WinRtHttpClientReader
 
                 var response = await _httpClient.GetAsync(url, completionOption, cancellationToken).ConfigureAwait(false);
 
-                Update(url, response, webResponse);
+                Update(url, ContentKind.Unknown, response, webResponse);
 
                 return new WinRtHttpClientWebStreamResponse(response);
             }
@@ -122,7 +114,7 @@ namespace SM.Media.WinRtHttpClientReader
 
                 var response = await _httpClient.SendAsync(request, completionOption, cancellationToken, referrer, from, to).ConfigureAwait(false);
 
-                Update(url, response, webResponse);
+                Update(url, ContentKind.Unknown, response, webResponse);
 
                 return new WinRtHttpClientWebStreamResponse(request, response);
             }
@@ -136,7 +128,7 @@ namespace SM.Media.WinRtHttpClientReader
             {
                 StatusCodeWebException.ThrowIfNotSuccess((HttpStatusCode)response.StatusCode, response.ReasonPhrase);
 
-                Update(url, response, webResponse);
+                Update(url, ContentKind.Unknown, response, webResponse);
 
                 return await response.Content.ReadAsByteArray(cancellationToken).ConfigureAwait(false);
             }
@@ -160,12 +152,12 @@ namespace SM.Media.WinRtHttpClientReader
 
             var response = await _httpClient.SendRequestAsync(request, responseContentRead, cancellationToken).ConfigureAwait(false);
 
-            Update(url, response, webResponse);
+            Update(url, ContentKind.Unknown, response, webResponse);
 
             return response;
         }
 
-        void Update(Uri url, HttpResponseMessage response, WebResponse webResponse)
+        void Update(Uri url, ContentKind requiredKind, HttpResponseMessage response, WebResponse webResponse)
         {
             if (!response.IsSuccessStatusCode)
                 return;
@@ -178,7 +170,7 @@ namespace SM.Media.WinRtHttpClientReader
                     .ToLookup(kv => kv.Key, kv => kv.Value)
                     .Select(l => new KeyValuePair<string, IEnumerable<string>>(l.Key, l));
 
-                webResponse.ContentType = _contentTypeDetector.GetContentType(response.RequestMessage.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                webResponse.ContentType = _contentTypeDetector.GetContentType(response.RequestMessage.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
             }
 
             if (url != BaseAddress)
@@ -187,7 +179,7 @@ namespace SM.Media.WinRtHttpClientReader
             RequestUri = response.RequestMessage.RequestUri;
 
             if (null == ContentType)
-                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                ContentType = _contentTypeDetector.GetContentType(RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
         }
 
         public override string ToString()
@@ -195,9 +187,9 @@ namespace SM.Media.WinRtHttpClientReader
             var contentType = null == ContentType ? "<unknown>" : ContentType.ToString();
 
             if (null != RequestUri && RequestUri != BaseAddress)
-                return string.Format("HttpWebReader {0} [{1}] ({2})", BaseAddress, RequestUri, contentType);
+                return $"HttpWebReader {BaseAddress} [{RequestUri}] ({contentType})";
 
-            return string.Format("HttpWebReader {0} ({1})", BaseAddress, contentType);
+            return $"HttpWebReader {BaseAddress} ({contentType})";
         }
     }
 }

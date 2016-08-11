@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HttpWebRequestWebReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -75,21 +75,21 @@ namespace SM.Media.Web.WebRequestReader
 
         #region IWebReaderManager Members
 
-        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent, ContentType contentType)
+        public virtual IWebReader CreateReader(Uri url, ContentKind requiredKind, IWebReader parent, ContentType contentType)
         {
             return CreateHttpWebRequestWebReader(url, parent, contentType);
         }
 
-        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebCache CreateWebCache(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
             var webReader = CreateHttpWebRequestWebReader(url, parent, contentType);
 
             return new HttpWebRequestWebCache(webReader, _httpWebRequests, _retryManager);
         }
 
-        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
+        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind requiredKind, CancellationToken cancellationToken, IWebReader parent = null)
         {
-            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+            var contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
             if (null != contentType)
             {
@@ -101,7 +101,7 @@ namespace SM.Media.Web.WebRequestReader
             {
                 using (var response = await SendAsync(url, parent, cancellationToken, "HEAD", allowBuffering: false).ConfigureAwait(false))
                 {
-                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
+                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, requiredKind, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -119,7 +119,7 @@ namespace SM.Media.Web.WebRequestReader
             {
                 using (var response = await SendAsync(url, parent, cancellationToken, allowBuffering: false, fromBytes: 0, toBytes: 0).ConfigureAwait(false))
                 {
-                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
+                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, requiredKind, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -137,7 +137,7 @@ namespace SM.Media.Web.WebRequestReader
             {
                 using (var response = await SendAsync(url, parent, cancellationToken, allowBuffering: false).ConfigureAwait(false))
                 {
-                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
+                    contentType = _contentTypeDetector.GetContentType(response.ResponseUri, requiredKind, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
 
                     if (null != contentType)
                     {
@@ -168,9 +168,9 @@ namespace SM.Media.Web.WebRequestReader
         protected virtual HttpWebRequestWebReader CreateHttpWebRequestWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
         {
             if (null == contentType && null != url)
-                contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+                contentType = _contentTypeDetector.GetContentType(url, ContentKind.Unknown).SingleOrDefaultSafe();
 
-            return new HttpWebRequestWebReader(this, url, null == parent ? null : parent.BaseAddress, contentType, _contentTypeDetector);
+            return new HttpWebRequestWebReader(this, url, parent?.BaseAddress, contentType, _contentTypeDetector);
         }
 
         internal virtual HttpWebRequest CreateRequest(Uri url, Uri referrer, IWebReader parent, ContentType contentType, string method = null, bool allowBuffering = false, long? fromBytes = null, long? toBytes = null)

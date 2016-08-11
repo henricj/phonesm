@@ -70,12 +70,12 @@ namespace SM.Media.WinRtHttpClientReader
 
         #endregion
 
-        protected virtual WinRtHttpClientWebReader CreateHttpClientWebReader(Uri url, IWebReader parent = null, ContentType contentType = null)
+        protected virtual WinRtHttpClientWebReader CreateHttpClientWebReader(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
             url = GetUrl(url, parent);
 
             if (null == contentType)
-                contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+                contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
             var httpClient = CreateHttpClient(url, parent, contentType);
 
@@ -117,21 +117,21 @@ namespace SM.Media.WinRtHttpClientReader
 
         #region IWebReaderManager Members
 
-        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebReader CreateReader(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
-            return CreateHttpClientWebReader(url, parent, contentType);
+            return CreateHttpClientWebReader(url, requiredKind, parent, contentType);
         }
 
-        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebCache CreateWebCache(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
-            var webReader = CreateHttpClientWebReader(url, parent, contentType);
+            var webReader = CreateHttpClientWebReader(url, requiredKind, parent, contentType);
 
             return new WinRtHttpClientWebCache(webReader, _retryManager);
         }
 
-        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
+        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind requiredKind, CancellationToken cancellationToken, IWebReader parent = null)
         {
-            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+            var contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
             if (null != contentType)
             {
@@ -150,7 +150,7 @@ namespace SM.Media.WinRtHttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -172,7 +172,7 @@ namespace SM.Media.WinRtHttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -194,7 +194,7 @@ namespace SM.Media.WinRtHttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {

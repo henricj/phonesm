@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpClientWebReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -38,7 +38,6 @@ namespace SM.Media.Web.HttpClientReader
     {
         readonly IContentTypeDetector _contentTypeDetector;
         readonly HttpClient _httpClient;
-        readonly IWebReaderManager _webReaderManager;
 
         public HttpClientWebReader(IWebReaderManager webReaderManager, HttpClient httpClient, ContentType contentType, IContentTypeDetector contentTypeDetector)
         {
@@ -49,7 +48,7 @@ namespace SM.Media.Web.HttpClientReader
             if (contentTypeDetector == null)
                 throw new ArgumentNullException(nameof(contentTypeDetector));
 
-            _webReaderManager = webReaderManager;
+            Manager = webReaderManager;
             _httpClient = httpClient;
             ContentType = contentType;
             _contentTypeDetector = contentTypeDetector;
@@ -62,19 +61,13 @@ namespace SM.Media.Web.HttpClientReader
             _httpClient.Dispose();
         }
 
-        public Uri BaseAddress
-        {
-            get { return _httpClient.BaseAddress; }
-        }
+        public Uri BaseAddress => _httpClient.BaseAddress;
 
         public Uri RequestUri { get; private set; }
 
         public ContentType ContentType { get; private set; }
 
-        public IWebReaderManager Manager
-        {
-            get { return _webReaderManager; }
-        }
+        public IWebReaderManager Manager { get; }
 
         public async Task<IWebStreamResponse> GetWebStreamAsync(Uri url, bool waitForContent, CancellationToken cancellationToken,
             Uri referrer = null, long? from = null, long? to = null, WebResponse webResponse = null)
@@ -87,7 +80,7 @@ namespace SM.Media.Web.HttpClientReader
 
                 var response = await _httpClient.GetAsync(url, completionOption, cancellationToken).ConfigureAwait(false);
 
-                Update(url, response, webResponse);
+                Update(url, ContentKind.Unknown, response, webResponse);
 
                 return new HttpClientWebStreamResponse(response);
             }
@@ -100,7 +93,7 @@ namespace SM.Media.Web.HttpClientReader
 
                 var response = await _httpClient.SendAsync(request, completionOption, cancellationToken, referrer, from, to).ConfigureAwait(false);
 
-                Update(url, response, webResponse);
+                Update(url, ContentKind.Unknown, response, webResponse);
 
                 return new HttpClientWebStreamResponse(request, response);
             }
@@ -112,7 +105,7 @@ namespace SM.Media.Web.HttpClientReader
             {
                 response.EnsureSuccessStatusCode();
 
-                Update(url, response, webResponse);
+                Update(url, ContentKind.Unknown, response, webResponse);
 
                 return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
@@ -126,12 +119,12 @@ namespace SM.Media.Web.HttpClientReader
 
             var response = await _httpClient.SendAsync(request, responseContentRead, cancellationToken).ConfigureAwait(false);
 
-            Update(url, response, webResponse);
+            Update(url, ContentKind.Unknown, response, webResponse);
 
             return response;
         }
 
-        void Update(Uri url, HttpResponseMessage response, WebResponse webResponse)
+        void Update(Uri url, ContentKind requiredKind, HttpResponseMessage response, WebResponse webResponse)
         {
             if (!response.IsSuccessStatusCode)
                 return;
@@ -142,7 +135,7 @@ namespace SM.Media.Web.HttpClientReader
                 webResponse.ContentLength = response.Content.Headers.ContentLength;
                 webResponse.Headers = response.Headers.Concat(response.Content.Headers);
 
-                webResponse.ContentType = _contentTypeDetector.GetContentType(response.RequestMessage.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                webResponse.ContentType = _contentTypeDetector.GetContentType(response.RequestMessage.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
             }
 
             if (url != BaseAddress)
@@ -151,7 +144,7 @@ namespace SM.Media.Web.HttpClientReader
             RequestUri = response.RequestMessage.RequestUri;
 
             if (null == ContentType)
-                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                ContentType = _contentTypeDetector.GetContentType(RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
         }
 
         public override string ToString()
@@ -159,9 +152,9 @@ namespace SM.Media.Web.HttpClientReader
             var contentType = null == ContentType ? "<unknown>" : ContentType.ToString();
 
             if (null != RequestUri && RequestUri != BaseAddress)
-                return string.Format("HttpWebReader {0} [{1}] ({2})", BaseAddress, RequestUri, contentType);
+                return $"HttpWebReader {BaseAddress} [{RequestUri}] ({contentType})";
 
-            return string.Format("HttpWebReader {0} ({1})", BaseAddress, contentType);
+            return $"HttpWebReader {BaseAddress} ({contentType})";
         }
     }
 }

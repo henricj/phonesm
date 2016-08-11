@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpClientWebReaderManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -71,21 +71,21 @@ namespace SM.Media.Web.HttpClientReader
 
         #region IWebReaderManager Members
 
-        public virtual IWebReader CreateReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebReader CreateReader(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
-            return CreateHttpClientWebReader(url, contentKind, parent, contentType);
+            return CreateHttpClientWebReader(url, requiredKind, parent, contentType);
         }
 
-        public virtual IWebCache CreateWebCache(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        public virtual IWebCache CreateWebCache(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
-            var webReader = CreateHttpClientWebReader(url, contentKind, parent, contentType);
+            var webReader = CreateHttpClientWebReader(url, requiredKind, parent, contentType);
 
             return new HttpClientWebCache(webReader, _retryManager);
         }
 
-        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind contentKind, CancellationToken cancellationToken, IWebReader parent = null)
+        public virtual async Task<ContentType> DetectContentTypeAsync(Uri url, ContentKind requiredKind, CancellationToken cancellationToken, IWebReader parent = null)
         {
-            var contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+            var contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
             if (null != contentType)
             {
@@ -104,7 +104,7 @@ namespace SM.Media.Web.HttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -126,7 +126,7 @@ namespace SM.Media.Web.HttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -148,7 +148,7 @@ namespace SM.Media.Web.HttpClientReader
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
+                            contentType = _contentTypeDetector.GetContentType(request.RequestUri, requiredKind, response.Content.Headers, response.Content.FileName()).SingleOrDefaultSafe();
 
                             if (null != contentType)
                             {
@@ -171,19 +171,19 @@ namespace SM.Media.Web.HttpClientReader
 
         #endregion
 
-        protected virtual HttpClientWebReader CreateHttpClientWebReader(Uri url, ContentKind contentKind, IWebReader parent = null, ContentType contentType = null)
+        protected virtual HttpClientWebReader CreateHttpClientWebReader(Uri url, ContentKind requiredKind, IWebReader parent = null, ContentType contentType = null)
         {
             url = GetUrl(url, parent);
 
             if (null == contentType && null != url)
-                contentType = _contentTypeDetector.GetContentType(url).SingleOrDefaultSafe();
+                contentType = _contentTypeDetector.GetContentType(url, requiredKind).SingleOrDefaultSafe();
 
-            var httpClient = CreateHttpClient(url, parent, contentKind, contentType);
+            var httpClient = CreateHttpClient(url, parent, requiredKind, contentType);
 
             return new HttpClientWebReader(this, httpClient, contentType, _contentTypeDetector);
         }
 
-        protected virtual HttpClient CreateHttpClient(Uri url, IWebReader parent, ContentKind contentKind, ContentType contentType)
+        protected virtual HttpClient CreateHttpClient(Uri url, IWebReader parent, ContentKind requiredKind, ContentType contentType)
         {
             url = GetUrl(url, parent);
 
@@ -192,7 +192,7 @@ namespace SM.Media.Web.HttpClientReader
             if (null != referrer)
                 url = new Uri(referrer, url);
 
-            var httpClient = _httpClientFactory.CreateClient(url, referrer, contentKind, contentType);
+            var httpClient = _httpClientFactory.CreateClient(url, referrer, requiredKind, contentType);
 
             return httpClient;
         }

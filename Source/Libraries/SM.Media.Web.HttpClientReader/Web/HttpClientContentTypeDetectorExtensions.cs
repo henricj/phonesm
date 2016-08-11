@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpClientContentTypeDetectorExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ namespace SM.Media.Web
 {
     public static class HttpClientContentTypeDetectorExtensions
     {
-        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, HttpContentHeaders headers, string fileName)
+        public static ICollection<ContentType> GetContentType(this IContentTypeDetector contentTypeDetector, Uri url, ContentKind requiredKind, HttpContentHeaders headers, string fileName)
         {
             var mimeType = default(string);
 
@@ -41,7 +41,7 @@ namespace SM.Media.Web
             if (null != contentTypeHeader)
                 mimeType = contentTypeHeader.MediaType;
 
-            return contentTypeDetector.GetContentType(url, mimeType, fileName);
+            return contentTypeDetector.GetContentType(url, requiredKind, mimeType, fileName);
         }
     }
 }

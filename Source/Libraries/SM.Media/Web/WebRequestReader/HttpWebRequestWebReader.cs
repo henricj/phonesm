@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HttpWebRequestWebReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,7 +36,6 @@ namespace SM.Media.Web.WebRequestReader
 {
     public sealed class HttpWebRequestWebReader : IWebReader
     {
-        readonly Uri _baseAddress;
         readonly IContentTypeDetector _contentTypeDetector;
         readonly Uri _referrer;
         readonly HttpWebRequestWebReaderManager _webReaderManager;
@@ -49,7 +48,7 @@ namespace SM.Media.Web.WebRequestReader
                 throw new ArgumentNullException(nameof(contentTypeDetector));
 
             _webReaderManager = webReaderManager;
-            _baseAddress = baseAddress;
+            BaseAddress = baseAddress;
             _referrer = referrer;
             ContentType = contentType;
             _contentTypeDetector = contentTypeDetector;
@@ -57,19 +56,13 @@ namespace SM.Media.Web.WebRequestReader
 
         #region IWebReader Members
 
-        public Uri BaseAddress
-        {
-            get { return _baseAddress; }
-        }
+        public Uri BaseAddress { get; }
 
         public Uri RequestUri { get; private set; }
 
         public ContentType ContentType { get; private set; }
 
-        public IWebReaderManager Manager
-        {
-            get { return _webReaderManager; }
-        }
+        public IWebReaderManager Manager => _webReaderManager;
 
         public void Dispose()
         { }
@@ -88,8 +81,8 @@ namespace SM.Media.Web.WebRequestReader
 
         public async Task<byte[]> GetByteArrayAsync(Uri url, CancellationToken cancellationToken, WebResponse webResponse = null)
         {
-            if (null != _baseAddress && !url.IsAbsoluteUri)
-                url = new Uri(_baseAddress, url);
+            if (null != BaseAddress && !url.IsAbsoluteUri)
+                url = new Uri(BaseAddress, url);
 
             using (var response = await _webReaderManager.SendAsync(url, this, cancellationToken).ConfigureAwait(false))
             {
@@ -105,7 +98,7 @@ namespace SM.Media.Web.WebRequestReader
         {
             var url = request.RequestUri;
 
-            var response = await _webReaderManager.SendAsync(_baseAddress, this, cancellationToken, allowBuffering: allowBuffering).ConfigureAwait(false);
+            var response = await _webReaderManager.SendAsync(BaseAddress, this, cancellationToken, allowBuffering: allowBuffering).ConfigureAwait(false);
 
             Update(url, response, webResponse);
 
@@ -124,7 +117,7 @@ namespace SM.Media.Web.WebRequestReader
                 webResponse.RequestUri = response.ResponseUri;
                 webResponse.ContentLength = response.ContentLength >= 0 ? response.ContentLength : null as long?;
                 webResponse.Headers = GetHeaders(response.Headers);
-                webResponse.ContentType = _contentTypeDetector.GetContentType(response.ResponseUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
+                webResponse.ContentType = _contentTypeDetector.GetContentType(response.ResponseUri, ContentKind.Unknown, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
             }
 
             if (url != BaseAddress)
@@ -133,7 +126,7 @@ namespace SM.Media.Web.WebRequestReader
             RequestUri = response.ResponseUri;
 
             if (null == ContentType)
-                ContentType = _contentTypeDetector.GetContentType(RequestUri, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
+                ContentType = _contentTypeDetector.GetContentType(RequestUri, ContentKind.Unknown, response.Headers[HttpRequestHeader.ContentType]).SingleOrDefaultSafe();
         }
 
         IEnumerable<KeyValuePair<string, IEnumerable<string>>> GetHeaders(WebHeaderCollection myWebHeaderCollection)
@@ -156,9 +149,9 @@ namespace SM.Media.Web.WebRequestReader
             var contentType = null == ContentType ? "<unknown>" : ContentType.ToString();
 
             if (null != RequestUri && RequestUri != BaseAddress)
-                return string.Format("HttpWebReader {0} [{1}] ({2})", BaseAddress, RequestUri, contentType);
+                return $"HttpWebReader {BaseAddress} [{RequestUri}] ({contentType})";
 
-            return string.Format("HttpWebReader {0} ({1})", BaseAddress, contentType);
+            return $"HttpWebReader {BaseAddress} ({contentType})";
         }
     }
 }

@@ -47,9 +47,9 @@ namespace SM.Media.Segments
         protected SimpleSegmentManagerBase(IWebReader webReader, ICollection<ISegment> segments, ContentType contentType)
         {
             if (null == webReader)
-                throw new ArgumentNullException("webReader");
+                throw new ArgumentNullException(nameof(webReader));
             if (null == segments)
-                throw new ArgumentNullException("segments");
+                throw new ArgumentNullException(nameof(segments));
 
             _webReader = webReader;
             _contentType = contentType;

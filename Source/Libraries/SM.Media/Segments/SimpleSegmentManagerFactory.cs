@@ -48,7 +48,7 @@ namespace SM.Media.Segments
         public SimpleSegmentManagerFactory(IWebReaderManager webReaderManager)
         {
             if (null == webReaderManager)
-                throw new ArgumentNullException("webReaderManager");
+                throw new ArgumentNullException(nameof(webReaderManager));
 
             _webReaderManager = webReaderManager;
         }

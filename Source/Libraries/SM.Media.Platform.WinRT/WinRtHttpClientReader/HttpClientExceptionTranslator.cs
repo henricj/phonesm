@@ -43,7 +43,7 @@ namespace SM.Media.WinRtHttpClientReader
         public static Exception FindBetterHttpClientException(Exception exception, CancellationToken cancellationToken)
         {
             if (null == exception)
-                throw new ArgumentNullException("exception");
+                throw new ArgumentNullException(nameof(exception));
 
             if (exception is OperationCanceledException || exception is ObjectDisposedException
                 || exception is OutOfMemoryException || exception is ArgumentException)

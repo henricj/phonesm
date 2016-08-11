@@ -49,13 +49,13 @@ namespace SM.Media.WinRtHttpClientReader
         public WinRtHttpClientFactory(IWinRtHttpClientFactoryParameters parameters, IWebReaderManagerParameters webReaderManagerParameters, IHttpProductInfoHeaderValueFactory httpProductInfoFactory, Func<HttpBaseProtocolFilter> httpClientHandlerFactory)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
             if (null == webReaderManagerParameters)
-                throw new ArgumentNullException("webReaderManagerParameters");
+                throw new ArgumentNullException(nameof(webReaderManagerParameters));
             if (null == httpProductInfoFactory)
-                throw new ArgumentNullException("httpProductInfoFactory");
+                throw new ArgumentNullException(nameof(httpProductInfoFactory));
             if (null == httpClientHandlerFactory)
-                throw new ArgumentNullException("httpClientHandlerFactory");
+                throw new ArgumentNullException(nameof(httpClientHandlerFactory));
 
             _referrer = parameters.Referrer;
             _userAgent = httpProductInfoFactory.Create();

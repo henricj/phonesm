@@ -69,9 +69,9 @@ namespace SM.Media.BackgroundAudio
         public MediaPlayerManager(MediaPlayer mediaPlayer, MetadataHandler metadataHandler, CancellationToken cancellationToken)
         {
             if (null == mediaPlayer)
-                throw new ArgumentNullException("mediaPlayer");
+                throw new ArgumentNullException(nameof(mediaPlayer));
             if (null == metadataHandler)
-                throw new ArgumentNullException("metadataHandler");
+                throw new ArgumentNullException(nameof(metadataHandler));
 
             Debug.WriteLine("MediaPlayerManager.ctor()");
 

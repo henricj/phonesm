@@ -56,10 +56,10 @@ namespace SM.Media
         public Aes128Pkcs7ReadStream(Stream parent, byte[] key, byte[] iv)
         {
             if (parent == null)
-                throw new ArgumentNullException("parent");
+                throw new ArgumentNullException(nameof(parent));
 
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             if (!parent.CanRead)
                 throw new ArgumentException("parent must be a readable stream");
@@ -72,7 +72,7 @@ namespace SM.Media
             _blockLength = (int)lastAlgorithm.BlockLength;
 
             if (null != iv && iv.Length != _blockLength)
-                throw new ArgumentOutOfRangeException("iv", "length must match the block length");
+                throw new ArgumentOutOfRangeException(nameof(iv), "length must match the block length");
 
             _encryptedBuffer = _encrypted.AsBuffer();
             _encryptedBuffer.Length = 0;
@@ -162,13 +162,13 @@ namespace SM.Media
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (buffer == null)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
 
             if (offset < 0)
-                throw new ArgumentOutOfRangeException("offset");
+                throw new ArgumentOutOfRangeException(nameof(offset));
 
             if (offset + count > buffer.Length)
-                throw new ArgumentOutOfRangeException("buffer");
+                throw new ArgumentOutOfRangeException(nameof(buffer));
 
             if (count < 1)
                 return 0;

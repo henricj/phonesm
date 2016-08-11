@@ -53,13 +53,13 @@ namespace SM.Media
         public WinRtStreamState(string name, ContentType contentType, IStreamSource streamSource, IMediaStreamDescriptor descriptor)
         {
             if (null == name)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             if (null == contentType)
-                throw new ArgumentNullException("contentType");
+                throw new ArgumentNullException(nameof(contentType));
             if (null == streamSource)
-                throw new ArgumentNullException("streamSource");
+                throw new ArgumentNullException(nameof(streamSource));
             if (null == descriptor)
-                throw new ArgumentNullException("descriptor");
+                throw new ArgumentNullException(nameof(descriptor));
 
             _name = name;
             _contentType = contentType;

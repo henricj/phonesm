@@ -48,13 +48,13 @@ namespace SM.Media.Web.HttpClientReader
         public HttpClientFactory(IHttpClientFactoryParameters parameters, IWebReaderManagerParameters webReaderManagerParameters, IProductInfoHeaderValueFactory userAgentFactory, Func<HttpClientHandler> httpClientHandlerFactory)
         {
             if (null == parameters)
-                throw new ArgumentNullException("parameters");
+                throw new ArgumentNullException(nameof(parameters));
             if (null == webReaderManagerParameters)
-                throw new ArgumentNullException("webReaderManagerParameters");
+                throw new ArgumentNullException(nameof(webReaderManagerParameters));
             if (null == userAgentFactory)
-                throw new ArgumentNullException("userAgentFactory");
+                throw new ArgumentNullException(nameof(userAgentFactory));
             if (null == httpClientHandlerFactory)
-                throw new ArgumentNullException("httpClientHandlerFactory");
+                throw new ArgumentNullException(nameof(httpClientHandlerFactory));
 
             _referrer = parameters.Referrer;
             _userAgent = userAgentFactory.Create();

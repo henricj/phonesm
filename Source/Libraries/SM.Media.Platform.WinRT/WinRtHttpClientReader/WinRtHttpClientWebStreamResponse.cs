@@ -42,7 +42,7 @@ namespace SM.Media.WinRtHttpClientReader
         public WinRtHttpClientWebStreamResponse(HttpResponseMessage response)
         {
             if (null == response)
-                throw new ArgumentNullException("response");
+                throw new ArgumentNullException(nameof(response));
 
             _response = response;
         }

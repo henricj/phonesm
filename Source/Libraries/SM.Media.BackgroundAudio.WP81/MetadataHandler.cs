@@ -52,13 +52,13 @@ namespace SM.Media.BackgroundAudio
         public MetadataHandler(SystemMediaTransportControls systemMediaTransportControls, ForegroundNotifier notifier, Func<TimeSpan> getPosition, Action<TimeSpan> reportNextEvent, CancellationToken cancellationToken)
         {
             if (null == systemMediaTransportControls)
-                throw new ArgumentNullException("systemMediaTransportControls");
+                throw new ArgumentNullException(nameof(systemMediaTransportControls));
             if (null == notifier)
-                throw new ArgumentNullException("notifier");
+                throw new ArgumentNullException(nameof(notifier));
             if (null == getPosition)
-                throw new ArgumentNullException("getPosition");
+                throw new ArgumentNullException(nameof(getPosition));
             if (null == reportNextEvent)
-                throw new ArgumentNullException("reportNextEvent");
+                throw new ArgumentNullException(nameof(reportNextEvent));
 
             _systemMediaTransportControls = systemMediaTransportControls;
             _notifier = notifier;

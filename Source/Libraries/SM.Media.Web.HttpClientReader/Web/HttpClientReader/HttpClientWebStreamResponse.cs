@@ -41,7 +41,7 @@ namespace SM.Media.Web.HttpClientReader
         public HttpClientWebStreamResponse(HttpResponseMessage response)
         {
             if (null == response)
-                throw new ArgumentNullException("response");
+                throw new ArgumentNullException(nameof(response));
 
             _response = response;
         }

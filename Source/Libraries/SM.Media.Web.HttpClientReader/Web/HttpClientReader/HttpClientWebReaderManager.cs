@@ -44,11 +44,11 @@ namespace SM.Media.Web.HttpClientReader
         public HttpClientWebReaderManager(IHttpClientFactory httpClientFactory, IContentTypeDetector contentTypeDetector, IRetryManager retryManager)
         {
             if (null == httpClientFactory)
-                throw new ArgumentNullException("httpClientFactory");
+                throw new ArgumentNullException(nameof(httpClientFactory));
             if (null == contentTypeDetector)
-                throw new ArgumentNullException("contentTypeDetector");
+                throw new ArgumentNullException(nameof(contentTypeDetector));
             if (null == retryManager)
-                throw new ArgumentNullException("retryManager");
+                throw new ArgumentNullException(nameof(retryManager));
 
             _httpClientFactory = httpClientFactory;
             _contentTypeDetector = contentTypeDetector;

@@ -75,7 +75,7 @@ namespace SM.Media
         public WinRtMediaStreamConfigurator(IMetadataSink metadataSink)
         {
             if (null == metadataSink)
-                throw new ArgumentNullException("metadataSink");
+                throw new ArgumentNullException(nameof(metadataSink));
 
             _metadataSink = metadataSink;
 #if DEBUG

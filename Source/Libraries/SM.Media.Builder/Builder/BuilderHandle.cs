@@ -37,7 +37,7 @@ namespace SM.Media.Builder
         public BuilderHandle(ILifetimeScope scope)
         {
             if (null == scope)
-                throw new ArgumentNullException("scope");
+                throw new ArgumentNullException(nameof(scope));
 
             _scope = scope;
         }

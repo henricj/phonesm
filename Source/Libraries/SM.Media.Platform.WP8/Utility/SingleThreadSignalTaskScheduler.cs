@@ -44,9 +44,9 @@ namespace SM.Media.Utility
         public SingleThreadSignalTaskScheduler(string name, Action signalHandler)
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             if (signalHandler == null)
-                throw new ArgumentNullException("signalHandler");
+                throw new ArgumentNullException(nameof(signalHandler));
 
             _signalHandler = signalHandler;
 

@@ -43,7 +43,7 @@ namespace SM.Media.WinRtHttpClientReader
         public HttpProductInfoHeaderValueFactory(IUserAgent userAgent)
         {
             if (null == userAgent)
-                throw new ArgumentNullException("userAgent");
+                throw new ArgumentNullException(nameof(userAgent));
 
             _userAgent = userAgent;
         }

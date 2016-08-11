@@ -125,7 +125,7 @@ namespace SM.Media.Utility
             public Bucket(uint size)
             {
                 if (size < 1)
-                    throw new ArgumentOutOfRangeException("size");
+                    throw new ArgumentOutOfRangeException(nameof(size));
 
                 _size = size;
             }

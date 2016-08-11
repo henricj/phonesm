@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ContentKind.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+using System.Collections.Generic;
+
 namespace SM.Media.Content
 {
     public enum ContentKind
@@ -36,5 +38,37 @@ namespace SM.Media.Content
         Other,
         Unknown,
         AnyMedia // Audio, Video, Container, or Captions
-    };
+    }
+
+    public static class ContentKindExtensions
+    {
+        static readonly HashSet<ContentKind> MediaKinds =
+            new HashSet<ContentKind>
+            {
+                ContentKind.Audio,
+                ContentKind.Video,
+                ContentKind.Container,
+                ContentKind.Captions
+            };
+
+        public static bool IsCompatible(this ContentKind requested, ContentKind actual)
+        {
+            switch (requested)
+            {
+                case ContentKind.Audio:
+                case ContentKind.Video:
+                case ContentKind.Container:
+                case ContentKind.Playlist:
+                case ContentKind.Captions:
+                    return requested == actual;
+                case ContentKind.AnyMedia:
+                    return MediaKinds.Contains(actual);
+                case ContentKind.Unknown:
+                    return true;
+                case ContentKind.Other:
+                default:
+                    return false;
+            }
+        }
+    }
 }

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsProgramStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,7 +57,7 @@ namespace SM.Media.Hls
         ICollection<ISegment> _segments = NoPlaylist;
         IWebCache _subPlaylistCache;
 
-        public HlsProgramStream(IWebReader webReader, ICollection<Uri> urls, IHlsSegmentsFactory segmentsFactory, IWebMetadataFactory webMetadataFactory, IPlatformServices platformServices, IRetryManager retryManager)
+        public HlsProgramStream(IWebReader webReader, ICollection<Uri> urls, ContentType contentType, ContentType streamContentType, IHlsSegmentsFactory segmentsFactory, IWebMetadataFactory webMetadataFactory, IPlatformServices platformServices, IRetryManager retryManager)
         {
             if (null == segmentsFactory)
                 throw new ArgumentNullException(nameof(segmentsFactory));
@@ -74,30 +74,25 @@ namespace SM.Media.Hls
             _segmentsFactory = segmentsFactory;
             _webMetadataFactory = webMetadataFactory;
             Urls = urls;
+            ContentType = contentType;
+            StreamContentType = streamContentType;
         }
 
         #region IHlsProgramStream Members
 
-        public IWebReader WebReader
-        {
-            get { return _webReader; }
-        }
+        public IWebReader WebReader => _webReader;
 
-        public string StreamType { get; internal set; }
-        public string Language { get; internal set; }
-        public ICollection<Uri> Urls { get; set; }
+        public string StreamType { get; }
+        public string Language { get; }
+        public ICollection<Uri> Urls { get; }
+        public ContentType ContentType { get; }
+        public ContentType StreamContentType { get; }
 
-        public bool IsDynamicPlaylist
-        {
-            get { return _isDynamicPlaylist; }
-        }
+        public bool IsDynamicPlaylist => _isDynamicPlaylist;
 
         public IStreamMetadata StreamMetadata { get; set; }
 
-        public ICollection<ISegment> Segments
-        {
-            get { return _segments; }
-        }
+        public ICollection<ISegment> Segments => _segments;
 
         public async Task RefreshPlaylistAsync(CancellationToken cancellationToken)
         {
@@ -147,7 +142,7 @@ namespace SM.Media.Hls
                 if (null != _subPlaylistCache)
                     _subPlaylistCache.WebReader.Dispose();
 
-                _subPlaylistCache = _webReader.CreateWebCache(playlist, ContentKind.Playlist);
+                _subPlaylistCache = _webReader.CreateWebCache(playlist, ContentKind.Playlist, ContentType);
             }
         }
 

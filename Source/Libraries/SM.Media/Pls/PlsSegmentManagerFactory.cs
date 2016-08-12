@@ -59,25 +59,25 @@ namespace SM.Media.Pls
             _retryManager = retryManager;
         }
 
-        protected virtual async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, IWebReader webReader, ContentType contentType, CancellationToken cancellationToken)
+        protected virtual async Task<ISegmentManager> CreateManagerAsync(PlsParser pls, IWebReader webReader, ContentType contentType, ContentType streamContentType, CancellationToken cancellationToken)
         {
             var trackUrl = await _plsSegmentManagerPolicy.GetTrackAsync(pls, webReader.ContentType, cancellationToken);
 
             if (null == trackUrl)
                 return null;
 
-            if (null == contentType)
-                contentType = await webReader.DetectContentTypeAsync(trackUrl, ContentKind.AnyMedia, cancellationToken).ConfigureAwait(false);
+            if (null == streamContentType)
+                streamContentType = await webReader.DetectContentTypeAsync(trackUrl, ContentKind.AnyMedia, cancellationToken).ConfigureAwait(false);
 
             //DumpIcy(headers.ResponseHeaders);
 
-            if (null == contentType)
+            if (null == streamContentType)
             {
                 Debug.WriteLine("PlsSegmentManagerFactory.CreateSegmentManager() unable to detect type for " + trackUrl);
                 return null;
             }
 
-            return new SimpleSegmentManager(webReader, new[] { trackUrl }, contentType);
+            return new SimpleSegmentManager(webReader, new[] { trackUrl }, contentType, streamContentType);
         }
 
         [Conditional("DEBUG")]
@@ -94,7 +94,7 @@ namespace SM.Media.Pls
             }
         }
 
-        protected virtual async Task<ISegmentManager> ReadPlaylistAsync(IWebReader webReader, Uri url, Stream stream, ContentType contentType, CancellationToken cancellationToken)
+        protected virtual async Task<ISegmentManager> ReadPlaylistAsync(IWebReader webReader, Uri url, Stream stream, ContentType contentType, ContentType streamContentType, CancellationToken cancellationToken)
         {
             var pls = new PlsParser(url);
 
@@ -106,7 +106,7 @@ namespace SM.Media.Pls
                     return null;
             }
 
-            return await CreateManagerAsync(pls, webReader, contentType, cancellationToken).ConfigureAwait(false);
+            return await CreateManagerAsync(pls, webReader, contentType, streamContentType, cancellationToken).ConfigureAwait(false);
         }
 
         #region ISegmentManagerFactoryInstance Members
@@ -138,7 +138,7 @@ namespace SM.Media.Pls
 
                                 using (var stream = await webStream.GetStreamAsync(cancellationToken).ConfigureAwait(false))
                                 {
-                                    return await ReadPlaylistAsync(webReader, webStream.ActualUrl, stream, parameters.StreamContentType, cancellationToken).ConfigureAwait(false);
+                                    return await ReadPlaylistAsync(webReader, webStream.ActualUrl, stream, parameters.ContentType, parameters.StreamContentType, cancellationToken).ConfigureAwait(false);
                                 }
                             }
                         }

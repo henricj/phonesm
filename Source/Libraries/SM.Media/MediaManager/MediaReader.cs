@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="MediaReader.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -249,27 +249,27 @@ namespace SM.Media.MediaManager
             {
                 await startReaderTask.ConfigureAwait(false);
 
-                var contentType = _segmentReaders.Manager.ContentType;
+                var streamContentType = _segmentReaders.Manager.StreamContentType;
 
-                if (null == contentType)
+                if (null == streamContentType)
                 {
                     Debug.WriteLine("MediaReader.CreateReaderPipeline() unable to determine content type, defaulting to transport stream");
 
-                    contentType = ContentTypes.TransportStream;
+                    streamContentType = ContentTypes.TransportStream;
                 }
-                else if (ContentTypes.Binary == contentType)
+                else if (ContentTypes.Binary == streamContentType)
                 {
                     Debug.WriteLine("MediaReader.CreateReaderPipeline() detected binary content, defaulting to transport stream");
 
-                    contentType = ContentTypes.TransportStream;
+                    streamContentType = ContentTypes.TransportStream;
                 }
 
                 var mediaParserParameters = new MediaParserParameters();
 
-                _mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, contentType, cancellationToken).ConfigureAwait(false);
+                _mediaParser = await _mediaParserFactory.CreateAsync(mediaParserParameters, streamContentType, cancellationToken).ConfigureAwait(false);
 
                 if (null == _mediaParser)
-                    throw new NotSupportedException("Unsupported content type: " + contentType);
+                    throw new NotSupportedException("Unsupported stream content type: " + streamContentType);
 
                 _mediaParser.ConfigurationComplete += ConfigurationComplete;
 
@@ -323,8 +323,7 @@ namespace SM.Media.MediaManager
                 _mediaParser.FlushBuffers();
             }
 
-            if (null != _bufferingManager)
-                _bufferingManager.Flush();
+            _bufferingManager?.Flush();
         }
     }
 }

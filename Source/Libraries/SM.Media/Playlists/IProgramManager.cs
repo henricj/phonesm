@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="IProgramManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using SM.Media.Content;
 
 namespace SM.Media.Playlists
 {
@@ -35,6 +36,6 @@ namespace SM.Media.Playlists
     {
         ICollection<Uri> Playlists { get; }
 
-        Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken);
+        Task<IDictionary<long, Program>> LoadAsync(ContentType contentType, CancellationToken cancellationToken);
     }
 }

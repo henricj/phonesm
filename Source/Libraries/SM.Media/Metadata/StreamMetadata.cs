@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="StreamMetadata.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,7 @@ namespace SM.Media.Metadata
     {
         Uri Url { get; }
         ContentType ContentType { get; }
+        ContentType StreamContentType { get; }
 
         int? Bitrate { get; }
         TimeSpan? Duration { get; }
@@ -50,6 +51,7 @@ namespace SM.Media.Metadata
 
         public Uri Url { get; set; }
         public ContentType ContentType { get; set; }
+        public ContentType StreamContentType { get; set; }
 
         public int? Bitrate { get; set; }
         public TimeSpan? Duration { get; set; }

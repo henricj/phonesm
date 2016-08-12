@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsProgramManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -63,9 +63,9 @@ namespace SM.Media.Hls
 
         #region IProgramManager Members
 
-        public ICollection<Uri> Playlists { get; set; }
+        public ICollection<Uri> Playlists { get; private set; }
 
-        public async Task<IDictionary<long, Program>> LoadAsync(CancellationToken cancellationToken)
+        public async Task<IDictionary<long, Program>> LoadAsync(ContentType contentType, CancellationToken cancellationToken)
         {
             var playlists = Playlists;
 
@@ -78,12 +78,12 @@ namespace SM.Media.Hls
                     if (null != _playlistWebReader)
                         _playlistWebReader.Dispose();
 
-                    _playlistWebReader = _webReaderManager.CreateReader(playlist, ContentKind.Playlist);
+                    _playlistWebReader = _webReaderManager.CreateReader(playlist, ContentKind.Playlist, contentType: contentType);
 
                     var actualPlaylist = await parser.ParseAsync(_playlistWebReader, _retryManager, playlist, cancellationToken)
                         .ConfigureAwait(false);
 
-                    return await LoadAsync(_playlistWebReader, parser, cancellationToken);
+                    return await LoadAsync(_playlistWebReader, parser, contentType, cancellationToken).ConfigureAwait(false);
                 }
                 catch (WebException e)
                 {
@@ -104,7 +104,11 @@ namespace SM.Media.Hls
 
         #endregion
 
-        async Task<IDictionary<long, Program>> LoadAsync(IWebReader webReader, M3U8Parser parser, CancellationToken cancellationToken)
+        public ContentType ContentType { get; private set; }
+
+        public ContentType StreamContentType { get; private set; }
+
+        async Task<IDictionary<long, Program>> LoadAsync(IWebReader webReader, M3U8Parser parser, ContentType contentType, CancellationToken cancellationToken)
         {
             var audioStreams = new Dictionary<string, MediaGroup>();
 
@@ -164,7 +168,7 @@ namespace SM.Media.Hls
 
                     var program = GetProgram(programs, programId, programUrl);
 
-                    var hlsProgramStream = _programStreamFactory.Create(new[] { playlistUrl }, webReader);
+                    var hlsProgramStream = _programStreamFactory.Create(new[] { playlistUrl }, webReader, ContentType, StreamContentType);
 
                     var subProgram = new PlaylistSubProgram(program, hlsProgramStream)
                     {
@@ -189,7 +193,7 @@ namespace SM.Media.Hls
             {
                 var program = GetProgram(programs, long.MinValue, parser.BaseUrl);
 
-                var hlsProgramStream = _programStreamFactory.Create(new[] { webReader.RequestUri }, webReader);
+                var hlsProgramStream = _programStreamFactory.Create(new[] { webReader.RequestUri }, webReader, ContentType, StreamContentType);
 
                 await hlsProgramStream.SetParserAsync(parser, cancellationToken).ConfigureAwait(false);
 
@@ -276,6 +280,13 @@ namespace SM.Media.Hls
                 return defaultValue;
 
             return 0 == string.CompareOrdinal("YES", attr.Value.ToUpperInvariant());
+        }
+
+        public void Initialize(ICollection<Uri> source, ContentType contentType, ContentType streamContentType)
+        {
+            Playlists = source;
+            ContentType = contentType;
+            StreamContentType = streamContentType;
         }
 
         #region Nested type: MediaGroup

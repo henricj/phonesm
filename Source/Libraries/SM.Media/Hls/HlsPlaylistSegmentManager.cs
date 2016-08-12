@@ -66,7 +66,7 @@ namespace SM.Media.Hls
         int _segmentsExpiration;
         int _startSegmentIndex = -1;
 
-        public HlsPlaylistSegmentManager(IProgramStream programStream, IPlatformServices platformServices, CancellationToken cancellationToken)
+        public HlsPlaylistSegmentManager(IProgramStream programStream, ContentType contentType, ContentType streamContentType, IPlatformServices platformServices, CancellationToken cancellationToken)
         {
             if (null == programStream)
                 throw new ArgumentNullException(nameof(programStream));
@@ -76,6 +76,9 @@ namespace SM.Media.Hls
             _programStream = programStream;
             _platformServices = platformServices;
             _cancellationToken = cancellationToken;
+
+            ContentType = contentType;
+            StreamContentType = streamContentType;
 
             var p = HlsPlaylistSettings.Parameters;
 
@@ -111,8 +114,9 @@ namespace SM.Media.Hls
         public IWebReader WebReader { get; private set; }
         public TimeSpan StartPosition { get; private set; }
         public TimeSpan? Duration { get; private set; }
-        public ContentType ContentType { get; private set; }
-        public IAsyncEnumerable<ISegment> Playlist { get; private set; }
+        public ContentType ContentType { get; }
+        public ContentType StreamContentType { get; private set; }
+        public IAsyncEnumerable<ISegment> Playlist { get; }
 
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "_readTask", Justification = "CleanupReader does dispose _readTask")]
         public void Dispose()
@@ -178,9 +182,10 @@ namespace SM.Media.Hls
                 throw new FileNotFoundException("Unable to find the first segment");
             }
 
-            ContentType = await _programStream.GetContentTypeAsync(_cancellationToken).ConfigureAwait(false);
+            if (null == StreamContentType)
+                StreamContentType = await _programStream.GetContentTypeAsync(_cancellationToken).ConfigureAwait(false);
 
-            WebReader = _programStream.WebReader.CreateChild(null, ContentKind.AnyMedia, ContentType);
+            WebReader = _programStream.WebReader.CreateChild(null, ContentKind.AnyMedia, StreamContentType);
         }
 
         public Task StopAsync()
@@ -210,10 +215,7 @@ namespace SM.Media.Hls
             return readTask.WaitAsync();
         }
 
-        public IStreamMetadata StreamMetadata
-        {
-            get { return _programStream.StreamMetadata; }
-        }
+        public IStreamMetadata StreamMetadata => _programStream.StreamMetadata;
 
         public async Task<TimeSpan> SeekAsync(TimeSpan timestamp)
         {
@@ -409,7 +411,7 @@ namespace SM.Media.Hls
             // Retry in a little while
             var delay = 1.0 + (1 << (2 * _readSubListFailureCount));
 
-            delay += (delay / 2) * (_platformServices.GetRandomNumber() - 0.5);
+            delay += delay / 2 * (_platformServices.GetRandomNumber() - 0.5);
 
             var timeSpan = TimeSpan.FromSeconds(delay);
 
@@ -469,7 +471,7 @@ namespace SM.Media.Hls
                         // same list as last time.
                         Debug.WriteLine("HlsPlaylistSegmentManager.UpdatePlaylist(): need reload ({0})", DateTimeOffset.Now);
 
-                        var expiration = Environment.TickCount + (int)(Math.Round(2 * _minimumRetry.TotalMilliseconds));
+                        var expiration = Environment.TickCount + (int)Math.Round(2 * _minimumRetry.TotalMilliseconds);
 
                         if (_segmentsExpiration < expiration)
                             _segmentsExpiration = expiration;
@@ -729,7 +731,7 @@ namespace SM.Media.Hls
 
             public async Task<bool> MoveNextAsync()
             {
-                for (; ; )
+                for (;;)
                 {
                     await _segmentManager.CheckReload(_index).ConfigureAwait(false);
 

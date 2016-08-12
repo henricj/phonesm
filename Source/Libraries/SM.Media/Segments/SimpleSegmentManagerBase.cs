@@ -39,21 +39,20 @@ namespace SM.Media.Segments
     public class SimpleSegmentManagerBase : ISegmentManager, IAsyncEnumerable<ISegment>
     {
         static readonly Task<TimeSpan> TimeSpanZeroTask = Task.FromResult(TimeSpan.Zero);
-        readonly ContentType _contentType;
         readonly ICollection<ISegment> _segments;
-        readonly IWebReader _webReader;
         int _isDisposed;
 
-        protected SimpleSegmentManagerBase(IWebReader webReader, ICollection<ISegment> segments, ContentType contentType)
+        protected SimpleSegmentManagerBase(IWebReader webReader, ICollection<ISegment> segments, ContentType contentType, ContentType streamContentType)
         {
             if (null == webReader)
                 throw new ArgumentNullException(nameof(webReader));
             if (null == segments)
                 throw new ArgumentNullException(nameof(segments));
 
-            _webReader = webReader;
-            _contentType = contentType;
+            WebReader = webReader;
             _segments = segments;
+            ContentType = contentType;
+            StreamContentType = streamContentType;
         }
 
         #region IAsyncEnumerable<ISegment> Members
@@ -96,7 +95,7 @@ namespace SM.Media.Segments
         {
             get
             {
-                var url = _webReader.BaseAddress;
+                var url = WebReader.BaseAddress;
 
                 if (null == url)
                 {
@@ -109,7 +108,8 @@ namespace SM.Media.Segments
                 return new StreamMetadata
                 {
                     Url = url,
-                    ContentType = _contentType,
+                    ContentType = ContentType,
+                    StreamContentType = StreamContentType,
                     Duration = Duration
                 };
             }
@@ -120,30 +120,17 @@ namespace SM.Media.Segments
             return TplTaskExtensions.CompletedTask;
         }
 
-        public IWebReader WebReader
-        {
-            get { return _webReader; }
-        }
+        public IWebReader WebReader { get; }
 
-        public TimeSpan StartPosition
-        {
-            get { return TimeSpan.Zero; }
-        }
+        public TimeSpan StartPosition => TimeSpan.Zero;
 
-        public TimeSpan? Duration
-        {
-            get { return null; }
-        }
+        public TimeSpan? Duration => null;
 
-        public ContentType ContentType
-        {
-            get { return _contentType; }
-        }
+        public ContentType ContentType { get; }
 
-        public IAsyncEnumerable<ISegment> Playlist
-        {
-            get { return this; }
-        }
+        public ContentType StreamContentType { get; }
+
+        public IAsyncEnumerable<ISegment> Playlist => this;
 
         #endregion
 
@@ -152,7 +139,7 @@ namespace SM.Media.Segments
             if (!disposing)
                 return;
 
-            _webReader.Dispose();
+            WebReader.Dispose();
         }
 
         #region Nested type: SimpleEnumerator

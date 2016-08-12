@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SimpleSegmentManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,8 +34,8 @@ namespace SM.Media.Segments
 {
     public class SimpleSegmentManager : SimpleSegmentManagerBase
     {
-        public SimpleSegmentManager(IWebReader webReader, IEnumerable<Uri> urls, ContentType contentType)
-            : base(webReader, urls.Select<Uri, ISegment>(url => new SimpleSegment(url, null == webReader ? null : webReader.RequestUri ?? webReader.BaseAddress)).ToArray(), contentType)
+        public SimpleSegmentManager(IWebReader webReader, IEnumerable<Uri> urls, ContentType contentType, ContentType streamContentType)
+            : base(webReader, urls.Select<Uri, ISegment>(url => new SimpleSegment(url, null == webReader ? null : webReader.RequestUri ?? webReader.BaseAddress)).ToArray(), contentType, streamContentType)
         { }
     }
 }

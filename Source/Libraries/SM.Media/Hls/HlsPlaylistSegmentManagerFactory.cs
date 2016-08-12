@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsPlaylistSegmentManagerFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,16 +53,13 @@ namespace SM.Media.Hls
 
         #region ISegmentManagerFactoryInstance Members
 
-        public ICollection<ContentType> KnownContentTypes
-        {
-            get { return Types; }
-        }
+        public ICollection<ContentType> KnownContentTypes => Types;
 
         public async Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
-            var subProgram = await _hlsPlaylistSegmentManagerPolicy.CreateSubProgramAsync(parameters.Source, contentType, cancellationToken).ConfigureAwait(false);
+            var subProgram = await _hlsPlaylistSegmentManagerPolicy.CreateSubProgramAsync(parameters.Source, parameters.ContentType ?? contentType, parameters.StreamContentType, cancellationToken).ConfigureAwait(false);
 
-            var segmentManager = new HlsPlaylistSegmentManager(subProgram.Video, _platformServices, cancellationToken);
+            var segmentManager = new HlsPlaylistSegmentManager(subProgram.Video, parameters.ContentType ?? contentType, parameters.StreamContentType, _platformServices, cancellationToken);
 
             return segmentManager;
         }

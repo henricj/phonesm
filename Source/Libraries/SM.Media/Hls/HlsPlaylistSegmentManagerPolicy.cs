@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="HlsPlaylistSegmentManagerPolicy.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -38,7 +38,7 @@ namespace SM.Media.Hls
 {
     public interface IHlsPlaylistSegmentManagerPolicy
     {
-        Task<ISubProgram> CreateSubProgramAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken);
+        Task<ISubProgram> CreateSubProgramAsync(ICollection<Uri> source, ContentType contentType, ContentType streamContentType, CancellationToken cancellationToken);
     }
 
     public class HlsPlaylistSegmentManagerPolicy : IHlsPlaylistSegmentManagerPolicy
@@ -56,26 +56,25 @@ namespace SM.Media.Hls
 
         #region IHlsPlaylistSegmentManagerPolicy Members
 
-        public Task<ISubProgram> CreateSubProgramAsync(ICollection<Uri> source, ContentType contentType, CancellationToken cancellationToken)
+        public Task<ISubProgram> CreateSubProgramAsync(ICollection<Uri> source, ContentType contentType, ContentType streamContentType, CancellationToken cancellationToken)
         {
-            var programManager = CreateProgramManager(source, contentType);
+            var programManager = CreateProgramManager(source, contentType, streamContentType);
 
             return LoadSubProgram(programManager, contentType, cancellationToken);
         }
 
         #endregion
 
-        protected virtual IProgramManager CreateProgramManager(ICollection<Uri> source, ContentType contentType)
+        protected virtual IProgramManager CreateProgramManager(ICollection<Uri> source, ContentType contentType, ContentType streamContentType)
         {
             if (ContentTypes.M3U != contentType && ContentTypes.M3U8 != contentType)
             {
-                throw new NotSupportedException(string.Format("Content type {0} not supported by this program manager",
-                    null == contentType ? "<unknown>" : contentType.ToString()));
+                throw new NotSupportedException($"Content type {(null == contentType ? "<unknown>" : contentType.ToString())} not supported by this program manager");
             }
 
             var programManager = _programManagerFactory();
 
-            programManager.Playlists = source;
+            programManager.Initialize(source, contentType, streamContentType);
 
             return programManager;
         }
@@ -86,7 +85,7 @@ namespace SM.Media.Hls
 
             try
             {
-                var programs = await programManager.LoadAsync(cancellationToken).ConfigureAwait(false);
+                var programs = await programManager.LoadAsync(contentType, cancellationToken).ConfigureAwait(false);
 
                 var program = programs.Values.FirstOrDefault();
 

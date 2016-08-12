@@ -36,12 +36,12 @@ namespace SM.Media.Segments
     public class SimpleSegmentManagerFactory : ISegmentManagerFactoryInstance
     {
         static readonly ICollection<ContentType> Types = new[]
-                                                         {
-                                                             ContentTypes.Aac,
-                                                             ContentTypes.Ac3,
-                                                             ContentTypes.Mp3,
-                                                             ContentTypes.TransportStream
-                                                         };
+        {
+            ContentTypes.Aac,
+            ContentTypes.Ac3,
+            ContentTypes.Mp3,
+            ContentTypes.TransportStream
+        };
 
         readonly IWebReaderManager _webReaderManager;
 
@@ -55,14 +55,15 @@ namespace SM.Media.Segments
 
         #region ISegmentManagerFactoryInstance Members
 
-        public ICollection<ContentType> KnownContentTypes
-        {
-            get { return Types; }
-        }
+        public ICollection<ContentType> KnownContentTypes => Types;
 
         public Task<ISegmentManager> CreateAsync(ISegmentManagerParameters parameters, ContentType contentType, CancellationToken cancellationToken)
         {
-            return Task.FromResult<ISegmentManager>(new SimpleSegmentManager(parameters.WebReader ?? _webReaderManager.CreateRootReader(ContentKind.AnyMedia, contentType), parameters.Source, contentType));
+            var webReader = parameters.WebReader ?? _webReaderManager.CreateRootReader(ContentKind.AnyMedia, contentType);
+
+            var segmentManager = new SimpleSegmentManager(webReader, parameters.Source, parameters.ContentType ?? contentType, parameters.StreamContentType);
+
+            return Task.FromResult<ISegmentManager>(segmentManager);
         }
 
         #endregion

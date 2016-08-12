@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HlsProgramStreamFactory.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2015.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2015 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using SM.Media.Content;
 using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
@@ -34,7 +35,7 @@ namespace SM.Media.Hls
 {
     public interface IHlsProgramStreamFactory
     {
-        IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader);
+        IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader, ContentType contentType, ContentType streamContentType);
     }
 
     public class HlsProgramStreamFactory : IHlsProgramStreamFactory
@@ -63,9 +64,9 @@ namespace SM.Media.Hls
 
         #region IHlsProgramStreamFactory Members
 
-        public IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader)
+        public IHlsProgramStream Create(ICollection<Uri> urls, IWebReader webReader, ContentType contentType, ContentType streamContentType)
         {
-            return new HlsProgramStream(webReader, urls, _segmentsFactory, _webMetadataFactory, _platformServices, _retryManager);
+            return new HlsProgramStream(webReader, urls, contentType, streamContentType, _segmentsFactory, _webMetadataFactory, _platformServices, _retryManager);
         }
 
         #endregion

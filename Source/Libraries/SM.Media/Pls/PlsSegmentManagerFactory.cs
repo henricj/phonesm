@@ -73,7 +73,7 @@ namespace SM.Media.Pls
 
             if (null == streamContentType)
             {
-                Debug.WriteLine("PlsSegmentManagerFactory.CreateSegmentManager() unable to detect type for " + trackUrl);
+                Debug.WriteLine("PlsSegmentManagerFactory.CreateManagerAsync() unable to detect type for " + trackUrl);
                 return null;
             }
 

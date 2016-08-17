@@ -419,7 +419,7 @@ namespace HlsView
 
             // Enable UseHttpConnection to use sockets directly instead of going through
             // the system's default HTTP client.  HttpConnection is not as picky about
-            // headers and it will not pollute the sytem's HTTP cache, but it will always
+            // headers and it will not pollute the system's HTTP cache, but it will always
             // open a new connection for each request.
             //MediaStreamFacadeSettings.Parameters.UseHttpConnection = true;
 

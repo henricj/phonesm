@@ -199,7 +199,7 @@ namespace SM.Media.Web.HttpConnectionReader
                     }
                 }
             }
-            catch (WebException)
+            catch (StatusCodeWebException)
             {
                 // Well, HEAD didn't work...
             }
@@ -218,7 +218,7 @@ namespace SM.Media.Web.HttpConnectionReader
                     }
                 }
             }
-            catch (WebException)
+            catch (StatusCodeWebException)
             {
                 // Well, a ranged GET didn't work either.
             }
@@ -237,7 +237,7 @@ namespace SM.Media.Web.HttpConnectionReader
                     }
                 }
             }
-            catch (WebException)
+            catch (StatusCodeWebException)
             {
                 // This just isn't going to work.
             }

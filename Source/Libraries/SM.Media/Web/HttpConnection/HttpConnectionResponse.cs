@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="HttpConnectionResponse.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -44,12 +44,8 @@ namespace SM.Media.Web.HttpConnection
 
     public class HttpConnectionResponse : IHttpConnectionResponse
     {
-        readonly ILookup<string, string> _headers;
-        readonly IHttpStatus _status;
-        readonly Uri _url;
         IHttpConnection _connection;
         IHttpReader _reader;
-        Stream _stream;
 
         public HttpConnectionResponse(Uri url, IHttpConnection connection, IHttpReader reader, Stream stream, ILookup<string, string> headers, IHttpStatus status)
         {
@@ -62,11 +58,11 @@ namespace SM.Media.Web.HttpConnection
             if (null == status)
                 throw new ArgumentNullException(nameof(status));
 
-            _url = url;
+            ResponseUri = url;
             _reader = reader;
-            _stream = stream;
-            _headers = headers;
-            _status = status;
+            ContentReadStream = stream;
+            Headers = headers;
+            Status = status;
             _connection = connection;
         }
 
@@ -74,11 +70,11 @@ namespace SM.Media.Web.HttpConnection
 
         public void Dispose()
         {
-            var stream = _stream;
+            var stream = ContentReadStream;
 
             if (null != stream)
             {
-                _stream = null;
+                ContentReadStream = null;
 
                 stream.Dispose();
             }
@@ -102,35 +98,20 @@ namespace SM.Media.Web.HttpConnection
             }
         }
 
-        public ILookup<string, string> Headers
-        {
-            get { return _headers; }
-        }
+        public ILookup<string, string> Headers { get; }
 
-        public Stream ContentReadStream
-        {
-            get { return _stream; }
-        }
+        public Stream ContentReadStream { get; private set; }
 
-        public IHttpStatus Status
-        {
-            get { return _status; }
-        }
+        public IHttpStatus Status { get; }
 
-        public Uri ResponseUri
-        {
-            get { return _url; }
-        }
+        public Uri ResponseUri { get; }
 
-        public bool IsSuccessStatusCode
-        {
-            get { return null != Status && Status.IsSuccessStatusCode; }
-        }
+        public bool IsSuccessStatusCode => (null != Status) && Status.IsSuccessStatusCode;
 
         public void EnsureSuccessStatusCode()
         {
             if (null == Status)
-                throw new WebException("No status available", WebExceptionStatus.UnknownError);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "No status available");
 
             Status.EnsureSuccessStatusCode();
         }

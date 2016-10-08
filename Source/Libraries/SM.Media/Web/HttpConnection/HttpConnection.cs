@@ -232,11 +232,11 @@ namespace SM.Media.Web.HttpConnection
             _httpStatus.Version = parts[0];
 
             if (parts.Length < 2 || parts.Length > 3)
-                throw new WebException("Invalid status line: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid status line: " + statusLine);
 
             int statusCode;
             if (!int.TryParse(parts[1], NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out statusCode))
-                throw new WebException("Invalid status code: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid status code: " + statusLine);
 
             _httpStatus.StatusCode = (HttpStatusCode)statusCode;
 
@@ -254,12 +254,12 @@ namespace SM.Media.Web.HttpConnection
             var slash = statusLine.IndexOf('/');
 
             if (slash < 1 || slash + 1 >= statusLine.Length)
-                throw new WebException("Invalid status line: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid status line: " + statusLine);
 
             var firstSpace = statusLine.IndexOf(' ', slash + 1);
 
             if (firstSpace < 1 || firstSpace + 1 >= statusLine.Length)
-                throw new WebException("Invalid status line: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid status line: " + statusLine);
 
             var secondSpace = statusLine.IndexOf(' ', firstSpace + 1);
 
@@ -271,7 +271,7 @@ namespace SM.Media.Web.HttpConnection
             var http = statusLine.Substring(0, slash);
 
             if (!string.Equals(http, "HTTP", StringComparison.Ordinal))
-                throw new WebException("Invalid protocol: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid protocol: " + statusLine);
 
             var version = statusLine.Substring(slash + 1, firstSpace - slash - 1);
 
@@ -280,19 +280,19 @@ namespace SM.Media.Web.HttpConnection
             var dot = version.IndexOf('.');
 
             if (dot < 1 || dot + 1 >= version.Length)
-                throw new WebException("Invalid protocol: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid protocol: " + statusLine);
 
             var majorVersion = version.Substring(0, dot);
             var minorVersion = version.Substring(dot + 1, version.Length - dot - 1);
 
             int n;
             if (!int.TryParse(majorVersion, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out n))
-                throw new WebException("Invalid protocol version: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid protocol version: " + statusLine);
 
             _httpStatus.VersionMajor = n;
 
             if (!int.TryParse(minorVersion, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out n))
-                throw new WebException("Invalid protocol version: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid protocol version: " + statusLine);
 
             _httpStatus.VersionMinor = n;
 
@@ -302,10 +302,10 @@ namespace SM.Media.Web.HttpConnection
 
             int statusCode;
             if (!int.TryParse(statusCodeString, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out statusCode))
-                throw new WebException("Invalid status code: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid status code: " + statusLine);
 
             if (statusCode < 100 || statusCode > 999)
-                throw new WebException("Invalid status code: " + statusLine);
+                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid status code: " + statusLine);
 
             _httpStatus.StatusCode = (HttpStatusCode)statusCode;
 

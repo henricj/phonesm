@@ -33,7 +33,6 @@ using System.Threading.Tasks;
 using SM.Media.Metadata;
 using SM.Media.Utility;
 using SM.Media.Web;
-using WebResponse = SM.Media.Web.WebResponse;
 
 namespace SM.Media.Segments
 {
@@ -73,7 +72,7 @@ namespace SM.Media.Segments
             _retryManager = retryManager;
             _platformServices = platformServices;
 
-            if (segment.Offset >= 0 && segment.Length > 0)
+            if ((segment.Offset >= 0) && (segment.Length > 0))
             {
                 _startOffset = segment.Offset;
                 _endOffset = segment.Offset + segment.Length - 1;
@@ -82,10 +81,7 @@ namespace SM.Media.Segments
 
         #region ISegmentReader Members
 
-        public Uri Url
-        {
-            get { return _segment.Url; }
-        }
+        public Uri Url => _segment.Url;
 
         public bool IsEof { get; private set; }
 
@@ -135,7 +131,7 @@ namespace SM.Media.Segments
                             var validLength = IsLengthValid();
 
                             if (!validLength)
-                                throw new WebException(string.Format("Read length mismatch mismatch ({0} expected)", _expectedBytes));
+                                throw new StatusCodeWebException(HttpStatusCode.InternalServerError, $"Read length mismatch mismatch ({_expectedBytes} expected)");
 
                             IsEof = true;
 
@@ -207,7 +203,6 @@ namespace SM.Media.Segments
             }
 
             if (!oneStream)
-            {
                 try
                 {
                     var responseStream = _responseStream;
@@ -224,7 +219,6 @@ namespace SM.Media.Segments
                 {
                     Debug.WriteLine("SegmentReader.Close() responseStream cleanup failed: " + ex.Message);
                 }
-            }
 
             try
             {
@@ -260,7 +254,7 @@ namespace SM.Media.Segments
             {
                 var actualBytesRead = _responseStream.Position;
 
-                var badLength = _expectedBytes.HasValue && _expectedBytes != actualBytesRead;
+                var badLength = _expectedBytes.HasValue && (_expectedBytes != actualBytesRead);
 
                 return !badLength;
             }
@@ -280,7 +274,7 @@ namespace SM.Media.Segments
             return retry.CallAsync(
                 async () =>
                 {
-                    for (; ; )
+                    for (;;)
                     {
                         if (_startOffset.HasValue && _endOffset.HasValue)
                             _expectedBytes = _endOffset - _startOffset + 1;
@@ -288,7 +282,7 @@ namespace SM.Media.Segments
                             _expectedBytes = null;
 
                         _response = await _webReader.GetWebStreamAsync(_actualUrl ?? _segment.Url, false, cancellationToken,
-                            _segment.ParentUrl, _startOffset, _endOffset, webResponse)
+                                _segment.ParentUrl, _startOffset, _endOffset, webResponse)
                             .ConfigureAwait(false);
 
                         if (_response.IsSuccessStatusCode)
@@ -321,19 +315,17 @@ namespace SM.Media.Segments
 
                         // Special-case 404s.
                         var statusCode = (HttpStatusCode)_response.HttpStatusCode;
-                        if (HttpStatusCode.NotFound != statusCode && !RetryPolicy.IsRetryable(statusCode))
+                        if ((HttpStatusCode.NotFound != statusCode) && !RetryPolicy.IsRetryable(statusCode))
                             _response.EnsureSuccessStatusCode();
 
                         var canRetry = await retry.CanRetryAfterDelayAsync(cancellationToken)
                             .ConfigureAwait(false);
 
                         if (!canRetry)
-                        {
-                            if (null != _actualUrl && _actualUrl != _segment.Url)
+                            if ((null != _actualUrl) && (_actualUrl != _segment.Url))
                                 _actualUrl = null;
                             else
                                 _response.EnsureSuccessStatusCode();
-                        }
 
                         _response.Dispose();
                         _response = null;
@@ -343,8 +335,8 @@ namespace SM.Media.Segments
 
         public override string ToString()
         {
-            if (_segment.Offset > 0 || _segment.Length > 0)
-                return string.Format("{0} [{1}-{2}]", Url, _segment.Offset, _segment.Offset + _segment.Length);
+            if ((_segment.Offset > 0) || (_segment.Length > 0))
+                return $"{Url} [{_segment.Offset}-{_segment.Offset + _segment.Length}]";
 
             return Url.ToString();
         }

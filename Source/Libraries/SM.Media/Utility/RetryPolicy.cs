@@ -42,37 +42,14 @@ namespace SM.Media.Utility
                                                  HttpStatusCode.InternalServerError
                                              }.OrderBy(v => v).ToArray();
 
-        static readonly WebExceptionStatus[] WebRetryCodes = new[]
-                                                             {
-                                                                 WebExceptionStatus.ConnectFailure,
-                                                                 WebExceptionStatus.SendFailure
-                                                             }.OrderBy(v => v).ToArray();
-
         public static bool IsRetryable(HttpStatusCode code)
         {
             return Array.BinarySearch(RetryCodes, code) >= 0;
         }
 
-        public static bool IsRetryable(WebExceptionStatus code)
-        {
-            return Array.BinarySearch(WebRetryCodes, code) >= 0;
-        }
-
         public static bool IsWebExceptionRetryable(Exception ex)
         {
-            var webException = ex as WebException;
-            if (null == webException)
-                return false;
-
-            if (IsRetryable(webException.Status))
-                return true;
-
-            var httpResponse = webException.Response as HttpWebResponse;
-
-            if (null != httpResponse)
-                return IsRetryable(httpResponse.StatusCode);
-
-            var statusCodeWebException = webException as StatusCodeWebException;
+            var statusCodeWebException = ex as StatusCodeWebException;
 
             if (null != statusCodeWebException)
                 return IsRetryable(statusCodeWebException.StatusCode);

@@ -137,8 +137,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Autofac">
+    <Reference Include="Autofac, Version=3.5.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Autofac.3.5.2\lib\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\Autofac.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System.Net.Http, Version=1.5.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -171,23 +172,6 @@
     </Otherwise>
   </Choose>
   <Choose>
-    <When Condition="Exists('..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
-          <Project>{2937062b-8451-496c-9207-8a7fe59933cf}</Project>
-          <Name>SM.Media.Web.HttpClientReader</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.Media.Web.HttpClientReader">
-          <HintPath>..\..\bin\$(Configuration)\SM.Media.Web.HttpClientReader.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj')">
       <ItemGroup>
         <ProjectReference Include="..\..\Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
@@ -200,23 +184,6 @@
       <ItemGroup>
         <Reference Include="SM.Media.Platform.WP8">
           <HintPath>..\..\bin\$(Configuration)\WP8\SM.Media.Platform.WP8.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
-    <When Condition="Exists('..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
-          <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
-          <Name>SM.Media.Builder</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.Media.Builder">
-          <HintPath>..\..\bin\$(Configuration)\SM.Media.Builder.dll</HintPath>
         </Reference>
       </ItemGroup>
     </Otherwise>

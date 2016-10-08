@@ -117,7 +117,7 @@ namespace SM.Media.Web.HttpConnectionReader
                 
                     response.EnsureSuccessStatusCode();
                     
-                    throw new WebException("Unable to fetch " + request.Url);
+                    throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Unable to fetch " + request.Url);
                 }
             }
         }

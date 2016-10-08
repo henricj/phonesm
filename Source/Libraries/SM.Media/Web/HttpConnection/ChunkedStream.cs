@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="ChunkedStream.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,15 +53,15 @@ namespace SM.Media.Web.HttpConnection
         {
             if (null == buffer)
                 throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0 || offset > buffer.Length)
+            if ((offset < 0) || (offset > buffer.Length))
                 throw new ArgumentOutOfRangeException(nameof(offset));
-            if (count < 1 || count + offset > buffer.Length)
+            if ((count < 1) || (count + offset > buffer.Length))
                 throw new ArgumentOutOfRangeException(nameof(count));
 
             var totalLength = 0;
             var count0 = count;
 
-            for (; ; )
+            for (;;)
             {
                 var length = await ReadOneAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
 
@@ -91,7 +91,7 @@ namespace SM.Media.Web.HttpConnection
             if (_eof)
                 return 0;
 
-            if (_chunkSize.HasValue && _chunkRead == _chunkSize.Value)
+            if (_chunkSize.HasValue && (_chunkRead == _chunkSize.Value))
             {
                 // We need to consume the chunk-data's trailing CRLF
                 var blankLine = await _reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
@@ -105,7 +105,7 @@ namespace SM.Media.Web.HttpConnection
                 if (!string.IsNullOrEmpty(blankLine))
                 {
                     _eof = true;
-                    throw new WebException("Invalid chunked encoding");
+                    throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "Invalid chunked encoding");
                 }
 
                 _chunkSize = null;
@@ -128,10 +128,10 @@ namespace SM.Media.Web.HttpConnection
 
                 long chunkSize;
                 if (!long.TryParse(chunkSizeString, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo, out chunkSize))
-                    throw new WebException("invalid chunk size: " + chunkSizeLine);
+                    throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "invalid chunk size: " + chunkSizeLine);
 
                 if (chunkSize < 0)
-                    throw new WebException("invalid chunk size: " + chunkSizeLine);
+                    throw new StatusCodeWebException(HttpStatusCode.InternalServerError, "invalid chunk size: " + chunkSizeLine);
 
                 if (0 == chunkSize)
                 {

@@ -111,23 +111,6 @@
       </ItemGroup>
     </Otherwise>
   </Choose>
-  <Choose>
-    <When Condition="Exists('..\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
-          <Project>{2937062B-8451-496C-9207-8A7FE59933CF}</Project>
-          <Name>SM.Media.Web.HttpClientReader</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.Media.Web.HttpClientReader">
-          <HintPath>..\..\bin\$(Configuration)\SM.Media.Web.HttpClientReader.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />
   <ProjectExtensions />

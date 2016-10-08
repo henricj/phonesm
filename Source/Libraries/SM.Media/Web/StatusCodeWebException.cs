@@ -1,10 +1,10 @@
 ﻿// -----------------------------------------------------------------------
 //  <copyright file="StatusCodeWebException.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,20 +29,15 @@ using System.Net;
 
 namespace SM.Media.Web
 {
-    public class StatusCodeWebException : WebException
+    public class StatusCodeWebException : Exception
     {
-        readonly HttpStatusCode _statusCode;
-
         public StatusCodeWebException(HttpStatusCode statusCode, string message, Exception innerException = null)
             : base(message, innerException)
         {
-            _statusCode = statusCode;
+            StatusCode = statusCode;
         }
 
-        public HttpStatusCode StatusCode
-        {
-            get { return _statusCode; }
-        }
+        public HttpStatusCode StatusCode { get; }
 
         public static void ThrowIfNotSuccess(HttpStatusCode statusCode, string message)
         {

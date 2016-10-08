@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SM.Media.Platform.WinRT", "Libraries\SM.Media.Platform.WinRT\SM.Media.Platform.WinRT.csproj", "{7441BE13-D07C-424E-AD1A-54CC78A51E0F}"
 EndProject
@@ -96,12 +96,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iso639-2ToTable", "Console\
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems*{60909973-3882-4306-8236-c188ed185ca8}*SharedItemsImports = 4
-		App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems*{283e62bc-4128-4dbb-bbc5-a1ee2cebe822}*SharedItemsImports = 4
-		App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems*{b0a3b688-f2ec-4066-acde-92c281c332b2}*SharedItemsImports = 13
-		App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.projitems*{7d9f3b7c-f572-4e3e-9dc4-8fb11ce51977}*SharedItemsImports = 13
-		App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.projitems*{d31ccb38-39be-4508-b49a-e2e71265e5f2}*SharedItemsImports = 4
 		App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.projitems*{1a62ed9e-93d9-4c0c-b4b9-da18a694ee37}*SharedItemsImports = 4
+		App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems*{283e62bc-4128-4dbb-bbc5-a1ee2cebe822}*SharedItemsImports = 4
+		App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems*{60909973-3882-4306-8236-c188ed185ca8}*SharedItemsImports = 4
+		App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.projitems*{7d9f3b7c-f572-4e3e-9dc4-8fb11ce51977}*SharedItemsImports = 13
+		App\WinRT\SamplePlayer.WinRT.Shared\SamplePlayer.WinRT.Shared.projitems*{b0a3b688-f2ec-4066-acde-92c281c332b2}*SharedItemsImports = 13
+		App\WinRT\HlsView.WinRT.Shared\HlsView.WinRT.Shared.projitems*{d31ccb38-39be-4508-b49a-e2e71265e5f2}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM

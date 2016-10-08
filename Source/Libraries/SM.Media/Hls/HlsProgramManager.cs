@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using SM.Media.Content;
@@ -85,7 +84,7 @@ namespace SM.Media.Hls
 
                     return await LoadAsync(_playlistWebReader, parser, contentType, cancellationToken).ConfigureAwait(false);
                 }
-                catch (WebException e)
+                catch (StatusCodeWebException e)
                 {
                     // This one didn't work, so try the next playlist url.
                     Debug.WriteLine("HlsProgramManager.LoadAsync: " + e.Message);

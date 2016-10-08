@@ -1,0 +1,9 @@
+{
+  "supports": {},
+  "dependencies": {
+    "Autofac": "4.1.1"
+  },
+  "frameworks": {
+    ".NETPortable,Version=v4.6,Profile=Profile32": {}
+  }
+}

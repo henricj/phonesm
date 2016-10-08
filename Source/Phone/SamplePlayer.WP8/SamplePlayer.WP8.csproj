@@ -143,23 +143,6 @@
     </ProjectReference>
   </ItemGroup>
   <Choose>
-    <When Condition="Exists('..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\Libraries\SM.Media.Web.HttpClientReader\SM.Media.Web.HttpClientReader.csproj">
-          <Project>{2937062b-8451-496c-9207-8a7fe59933cf}</Project>
-          <Name>SM.Media.Web.HttpClientReader</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.Media.Web.HttpClientReader">
-          <HintPath>..\..\bin\$(Configuration)\SM.Media.Web.HttpClientReader.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
     <When Condition="Exists('..\..\Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj')">
       <ItemGroup>
         <ProjectReference Include="..\..\Libraries\SM.Media.Platform.WP8\SM.Media.Platform.WP8.csproj">
@@ -189,23 +172,6 @@
       <ItemGroup>
         <Reference Include="SM.Media">
           <HintPath>..\..\bin\$(Configuration)\SM.Media.dll</HintPath>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
-    <When Condition="Exists('..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj')">
-      <ItemGroup>
-        <ProjectReference Include="..\..\Libraries\SM.Media.Builder\SM.Media.Builder.csproj">
-          <Project>{E7DDFAD9-00BD-4F60-8873-4A34B80E9ACB}</Project>
-          <Name>SM.Media.Builder</Name>
-        </ProjectReference>
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="SM.Media.Builder">
-          <HintPath>..\..\bin\$(Configuration)\SM.Media.Builder.dll</HintPath>
         </Reference>
       </ItemGroup>
     </Otherwise>

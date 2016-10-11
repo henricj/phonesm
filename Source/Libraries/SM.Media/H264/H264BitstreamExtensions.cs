@@ -57,7 +57,7 @@ namespace SM.Media.H264
             if (codeNum < 2)
                 return (int)codeNum;
 
-            var n = (int)(codeNum >> 1);
+            var n = (int)((codeNum + 1) >> 1);
 
             if (0 == (codeNum & 1))
                 return -n;

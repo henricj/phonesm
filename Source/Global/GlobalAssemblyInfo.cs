@@ -33,7 +33,7 @@ using System.Resources;
 
 [assembly: AssemblyCompany("Henric Jungheim")]
 [assembly: AssemblyProduct("Streaming Media")]
-[assembly: AssemblyCopyright("Copyright © 2011-2015 Henric Jungheim")]
+[assembly: AssemblyCopyright("Copyright © 2011-2016 Henric Jungheim")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: NeutralResourcesLanguage("en-US")]

@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="H264BitstreamExtensions.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2014.
+//  Copyright (c) 2012-2016.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2014 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ namespace SM.Media.H264
         {
             var zeros = 0;
 
-            for (; ; )
+            for (;;)
             {
                 var b = h264Bitstream.ReadBits(1);
 
@@ -52,14 +52,14 @@ namespace SM.Media.H264
 
         public static int ReadSe(this H264Bitstream h264Bitstream)
         {
-            var u = h264Bitstream.ReadUe();
+            var codeNum = h264Bitstream.ReadUe();
 
-            if (u < 2)
-                return (int)u;
+            if (codeNum < 2)
+                return (int)codeNum;
 
-            var n = (int)(u >> 1);
+            var n = (int)(codeNum >> 1);
 
-            if (0 == (u & 1))
+            if (0 == (codeNum & 1))
                 return -n;
 
             return n;
@@ -81,7 +81,7 @@ namespace SM.Media.H264
         {
             var sum = 0u;
 
-            for (; ; )
+            for (;;)
             {
                 var b = h264Bitstream.ReadBits(8);
 

@@ -409,14 +409,16 @@ namespace SM.Media.MediaManager
 
                     try
                     {
-                        webReader = rootWebReader.CreateChild(url, ContentKind.Unknown, ContentType ?? StreamContentType);
+                        var specifiedType = ContentType ?? StreamContentType;
+
+                        webReader = rootWebReader.CreateChild(url, ContentKind.Unknown, specifiedType);
 
                         webStream = await webReader.GetWebStreamAsync(null, false, cancellationToken, response: response).ConfigureAwait(false);
 
                         if (!webStream.IsSuccessStatusCode)
                             continue;
 
-                        var contentType = response.ContentType;
+                        var contentType = specifiedType ?? response.ContentType;
 
                         if (null == contentType)
                             continue;

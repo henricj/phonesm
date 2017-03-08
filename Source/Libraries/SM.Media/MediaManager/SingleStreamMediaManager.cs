@@ -1,10 +1,10 @@
 // -----------------------------------------------------------------------
 //  <copyright file="SingleStreamMediaManager.cs" company="Henric Jungheim">
-//  Copyright (c) 2012-2016.
+//  Copyright (c) 2012-2017.
 //  <author>Henric Jungheim</author>
 //  </copyright>
 // -----------------------------------------------------------------------
-// Copyright (c) 2012-2016 Henric Jungheim <software@henric.org>
+// Copyright (c) 2012-2017 Henric Jungheim <software@henric.org>
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -77,6 +77,278 @@ namespace SM.Media.MediaManager
             _reportStateTask = new SignalTask(ReportState);
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            Debug.WriteLine("SingleStreamMediaManager.Dispose(bool)");
+
+            if (!disposing)
+                return;
+
+            if (null != OnStateChange)
+            {
+                Debug.WriteLine("SingleStreamMediaManager.Dispose(bool): OnStateChange is not null");
+
+                if (Debugger.IsAttached)
+                    Debugger.Break();
+
+                OnStateChange = null;
+            }
+
+            _mediaStreamConfigurator.MediaManager = null;
+
+            _reportStateTask.Dispose();
+
+            CancellationTokenSource pcts;
+
+            lock (_lock)
+            {
+                pcts = _playCancellationTokenSource;
+                _playCancellationTokenSource = null;
+            }
+
+            pcts?.Dispose();
+        }
+
+        Task ReportState()
+        {
+            Debug.WriteLine("SingleStreamMediaManager.ReportState() state {0} message {1}", _mediaState, _mediaStateMessage);
+
+            MediaManagerState state;
+            string message;
+
+            lock (_lock)
+            {
+                state = _mediaState;
+                message = _mediaStateMessage;
+                _mediaStateMessage = null;
+            }
+
+            OnStateChange?.Invoke(this, new MediaManagerStateEventArgs(state, message));
+
+            if (null != message)
+            {
+                var mss = _mediaStreamConfigurator;
+
+                mss?.ReportError(message);
+            }
+
+            return TplTaskExtensions.CompletedTask;
+        }
+
+        void SetMediaState(MediaManagerState state, string message)
+        {
+            lock (_lock)
+            {
+                if (state == _mediaState)
+                    return;
+
+                Debug.WriteLine("SingleStreamMediaState.SetMediaState() {0} -> {1}", _mediaState, state);
+
+                _mediaState = state;
+
+                if (null != message)
+                    _mediaStateMessage = message;
+            }
+
+            _reportStateTask.Fire();
+        }
+
+        async Task SimplePlayAsync(ContentType contentType, IWebReader webReader, IWebStreamResponse webStreamResponse, WebResponse webResponse, TaskCompletionSource<bool> configurationTaskCompletionSource, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _mediaStreamConfigurator.Initialize();
+
+                _mediaStreamConfigurator.MediaManager = this;
+
+                var mediaParser = await _mediaParserFactory.CreateAsync(new MediaParserParameters(), contentType, cancellationToken).ConfigureAwait(false);
+
+                if (null == mediaParser)
+                    throw new NotSupportedException("Unsupported content type: " + contentType);
+
+                State = MediaManagerState.Opening;
+
+                EventHandler configurationComplete = null;
+
+                configurationComplete = (sender, args) =>
+                {
+                    // ReSharper disable once AccessToModifiedClosure
+                    mediaParser.ConfigurationComplete -= configurationComplete;
+
+                    configurationTaskCompletionSource.TrySetResult(true);
+                };
+
+                mediaParser.ConfigurationComplete += configurationComplete;
+
+                using (var bufferingManager = _bufferingManagerFactory())
+                {
+                    var throttle = new QueueThrottle();
+
+                    bufferingManager.Initialize(throttle, _mediaStreamConfigurator.CheckForSamples);
+
+                    mediaParser.Initialize(bufferingManager);
+
+                    var streamMetadata = _webMetadataFactory.CreateStreamMetadata(webResponse);
+
+                    mediaParser.InitializeStream(streamMetadata);
+
+                    Task reader = null;
+
+                    try
+                    {
+                        using (webReader)
+                        {
+                            try
+                            {
+                                if (null == webStreamResponse)
+                                    webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken, response: webResponse).ConfigureAwait(false);
+
+                                reader = ReadResponseAsync(mediaParser, webStreamResponse, webResponse, throttle, cancellationToken);
+
+                                await Task.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
+
+                                cancellationToken.ThrowIfCancellationRequested();
+
+                                await _mediaStreamConfigurator.PlayAsync(mediaParser.MediaStreams, null, cancellationToken).ConfigureAwait(false);
+
+                                State = MediaManagerState.Playing;
+
+                                await reader.ConfigureAwait(false);
+
+                                reader = null;
+                            }
+                            finally
+                            {
+                                webStreamResponse?.Dispose();
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    { }
+                    catch (Exception ex)
+                    {
+                        var message = ex.ExtendedMessage();
+
+                        Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() failed: " + message);
+
+                        SetMediaState(MediaManagerState.Error, message);
+                    }
+
+                    State = MediaManagerState.Closing;
+
+                    if (null != reader)
+                    {
+                        try
+                        {
+                            await reader.ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        { }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() reader failed: " + ex.ExtendedMessage());
+                        }
+                    }
+
+                    mediaParser.ConfigurationComplete -= configurationComplete;
+
+                    mediaParser.EnableProcessing = false;
+                    mediaParser.FlushBuffers();
+
+                    bufferingManager.Flush();
+
+                    bufferingManager.Shutdown(throttle);
+
+                    await _mediaStreamConfigurator.CloseAsync().ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() cleanup failed: " + ex.ExtendedMessage());
+            }
+
+            _mediaStreamConfigurator.MediaManager = null;
+
+            if (!configurationTaskCompletionSource.Task.IsCompleted)
+                configurationTaskCompletionSource.TrySetCanceled();
+
+            State = MediaManagerState.Closed;
+
+            await _reportStateTask.WaitAsync().ConfigureAwait(false);
+        }
+
+        async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, WebResponse webResponse, QueueThrottle throttle, CancellationToken cancellationToken)
+        {
+            //Debug.WriteLine("SingleStreamMediaManager.ReadResponseAsync()");
+
+            var buffer = new byte[16 * 1024];
+
+            var cancellationTask = cancellationToken.AsTask();
+
+            try
+            {
+                var segmentMetadata = _webMetadataFactory.CreateSegmentMetadata(webResponse);
+
+                mediaParser.StartSegment(segmentMetadata);
+
+                using (var stream = await webStreamResponse.GetStreamAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    for (;;)
+                    {
+                        var waitTask = throttle.WaitAsync();
+
+                        if (!waitTask.IsCompleted)
+                        {
+                            await Task.WhenAny(waitTask, cancellationTask).ConfigureAwait(false);
+
+                            cancellationToken.ThrowIfCancellationRequested();
+                        }
+
+                        var length = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+
+                        if (length <= 0)
+                            return;
+
+                        mediaParser.ProcessData(buffer, 0, length);
+                    }
+                }
+            }
+            finally
+            {
+                mediaParser.ProcessEndOfData();
+
+                //Debug.WriteLine("SingleStreamMediaManager.ReadResponseAsync() done");
+            }
+        }
+
+        #region Nested type: QueueThrottle
+
+        sealed class QueueThrottle : IQueueThrottling
+        {
+            readonly AsyncManualResetEvent _event = new AsyncManualResetEvent();
+
+            public Task WaitAsync()
+            {
+                return _event.WaitAsync();
+            }
+
+            #region IQueueThrottling Members
+
+            public void Pause()
+            {
+                _event.Reset();
+            }
+
+            public void Resume()
+            {
+                _event.Set();
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region IMediaManager Members
 
         public void Dispose()
@@ -95,7 +367,13 @@ namespace SM.Media.MediaManager
 
         public MediaManagerState State
         {
-            get { lock (_lock) return _mediaState; }
+            get
+            {
+                lock (_lock)
+                {
+                    return _mediaState;
+                }
+            }
             private set { SetMediaState(value, null); }
         }
 
@@ -103,7 +381,7 @@ namespace SM.Media.MediaManager
         {
             get
             {
-                Task playingTask = null;
+                Task playingTask;
 
                 lock (_lock)
                 {
@@ -188,14 +466,11 @@ namespace SM.Media.MediaManager
                     }
                     finally
                     {
-                        if (null != webStream)
-                            webStream.Dispose();
+                        webStream?.Dispose();
 
-                        if (null != webReader)
-                            webReader.Dispose();
+                        webReader?.Dispose();
 
-                        if (null != playCancellationTokenSource)
-                            playCancellationTokenSource.Cancel();
+                        playCancellationTokenSource?.Cancel();
 
                         if (null != playTask)
                             TaskCollector.Default.Add(playTask, "SingleStreamMediaManager play task");
@@ -217,8 +492,7 @@ namespace SM.Media.MediaManager
                 playCancellationTokenSource = _playCancellationTokenSource;
             }
 
-            if (null != playCancellationTokenSource)
-                playCancellationTokenSource.Cancel();
+            playCancellationTokenSource?.Cancel();
 
             return playTask ?? TplTaskExtensions.CompletedTask;
         }
@@ -234,300 +508,6 @@ namespace SM.Media.MediaManager
         }
 
         public event EventHandler<MediaManagerStateEventArgs> OnStateChange;
-
-        #endregion
-
-        protected virtual void Dispose(bool disposing)
-        {
-            Debug.WriteLine("SingleStreamMediaManager.Dispose(bool)");
-
-            if (!disposing)
-                return;
-
-            if (null != OnStateChange)
-            {
-                Debug.WriteLine("SingleStreamMediaManager.Dispose(bool): OnStateChange is not null");
-
-                if (Debugger.IsAttached)
-                    Debugger.Break();
-
-                OnStateChange = null;
-            }
-
-            _mediaStreamConfigurator.MediaManager = null;
-
-            _reportStateTask.Dispose();
-
-            CancellationTokenSource pcts;
-
-            lock (_lock)
-            {
-                pcts = _playCancellationTokenSource;
-                _playCancellationTokenSource = null;
-            }
-
-            if (null != pcts)
-                pcts.Dispose();
-        }
-
-        Task ReportState()
-        {
-            Debug.WriteLine("SingleStreamMediaManager.ReportState() state {0} message {1}", _mediaState, _mediaStateMessage);
-
-            MediaManagerState state;
-            string message;
-
-            lock (_lock)
-            {
-                state = _mediaState;
-                message = _mediaStateMessage;
-                _mediaStateMessage = null;
-            }
-
-            var handlers = OnStateChange;
-
-            if (null != handlers)
-                handlers(this, new MediaManagerStateEventArgs(state, message));
-
-            if (null != message)
-            {
-                var mss = _mediaStreamConfigurator;
-
-                if (null != mss)
-                    mss.ReportError(message);
-            }
-
-            return TplTaskExtensions.CompletedTask;
-        }
-
-        void SetMediaState(MediaManagerState state, string message)
-        {
-            lock (_lock)
-            {
-                if (state == _mediaState)
-                    return;
-
-                Debug.WriteLine("SingleStreamMediaState.SetMediaState() {0} -> {1}", _mediaState, state);
-
-                _mediaState = state;
-
-                if (null != message)
-                    _mediaStateMessage = message;
-            }
-
-            _reportStateTask.Fire();
-        }
-
-        void CancelPlayback()
-        {
-            CancellationTokenSource playCancellationTokenSource;
-
-            lock (_lock)
-            {
-                playCancellationTokenSource = _playCancellationTokenSource;
-            }
-
-            if (null == playCancellationTokenSource)
-                return;
-
-            if (!playCancellationTokenSource.IsCancellationRequested)
-                playCancellationTokenSource.Cancel();
-        }
-
-        async Task SimplePlayAsync(ContentType contentType, IWebReader webReader, IWebStreamResponse webStreamResponse, WebResponse webResponse, TaskCompletionSource<bool> configurationTaskCompletionSource, CancellationToken cancellationToken)
-        {
-            try
-            {
-                _mediaStreamConfigurator.Initialize();
-
-                _mediaStreamConfigurator.MediaManager = this;
-
-                var mediaParser = await _mediaParserFactory.CreateAsync(new MediaParserParameters(), contentType, cancellationToken).ConfigureAwait(false);
-
-                if (null == mediaParser)
-                    throw new NotSupportedException("Unsupported content type: " + contentType);
-
-                State = MediaManagerState.Opening;
-
-                EventHandler configurationComplete = null;
-
-                configurationComplete = (sender, args) =>
-                {
-                    // ReSharper disable once AccessToModifiedClosure
-                    mediaParser.ConfigurationComplete -= configurationComplete;
-
-                    configurationTaskCompletionSource.TrySetResult(true);
-                };
-
-                mediaParser.ConfigurationComplete += configurationComplete;
-
-                using (var bufferingManager = _bufferingManagerFactory())
-                {
-                    var throttle = new QueueThrottle();
-
-                    bufferingManager.Initialize(throttle, _mediaStreamConfigurator.CheckForSamples);
-
-                    mediaParser.Initialize(bufferingManager);
-
-                    var streamMetadata = _webMetadataFactory.CreateStreamMetadata(webResponse);
-
-                    mediaParser.InitializeStream(streamMetadata);
-
-                    Task reader = null;
-
-                    try
-                    {
-                        using (webReader)
-                        {
-                            try
-                            {
-                                if (null == webStreamResponse)
-                                    webStreamResponse = await webReader.GetWebStreamAsync(null, false, cancellationToken, response: webResponse).ConfigureAwait(false);
-
-                                reader = ReadResponseAsync(mediaParser, webStreamResponse, webResponse, throttle, cancellationToken);
-
-                                await Task.WhenAny(configurationTaskCompletionSource.Task, cancellationToken.AsTask()).ConfigureAwait(false);
-
-                                cancellationToken.ThrowIfCancellationRequested();
-
-                                await _mediaStreamConfigurator.PlayAsync(mediaParser.MediaStreams, null, cancellationToken).ConfigureAwait(false);
-
-                                State = MediaManagerState.Playing;
-
-                                await reader.ConfigureAwait(false);
-
-                                reader = null;
-                            }
-                            finally
-                            {
-                                if (null != webStreamResponse)
-                                    webStreamResponse.Dispose();
-                            }
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    { }
-                    catch (Exception ex)
-                    {
-                        var message = ex.ExtendedMessage();
-
-                        Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() failed: " + message);
-
-                        SetMediaState(MediaManagerState.Error, message);
-                    }
-
-                    State = MediaManagerState.Closing;
-
-                    if (null != reader)
-                    {
-                        try
-                        {
-                            await reader.ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException)
-                        { }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() reader failed: " + ex.ExtendedMessage());
-                        }
-                    }
-
-                    mediaParser.ConfigurationComplete -= configurationComplete;
-
-                    mediaParser.EnableProcessing = false;
-                    mediaParser.FlushBuffers();
-
-                    bufferingManager.Flush();
-
-                    bufferingManager.Shutdown(throttle);
-
-                    await _mediaStreamConfigurator.CloseAsync().ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("SingleStreamMediaManager.SimplePlayAsync() cleanup failed: " + ex.ExtendedMessage());
-            }
-
-            _mediaStreamConfigurator.MediaManager = null;
-
-            if (!configurationTaskCompletionSource.Task.IsCompleted)
-                configurationTaskCompletionSource.TrySetCanceled();
-
-            State = MediaManagerState.Closed;
-
-            await _reportStateTask.WaitAsync().ConfigureAwait(false);
-        }
-
-        async Task ReadResponseAsync(IMediaParser mediaParser, IWebStreamResponse webStreamResponse, WebResponse webResponse, QueueThrottle throttle, CancellationToken cancellationToken)
-        {
-            //Debug.WriteLine("SingleStreamMediaManager.ReadResponseAsync()");
-
-            var buffer = new byte[16 * 1024];
-
-            var cancellationTask = cancellationToken.AsTask();
-
-            try
-            {
-                var segmentMetadata = _webMetadataFactory.CreateSegmentMetadata(webResponse);
-
-                mediaParser.StartSegment(segmentMetadata);
-
-                using (var stream = await webStreamResponse.GetStreamAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    for (; ; )
-                    {
-                        var waitTask = throttle.WaitAsync();
-
-                        if (!waitTask.IsCompleted)
-                        {
-                            await Task.WhenAny(waitTask, cancellationTask).ConfigureAwait(false);
-
-                            cancellationToken.ThrowIfCancellationRequested();
-                        }
-
-                        var length = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
-
-                        if (length <= 0)
-                            return;
-
-                        mediaParser.ProcessData(buffer, 0, length);
-                    }
-                }
-            }
-            finally
-            {
-                mediaParser.ProcessEndOfData();
-
-                //Debug.WriteLine("SingleStreamMediaManager.ReadResponseAsync() done");
-            }
-        }
-
-        #region Nested type: QueueThrottle
-
-        sealed class QueueThrottle : IQueueThrottling
-        {
-            readonly AsyncManualResetEvent _event = new AsyncManualResetEvent();
-
-            #region IQueueThrottling Members
-
-            public void Pause()
-            {
-                _event.Reset();
-            }
-
-            public void Resume()
-            {
-                _event.Set();
-            }
-
-            #endregion
-
-            public Task WaitAsync()
-            {
-                return _event.WaitAsync();
-            }
-        }
 
         #endregion
     }

@@ -1,5 +1,5 @@
 # Project Description
-HTTP Live Streaming (HLS) and MPEG-2 Transport Stream support for Windows Phone 7, Windows Phone 8,  Silverlight, and Windows 8.1/Windows Phone 8.1.
+HTTP Live Streaming (HLS) and MPEG-2 Transport Stream support for Windows Phone 8, Windows 8.1, and Windows Phone 8.1.  The legacy branch has support for Windows Phone 7 and Silverlight.
 
 A MediaStreamSource has been implemented that supports HTTP Live Streaming (HLS).  It supports playing MPEG-2 transport streams (.ts segments) containing H.264 video and MP3 or AAC audio as well as MP3 streams (.mp3 segments) and AAC streams (.aac segments) on Windows Phone 7, Windows Phone 8, Silverlight, and Windows 8.1/Windows Phone 8.1. Both live and prerecorded programs can be played, but seek only works for prerecorded programs.  Playback of "AES-128" mode encrypted streams is supported.
 
@@ -11,9 +11,12 @@ In addition to the formats supported on the other platforms, Windows 8.1 also su
 
 There are sample application for all but Silverlight that use the Player Framework ([http://playerframework.codeplex.com/](http://playerframework.codeplex.com/)). Both WP7 and WP8 have background audio player sample applications.  All of the platforms have sample code that initializes and plays media in a MediaElement.
 
-Visual Studio 2012 Professional or better (Express does not support Portable Class Libraries) and the Windows Phone 8 SDK is required.  Visual Studio 2013 Community or better is required for Windows 8.1 and Windows Phone 8.1.
+Visual Studio 2015 is required.
+
+For the legacy branch, Visual Studio 2012 Professional or better (Express does not support Portable Class Libraries) and the Windows Phone 8 SDK is required.
 
 See the [Documentation](Documentation) for more information.
+
 
 ## Limitations
 

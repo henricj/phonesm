@@ -3,7 +3,7 @@
   <Identity Name="0fd2b2ac-51f2-4efb-ade5-4f068687ff99" Publisher="CN=phonesm" Version="1.0.0.0" />
   <Properties>
     <DisplayName>SamplePlayer.Win81</DisplayName>
-    <PublisherDisplayName>henric</PublisherDisplayName>
+    <PublisherDisplayName>phonesm</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Prerequisites>

@@ -19,7 +19,7 @@
     <RestorePackages>true</RestorePackages>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
-    <PackageCertificateThumbprint>E6D64F163D83AFB2B7A15F1E7FC964ABFFCD89C8</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>579E3290CC6202DC2D401906ECEF7FE4B98B755C</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>

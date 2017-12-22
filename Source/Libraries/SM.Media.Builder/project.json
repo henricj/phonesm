@@ -1,9 +1,9 @@
 ﻿{
   "supports": {},
   "dependencies": {
-    "Autofac": "4.6.1",
+    "Autofac": "4.6.2",
     "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
-    "NETStandard.Library": "2.0.0"
+    "NETStandard.Library": "2.0.1"
   },
   "frameworks": {
     "netstandard1.2": {}

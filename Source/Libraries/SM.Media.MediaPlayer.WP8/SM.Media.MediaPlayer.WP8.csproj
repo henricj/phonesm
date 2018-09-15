@@ -103,9 +103,7 @@
     </SDKReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Net.Http, Version=1.5.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">

@@ -17,7 +17,7 @@
     <PackageCertificateKeyFile>HlsView.Win81_TemporaryKey.pfx</PackageCertificateKeyFile>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <PackageCertificateThumbprint>219689FC2E94BFBC1539AD3258D80507A442B4D2</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>7123B5ED75B6DCAE512A60B6D9EC11F02B9BFCC7</PackageCertificateThumbprint>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>

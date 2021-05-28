@@ -387,9 +387,6 @@
     <Compile Include="Web\WebReaderExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="System" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\Global\phonesm.snk">
       <Link>phonesm.snk</Link>
     </None>
